@@ -1,66 +1,49 @@
 
-# Affichage de la remise dans le tableau d'equipements (Vue d'ensemble)
 
-## Diagnostic
+# Correction du montant finance et de la marge dans le Recapitulatif financier
 
-Le composant `NewEquipmentSection.tsx` (onglet "Vue d'ensemble" du detail d'une offre) ne tient pas compte de la remise commerciale dans ses calculs. La fonction `calculateTotals()` (lignes 229-240) utilise `totalMonthlyPayment` directement dans la formule Grenke sans soustraire `discount_amount`.
+## Probleme
 
-Cela impacte la ligne TOTAUX du tableau :
-- **P.V. total** (montant finance) : affiche la valeur sans remise
-- **Marge (%)** : calculee sans remise
-- **Marge (euros)** : calculee sans remise
-- **Total mensuel** : affiche la mensualite avant remise
+Dans la carte "Recapitulatif financier" du calculateur :
+- **Montant total finance** (96 294,50 euros) ne tient pas compte de la remise -- il devrait etre recalcule via Grenke avec la mensualite remisee
+- **Marge apres remise** (ligne 440) utilise `displayedMarginAmount - discountAmount` ce qui est faux -- elle devrait etre `montant finance apres remise - prix d'achat total`
+- La carte "Impact sur la marge" affiche la bonne valeur car elle utilise la formule Grenke correctement
 
 ## Correction
 
-### Fichier : `src/components/offers/detail/NewEquipmentSection.tsx`
+### Fichier : `src/components/offer/FinancialSummary.tsx`
 
-#### 1. Calcul du montant finance (lignes 229-240)
+#### 1. Recalculer le montant finance quand une remise est active (lignes 363-371)
 
-Soustraire `discount_amount` de la mensualite avant d'appliquer la formule Grenke :
-
-```typescript
-// Avant
-effectiveFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
-
-// Apres
-const discountAmount = (offer as any).discount_amount || 0;
-const effectiveMonthly = totalMonthlyPayment - discountAmount;
-effectiveFinancedAmount = (effectiveMonthly * 100) / coefficient;
-```
-
-#### 2. Ligne TOTAUX - Mensualite (lignes 1071-1085)
-
-Afficher la mensualite avant remise barree et la mensualite apres remise si une remise est active :
+Quand `discountData` est present et actif, le montant finance affiche doit etre recalcule :
 
 ```
-Si discount_amount > 0 :
-  - Mensualite d'origine barree (totalMonthlyPayment)
-  - Mensualite remisee en gras (totalMonthlyPayment - discount_amount)
-Sinon :
-  - Mensualite normale (comportement actuel)
+montant finance apres remise = mensualite remisee x 100 / coefficient
 ```
 
-#### 3. Section remise commerciale (apres la ligne TOTAUX, avant la section Acompte, ligne 1094)
+Au lieu d'afficher `totalFinancedAmount` tel quel, afficher le montant recalcule.
 
-Ajouter un bloc visuel similaire a la section Acompte pour afficher les details de la remise :
+#### 2. Corriger la marge apres remise (ligne 440)
+
+Remplacer `displayedMarginAmount - discountData.discountAmount` par :
 
 ```
-Si offer.discount_amount > 0 :
-  - Fond bleu clair avec bordure
-  - Afficher : type de remise (% ou euros), valeur, montant de la remise
-  - Afficher : mensualite avant / apres remise
-  - Afficher : montant finance apres remise
+marge apres remise = montant finance apres remise - totalPurchasePrice
 ```
+
+Cela garantit la coherence avec la carte "Impact sur la marge" qui affiche deja la bonne valeur.
+
+#### 3. Meme correction pour le bloc `offerData` (lignes 178-186)
+
+Si `discountData` est passe dans le bloc `offerData`, appliquer la meme logique de recalcul.
 
 ## Fichier modifie
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/components/offers/detail/NewEquipmentSection.tsx` | Soustraire la remise dans calculateTotals(), afficher remise dans TOTAUX et section dediee |
+| `src/components/offer/FinancialSummary.tsx` | Recalculer montant finance et marge quand remise active, dans les deux branches (calculations et offerData) |
 
 ## Resultat attendu
 
-- Ligne TOTAUX : P.V. total, Marge %, Marge euros recalcules avec la remise
-- Mensualite totale : avant remise barree + apres remise en gras
-- Section "Remise commerciale" visible entre le tableau et la section Acompte
+- **Montant total finance** : passe de 96 294,50 euros a environ 91 472,17 euros (2826,73 x 100 / 3.09)
+- **Marge apres remise** : coherente avec la carte "Impact sur la marge" (32 192,17 euros au lieu de la valeur actuelle incorrecte)
