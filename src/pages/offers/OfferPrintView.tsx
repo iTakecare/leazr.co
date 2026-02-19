@@ -77,6 +77,11 @@ const OfferPrintView: React.FC = () => {
         contractDuration={offer.contract_duration || 36}
         fileFee={offer.file_fee || 0}
         insuranceCost={offer.insurance_cost || 0}
+        downPayment={Number((offer as any).down_payment) || 0}
+        discountAmount={Number((offer as any).discount_amount) || 0}
+        discountType={(offer as any).discount_type || undefined}
+        discountValue={Number((offer as any).discount_value) || undefined}
+        monthlyPaymentBeforeDiscount={Number((offer as any).monthly_payment_before_discount) || undefined}
         companyValues={offer.companies?.values || []}
         metrics={[
           { label: 'De clients satisfaits', value: '99.30%' },

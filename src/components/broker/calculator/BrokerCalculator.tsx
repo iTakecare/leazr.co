@@ -110,8 +110,11 @@ const BrokerCalculator: React.FC = () => {
   // Total monthly payment from equipment list
   const totalMonthlyPayment = selectedResult ? selectedResult.monthlyPayment : 0;
   
-  // Calculate annual insurance
-  const annualInsurance = calculateAnnualInsurance(totalMonthlyPayment, selectedDuration);
+  // Calculate annual insurance (use discounted monthly if applicable)
+  const effectiveMonthlyForInsurance = globalDiscount.enabled && globalDiscount.discountAmount > 0
+    ? totalMonthlyPayment - globalDiscount.discountAmount
+    : totalMonthlyPayment;
+  const annualInsurance = calculateAnnualInsurance(effectiveMonthlyForInsurance, selectedDuration);
   
   // Calculate commission if ambassador offer
   const commission = useOfferCommissionCalculator({

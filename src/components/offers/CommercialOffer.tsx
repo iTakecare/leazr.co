@@ -40,6 +40,12 @@ interface CommercialOfferProps {
   adjustedMonthlyPayment?: number;
   financedAmountAfterDownPayment?: number;
   
+  // Remise commerciale
+  discountAmount?: number;
+  discountType?: 'percentage' | 'amount';
+  discountValue?: number;
+  monthlyPaymentBeforeDiscount?: number;
+  
   // Valeurs entreprise
   companyValues?: Array<{
     title: string;
@@ -184,6 +190,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   downPayment = 0,
   adjustedMonthlyPayment,
   financedAmountAfterDownPayment,
+  discountAmount = 0,
+  discountType,
+  discountValue,
+  monthlyPaymentBeforeDiscount,
   companyValues = [],
   metrics = [],
   partnerLogos = [],
@@ -536,9 +546,15 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               {/* Total Section - Uniquement sur la dernière page de produits */}
               {isLastProductPage && (() => {
                 const hasDownPayment = (downPayment || 0) > 0;
-                const displayMonthlyPayment = hasDownPayment && adjustedMonthlyPayment 
+                const hasDiscount = (discountAmount || 0) > 0;
+                // Apply discount to the monthly payment
+                let displayMonthlyPayment = hasDownPayment && adjustedMonthlyPayment 
                   ? adjustedMonthlyPayment 
                   : totalMonthly;
+                const monthlyBeforeDiscount = displayMonthlyPayment;
+                if (hasDiscount) {
+                  displayMonthlyPayment = displayMonthlyPayment - discountAmount;
+                }
                 
                 return (
                 <div style={{
@@ -589,6 +605,48 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Bloc Remise commerciale - si présent */}
+                  {hasDiscount && !isPurchase && (
+                    <div style={{
+                      marginBottom: styles.spacing.lg,
+                      padding: styles.spacing.md,
+                      backgroundColor: '#FEE2E2',
+                      borderRadius: styles.borderRadius.md,
+                      borderLeft: '4px solid #EF4444',
+                    }}>
+                      <p style={{ 
+                        fontWeight: '600', 
+                        color: '#991B1B', 
+                        marginBottom: styles.spacing.sm,
+                        fontSize: styles.fontSize.sm,
+                      }}>
+                        🏷️ Remise commerciale{discountType === 'percentage' && discountValue ? ` (${discountValue}%)` : ''}
+                      </p>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        marginBottom: styles.spacing.xs,
+                        fontSize: styles.fontSize.sm,
+                      }}>
+                        <span style={{ color: '#991B1B' }}>Mensualité avant remise :</span>
+                        <span style={{ 
+                          fontWeight: '400', 
+                          color: '#991B1B',
+                          textDecoration: 'line-through',
+                          opacity: 0.7,
+                        }}>{formatCurrency(monthlyBeforeDiscount)}</span>
+                      </div>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        fontSize: styles.fontSize.sm,
+                      }}>
+                        <span style={{ color: '#991B1B' }}>Remise :</span>
+                        <span style={{ fontWeight: '600', color: '#991B1B' }}>-{formatCurrency(discountAmount)}</span>
+                      </div>
+                    </div>
+                  )}
                   
                   <div style={{
                     display: 'flex',
@@ -604,7 +662,9 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       }}>
                         {isPurchase 
                           ? 'Total HTVA' 
-                          : (hasDownPayment ? 'Mensualité HTVA (après acompte)' : 'Mensualité HTVA')
+                          : (hasDiscount 
+                              ? (hasDownPayment ? 'Mensualité HTVA (après acompte et remise)' : 'Mensualité HTVA (après remise)')
+                              : (hasDownPayment ? 'Mensualité HTVA (après acompte)' : 'Mensualité HTVA'))
                         }
                       </p>
                       <p style={{

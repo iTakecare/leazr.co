@@ -358,6 +358,12 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         adjustedMonthlyPayment: adjustedMonthlyPayment,
         financedAmountAfterDownPayment: financedAmountAfterDownPayment,
         
+        // Remise commerciale
+        discountAmount: Number((offer as any).discount_amount) || 0,
+        discountType: (offer as any).discount_type || undefined,
+        discountValue: Number((offer as any).discount_value) || undefined,
+        monthlyPaymentBeforeDiscount: Number((offer as any).monthly_payment_before_discount) || undefined,
+        
         // Logos partenaires
         partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
         

@@ -40,6 +40,10 @@ interface CommercialOfferData {
   downPayment?: number;
   adjustedMonthlyPayment?: number;
   financedAmountAfterDownPayment?: number;
+  discountAmount?: number;
+  discountType?: 'percentage' | 'amount';
+  discountValue?: number;
+  monthlyPaymentBeforeDiscount?: number;
   partnerLogos: string[];
   companyValues: Array<{
     title: string;
@@ -241,6 +245,10 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
       downPayment: downPayment,
       adjustedMonthlyPayment: adjustedMonthlyPayment,
       financedAmountAfterDownPayment: financedAmountAfterDownPayment,
+      discountAmount: Number(offerData.discount_amount) || 0,
+      discountType: (offerData as any).discount_type || undefined,
+      discountValue: Number((offerData as any).discount_value) || undefined,
+      monthlyPaymentBeforeDiscount: Number((offerData as any).monthly_payment_before_discount) || undefined,
       partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
       companyValues: companyValuesData?.map(v => ({
         title: v.title,
