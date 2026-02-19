@@ -424,6 +424,24 @@ const CreateOffer = () => {
               console.log("💰 STEP 3: Loading down payment:", offer.down_payment);
               setDownPayment(parseFloat(offer.down_payment) || 0);
             }
+
+            // Charger la remise commerciale si présente
+            if (offer.discount_amount && offer.discount_amount > 0) {
+              console.log("🏷️ STEP 3: Loading commercial discount:", {
+                type: offer.discount_type,
+                value: offer.discount_value,
+                amount: offer.discount_amount,
+                beforeDiscount: offer.monthly_payment_before_discount
+              });
+              setGlobalDiscount({
+                enabled: true,
+                type: offer.discount_type || 'percentage',
+                value: offer.discount_value || 0,
+                discountAmount: offer.discount_amount,
+                monthlyPaymentBeforeDiscount: offer.monthly_payment_before_discount || 0,
+                monthlyPaymentAfterDiscount: (offer.monthly_payment_before_discount || 0) - offer.discount_amount,
+              });
+            }
             
             console.log("🏁 STEP 3: Offer loading completed successfully");
             toast.success("Offre chargée avec succès");

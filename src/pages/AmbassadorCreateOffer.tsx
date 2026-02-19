@@ -193,6 +193,24 @@ const AmbassadorCreateOffer = () => {
         if (offerData.remarks) {
           setRemarks(offerData.remarks);
         }
+
+        // 5b. Charger la remise commerciale si présente
+        if (offerData.discount_amount && offerData.discount_amount > 0) {
+          console.log("🏷️ Loading commercial discount:", {
+            type: offerData.discount_type,
+            value: offerData.discount_value,
+            amount: offerData.discount_amount,
+            beforeDiscount: offerData.monthly_payment_before_discount
+          });
+          setGlobalDiscount({
+            enabled: true,
+            type: offerData.discount_type || 'percentage',
+            value: offerData.discount_value || 0,
+            discountAmount: offerData.discount_amount,
+            monthlyPaymentBeforeDiscount: offerData.monthly_payment_before_discount || 0,
+            monthlyPaymentAfterDiscount: (offerData.monthly_payment_before_discount || 0) - offerData.discount_amount,
+          });
+        }
         
         // 6. Charger les équipements
         const equipmentData = await getOfferEquipment(editId);
