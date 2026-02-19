@@ -1,67 +1,67 @@
 
+# Correction de la remise commerciale : sauvegarde et affichage
 
-# Affichage de la remise dans le detail et la liste des demandes
+## Probleme racine
 
-## Diagnostic
+La remise est sauvegardee en base comme metadata (`discount_amount=297.55`, `discount_type=percentage`, etc.) mais le champ `monthly_payment` n'est **jamais reduit**. En base : `monthly_payment = 2975.50` et `monthly_payment_before_discount = 2975.50` -- identiques.
 
-La remise est bien enregistree en base de donnees (verifie : `discount_type=percentage`, `discount_value=10`, `discount_amount=297.55`, `monthly_payment_before_discount=2975.5`). Le probleme est purement cote affichage : aucun composant ne lit ces champs pour les montrer.
+Cela signifie que partout dans l'application (liste, detail, montant finance, marge), la mensualite utilisee est toujours la mensualite d'origine, et la remise n'a aucun effet reel sur les calculs affiches.
 
-**3 zones a corriger :**
+## Corrections
 
-1. **Page de detail - Resume financier** (`FinancialSection.tsx`) : n'utilise pas les champs `discount_*` de l'offre. La mensualite et la marge sont affichees sans tenir compte de la remise.
+### 1. `src/pages/CreateOffer.tsx` (sauvegarde) - CORRECTION PRINCIPALE
 
-2. **Liste des demandes** (`OffersTable.tsx`) : la colonne "Mensualite" affiche la mensualite brute, sans indication de remise.
+Ligne 748 : `monthly_payment` est defini comme `totalMonthlyPayment` (la mensualite avant remise). Il faut soustraire la remise :
 
-3. **Composant `FinancialSummaryCard.tsx`** : contient deja le code d'affichage de la remise, mais n'est importe nulle part dans l'application.
+```
+monthly_payment = globalDiscount.enabled
+  ? totalMonthlyPayment - (globalDiscount.discountAmount || 0)
+  : totalMonthlyPayment
+```
 
----
+De meme, le `financed_amount` (ligne 754) et la `margin` (ligne 759) doivent etre recalcules avec la mensualite remisee pour que la base reflète la realite financiere.
 
-## Corrections prevues
+### 2. `src/components/offers/OffersTable.tsx` (liste des demandes)
 
-### 1. `src/components/offers/detail/FinancialSection.tsx`
+Lignes 228-246 : Les calculs de `effectiveFinancedAmount`, `adjustedMonthlyPayment` et `marginInEuros` ne tiennent pas compte de la remise.
 
-Dans la carte "Mensualite totale" (lignes 304-318), ajouter la logique de remise :
+**Corrections :**
+- `effectiveFinancedAmount` : si une remise est presente et que `monthly_payment` est deja la valeur remisee (apres correction 1), le montant finance sera automatiquement correct via la formule Grenke
+- Pour les offres existantes deja en base avec l'ancien bug : ajouter un fallback qui soustrait `discount_amount` de la mensualite pour recalculer le montant finance
+- `marginInEuros` : recalculer comme `effectiveFinancedAmount - total_purchase_price`
+- `margin_percentage` : recalculer comme `marginInEuros / total_purchase_price * 100`
+- Ligne 631 : la mensualite barree doit afficher `monthly_payment_before_discount`, et la mensualite finale doit afficher la mensualite remisee (verification que les deux sont bien differentes)
 
-- Lire `offer.discount_type`, `offer.discount_value`, `offer.discount_amount`, `offer.monthly_payment_before_discount`
-- Si `discount_amount > 0` :
-  - Afficher la mensualite avant remise barree
-  - Ligne "Remise" avec le montant et le type (ex: "-297,55 euros (10%)")
-  - Mensualite apres remise en gras
-- Dans la carte "Marge totale", recalculer la marge apres remise avec la formule Grenke :
-  - `Marge apres remise = (mensualite apres remise x 100 / coefficient) - prix d'achat total`
-  - Afficher les deux marges (avant/apres) si remise active
+### 3. `src/components/offers/detail/FinancialSection.tsx` (detail Financier)
 
-### 2. `src/components/offers/OffersTable.tsx`
+- Le calcul de `effectiveFinancedAmount` (lignes 227-228) utilise `totals.totalMonthlyPayment` qui vient des equipements (sans remise). Il faut soustraire la remise :
 
-Dans la cellule "Mensualite" (lignes 626-633) :
+```
+Si offer.discount_amount > 0 :
+  mensualite effective = totals.totalMonthlyPayment - offer.discount_amount
+  montant finance = mensualite effective * 100 / coefficient
+```
 
-- Lire `offer.discount_amount` et `offer.monthly_payment_before_discount`
-- Si remise active :
-  - Afficher la mensualite avant remise barree en petit
-  - Mensualite apres remise en dessous
-  - Petit badge colore "Remise" ou indicateur visuel (point bleu comme pour l'acompte)
+- La carte "Montant finance" (ligne 420) affichera alors le bon montant
+- La marge sera recalculee sur la base du montant finance remise
 
-### 3. Pas de modification sur `FinancialSummaryCard.tsx`
+### 4. `src/components/ambassador/AmbassadorOfferSaveLogic.tsx` et `src/components/broker/calculator/BrokerCalculator.tsx`
 
-Ce composant n'est utilise nulle part et ne sera pas modifie. L'affichage sera integre directement dans `FinancialSection.tsx` qui est le composant actif.
-
----
+Meme correction que pour CreateOffer : appliquer la remise au `monthly_payment` sauvegarde.
 
 ## Fichiers modifies
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/components/offers/detail/FinancialSection.tsx` | Afficher remise dans mensualite + impact marge |
-| `src/components/offers/OffersTable.tsx` | Afficher remise dans la colonne mensualite |
-
----
+| `src/pages/CreateOffer.tsx` | Sauvegarder `monthly_payment` = mensualite - remise. Recalculer `financed_amount` et `margin` en consequence. |
+| `src/components/offers/OffersTable.tsx` | Recalculer montant finance, marge euros et marge % en tenant compte de la remise pour les offres existantes. Corriger l'affichage barree/finale dans la colonne mensualite. |
+| `src/components/offers/detail/FinancialSection.tsx` | Soustraire la remise de la mensualite avant le calcul du montant finance et de la marge. |
+| `src/components/ambassador/AmbassadorOfferSaveLogic.tsx` | Appliquer la remise au monthly_payment sauvegarde. |
+| `src/components/broker/calculator/BrokerCalculator.tsx` | Appliquer la remise au monthly_payment sauvegarde. |
 
 ## Resultat attendu
 
-### Detail de l'offre
-- Carte "Mensualite totale" : mensualite d'origine barree, ligne remise, mensualite finale
-- Carte "Marge totale" : marge recalculee apres remise (formule Grenke)
-
-### Liste des demandes
-- Colonne "Mensualite" : mensualite d'origine barree + mensualite finale, avec indicateur visuel de remise
-
+- **Sauvegarde** : `monthly_payment` en base = mensualite apres remise (ex: 2677.95), `monthly_payment_before_discount` = mensualite d'origine (ex: 2975.50)
+- **Liste** : Mensualite d'origine barree (2975.50), mensualite remisee en dessous (2677.95), montant finance, marge euros et marge % recalcules
+- **Detail Financier** : Montant finance = 2677.95 x 100 / 3.09 = 86 663.43 euros (et non 96 294.50), marge recalculee en consequence
+- **Vue d'ensemble** : La marge globale et les totaux refletent la remise
