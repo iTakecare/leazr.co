@@ -127,9 +127,13 @@ export const useAmbassadorOfferSave = ({
         client_email: client.email || null,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
-        monthly_payment: totalMonthlyPayment,
+        monthly_payment: discountData?.enabled && discountData.discountAmount
+          ? totalMonthlyPayment - discountData.discountAmount
+          : totalMonthlyPayment,
         commission: calculatedCommission,
-        financed_amount: financedAmount,
+        financed_amount: discountData?.enabled && discountData.discountAmount
+          ? ((totalMonthlyPayment - discountData.discountAmount) * 100) / (globalMarginAdjustment.newCoef || currentCoefficient)
+          : financedAmount,
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: userId,

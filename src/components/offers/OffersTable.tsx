@@ -628,10 +628,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
                       {offer.discount_amount && offer.discount_amount > 0 ? (
                         <>
                           <span className="text-[10px] text-muted-foreground line-through">
-                            {formatCurrency(offer.monthly_payment_before_discount || offer.adjustedMonthlyPayment)}
+                            {formatCurrency(offer.monthly_payment_before_discount || (offer.adjustedMonthlyPayment + offer.discount_amount))}
                           </span>
                           <div className="flex items-center gap-1">
-                            {formatCurrency(offer.is_purchase ? 0 : offer.adjustedMonthlyPayment)}
+                            {formatCurrency(offer.is_purchase ? 0 : (offer.adjustedMonthlyPayment - (offer.monthly_payment_before_discount ? offer.discount_amount : 0)))}
                             <span className="text-blue-500 text-[9px]" title={`Remise ${offer.discount_type === 'percentage' ? offer.discount_value + '%' : formatCurrency(offer.discount_value)}`}>🏷️</span>
                           </div>
                         </>

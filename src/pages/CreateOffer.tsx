@@ -745,13 +745,17 @@ const CreateOffer = () => {
           ? 0 
           : productsToBeDetermined 
             ? ((estimatedBudget || 0) * getMaxCoefficientFromLeaser(selectedLeaser)) / 100
-            : (totalMonthlyPayment || 0),
+            : globalDiscount.enabled && globalDiscount.discountAmount
+              ? (totalMonthlyPayment || 0) - globalDiscount.discountAmount
+              : (totalMonthlyPayment || 0),
         commission: calculatedCommission || 0,
         financed_amount: isPurchase 
-          ? totalSaleAmountForPurchase  // En achat: utiliser le montant financé du leasing
+          ? totalSaleAmountForPurchase
           : productsToBeDetermined 
             ? (estimatedBudget || 0) 
-            : (financedAmount || 0),
+            : globalDiscount.enabled && globalDiscount.discountAmount
+              ? (((totalMonthlyPayment || 0) - globalDiscount.discountAmount) * 100) / (Number(globalMarginAdjustment.newCoef) || 3.55)
+              : (financedAmount || 0),
         remarks: remarks,
         type: offerType,
         // En mode édition, ne jamais toucher au workflow_status ; en création, mettre 'draft'
