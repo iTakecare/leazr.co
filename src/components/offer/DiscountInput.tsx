@@ -20,6 +20,8 @@ export interface DiscountData {
 interface DiscountInputProps {
   monthlyPayment: number; // Mensualité totale avant remise
   margin?: number; // Marge totale (pour avertissement)
+  coefficient?: number; // Coefficient du bailleur pour recalcul de la marge
+  totalPurchasePrice?: number; // Prix d'achat total des équipements
   discountData: DiscountData;
   onDiscountChange: (data: DiscountData) => void;
   showMarginImpact?: boolean; // Afficher l'impact sur la marge (admin uniquement)
@@ -30,12 +32,31 @@ interface DiscountInputProps {
 const DiscountInput: React.FC<DiscountInputProps> = ({
   monthlyPayment,
   margin = 0,
+  coefficient = 0,
+  totalPurchasePrice = 0,
   discountData,
   onDiscountChange,
   showMarginImpact = true,
   label = "Remise commerciale",
   compact = false,
 }) => {
+  // Calcul correct de la marge via la formule Grenke
+  const canCalculateRealMargin = coefficient > 0 && totalPurchasePrice > 0;
+  
+  const marginBeforeEuro = canCalculateRealMargin
+    ? (monthlyPayment * 100 / coefficient) - totalPurchasePrice
+    : margin;
+  const marginBeforePercent = canCalculateRealMargin && totalPurchasePrice > 0
+    ? (marginBeforeEuro / totalPurchasePrice) * 100
+    : 0;
+
+  const discountedMonthly = discountData.monthlyPaymentAfterDiscount;
+  const marginAfterEuro = canCalculateRealMargin
+    ? (discountedMonthly * 100 / coefficient) - totalPurchasePrice
+    : margin - discountData.discountAmount;
+  const marginAfterPercent = canCalculateRealMargin && totalPurchasePrice > 0
+    ? (marginAfterEuro / totalPurchasePrice) * 100
+    : 0;
   const handleToggle = (enabled: boolean) => {
     if (!enabled) {
       onDiscountChange({
@@ -98,7 +119,7 @@ const DiscountInput: React.FC<DiscountInputProps> = ({
     }
   }, [monthlyPayment]);
 
-  const exceedsMargin = discountData.discountAmount > margin && margin > 0;
+  const exceedsMargin = marginAfterEuro < 0;
 
   if (compact) {
     return (
@@ -255,9 +276,9 @@ const DiscountInput: React.FC<DiscountInputProps> = ({
                     Impact sur la marge
                   </div>
                   <div className={`text-xs mt-1 ${exceedsMargin ? 'text-red-700' : 'text-amber-700'}`}>
-                    Marge avant remise : {formatCurrency(margin)}
+                    Marge avant remise : {formatCurrency(marginBeforeEuro)} {canCalculateRealMargin && `(${marginBeforePercent.toFixed(2)}%)`}
                     <br />
-                    Marge après remise : {formatCurrency(Math.max(0, margin - discountData.discountAmount))}
+                    Marge après remise : {formatCurrency(Math.max(0, marginAfterEuro))} {canCalculateRealMargin && `(${marginAfterPercent.toFixed(2)}%)`}
                     {exceedsMargin && (
                       <>
                         <br />

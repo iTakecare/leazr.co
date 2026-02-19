@@ -971,6 +971,8 @@ const CreateOffer = () => {
                           <DiscountInput
                             monthlyPayment={totalMonthlyPayment}
                             margin={totalEquipmentMargin}
+                            coefficient={Number(coefficient) || 0}
+                            totalPurchasePrice={calculations?.totalPurchasePrice || 0}
                             discountData={globalDiscount}
                             onDiscountChange={setGlobalDiscount}
                             showMarginImpact={true}
