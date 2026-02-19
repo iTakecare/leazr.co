@@ -171,17 +171,18 @@ const getResponsiveStyle = (isPDFMode: boolean) => ({
 });
 
 const StrikePrice = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-  <span style={{ position: 'relative' as const, display: 'inline-block', ...style }}>
-    {children}
-    <span style={{
+  <div style={{ position: 'relative' as const, display: 'inline-block', ...style }}>
+    <div>{children}</div>
+    <div style={{
       position: 'absolute' as const,
       left: 0,
       right: 0,
-      top: '50%',
-      height: '1px',
-      background: 'currentColor',
+      top: 0,
+      height: '50%',
+      borderBottom: '1.5px solid #6B7280',
+      pointerEvents: 'none' as const,
     }} />
-  </span>
+  </div>
 );
 
 const CommercialOffer: React.FC<CommercialOfferProps> = ({
