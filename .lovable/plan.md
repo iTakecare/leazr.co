@@ -1,77 +1,41 @@
 
+# Correction visuelle du prix barré dans le PDF
 
-# Affichage de la remise sur les prix individuels et correction du total
+## Problème
 
-## Probleme
+La ligne de `text-decoration: line-through` apparaît trop haute visuellement. Cela se produit car le texte barré a une taille de police différente (`fontSize.sm`) à l'intérieur d'un conteneur plus grand (`fontSize.lg`), ce qui décale la ligne de barrage.
 
-1. **Double soustraction** : `totalMonthly` en DB = 2 767,22 euros (deja remise). Le composant soustrait encore `discountAmount` (208,29 euros), affichant 2 558,93 euros (faux).
-2. **Prix individuels** : Les mensualites par equipement ne montrent pas la remise -- pas de prix barre ni de montant remise.
+## Solution
 
-## Corrections
+Remplacer `text-decoration: line-through` par une approche CSS manuelle avec un trait positionné via `background` + `linear-gradient` ou en séparant les prix barrés sur leur propre ligne au-dessus du prix remisé. La seconde approche est plus claire visuellement et évite les problèmes d'alignement.
 
 ### Fichier : `src/components/offers/CommercialOffer.tsx`
 
-#### 1. Corriger le calcul du total (lignes 547-557)
+#### Prix unitaire (lignes 516-530)
+Séparer le prix barré sur sa propre ligne au-dessus du prix remisé, au lieu de les mettre côte à côte :
 
-Le `totalMonthly` est DEJA la mensualite apres remise. Il ne faut plus soustraire :
-
-```
-// AVANT (faux - double soustraction)
-let displayMonthlyPayment = totalMonthly;
-const monthlyBeforeDiscount = displayMonthlyPayment;
-if (hasDiscount) {
-  displayMonthlyPayment = displayMonthlyPayment - discountAmount;
-}
-
-// APRES (correct)
-let displayMonthlyPayment = totalMonthly; // deja remise
-const monthlyBeforeDiscount = monthlyPaymentBeforeDiscount || totalMonthly;
-// Pas de soustraction supplementaire
+```text
+AVANT :  44,95 € 41,80 € HTVA/mois • unitaire (même ligne)
+APRES :  44,95 €  (barré, propre ligne, petite taille)
+         41,80 € HTVA/mois • unitaire (ligne suivante)
 ```
 
-#### 2. Appliquer la remise proportionnelle aux lignes d'equipement (lignes 502-531)
+#### Prix total (lignes 531-557)
+Même approche pour le total par équipement :
 
-Calculer un ratio de remise et afficher pour chaque equipement :
-- Le prix original barre
-- Le prix remise en dessous
-
-```
-const hasActiveDiscount = hasDiscount && monthlyPaymentBeforeDiscount > 0;
-const discountRatio = hasActiveDiscount
-  ? totalMonthly / monthlyPaymentBeforeDiscount
-  : 1;
-
-// Par ligne d'equipement :
-const originalMonthly = item.monthlyPayment / discountRatio; // prix d'origine
-const discountedMonthly = item.monthlyPayment; // prix remise (deja en DB)
+```text
+AVANT :  899,00 € 836,07 € HTVA/mois (même ligne, tailles mixtes)
+APRES :  899,00 €  (barré, propre ligne, taille uniforme)
+         836,07 € HTVA/mois (ligne suivante, gros et bleu)
 ```
 
-Affichage par ligne :
-- Prix unitaire original barre + prix unitaire remise
-- Total ligne original barre + total ligne remise
+En mettant chaque prix barré sur sa propre ligne avec une taille de police cohérente, le `line-through` sera correctement centré sur le texte.
 
-#### 3. Corriger le bloc "Remise commerciale" (lignes 632-638)
+## Détails techniques
 
-Utiliser `monthlyBeforeDiscount` = `monthlyPaymentBeforeDiscount` (la prop) au lieu de la valeur calculee localement :
+Restructurer le rendu JSX des deux blocs (unitaire et total) pour :
+1. Afficher le prix original barré dans un `div` dédié (pas un `span` inline)
+2. Utiliser la même `fontSize` pour le texte et sa décoration `line-through`
+3. Afficher le prix remisé dans un `div` séparé en dessous
 
-```
-// Mensualite avant remise : utiliser la prop
-{formatCurrency(monthlyBeforeDiscount)} // = monthlyPaymentBeforeDiscount = 2975.50
-```
-
-## Fichier modifie
-
-| Fichier | Modification |
-|---------|-------------|
-| `src/components/offers/CommercialOffer.tsx` | Supprimer la double soustraction, ajouter prix barres individuels, corriger le bloc remise |
-
-## Resultat attendu
-
-Pour chaque equipement :
-- ~~899,00 euros~~ -> 836,xx euros HTVA/mois (prix remise)
-
-Bloc total :
-- "Mensualite avant remise : ~~2 975,50 euros~~"
-- "Remise : -208,29 euros"
-- Total affiche : **2 767,22 euros** (correct, sans double soustraction)
-
+Seul le fichier `src/components/offers/CommercialOffer.tsx` est modifié (lignes 514-557).
