@@ -15,6 +15,10 @@ interface FinancialSummaryCardProps {
   fileFee?: number;
   annualInsurance?: number;
   downPayment?: number;
+  discountType?: string;
+  discountValue?: number;
+  discountAmount?: number;
+  monthlyPaymentBeforeDiscount?: number;
 }
 
 const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
@@ -27,7 +31,11 @@ const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   coefficient,
   fileFee,
   annualInsurance,
-  downPayment
+  downPayment,
+  discountType,
+  discountValue,
+  discountAmount,
+  monthlyPaymentBeforeDiscount
 }) => {
   console.log("🔍 FinancialSummaryCard - Props received:", {
     monthlyPayment,
@@ -47,17 +55,37 @@ const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Mensualité - Information principale */}
-        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-          <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-blue-600" />
-            <div>
-              <div className="text-2xl font-bold text-blue-900">
-                {formatCurrency(monthlyPayment)}
+        {discountAmount && discountAmount > 0 ? (
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 space-y-2">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              <div>
+                <div className="text-lg text-blue-700 line-through opacity-70">
+                  {formatCurrency(monthlyPaymentBeforeDiscount || monthlyPayment)}
+                </div>
+                <div className="text-sm text-red-600 font-medium">
+                  🏷️ Remise {discountType === 'percentage' ? `(${discountValue}%)` : ''} : -{formatCurrency(discountAmount)}
+                </div>
+                <div className="text-2xl font-bold text-blue-900">
+                  {formatCurrency((monthlyPaymentBeforeDiscount || monthlyPayment) - discountAmount)}
+                </div>
+                <div className="text-sm text-blue-700">Mensualité client (après remise)</div>
               </div>
-              <div className="text-sm text-blue-700">Mensualité client</div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              <div>
+                <div className="text-2xl font-bold text-blue-900">
+                  {formatCurrency(monthlyPayment)}
+                </div>
+                <div className="text-sm text-blue-700">Mensualité client</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Autres informations financières */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

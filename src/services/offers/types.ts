@@ -42,6 +42,10 @@ export interface OfferData {
   annual_insurance?: number; // Assurance annuelle
   is_purchase?: boolean; // true = achat direct (sans financement), false = leasing (défaut)
   down_payment?: number; // Acompte versé par le client, diminue le montant financé
+  discount_type?: string; // 'percentage' ou 'amount'
+  discount_value?: number; // Valeur de la remise (ex: 10 pour 10%, ou 50 pour 50€)
+  discount_amount?: number; // Montant de la remise calculé en euros
+  monthly_payment_before_discount?: number; // Mensualité avant remise
   // Equipment is used for processing but not sent to DB directly
   equipment?: Array<{
     id?: string;

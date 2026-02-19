@@ -23,7 +23,15 @@ interface AmbassadorOfferSaveLogicProps {
   totalMargin?: number;
   selectedLeaser?: any;
   selectedDuration?: number;
-  editId?: string; // ID de l'offre en mode édition
+  editId?: string;
+  discountData?: {
+    enabled: boolean;
+    type: 'percentage' | 'amount';
+    value: number;
+    discountAmount: number;
+    monthlyPaymentBeforeDiscount: number;
+    monthlyPaymentAfterDiscount: number;
+  };
 }
 
 export const useAmbassadorOfferSave = ({
@@ -40,7 +48,8 @@ export const useAmbassadorOfferSave = ({
   totalMargin = 0,
   selectedLeaser,
   selectedDuration = 36,
-  editId
+  editId,
+  discountData
 }: AmbassadorOfferSaveLogicProps) => {
   const navigate = useNavigate();
   const { navigateToAmbassador } = useRoleNavigation();
@@ -130,7 +139,11 @@ export const useAmbassadorOfferSave = ({
         total_margin_with_difference: totalMarginWithDifference,
         margin: marginAmount,
         leaser_id: selectedLeaser?.id,
-        duration: selectedDuration
+        duration: selectedDuration,
+        discount_type: discountData?.enabled ? discountData.type : null,
+        discount_value: discountData?.enabled ? discountData.value : null,
+        discount_amount: discountData?.enabled ? discountData.discountAmount : null,
+        monthly_payment_before_discount: discountData?.enabled ? discountData.monthlyPaymentBeforeDiscount : null,
       };
       
       let offerId: string;

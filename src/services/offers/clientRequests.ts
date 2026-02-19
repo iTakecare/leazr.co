@@ -72,7 +72,8 @@ export const createClientRequest = async (data: any, cartItems?: any[]) => {
       'total_margin_with_difference', 'company_id', 'client_name', 'client_email',
       'equipment_description', 'status', 'workflow_status', 'type', 'previous_status',
       'remarks', 'signature_data', 'signer_name', 'commission_status', 'signer_ip',
-      'internal_score', 'leaser_score', 'leaser_id'
+      'internal_score', 'leaser_score', 'leaser_id',
+      'discount_type', 'discount_value', 'discount_amount', 'monthly_payment_before_discount'
     ];
     
     // Filtrer les données pour ne garder que les champs valides

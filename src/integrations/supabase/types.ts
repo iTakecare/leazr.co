@@ -4885,12 +4885,16 @@ export type Database = {
           delivery_postal_code: string | null
           delivery_site_id: string | null
           delivery_type: string | null
+          discount_amount: number | null
+          discount_type: string | null
+          discount_value: number | null
           duration: number
           id: string
           image_url: string | null
           is_part_of_custom_pack: boolean | null
           margin: number
           monthly_payment: number | null
+          monthly_payment_before_discount: number | null
           offer_id: string
           order_date: string | null
           order_notes: string | null
@@ -4925,12 +4929,16 @@ export type Database = {
           delivery_postal_code?: string | null
           delivery_site_id?: string | null
           delivery_type?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           duration?: number
           id?: string
           image_url?: string | null
           is_part_of_custom_pack?: boolean | null
           margin?: number
           monthly_payment?: number | null
+          monthly_payment_before_discount?: number | null
           offer_id: string
           order_date?: string | null
           order_notes?: string | null
@@ -4965,12 +4973,16 @@ export type Database = {
           delivery_postal_code?: string | null
           delivery_site_id?: string | null
           delivery_type?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           duration?: number
           id?: string
           image_url?: string | null
           is_part_of_custom_pack?: boolean | null
           margin?: number
           monthly_payment?: number | null
+          monthly_payment_before_discount?: number | null
           offer_id?: string
           order_date?: string | null
           order_notes?: string | null
@@ -5340,6 +5352,9 @@ export type Database = {
           contract_terms: string | null
           converted_to_contract: boolean
           created_at: string | null
+          discount_amount: number | null
+          discount_type: string | null
+          discount_value: number | null
           documents_last_uploaded_at: string | null
           documents_last_viewed_at: string | null
           dossier_number: string | null
@@ -5357,6 +5372,7 @@ export type Database = {
           margin: number | null
           margin_difference: number | null
           monthly_payment: number
+          monthly_payment_before_discount: number | null
           offer_number: string | null
           pack_id: string | null
           previous_status: string | null
@@ -5394,6 +5410,9 @@ export type Database = {
           contract_terms?: string | null
           converted_to_contract?: boolean
           created_at?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           documents_last_uploaded_at?: string | null
           documents_last_viewed_at?: string | null
           dossier_number?: string | null
@@ -5411,6 +5430,7 @@ export type Database = {
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
+          monthly_payment_before_discount?: number | null
           offer_number?: string | null
           pack_id?: string | null
           previous_status?: string | null
@@ -5448,6 +5468,9 @@ export type Database = {
           contract_terms?: string | null
           converted_to_contract?: boolean
           created_at?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           documents_last_uploaded_at?: string | null
           documents_last_viewed_at?: string | null
           dossier_number?: string | null
@@ -5465,6 +5488,7 @@ export type Database = {
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
+          monthly_payment_before_discount?: number | null
           offer_number?: string | null
           pack_id?: string | null
           previous_status?: string | null
@@ -8580,6 +8604,9 @@ export type Database = {
           contract_terms: string | null
           converted_to_contract: boolean
           created_at: string | null
+          discount_amount: number | null
+          discount_type: string | null
+          discount_value: number | null
           documents_last_uploaded_at: string | null
           documents_last_viewed_at: string | null
           dossier_number: string | null
@@ -8597,6 +8624,7 @@ export type Database = {
           margin: number | null
           margin_difference: number | null
           monthly_payment: number
+          monthly_payment_before_discount: number | null
           offer_number: string | null
           pack_id: string | null
           previous_status: string | null

@@ -33,6 +33,15 @@ interface FinancialSummaryProps {
   isPurchase?: boolean;
   // Acompte
   downPayment?: number;
+  // Remise commerciale
+  discountData?: {
+    enabled: boolean;
+    type: 'percentage' | 'amount';
+    value: number;
+    discountAmount: number;
+    monthlyPaymentBeforeDiscount: number;
+    monthlyPaymentAfterDiscount: number;
+  };
 }
 
 const FinancialSummary = ({ 
@@ -45,7 +54,8 @@ const FinancialSummary = ({
   fileFee,
   annualInsurance,
   isPurchase = false,
-  downPayment = 0
+  downPayment = 0,
+  discountData
 }: FinancialSummaryProps) => {
   
   // MODE ACHAT: Affichage simplifié sans financement
@@ -399,10 +409,39 @@ const FinancialSummary = ({
             <span className="text-sm font-medium text-gray-700">
               Mensualité totale :
             </span>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className={`text-sm font-semibold text-gray-900 ${discountData?.enabled && discountData.discountAmount > 0 ? 'line-through text-muted-foreground' : ''}`}>
               {formatCurrency(displayedMonthlyPayment)}
             </span>
           </div>
+
+          {/* Remise commerciale */}
+          {discountData?.enabled && discountData.discountAmount > 0 && (
+            <>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-red-600 font-medium flex items-center gap-1">
+                  🏷️ Remise {discountData.type === 'percentage' ? `(${discountData.value}%)` : ''} :
+                </span>
+                <span className="text-red-600 font-medium">
+                  -{formatCurrency(discountData.discountAmount)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center bg-green-50 rounded-lg p-2 border border-green-200">
+                <span className="text-sm font-medium text-green-800">
+                  Mensualité remisée :
+                </span>
+                <span className="text-lg font-bold text-green-900">
+                  {formatCurrency(discountData.monthlyPaymentAfterDiscount)}
+                </span>
+              </div>
+              {/* Impact marge */}
+              <div className="flex justify-between items-center text-xs text-amber-700">
+                <span>Marge après remise :</span>
+                <span className="font-medium">
+                  {formatCurrency(Math.max(0, displayedMarginAmount - discountData.discountAmount))}
+                </span>
+              </div>
+            </>
+          )}
 
           {/* Coefficient appliqué */}
           <div className="flex justify-between items-center">
