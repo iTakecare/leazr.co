@@ -154,8 +154,11 @@ const CreateOffer = () => {
     totalPurchaseAmount
   });
   
-  // Calcul de l'assurance annuelle
-  const annualInsurance = calculateAnnualInsurance(totalMonthlyPayment, selectedDuration);
+  // Calcul de l'assurance annuelle (tenir compte de la remise)
+  const effectiveMonthlyForInsurance = globalDiscount.enabled && globalDiscount.discountAmount > 0
+    ? totalMonthlyPayment - globalDiscount.discountAmount
+    : totalMonthlyPayment;
+  const annualInsurance = calculateAnnualInsurance(effectiveMonthlyForInsurance, selectedDuration);
   console.log("🔍 CreateOffer - Commission Debug:", {
     isInternalOffer,
     selectedAmbassadorId: selectedAmbassador?.id,

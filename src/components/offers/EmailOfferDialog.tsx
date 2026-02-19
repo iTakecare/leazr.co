@@ -230,6 +230,10 @@ export const EmailOfferDialog = ({
         contractDuration: Number(offerData.duration) || 36,
         fileFee: isPurchase ? 0 : Number(offerData.file_fee) || 0,
         insuranceCost: isPurchase ? 0 : Number(offerData.annual_insurance) || 0,
+        discountAmount: Number((offerData as any).discount_amount) || 0,
+        discountType: (offerData as any).discount_type || undefined,
+        discountValue: Number((offerData as any).discount_value) || undefined,
+        monthlyPaymentBeforeDiscount: Number((offerData as any).monthly_payment_before_discount) || undefined,
         partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
         companyValues: companyValuesData?.map(v => ({
           title: v.title,

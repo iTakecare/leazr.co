@@ -384,6 +384,10 @@ const AmbassadorOfferDetail = () => {
         contractDuration: Number(offer.duration) || 36,
         fileFee: isPurchase ? 0 : (Number(offer.file_fee) || 0),
         insuranceCost: isPurchase ? 0 : (Number(offer.annual_insurance) || 0),
+        discountAmount: Number((offer as any).discount_amount) || 0,
+        discountType: (offer as any).discount_type || undefined,
+        discountValue: Number((offer as any).discount_value) || undefined,
+        monthlyPaymentBeforeDiscount: Number((offer as any).monthly_payment_before_discount) || undefined,
         downPayment: Number(offer.down_payment) || 0,
         adjustedMonthlyPayment: (() => {
           const dp = Number(offer.down_payment) || 0;
