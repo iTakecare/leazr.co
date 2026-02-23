@@ -160,18 +160,6 @@ export const syncUnitPricesToParent = async (
 };
 
 export const fetchAllEquipmentOrders = async (companyId: string) => {
-  const { data: offerEquipment, error: offerError } = await supabase
-    .from('offer_equipment')
-    .select(`
-      id, title, quantity, purchase_price, product_id,
-      order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes,
-      offers!inner(id, dossier_number, client_name, company_id, created_at)
-    `)
-    .eq('offers.company_id', companyId)
-    .eq('offers.workflow_status', 'accepted');
-
-  if (offerError) throw offerError;
-
   const { data: contractEquipment, error: contractError } = await supabase
     .from('contract_equipment')
     .select(`
@@ -183,63 +171,42 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
 
   if (contractError) throw contractError;
 
-  // Fetch all units at once
+  // Fetch units for contracts only
   const { data: allUnits, error: unitsError } = await supabase
     .from('equipment_order_units' as any)
     .select('*')
+    .eq('source_type', 'contract')
     .order('unit_index');
 
   if (unitsError) throw unitsError;
 
   const unitsByKey = new Map<string, EquipmentOrderUnit[]>();
   ((allUnits || []) as EquipmentOrderUnit[]).forEach(u => {
-    const key = `${u.source_type}-${u.source_equipment_id}`;
+    const key = `contract-${u.source_equipment_id}`;
     if (!unitsByKey.has(key)) unitsByKey.set(key, []);
     unitsByKey.get(key)!.push(u);
   });
 
-  const items: EquipmentOrderItem[] = [
-    ...(offerEquipment || []).map((eq: any) => ({
-      id: eq.id,
-      title: eq.title,
-      quantity: eq.quantity,
-      purchase_price: eq.purchase_price,
-      order_status: (eq.order_status || 'to_order') as OrderStatus,
-      supplier_id: eq.supplier_id,
-      supplier_price: eq.supplier_price,
-      order_date: eq.order_date,
-      order_reference: eq.order_reference,
-      reception_date: eq.reception_date,
-      order_notes: eq.order_notes,
-      product_id: eq.product_id,
-      source_type: 'offer' as const,
-      source_id: eq.offers?.id,
-      client_name: eq.offers?.client_name,
-      source_reference: eq.offers?.dossier_number || 'N/A',
-      source_date: eq.offers?.created_at,
-      units: unitsByKey.get(`offer-${eq.id}`) || undefined,
-    })),
-    ...(contractEquipment || []).map((eq: any) => ({
-      id: eq.id,
-      title: eq.title,
-      quantity: eq.quantity,
-      purchase_price: eq.purchase_price,
-      order_status: (eq.order_status || 'to_order') as OrderStatus,
-      supplier_id: eq.supplier_id,
-      supplier_price: eq.supplier_price ?? eq.actual_purchase_price ?? null,
-      order_date: eq.order_date,
-      order_reference: eq.order_reference,
-      reception_date: eq.reception_date,
-      order_notes: eq.order_notes,
-      product_id: null,
-      source_type: 'contract' as const,
-      source_id: eq.contracts?.id,
-      client_name: eq.contracts?.client_name,
-      source_reference: eq.contracts?.contract_number || 'N/A',
-      source_date: eq.contracts?.created_at,
-      units: unitsByKey.get(`contract-${eq.id}`) || undefined,
-    })),
-  ];
+  const items: EquipmentOrderItem[] = (contractEquipment || []).map((eq: any) => ({
+    id: eq.id,
+    title: eq.title,
+    quantity: eq.quantity,
+    purchase_price: eq.purchase_price,
+    order_status: (eq.order_status || 'to_order') as OrderStatus,
+    supplier_id: eq.supplier_id,
+    supplier_price: eq.supplier_price ?? eq.actual_purchase_price ?? null,
+    order_date: eq.order_date,
+    order_reference: eq.order_reference,
+    reception_date: eq.reception_date,
+    order_notes: eq.order_notes,
+    product_id: null,
+    source_type: 'contract' as const,
+    source_id: eq.contracts?.id,
+    client_name: eq.contracts?.client_name,
+    source_reference: eq.contracts?.contract_number || 'N/A',
+    source_date: eq.contracts?.created_at,
+    units: unitsByKey.get(`contract-${eq.id}`) || undefined,
+  }));
 
   return items;
 };
