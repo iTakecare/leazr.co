@@ -1,60 +1,23 @@
 
+# Limiter les commandes fournisseurs aux contrats uniquement
 
-# Afficher les prix originaux barrés dans la ligne TOTAUX
+## Probleme
 
-## Contexte
-
-Dans la vue d'ensemble du detail d'une offre (NewEquipmentSection), la ligne TOTAUX affiche deja le prix original barre pour la colonne "Total mensuel" quand une remise commerciale est active. L'utilisateur souhaite le meme traitement pour les colonnes **P.V. total**, **Marge (%)** et **Marge (euro)**.
+La fonction `fetchAllEquipmentOrders` dans `equipmentOrderService.ts` recupere a la fois les equipements des **offres acceptees** (`offer_equipment`) et des **contrats** (`contract_equipment`), alors que seuls les contrats doivent apparaitre dans l'ecran des commandes fournisseurs.
 
 ## Solution
 
-Modifier la ligne TOTAUX pour afficher, quand une remise est active (`discount_amount > 0`) :
-- Le montant original barre au-dessus
-- Le montant apres remise en dessous (en gras, colore)
+Supprimer la requete et le mapping des `offer_equipment` dans la fonction `fetchAllEquipmentOrders`, ne conserver que les `contract_equipment`.
 
-### Calcul des valeurs originales (avant remise)
+## Fichier modifie
 
-Les valeurs actuelles (`effectiveFinancedAmount`, `totalMargin`, `marginPercentage`) sont deja calculees **apres remise**. Il faut calculer les valeurs **avant remise** :
-
-- **P.V. total original** = `totalMonthlyPayment * 100 / coefficient` (Grenke sans deduction de remise)
-- **Marge originale (euro)** = P.V. total original - totalPrice
-- **Marge originale (%)** = marge originale / totalPrice * 100
-
-### Fichier modifie
-
-`src/components/offers/detail/NewEquipmentSection.tsx`
+`src/services/equipmentOrderService.ts` - fonction `fetchAllEquipmentOrders` (lignes 162-245)
 
 ### Changements
 
-#### 1. Ajouter le calcul des valeurs avant remise dans `calculateTotals` (lignes 266-277)
+1. **Supprimer** la requete Supabase sur `offer_equipment` (lignes 163-173)
+2. **Supprimer** le mapping des offres dans le tableau `items` (lignes 199-217)
+3. **Nettoyer** les references aux unites de type `offer` dans le fetch des `equipment_order_units` (ne filtrer que les unites `contract`)
+4. **Conserver** uniquement la requete `contract_equipment` et son mapping
 
-Ajouter de nouveaux champs retournes :
-- `originalFinancedAmount` : montant finance sans la remise
-- `originalMargin` : marge en euro sans la remise
-- `originalMarginPercentage` : marge en % sans la remise
-
-#### 2. Modifier la cellule P.V. total (lignes 1011-1015)
-
-Quand `discount_amount > 0`, afficher :
-```
-[originalFinancedAmount barre, petit, gris]
-[effectiveFinancedAmount en gras vert]
-```
-
-#### 3. Modifier la cellule Marge % (lignes 1017-1021)
-
-Quand `discount_amount > 0`, afficher :
-```
-[originalMarginPercentage barre, petit, gris]
-[marginPercentage en gras]
-```
-
-#### 4. Modifier la cellule Marge euro (lignes 1023-1027)
-
-Quand `discount_amount > 0`, afficher :
-```
-[originalMargin barre, petit, gris]
-[totalMargin en gras vert]
-```
-
-Le pattern est identique a celui deja utilise pour la colonne Total mensuel (lignes 1078-1091), avec `line-through` et `text-muted-foreground` pour les valeurs originales.
+La fonction ne retournera plus que les equipements issus de contrats, ce qui correspond au comportement attendu.
