@@ -347,8 +347,43 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       }
     });
     
-    // Cas 100% des lignes ont un selling_price : retourner directement
+    // Cas 100% des lignes ont un selling_price
     if (itemsWithoutFixedPrice.length === 0) {
+      // Vérifier si la somme des prix fixes correspond au montant cible
+      if (Math.abs(fixedTotal - totalSellingPrice) > 0.01 && fixedTotal > 0) {
+        const ratio = totalSellingPrice / fixedTotal;
+        const rawPrices = itemsWithFixedPrice.map(item => {
+          const currentTotal = adjustedPrices[item.id];
+          const rawAdjusted = currentTotal * ratio;
+          const rounded = round2(rawAdjusted);
+          return {
+            id: item.id,
+            rawPrice: rawAdjusted,
+            roundedPrice: rounded,
+            remainder: rawAdjusted - rounded
+          };
+        });
+
+        // Largest Remainder pour corriger les centimes
+        const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
+        let differenceInCents = Math.round((totalSellingPrice - sumRounded) * 100);
+        const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
+
+        rawPrices.forEach(p => {
+          adjustedPrices[p.id] = p.roundedPrice;
+        });
+
+        for (const p of sortedByRemainder) {
+          if (differenceInCents === 0) break;
+          if (differenceInCents > 0) {
+            adjustedPrices[p.id] = round2(adjustedPrices[p.id] + 0.01);
+            differenceInCents--;
+          } else {
+            adjustedPrices[p.id] = round2(adjustedPrices[p.id] - 0.01);
+            differenceInCents++;
+          }
+        }
+      }
       return adjustedPrices;
     }
     
