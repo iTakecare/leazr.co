@@ -55,6 +55,12 @@ export const updateContractEquipmentOrder = async (equipmentId: string, data: Eq
   if (data.supplier_price !== undefined) {
     syncedData.actual_purchase_price = data.supplier_price;
   }
+  // Auto-sync dates → actual_purchase_date (reception_date prioritaire sur order_date)
+  if (data.reception_date !== undefined) {
+    syncedData.actual_purchase_date = data.reception_date;
+  } else if (data.order_date !== undefined) {
+    syncedData.actual_purchase_date = data.order_date;
+  }
   const { error } = await supabase
     .from('contract_equipment')
     .update(syncedData)
