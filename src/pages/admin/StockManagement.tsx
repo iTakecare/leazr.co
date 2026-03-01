@@ -7,6 +7,7 @@ import StockItemList from "@/components/stock/StockItemList";
 import StockMovementHistory from "@/components/stock/StockMovementHistory";
 import StockRepairList from "@/components/stock/StockRepairList";
 import StockItemForm from "@/components/stock/StockItemForm";
+import StockValuationReport from "@/components/stock/StockValuationReport";
 
 const StockManagement: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
@@ -31,6 +32,7 @@ const StockManagement: React.FC = () => {
           <TabsTrigger value="items">Articles</TabsTrigger>
           <TabsTrigger value="movements">Mouvements</TabsTrigger>
           <TabsTrigger value="repairs">Réparations</TabsTrigger>
+          <TabsTrigger value="valuation">Valorisation</TabsTrigger>
         </TabsList>
         <TabsContent value="items" className="mt-4">
           <StockItemList />
@@ -40,6 +42,9 @@ const StockManagement: React.FC = () => {
         </TabsContent>
         <TabsContent value="repairs" className="mt-4">
           <StockRepairList />
+        </TabsContent>
+        <TabsContent value="valuation" className="mt-4">
+          <StockValuationReport />
         </TabsContent>
       </Tabs>
 
