@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useAuth } from "@/context/AuthContext";
-import { createStockItem, createMovement, STOCK_STATUS_CONFIG, CONDITION_CONFIG, StockStatus, StockCondition } from "@/services/stockService";
+import { createStockItem, updateStockItem, createMovement, STOCK_STATUS_CONFIG, CONDITION_CONFIG, StockStatus, StockCondition, StockItem } from "@/services/stockService";
 import { fetchSuppliers } from "@/services/equipmentOrderService";
 import { useCategories } from "@/hooks/products/useCategories";
 import { useBrands } from "@/hooks/products/useBrands";
@@ -19,9 +19,34 @@ import { Plus } from "lucide-react";
 interface StockItemFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editItem?: StockItem | null;
 }
 
-const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => {
+const emptyForm = {
+  title: '',
+  serial_numbers: '',
+  status: 'in_stock' as StockStatus,
+  condition: 'new' as StockCondition,
+  quantity: '1',
+  unit_price: '',
+  supplier_id: '',
+  order_reference: '',
+  purchase_date: '',
+  reception_date: '',
+  location: '',
+  notes: '',
+  category: '',
+  brand: '',
+  model: '',
+  warranty_end_date: '',
+  cpu: '',
+  memory: '',
+  storage: '',
+  color: '',
+  grade: '',
+};
+
+const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange, editItem }) => {
   const { companyId } = useMultiTenant();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -33,6 +58,45 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
   const [customBrand, setCustomBrand] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
   const [savingBrand, setSavingBrand] = useState(false);
+
+  const isEdit = !!editItem;
+
+  const [form, setForm] = useState({ ...emptyForm });
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (open && editItem) {
+      setForm({
+        title: editItem.title || '',
+        serial_numbers: (editItem.serial_numbers || []).join(', ') || editItem.serial_number || '',
+        status: editItem.status || 'in_stock',
+        condition: editItem.condition || 'new',
+        quantity: String(editItem.quantity || 1),
+        unit_price: String(editItem.unit_price || editItem.purchase_price || ''),
+        supplier_id: editItem.supplier_id || '',
+        order_reference: editItem.order_reference || '',
+        purchase_date: editItem.purchase_date || '',
+        reception_date: editItem.reception_date || '',
+        location: editItem.location || '',
+        notes: editItem.notes || '',
+        category: editItem.category || '',
+        brand: editItem.brand || '',
+        model: editItem.model || '',
+        warranty_end_date: editItem.warranty_end_date || '',
+        cpu: editItem.cpu || '',
+        memory: editItem.memory || '',
+        storage: editItem.storage || '',
+        color: editItem.color || '',
+        grade: editItem.grade || '',
+      });
+      setCustomCategory(false);
+      setCustomBrand(false);
+    } else if (open && !editItem) {
+      setForm({ ...emptyForm });
+      setCustomCategory(false);
+      setCustomBrand(false);
+    }
+  }, [open, editItem]);
 
   const handleCreateCategory = async () => {
     const name = form.category.trim();
@@ -76,30 +140,6 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
     }
   };
 
-  const [form, setForm] = useState({
-    title: '',
-    serial_numbers: '',
-    status: 'in_stock' as StockStatus,
-    condition: 'new' as StockCondition,
-    quantity: '1',
-    unit_price: '',
-    supplier_id: '',
-    order_reference: '',
-    purchase_date: '',
-    reception_date: '',
-    location: '',
-    notes: '',
-    category: '',
-    brand: '',
-    model: '',
-    warranty_end_date: '',
-    cpu: '',
-    memory: '',
-    storage: '',
-    color: '',
-    grade: '',
-  });
-
   useEffect(() => {
     if (open && companyId) {
       fetchSuppliers(companyId).then(setSuppliers).catch(() => {});
@@ -113,8 +153,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
     setLoading(true);
     try {
       const serialNumbers = form.serial_numbers.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
-      const item = await createStockItem({
-        company_id: companyId,
+      const itemData = {
         title: form.title,
         serial_number: serialNumbers[0] || null,
         serial_numbers: serialNumbers,
@@ -138,28 +177,53 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
         storage: form.storage || null,
         color: form.color || null,
         grade: form.grade || null,
-      });
+      };
 
-      await createMovement({
-        company_id: companyId,
-        stock_item_id: item.id,
-        movement_type: 'reception',
-        from_status: null,
-        to_status: form.status,
-        performed_by: user?.id || null,
-        notes: 'Création manuelle',
-      });
+      if (isEdit && editItem) {
+        // Update existing item
+        const oldStatus = editItem.status;
+        await updateStockItem(editItem.id, itemData);
+
+        // Log movement if status changed
+        if (oldStatus !== form.status) {
+          await createMovement({
+            company_id: companyId,
+            stock_item_id: editItem.id,
+            movement_type: 'reception', // generic update movement
+            from_status: oldStatus,
+            to_status: form.status,
+            performed_by: user?.id || null,
+            notes: `Modification manuelle: ${STOCK_STATUS_CONFIG[oldStatus]?.label} → ${STOCK_STATUS_CONFIG[form.status]?.label}`,
+          });
+        }
+
+        toast.success("Article modifié avec succès");
+      } else {
+        // Create new item
+        const item = await createStockItem({
+          ...itemData,
+          company_id: companyId,
+        });
+
+        await createMovement({
+          company_id: companyId,
+          stock_item_id: item.id,
+          movement_type: 'reception',
+          from_status: null,
+          to_status: form.status,
+          performed_by: user?.id || null,
+          notes: 'Création manuelle',
+        });
+
+        toast.success("Article ajouté au stock");
+      }
 
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-counts'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      toast.success("Article ajouté au stock");
       onOpenChange(false);
-      setForm({ title: '', serial_numbers: '', status: 'in_stock', condition: 'new', quantity: '1', unit_price: '', supplier_id: '', order_reference: '', purchase_date: '', reception_date: '', location: '', notes: '', category: '', brand: '', model: '', warranty_end_date: '', cpu: '', memory: '', storage: '', color: '', grade: '' });
-      setCustomCategory(false);
-      setCustomBrand(false);
     } catch (err: any) {
-      toast.error("Erreur: " + (err.message || 'Impossible de créer l\'article'));
+      toast.error("Erreur: " + (err.message || "Impossible de sauvegarder l'article"));
     } finally {
       setLoading(false);
     }
@@ -169,7 +233,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Ajouter un article au stock</DialogTitle>
+          <DialogTitle>{isEdit ? "Modifier l'article" : "Ajouter un article au stock"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -335,7 +399,9 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-            <Button type="submit" disabled={loading}>{loading ? 'Ajout...' : 'Ajouter'}</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? (isEdit ? 'Enregistrement...' : 'Ajout...') : (isEdit ? 'Enregistrer' : 'Ajouter')}
+            </Button>
           </div>
         </form>
       </DialogContent>
