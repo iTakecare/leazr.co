@@ -127,20 +127,21 @@ const SupplierSelectOrCreate: React.FC<SupplierSelectOrCreateProps> = ({
                   </CommandItem>
                 ))}
               </CommandGroup>
-              <CommandSeparator />
-              <CommandGroup>
-                <CommandItem
-                  onSelect={() => {
-                    setOpen(false);
-                    setDialogOpen(true);
-                  }}
-                  className="text-primary"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nouveau fournisseur
-                </CommandItem>
-              </CommandGroup>
             </CommandList>
+            <div className="border-t p-1">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setOpen(false);
+                  setDialogOpen(true);
+                }}
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent outline-none"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Nouveau fournisseur
+              </div>
+            </div>
           </Command>
         </PopoverContent>
       </Popover>
