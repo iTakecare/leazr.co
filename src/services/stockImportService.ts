@@ -298,6 +298,17 @@ export async function importStockItems(
     brandNameMap.set(normalize(b.name), b.name);
   });
 
+  // Extract brand from title by matching against catalogue brand names
+  function extractBrandFromTitle(title: string, brandNames: string[]): string | null {
+    const normalizedTitle = normalize(title);
+    for (const brand of brandNames) {
+      if (normalizedTitle.includes(normalize(brand))) {
+        return brand;
+      }
+    }
+    return null;
+  }
+
   // Check existing serial numbers for duplicate detection
   const { data: existingItems } = await supabase
     .from('stock_items' as any)
@@ -370,6 +381,7 @@ export async function importStockItems(
         const matchedCategory = rawCategory ? (categoryNameMap.get(normalize(rawCategory)) || rawCategory) : null;
         const rawBrand = String(parsed.brand || '').trim();
         const matchedBrand = rawBrand ? (brandNameMap.get(normalize(rawBrand)) || rawBrand) : null;
+        const finalBrand = matchedBrand || extractBrandFromTitle(title, Array.from(brandNameMap.values()));
 
       const itemData: any = {
         company_id: companyId,
@@ -377,7 +389,7 @@ export async function importStockItems(
         serial_number: serialNumber,
         serial_numbers: serialNumber ? [serialNumber] : [],
         category: matchedCategory,
-        brand: matchedBrand,
+        brand: finalBrand,
         model: String(parsed.model || '').trim() || null,
         supplier_id: supplierId,
         quantity: qty,
