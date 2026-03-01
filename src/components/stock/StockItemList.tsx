@@ -19,7 +19,10 @@ const StockItemList: React.FC = () => {
     return (
       item.title.toLowerCase().includes(s) ||
       (item.serial_number || '').toLowerCase().includes(s) ||
-      (item.supplier?.name || '').toLowerCase().includes(s)
+      (item.supplier?.name || '').toLowerCase().includes(s) ||
+      (item.category || '').toLowerCase().includes(s) ||
+      (item.brand || '').toLowerCase().includes(s) ||
+      (item.model || '').toLowerCase().includes(s)
     );
   });
 
@@ -56,6 +59,9 @@ const StockItemList: React.FC = () => {
               <TableRow>
                 <TableHead>Article</TableHead>
                 <TableHead>N° série</TableHead>
+                <TableHead>Catégorie</TableHead>
+                <TableHead>Marque</TableHead>
+                <TableHead>Modèle</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>État</TableHead>
                 <TableHead>Fournisseur</TableHead>
@@ -72,6 +78,9 @@ const StockItemList: React.FC = () => {
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.title}</TableCell>
                     <TableCell className="font-mono text-xs">{item.serial_number || '-'}</TableCell>
+                    <TableCell className="text-xs">{item.category || '-'}</TableCell>
+                    <TableCell className="text-xs">{item.brand || '-'}</TableCell>
+                    <TableCell className="text-xs">{item.model || '-'}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`${statusCfg.bgColor} ${statusCfg.color} border text-xs`}>
                         {statusCfg.label}

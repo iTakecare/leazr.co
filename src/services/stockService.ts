@@ -22,6 +22,10 @@ export interface StockItem {
   current_contract_equipment_id: string | null;
   location: string | null;
   notes: string | null;
+  category: string | null;
+  brand: string | null;
+  model: string | null;
+  warranty_end_date: string | null;
   created_at: string;
   updated_at: string;
   // Joined

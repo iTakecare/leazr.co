@@ -12,8 +12,8 @@ const ACTIVE_STATUSES: StockStatus[] = ['ordered', 'in_stock', 'assigned', 'in_r
 const StockValuationReport: React.FC = () => {
   const { items, isLoading } = useStockItems();
 
-  const { activeValue, activeCount, avgValue, byStatus, byCategory } = useMemo(() => {
-    if (!items.length) return { activeValue: 0, activeCount: 0, avgValue: 0, byStatus: [], byCategory: [] };
+  const { activeValue, activeCount, avgValue, byStatus, byCategory, byBrand } = useMemo(() => {
+    if (!items.length) return { activeValue: 0, activeCount: 0, avgValue: 0, byStatus: [], byCategory: [], byBrand: [] };
 
     const totalValue = items.reduce((s, i) => s + (i.purchase_price || 0), 0);
 
@@ -31,10 +31,10 @@ const StockValuationReport: React.FC = () => {
       pct: totalValue > 0 ? (d.value / totalValue) * 100 : 0,
     }));
 
-    // By category
+    // By category (use category field, fallback to product name)
     const catMap = new Map<string, { qty: number; value: number }>();
     items.forEach(item => {
-      const cat = item.product?.name || "Sans catégorie";
+      const cat = item.category || item.product?.name || "Sans catégorie";
       const e = catMap.get(cat) || { qty: 0, value: 0 };
       e.qty++;
       e.value += item.purchase_price || 0;
@@ -42,6 +42,19 @@ const StockValuationReport: React.FC = () => {
     });
     const byCategory = Array.from(catMap.entries())
       .map(([category, d]) => ({ category, ...d, pct: totalValue > 0 ? (d.value / totalValue) * 100 : 0 }))
+      .sort((a, b) => b.value - a.value);
+
+    // By brand
+    const brandMap = new Map<string, { qty: number; value: number }>();
+    items.forEach(item => {
+      const b = item.brand || "Sans marque";
+      const e = brandMap.get(b) || { qty: 0, value: 0 };
+      e.qty++;
+      e.value += item.purchase_price || 0;
+      brandMap.set(b, e);
+    });
+    const byBrand = Array.from(brandMap.entries())
+      .map(([brand, d]) => ({ brand, ...d, pct: totalValue > 0 ? (d.value / totalValue) * 100 : 0 }))
       .sort((a, b) => b.value - a.value);
 
     // Active totals
@@ -55,6 +68,7 @@ const StockValuationReport: React.FC = () => {
       avgValue: activeCount > 0 ? activeValue / activeCount : 0,
       byStatus,
       byCategory,
+      byBrand,
     };
   }, [items]);
 
@@ -163,6 +177,42 @@ const StockValuationReport: React.FC = () => {
                 </TableRow>
               ))}
               {byCategory.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                    Aucun article en stock
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Section 4: By brand */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Valorisation par marque</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Marque</TableHead>
+                <TableHead className="text-right">Quantité</TableHead>
+                <TableHead className="text-right">Valeur totale</TableHead>
+                <TableHead className="text-right">% du total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {byBrand.map(row => (
+                <TableRow key={row.brand}>
+                  <TableCell className="font-medium">{row.brand}</TableCell>
+                  <TableCell className="text-right">{row.qty}</TableCell>
+                  <TableCell className="text-right font-medium">{formatCurrency(row.value)}</TableCell>
+                  <TableCell className="text-right">{row.pct.toFixed(1)}%</TableCell>
+                </TableRow>
+              ))}
+              {byBrand.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
                     Aucun article en stock
