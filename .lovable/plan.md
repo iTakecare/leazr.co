@@ -1,45 +1,64 @@
 
 
-# Modifications du tableau de stock
+# Correction de la detection de doublons a l'import du stock
 
-## Changements demandes
+## Probleme identifie
 
-1. **Reduire la taille des typographies** : Ajouter `text-xs` sur toutes les cellules et en-tetes du tableau pour une apparence plus compacte
-2. **Supprimer la colonne Contrat** : Retirer la colonne "Contrat" des en-tetes et de toutes les fonctions de rendu (renderRow, renderGroupParentRow)
-3. **Ajouter la colonne Grade** : Nouvelle colonne triable affichant `item.grade` (le champ existe deja dans StockItem)
-4. **Ajouter la colonne Notes** : Nouvelle colonne affichant `item.notes` avec troncature pour eviter de casser la mise en page
+La detection de doublons utilise une empreinte composite `titre|marque|modele` pour les articles sans numero de serie. Or, il est parfaitement normal d'avoir plusieurs exemplaires du meme article (ex: 5 "Lenovo V15 G4" avec la marque "Lenovo" et sans modele specifie). Le systeme considere a tort qu'un nouvel article avec le meme titre/marque/modele est un doublon, alors qu'il s'agit d'un equipement supplementaire.
+
+Par exemple dans la base actuelle, il y a deja plusieurs "Lenovo V15 G4" sans numero de serie. Tout import d'un nouveau "Lenovo V15 G4" sans SN sera donc bloque.
+
+## Solution
+
+Remplacer la logique de deduplication par empreinte Set (qui empeche tout doublon titre|marque|modele) par une logique de **comptage** :
+
+1. Compter combien d'exemplaires de chaque empreinte existent deja en base
+2. Compter combien d'exemplaires de chaque empreinte sont dans le fichier d'import
+3. Ne marquer comme doublon que si le nombre total (base + fichier) depasse ce qui est attendu
+
+Concretement, pour les articles **sans numero de serie** :
+- Compter les occurrences de chaque fingerprint dans la base existante (Map au lieu de Set)
+- Compter les occurrences de chaque fingerprint dans le fichier d'import
+- Chaque occurrence dans le fichier est autorisee (ce sont des equipements supplementaires)
+- Seule la deduplication **intra-fichier** est maintenue (eviter d'importer 2 fois le meme fichier)
+
+Pour les articles **avec numero de serie** : la logique reste inchangee (un SN est unique par definition).
+
+## Deduplication intra-fichier revisee
+
+Pour eviter la reimportation du meme fichier, on verifie si le nombre d'articles avec la meme empreinte en base est deja >= au nombre dans le fichier. Si oui, c'est une reimportation.
 
 ## Fichier modifie
 
 | Fichier | Changement |
 |---|---|
-| `src/components/stock/StockItemList.tsx` | Modifier les en-tetes, renderRow, renderGroupParentRow |
+| `src/services/stockImportService.ts` | Remplacer `existingFingerprints` (Set) par un Map de comptage, ajuster la logique de deduplication pour permettre les multiples exemplaires |
 
 ## Detail technique
 
-### Type SortKey (ligne 25)
-Ajouter `'grade'` et `'notes'` au type union SortKey.
+### Changement dans la section de chargement des doublons (lignes 385-403)
 
-### getSortValue (ligne 49)
-Ajouter les cas `grade` et `notes` retournant les valeurs en lowercase.
+Remplacer :
+```typescript
+const existingFingerprints = new Set<string>();
+```
+Par :
+```typescript
+const existingFingerprintCounts = new Map<string, number>();
+const importFingerprintCounts = new Map<string, number>();
+```
 
-### tableHeaders (lignes 415-433)
-- Supprimer `<TableHead>Contrat</TableHead>`
-- Ajouter `<SortableHead column="grade">Grade</SortableHead>` apres la colonne Etat
-- Ajouter `<SortableHead column="notes">Notes</SortableHead>` en derniere position
-- Reduire la taille des en-tetes avec des classes plus compactes
+Compter les occurrences en base au lieu d'un simple add dans un Set.
 
-### renderRow (lignes 358-413)
-- Supprimer la cellule Contrat (lignes 404-406)
-- Ajouter une cellule Grade apres Etat : `item.grade || '-'`
-- Ajouter une cellule Notes en fin de ligne : `item.notes` tronque avec `truncate max-w-[150px]`
-- S'assurer que toutes les cellules ont `text-xs`
+### Changement dans la boucle d'import (lignes 432-439)
 
-### renderGroupParentRow (lignes 243-331)
-- Meme modifications : supprimer Contrat, ajouter Grade et Notes (tirets pour la ligne parent)
-- Ajuster le nombre de cellules placeholder pour les lignes enfant egalement
-- Lignes enfant : afficher `item.grade` et `item.notes`
+Remplacer la verification `existingFingerprints.has(fingerprint)` par :
+- Compter combien de fois ce fingerprint apparait dans le fichier (premiere passe ou comptage incremental)
+- Compter combien existent deja en base
+- Si `existingCount >= importCountSoFar` pour ce fingerprint, c'est un doublon (reimportation)
+- Sinon, c'est un nouvel exemplaire a importer
 
-### Ordre des colonnes final
-Actions | Article | N de serie | Categorie | Marque | Modele | Qte | Statut | Etat | Grade | Fournisseur | Prix unitaire | Total | Date | Notes
+### Pre-comptage des fingerprints du fichier
+
+Avant la boucle d'import, faire une premiere passe sur toutes les lignes pour compter les fingerprints du fichier. Ensuite dans la boucle principale, consommer progressivement ce comptage.
 
