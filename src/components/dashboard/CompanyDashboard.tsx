@@ -58,10 +58,13 @@ const CompanyDashboard = () => {
     const creditNotes = Number(month.credit_notes_amount || 0);
     const revenueLeasing = Number(month.revenue || 0);  // CA leasing (factures leasing)
     const directSales = Number(month.direct_sales_revenue || 0);  // CA ventes directes
+    const selfLeasingRevenue = Number(month.self_leasing_revenue || 0);  // CA self-leasing
     
     return {
       month: month.month_name,
-      ca: revenueLeasing + directSales,  // CA brut = leasing + ventes directes
+      ca: revenueLeasing + directSales + selfLeasingRevenue,  // CA brut total
+      caLeasing: revenueLeasing,
+      selfLeasing: selfLeasingRevenue,
       directSales: directSales,
       achats: Number(month.purchases),
       marge: Number(month.margin),
@@ -75,6 +78,8 @@ const CompanyDashboard = () => {
   const margeBase = monthlyData.reduce((sum, month) => sum + month.marge, 0);
   const totals = {
     ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
+    caLeasing: monthlyData.reduce((sum, month) => sum + month.caLeasing, 0),
+    selfLeasing: monthlyData.reduce((sum, month) => sum + month.selfLeasing, 0),
     directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
     achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
     marge: includeCreditNotes ? margeBase : margeBase + totalCreditNotes,
@@ -83,6 +88,8 @@ const CompanyDashboard = () => {
 
   const moyennes = {
     ca: monthlyData.length ? totals.ca / monthlyData.length : 0,
+    caLeasing: monthlyData.length ? totals.caLeasing / monthlyData.length : 0,
+    selfLeasing: monthlyData.length ? totals.selfLeasing / monthlyData.length : 0,
     directSales: monthlyData.length ? totals.directSales / monthlyData.length : 0,
     achats: monthlyData.length ? totals.achats / monthlyData.length : 0,
     marge: monthlyData.length ? totals.marge / monthlyData.length : 0,
@@ -269,7 +276,9 @@ const CompanyDashboard = () => {
                     <TableHeader>
                       <TableRow className="bg-slate-50">
                         <TableHead className="font-medium text-xs">Mois</TableHead>
-                        <TableHead className="text-right font-medium text-xs">CA mensuel (€)</TableHead>
+                        <TableHead className="text-right font-medium text-xs">CA total (€)</TableHead>
+                        <TableHead className="text-right font-medium text-xs text-blue-600">CA Leasing (€)</TableHead>
+                        <TableHead className="text-right font-medium text-xs text-indigo-600">CA Self-Leasing (€)</TableHead>
                         <TableHead className="text-right font-medium text-xs text-slate-600">
                           <div className="flex items-center justify-end gap-2">
                             <span>Notes de crédit (€)</span>
@@ -304,6 +313,8 @@ const CompanyDashboard = () => {
                           >
                             <TableCell className="font-normal">{month.month}</TableCell>
                             <TableCell className="text-right font-normal">{formatCurrency(month.ca)}</TableCell>
+                            <TableCell className="text-right font-normal text-blue-700">{formatCurrency(month.caLeasing)}</TableCell>
+                            <TableCell className="text-right font-normal text-indigo-700">{formatCurrency(month.selfLeasing)}</TableCell>
                             <TableCell className="text-right font-normal text-slate-500">
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
                             </TableCell>
@@ -320,7 +331,7 @@ const CompanyDashboard = () => {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                             <div className="flex flex-col items-center gap-2">
                               <Activity className="w-8 h-8 opacity-50" />
                               <span>Aucune donnée disponible pour cette période</span>
@@ -331,6 +342,8 @@ const CompanyDashboard = () => {
                       <TableRow className="bg-slate-100 dark:bg-slate-800/50 border-t-2 border-slate-300">
                         <TableCell className="font-medium text-base text-slate-900">TOTAL</TableCell>
                         <TableCell className="text-right font-medium text-base">{formatCurrency(totals.ca)}</TableCell>
+                        <TableCell className="text-right font-medium text-base text-blue-700">{formatCurrency(totals.caLeasing)}</TableCell>
+                        <TableCell className="text-right font-medium text-base text-indigo-700">{formatCurrency(totals.selfLeasing)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-slate-500">
                           {monthlyData.reduce((sum, m) => sum + m.creditNotes, 0) > 0 
                             ? `-${formatCurrency(monthlyData.reduce((sum, m) => sum + m.creditNotes, 0))}` 
@@ -343,6 +356,8 @@ const CompanyDashboard = () => {
                       <TableRow className="bg-slate-50 dark:bg-slate-800/30 border-b-2 border-slate-200">
                         <TableCell className="font-medium text-slate-600">MOYENNE</TableCell>
                         <TableCell className="text-right font-normal">{formatCurrency(moyennes.ca)}</TableCell>
+                        <TableCell className="text-right font-normal text-blue-600">{formatCurrency(moyennes.caLeasing)}</TableCell>
+                        <TableCell className="text-right font-normal text-indigo-600">{formatCurrency(moyennes.selfLeasing)}</TableCell>
                         <TableCell className="text-right font-normal text-slate-500">-</TableCell>
                         <TableCell className="text-right font-normal">{formatCurrency(moyennes.achats)}</TableCell>
                         <TableCell className="text-right font-normal text-slate-600">{formatCurrency(moyennes.marge)}</TableCell>

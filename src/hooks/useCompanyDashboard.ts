@@ -9,6 +9,7 @@ export interface MonthlyFinancialData {
   year: number;
   revenue: number;
   direct_sales_revenue: number;
+  self_leasing_revenue: number;
   purchases: number;
   margin: number;
   margin_percentage: number;

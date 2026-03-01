@@ -8571,6 +8571,7 @@ export type Database = {
               offers_count: number
               purchases: number
               revenue: number
+              self_leasing_revenue: number
               year: number
             }[]
           }
