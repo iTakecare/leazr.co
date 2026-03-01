@@ -1,53 +1,33 @@
 
 
-# Regroupement des articles identiques avec vue accordeon
+# Correction de la liste des fournisseurs dans le formulaire de stock
 
-## Objectif
-Quand plusieurs articles partagent le meme **titre + marque + modele**, ils seront automatiquement regroupes sur une seule ligne "parent" dans le tableau. En cliquant sur cette ligne, un sous-tableau se deploie pour afficher chaque unite individuelle avec ses specificites (prix, fournisseur, N de serie, etat, etc.).
+## Probleme identifie
 
-## Comportement
+Le composant `SupplierSelectOrCreate` utilise la bibliotheque `cmdk` pour la recherche et la selection. L'investigation montre que les deux pages (stock et commandes) utilisent exactement la meme fonction `fetchSuppliers(companyId)` pour charger les fournisseurs. La difference est que la page des commandes utilise un simple `Select` natif qui affiche tous les fournisseurs sans probleme, tandis que le formulaire de stock utilise `cmdk` qui peut filtrer/masquer certains elements de maniere inattendue.
 
-```text
-Ligne parent (cliquable)
-+--------------------------------------------------+
-| > Apple Airpods 3 | Apple | Airpods 3 | Qty: 2  |
-+--------------------------------------------------+
-  clic => deploie les unites :
-  +------------------------------------------------+
-  | Unite 1 | SN: xxx | Fournisseur A | 150.00 EUR |
-  | Unite 2 | SN: yyy | Fournisseur B | 140.00 EUR |
-  +------------------------------------------------+
-```
+Deux corrections a apporter :
 
-### Ligne parent - informations affichees
-- Titre, marque, modele (communs)
-- Quantite totale (nombre d'unites dans le groupe)
-- Prix total cumule
-- Badge indiquant le nombre d'unites
-- Fleche d'expansion (ChevronRight / ChevronDown)
+1. **Ajout de `shouldFilter={false}` sur le composant `Command`** dans `SupplierSelectOrCreate.tsx` pour eviter le filtrage automatique de cmdk qui peut masquer des resultats. Le filtrage sera gere manuellement sur le texte de recherche saisi.
 
-### Lignes enfant (unites) - informations affichees
-- Toutes les colonnes habituelles : N de serie, statut, etat, fournisseur, prix unitaire, contrat, date
-- Boutons d'action individuels (editer, dupliquer, supprimer)
+2. **Ajout d'un log de debug** temporaire pour verifier que tous les fournisseurs sont bien charges (sera retire apres validation).
 
-### Articles uniques
-- Les articles sans doublon restent affiches normalement, comme une ligne simple sans accordeon
+## Note secondaire
+
+Un fournisseur dans la base de donnees a le nom `[object Object]` (c'est le bug `[object Object]` visible dans la capture d'ecran precedente). Ce n'est pas un bug de code mais une donnee corrompue en base.
 
 ## Fichier modifie
 
 | Fichier | Changement |
 |---|---|
-| `src/components/stock/StockItemList.tsx` | Ajout de la logique de regroupement et du rendu accordeon |
+| `src/components/equipment/SupplierSelectOrCreate.tsx` | Desactiver le filtrage automatique de cmdk, implementer un filtrage manuel sur le champ de recherche |
 
 ## Detail technique
 
-1. **Cle de regroupement** : `${title.toLowerCase()}|${(brand||'').toLowerCase()}|${(model||'').toLowerCase()}`
-2. **Nouveau `useMemo`** qui transforme la liste `filtered` en groupes :
-   - Si un groupe contient 1 seul item : rendu classique (ligne simple)
-   - Si un groupe contient 2+ items : ligne parent cliquable + sous-lignes depliables
-3. **State `expandedGroups`** (Set de cles) pour gerer quels groupes sont ouverts/fermes
-4. **Ligne parent** : nouvelle fonction `renderGroupRow(key, items)` affichant les infos communes et un badge de quantite
-5. **Lignes enfant** : reutilisation de la fonction `renderRow` existante avec un style legerement indente (fond plus clair)
-6. **Compatible avec le groupement existant** (par marque, statut, etc.) : le regroupement par article identique s'applique a l'interieur de chaque groupe
-7. **Compatible avec la recherche et le tri** : le regroupement s'applique apres le filtrage et le tri
+1. Ajouter un state `searchQuery` pour capturer le texte de recherche
+2. Ajouter `shouldFilter={false}` au composant `Command` pour desactiver le filtrage cmdk
+3. Filtrer manuellement la liste des fournisseurs avec `suppliers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))`
+4. Passer `onValueChange` au `CommandInput` pour capturer le texte de recherche
+5. Le bouton "Nouveau fournisseur" reste toujours visible en dehors du `CommandList`
 
+Cela aligne le comportement avec la recommandation technique existante du projet (memoire `cmdk-server-side-filtering`) et garantit que tous les fournisseurs sont toujours visibles dans la liste.
