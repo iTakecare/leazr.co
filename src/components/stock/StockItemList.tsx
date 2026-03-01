@@ -1,14 +1,20 @@
 import React, { useState } from "react";
 import { useStockItems } from "@/hooks/useStockItems";
-import { STOCK_STATUS_CONFIG, CONDITION_CONFIG, StockStatus } from "@/services/stockService";
+import { STOCK_STATUS_CONFIG, CONDITION_CONFIG, StockStatus, StockItem } from "@/services/stockService";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Pencil } from "lucide-react";
 
-const StockItemList: React.FC = () => {
+interface StockItemListProps {
+  onEdit?: (item: StockItem) => void;
+}
+
+const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const [statusFilter, setStatusFilter] = useState<StockStatus | undefined>(undefined);
   const [search, setSearch] = useState("");
   const { items, isLoading } = useStockItems(statusFilter);
@@ -60,6 +66,7 @@ const StockItemList: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10"></TableHead>
                 <TableHead>Article</TableHead>
                 <TableHead>N° série</TableHead>
                 <TableHead>Catégorie</TableHead>
@@ -80,7 +87,12 @@ const StockItemList: React.FC = () => {
                 const statusCfg = STOCK_STATUS_CONFIG[item.status] || STOCK_STATUS_CONFIG.in_stock;
                 const condCfg = CONDITION_CONFIG[item.condition] || CONDITION_CONFIG.new;
                 return (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onEdit?.(item)}>
+                    <TableCell className="p-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); onEdit?.(item); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
                     <TableCell className="font-medium">{item.title}</TableCell>
                     <TableCell className="font-mono text-xs">
                       {item.serial_numbers && item.serial_numbers.length > 0

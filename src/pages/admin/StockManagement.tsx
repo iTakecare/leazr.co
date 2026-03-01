@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { StockItem } from "@/services/stockService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload, Download } from "lucide-react";
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 
 const StockManagement: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { companyId } = useMultiTenant();
@@ -47,7 +49,7 @@ const StockManagement: React.FC = () => {
             <Upload className="h-4 w-4 mr-2" />
             Importer Excel
           </Button>
-          <Button onClick={() => setFormOpen(true)}>
+          <Button onClick={() => { setEditingItem(null); setFormOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
             Nouvel article
           </Button>
@@ -64,7 +66,7 @@ const StockManagement: React.FC = () => {
           <TabsTrigger value="valuation">Valorisation</TabsTrigger>
         </TabsList>
         <TabsContent value="items" className="mt-4">
-          <StockItemList />
+          <StockItemList onEdit={(item) => { setEditingItem(item); setFormOpen(true); }} />
         </TabsContent>
         <TabsContent value="movements" className="mt-4">
           <StockMovementHistory />
@@ -77,7 +79,7 @@ const StockManagement: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      <StockItemForm open={formOpen} onOpenChange={setFormOpen} />
+      <StockItemForm open={formOpen} onOpenChange={(open) => { setFormOpen(open); if (!open) setEditingItem(null); }} editItem={editingItem} />
       <StockImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
