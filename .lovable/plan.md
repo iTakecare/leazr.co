@@ -1,68 +1,50 @@
 
 
-# Ajout de la gestion des quantites et du prix d'achat unitaire
+# Lier les categories et marques du stock au catalogue existant
 
 ## Contexte
 
-Actuellement, chaque `stock_item` n'a qu'un champ `purchase_price` qui represente un montant global. Il manque deux informations essentielles :
-- **Quantite** (`quantity`) : combien d'unites de cet article
-- **Prix d'achat unitaire** (`unit_price`) : le prix par unite
+Actuellement, les champs `category` et `brand` de `stock_items` sont du texte libre. Or, le catalogue dispose deja de tables `categories` (avec id, name, translation) et `brands` (avec id, name) qui contiennent les valeurs de reference. Il faut utiliser ces tables pour alimenter les selects du formulaire stock et faire correspondre les valeurs lors de l'import Excel.
 
-Le `purchase_price` existant deviendra le prix total calcule (quantite x prix unitaire).
+## Etape 1 : Formulaire StockItemForm.tsx
 
-## Etape 1 : Migration SQL
+Remplacer les champs texte libres "Categorie" et "Marque" par des **Select** alimentes depuis les tables du catalogue :
 
-Ajouter deux colonnes a la table `stock_items` :
+- **Categorie** : charger les categories via `useCategories()` (hook existant dans `src/hooks/products/useCategories.ts`). Afficher `translation` comme label dans le select, stocker `name` comme valeur dans `stock_items.category` (pour rester compatible avec le champ texte existant et les groupements du rapport de valorisation).
+- **Marque** : charger les marques via `useBrands()` (hook existant dans `src/hooks/products/useBrands.ts`). Afficher `name` comme label, stocker `name` comme valeur dans `stock_items.brand`.
+- Garder une option "Autre" qui permet la saisie libre en cas de valeur absente du catalogue.
 
-| Champ | Type | Default | Description |
-|---|---|---|---|
-| `quantity` | integer | 1 | Nombre d'unites |
-| `unit_price` | numeric | 0 | Prix d'achat unitaire HT |
+### Modifications dans `StockItemForm.tsx`
+- Importer `useCategories` et `useBrands`
+- Remplacer le `<Input>` categorie (ligne 193-194) par un `<Select>` avec les categories du catalogue + option "Autre"
+- Remplacer le `<Input>` marque (ligne 197-198) par un `<Select>` avec les marques du catalogue + option "Autre"
 
-Migration :
-```sql
-ALTER TABLE stock_items ADD COLUMN quantity integer DEFAULT 1 NOT NULL;
-ALTER TABLE stock_items ADD COLUMN unit_price numeric DEFAULT 0;
--- Initialiser unit_price depuis purchase_price pour les donnees existantes
-UPDATE stock_items SET unit_price = COALESCE(purchase_price, 0), quantity = 1 WHERE unit_price = 0 OR unit_price IS NULL;
-```
+## Etape 2 : Import Excel (stockImportService.ts)
 
-## Etape 2 : Mise a jour du service stock (`stockService.ts`)
+Lors de l'import, faire correspondre les valeurs texte importees avec les tables existantes :
 
-- Ajouter `quantity` et `unit_price` a l'interface `StockItem`
-- Le `purchase_price` reste en base mais represente le total (quantity * unit_price)
+- Apres le parsing, normaliser la categorie importee et la comparer aux `categories.name` et `categories.translation` existantes. Si match, utiliser le `name` de la categorie. Sinon, garder la valeur telle quelle.
+- Meme logique pour la marque : normaliser et comparer aux `brands.name`. Si match, utiliser le nom exact de la marque.
 
-## Etape 3 : Mise a jour du formulaire (`StockItemForm.tsx`)
+### Modifications dans `stockImportService.ts`
+- Dans `importStockFromExcel`, charger les categories et brands depuis Supabase en debut d'import
+- Creer des maps de normalisation (comme pour les fournisseurs)
+- Appliquer la correspondance lors de la construction de `itemData`
 
-- Ajouter un champ **Quantite** (input number, min 1, default 1)
-- Renommer le champ prix actuel en **Prix unitaire HT**
-- Afficher le **Prix total** calcule automatiquement (quantite x prix unitaire) en lecture seule
-- Lors de la soumission, envoyer `quantity`, `unit_price` et `purchase_price = quantity * unit_price`
+## Etape 3 : Liste StockItemList.tsx
 
-## Etape 4 : Mise a jour de la liste (`StockItemList.tsx`)
-
-- Ajouter une colonne **Qte** apres le modele
-- Renommer la colonne "Prix achat" en "Prix unitaire"
-- Ajouter une colonne **Total** (quantite x prix unitaire)
-
-## Etape 5 : Mise a jour du rapport de valorisation (`StockValuationReport.tsx`)
-
-- Les calculs de valeur utilisent deja `purchase_price` qui reste le total, donc pas de changement de logique majeur
-- Ajouter l'affichage de la quantite totale dans les tableaux de regroupement
-
-## Etape 6 : Mise a jour de l'import Excel (`stockImportService.ts`)
-
-- Ajouter les champs `quantity` et `unit_price` au `StockImportRow`
-- Ajouter les patterns de detection : "quantite", "qty", "qte", "nombre" pour quantity et "prixunitaire", "unitprice", "pu" pour unit_price
-- Lors de l'import, calculer `purchase_price = quantity * unit_price`
+Pas de changement structurel necessaire -- les colonnes affichent deja les valeurs texte `category` et `brand`. Aucune modification requise.
 
 ## Resume des fichiers
 
 | Fichier | Action |
 |---|---|
-| Migration SQL | Ajouter colonnes `quantity` et `unit_price` |
-| `src/services/stockService.ts` | Ajouter champs a l'interface StockItem |
-| `src/components/stock/StockItemForm.tsx` | Champs quantite + prix unitaire + total calcule |
-| `src/components/stock/StockItemList.tsx` | Colonnes Qte, Prix unitaire, Total |
-| `src/components/stock/StockValuationReport.tsx` | Quantites totales dans les regroupements |
-| `src/services/stockImportService.ts` | Mapping quantite et prix unitaire |
+| `src/components/stock/StockItemForm.tsx` | Remplacer Input par Select pour categorie et marque, avec donnees du catalogue |
+| `src/services/stockImportService.ts` | Matcher les valeurs importees avec les categories et marques existantes |
+
+## Details techniques
+
+- Les hooks `useCategories` et `useBrands` sont deja disponibles et caches via React Query
+- On stocke le `name` (pas l'id) dans `stock_items.category` et `stock_items.brand` pour rester compatible avec le rapport de valorisation qui groupe par ces valeurs texte
+- L'option "Autre" dans les selects bascule vers un champ texte libre pour ne pas bloquer l'utilisateur si une valeur n'existe pas encore dans le catalogue
+
