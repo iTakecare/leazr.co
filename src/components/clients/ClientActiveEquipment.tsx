@@ -1,15 +1,18 @@
 import React from "react";
+import ExcelJS from "exceljs";
 import { useClientContracts } from "@/hooks/useClientContracts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, Loader2, PackageOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Monitor, Loader2, PackageOpen, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatContractDate } from "@/utils/contractDates";
 
 interface ClientActiveEquipmentProps {
   clientId: string;
   clientEmail?: string;
+  clientName?: string;
 }
 
 const ACTIVE_STATUSES = ["active", "signed", "in_progress", "delivered"];
@@ -24,7 +27,7 @@ const getStatusLabel = (status: string) => {
   return map[status] || status;
 };
 
-const ClientActiveEquipment: React.FC<ClientActiveEquipmentProps> = ({ clientId, clientEmail }) => {
+const ClientActiveEquipment: React.FC<ClientActiveEquipmentProps> = ({ clientId, clientEmail, clientName }) => {
   const { contracts, loading } = useClientContracts(clientEmail, clientId);
   const navigate = useNavigate();
 
@@ -40,6 +43,59 @@ const ClientActiveEquipment: React.FC<ClientActiveEquipmentProps> = ({ clientId,
     }))
   );
 
+  const handleExportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Parc matériel");
+
+    sheet.columns = [
+      { header: "Désignation", key: "title", width: 35 },
+      { header: "Quantité", key: "quantity", width: 12 },
+      { header: "N° de série", key: "serial_number", width: 20 },
+      { header: "N° contrat", key: "contract_number", width: 18 },
+      { header: "Statut contrat", key: "status", width: 16 },
+      { header: "Échéance", key: "end_date", width: 16 },
+    ];
+
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF4A5568" },
+    };
+    headerRow.alignment = { vertical: "middle", horizontal: "center" };
+
+    for (const item of equipmentRows) {
+      sheet.addRow({
+        title: item.title || "",
+        quantity: item.quantity ?? 1,
+        serial_number: item.serial_number || "",
+        contract_number: item.contract_number,
+        status: getStatusLabel(item.contract_status),
+        end_date: item.contract_end_date
+          ? new Date(item.contract_end_date).toLocaleDateString("fr-FR")
+          : "",
+      });
+    }
+
+    sheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: equipmentRows.length + 1, column: sheet.columns.length },
+    };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeName = (clientName || "client").replace(/[^a-zA-Z0-9_-]/g, "_");
+    a.download = `parc_materiel_${safeName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
@@ -54,10 +110,22 @@ const ClientActiveEquipment: React.FC<ClientActiveEquipmentProps> = ({ clientId,
   return (
     <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
       <CardHeader className="bg-muted/50 border-b">
-        <CardTitle className="flex items-center gap-2">
-          <Monitor className="h-5 w-5 text-primary" />
-          Matériel en cours
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Monitor className="h-5 w-5 text-primary" />
+            Matériel en cours
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            disabled={equipmentRows.length === 0}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exporter xlsx
+          </Button>
+        </div>
         <CardDescription>
           Équipements issus des contrats actifs du client ({equipmentRows.length} article{equipmentRows.length !== 1 ? "s" : ""})
         </CardDescription>

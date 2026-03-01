@@ -918,6 +918,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           <ClientActiveEquipment 
             clientId={client.id} 
             clientEmail={client.email || undefined}
+            clientName={client.name}
           />
         </TabsContent>
 
