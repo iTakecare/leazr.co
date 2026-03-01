@@ -10,9 +10,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronDown } from "lucide-react";
+import { Pencil, Trash2, Copy, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { updateStockItem, createMovement } from "@/services/stockService";
+import { updateStockItem, createMovement, duplicateStockItem } from "@/services/stockService";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
@@ -70,6 +70,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const { items, isLoading } = useStockItems(statusFilter);
   const [deleteItem, setDeleteItem] = useState<StockItem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [duplicating, setDuplicating] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { companyId } = useMultiTenant();
@@ -118,6 +119,21 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
       toast.success(`Statut changé en "${STOCK_STATUS_CONFIG[newStatus].label}"`);
     } catch (err: any) {
       toast.error("Erreur: " + (err.message || "Impossible de changer le statut"));
+    }
+  };
+
+  const handleDuplicate = async (item: StockItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDuplicating(item.id);
+    try {
+      await duplicateStockItem(item);
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-counts'] });
+      toast.success(`Article "${item.title}" dupliqué`);
+    } catch (err: any) {
+      toast.error("Erreur: " + (err.message || "Impossible de dupliquer"));
+    } finally {
+      setDuplicating(null);
     }
   };
 
@@ -208,6 +224,9 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
           <div className="flex gap-0.5">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); onEdit?.(item); }}>
               <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => handleDuplicate(item, e)} disabled={duplicating === item.id} title="Dupliquer">
+              <Copy className="h-3.5 w-3.5" />
             </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={e => { e.stopPropagation(); setDeleteItem(item); }}>
               <Trash2 className="h-3.5 w-3.5" />

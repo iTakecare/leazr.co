@@ -157,6 +157,26 @@ export const updateStockItem = async (itemId: string, updates: Partial<StockItem
   if (error) throw error;
 };
 
+export const duplicateStockItem = async (item: StockItem): Promise<StockItem> => {
+  const { id, created_at, updated_at, supplier, product, contract, current_contract_id, current_contract_equipment_id, ...rest } = item;
+  const newItem: any = {
+    ...rest,
+    title: `${item.title} (Copie)`,
+    serial_number: null,
+    serial_numbers: [],
+    status: 'in_stock' as StockStatus,
+    current_contract_id: null,
+    current_contract_equipment_id: null,
+  };
+  const { data, error } = await supabase
+    .from('stock_items' as any)
+    .insert(newItem)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as StockItem;
+};
+
 // ===== STOCK MOVEMENTS =====
 
 export const createMovement = async (movement: Partial<StockMovement>) => {
