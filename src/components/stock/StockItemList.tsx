@@ -6,9 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface StockItemListProps {
   onEdit?: (item: StockItem) => void;
@@ -18,6 +22,29 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const [statusFilter, setStatusFilter] = useState<StockStatus | undefined>(undefined);
   const [search, setSearch] = useState("");
   const { items, isLoading } = useStockItems(statusFilter);
+  const [deleteItem, setDeleteItem] = useState<StockItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+    setDeleting(true);
+    try {
+      // Delete related movements first, then the item
+      await supabase.from('stock_movements' as any).delete().eq('stock_item_id', deleteItem.id);
+      const { error } = await supabase.from('stock_items' as any).delete().eq('id', deleteItem.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      toast.success("Article supprimé");
+    } catch (err: any) {
+      toast.error("Erreur: " + (err.message || "Impossible de supprimer"));
+    } finally {
+      setDeleting(false);
+      setDeleteItem(null);
+    }
+  };
 
   const filtered = items.filter(item => {
     if (!search) return true;
@@ -89,9 +116,14 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
                 return (
                   <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onEdit?.(item)}>
                     <TableCell className="p-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); onEdit?.(item); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); onEdit?.(item); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={e => { e.stopPropagation(); setDeleteItem(item); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="font-medium">{item.title}</TableCell>
                     <TableCell className="font-mono text-xs">
@@ -128,6 +160,23 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
           </Table>
         </div>
       )}
+
+      <AlertDialog open={!!deleteItem} onOpenChange={open => { if (!open) setDeleteItem(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cet article ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'article <strong>"{deleteItem?.title}"</strong> sera supprimé définitivement ainsi que son historique de mouvements. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? 'Suppression...' : 'Supprimer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
