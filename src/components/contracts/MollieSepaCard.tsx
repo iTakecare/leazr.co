@@ -20,7 +20,8 @@ import {
   Pencil,
   Clock,
   XCircle,
-  Loader2
+  Loader2,
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,7 @@ import {
   MolliePayment
 } from "@/utils/mollie";
 import IBANInput from "./IBANInput";
+import { generateSelfLeasingMonthlyInvoice } from "@/services/invoiceService";
 
 interface MollieSepaCardProps {
   contract: {
@@ -76,6 +78,8 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [recentPayments, setRecentPayments] = useState<MolliePayment[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [retryingPaymentId, setRetryingPaymentId] = useState<string | null>(null);
+  const [generatingInvoiceForPayment, setGeneratingInvoiceForPayment] = useState<string | null>(null);
+  const [invoiceGeneratedForPayments, setInvoiceGeneratedForPayments] = useState<Set<string>>(new Set());
   
   // Form state
   const [formData, setFormData] = useState({
@@ -187,6 +191,27 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
 
       if (paymentsResult.success && paymentsResult.data) {
         setRecentPayments(paymentsResult.data);
+        
+        // Check which payments already have invoices
+        const generatedSet = new Set<string>();
+        for (const payment of paymentsResult.data) {
+          const paymentDate = new Date(payment.createdAt);
+          const month = paymentDate.getMonth() + 1;
+          const year = paymentDate.getFullYear();
+          const { data: existing } = await supabase
+            .from('invoices')
+            .select('id')
+            .eq('contract_id', contract.id)
+            .gte('invoice_date', `${year}-${String(month).padStart(2, '0')}-01`)
+            .lt('invoice_date', month === 12 
+              ? `${year + 1}-01-01` 
+              : `${year}-${String(month + 1).padStart(2, '0')}-01`)
+            .maybeSingle();
+          if (existing) {
+            generatedSet.add(payment.id);
+          }
+        }
+        setInvoiceGeneratedForPayments(generatedSet);
       }
     } catch (error) {
       console.error("Error fetching Mollie details:", error);
@@ -233,6 +258,30 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       toast.error("Erreur lors de la relance du prélèvement");
     } finally {
       setRetryingPaymentId(null);
+    }
+  };
+
+  // Generate monthly invoice for a paid payment
+  const handleGenerateMonthlyInvoice = async (payment: MolliePayment) => {
+    try {
+      setGeneratingInvoiceForPayment(payment.id);
+      const result = await generateSelfLeasingMonthlyInvoice(
+        contract.id,
+        companyId,
+        payment.createdAt,
+        parseFloat(payment.amount.value)
+      );
+      if (result.alreadyExists) {
+        toast.info("Une facture existe déjà pour ce mois");
+      } else {
+        toast.success("Facture de location générée avec succès");
+      }
+      setInvoiceGeneratedForPayments(prev => new Set(prev).add(payment.id));
+    } catch (error) {
+      console.error("Error generating invoice:", error);
+      toast.error("Erreur lors de la génération de la facture");
+    } finally {
+      setGeneratingInvoiceForPayment(null);
     }
   };
 
@@ -518,6 +567,43 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                       </span>
                       <div className="flex items-center gap-2">
                         {getPaymentStatusBadge(payment.status)}
+                        {/* Invoice generation button for paid payments */}
+                        {payment.status === "paid" && !invoiceGeneratedForPayments.has(payment.id) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleGenerateMonthlyInvoice(payment)}
+                            disabled={generatingInvoiceForPayment === payment.id}
+                            className="h-6 px-2 text-xs"
+                          >
+                            {generatingInvoiceForPayment === payment.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <FileText className="h-3 w-3 mr-1" />
+                                Facturer
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        {payment.status === "paid" && invoiceGeneratedForPayments.has(payment.id) && (
+                          <Badge className="bg-emerald-600 hover:bg-emerald-600 gap-1 text-xs">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Facturé
+                          </Badge>
+                        )}
+                        {/* Greyed out invoice button for pending payments */}
+                        {(payment.status === "pending" || payment.status === "open") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="h-6 px-2 text-xs opacity-50"
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Facturer
+                          </Button>
+                        )}
                         {/* Retry button for failed payments */}
                         {(payment.status === "failed" || payment.status === "expired" || payment.status === "canceled") && (
                           <Button

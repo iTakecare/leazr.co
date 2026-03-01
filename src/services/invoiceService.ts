@@ -1135,3 +1135,88 @@ export const recalculateInvoiceFromOffer = async (invoiceId: string): Promise<In
     throw error;
   }
 };
+
+// Générer une facture mensuelle self-leasing à partir d'un paiement Mollie
+export const generateSelfLeasingMonthlyInvoice = async (
+  contractId: string, 
+  companyId: string, 
+  paymentDate: string, 
+  amount: number
+) => {
+  try {
+    const date = new Date(paymentDate);
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+
+    console.log('📝 Génération facture self-leasing mensuelle -', monthKey, 'contractId:', contractId);
+
+    // Vérifier si une facture existe déjà pour ce contrat et ce mois
+    const { data: existing } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('contract_id', contractId)
+      .eq('company_id', companyId)
+      .gte('invoice_date', `${year}-${String(month).padStart(2, '0')}-01`)
+      .lt('invoice_date', month === 12 
+        ? `${year + 1}-01-01` 
+        : `${year}-${String(month + 1).padStart(2, '0')}-01`)
+      .maybeSingle();
+
+    if (existing) {
+      console.log('✅ Facture déjà existante pour ce mois:', existing.id);
+      return { alreadyExists: true, invoice: existing };
+    }
+
+    // Récupérer les données du contrat
+    const { data: contract, error: contractError } = await supabase
+      .from('contracts')
+      .select('client_name, client_email')
+      .eq('id', contractId)
+      .single();
+
+    if (contractError || !contract) {
+      throw new Error('Contrat non trouvé');
+    }
+
+    // Générer un numéro de facture
+    const invoiceNumber = `SL-${monthKey}-${contractId.substring(0, 6).toUpperCase()}`;
+
+    // Créer la facture
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .insert({
+        contract_id: contractId,
+        company_id: companyId,
+        leaser_name: 'iTakecare',
+        invoice_type: 'leasing',
+        invoice_number: invoiceNumber,
+        amount: amount,
+        status: 'paid',
+        integration_type: 'mollie',
+        invoice_date: paymentDate.split('T')[0],
+        due_date: paymentDate.split('T')[0],
+        paid_at: paymentDate,
+        billing_data: {
+          type: 'self_leasing_monthly',
+          month: monthKey,
+          client_name: contract.client_name,
+          payment_source: 'mollie',
+          created_at: new Date().toISOString()
+        }
+      })
+      .select()
+      .single();
+
+    if (invoiceError) {
+      console.error('❌ Erreur création facture:', invoiceError);
+      throw new Error('Erreur lors de la création de la facture');
+    }
+
+    console.log('✅ Facture self-leasing mensuelle créée:', invoice.id);
+    return { alreadyExists: false, invoice };
+  } catch (error) {
+    console.error('❌ Erreur génération facture self-leasing:', error);
+    throw error;
+  }
+};
