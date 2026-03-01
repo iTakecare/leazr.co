@@ -1,39 +1,26 @@
 
+# Ajout de la creation de fournisseur dans le formulaire de stock
 
-# Gestion des doublons lors du reimport Excel
+## Contexte
+Le formulaire d'ajout/edition d'article de stock (`StockItemForm.tsx`) utilise un simple `Select` pour choisir un fournisseur, sans possibilite d'en creer un nouveau. Le composant `SupplierSelectOrCreate` existe deja et est utilise dans les commandes fournisseurs -- il inclut une modale de creation avec nom, email, telephone et type (Belge/EU).
 
-## Probleme actuel
-La detection de doublons repose uniquement sur le numero de serie (`serial_number`). Les articles sans numero de serie sont reinsertes a chaque import, ce qui explique que vous avez 69 articles au lieu de 100 : seuls les articles avec un serial deja present sont ignores.
+## Modification
 
-## Solution proposee
-Ajouter une detection de doublons multi-criteres qui fonctionne meme sans numero de serie.
-
-### Criteres de detection (par ordre de priorite)
-1. **Numero de serie** : si l'article a un serial number identique a un existant -> doublon
-2. **Combinaison titre + marque + modele + numero de serie (vide)** : si un article sans serial a le meme titre, la meme marque et le meme modele qu'un existant -> doublon
-3. **Titre + fournisseur + prix unitaire** : pour les articles generiques sans marque/modele specifique
-
-### Fichier modifie
-
-| Fichier | Modification |
+| Fichier | Changement |
 |---|---|
-| `src/services/stockImportService.ts` | Ameliorer la logique de detection des doublons dans `importStockItems()` |
+| `src/components/stock/StockItemForm.tsx` | Remplacer le `Select` fournisseur par le composant `SupplierSelectOrCreate` |
 
-### Detail technique
+## Detail technique
 
-Dans `importStockItems()` :
+1. Importer `SupplierSelectOrCreate` depuis `@/components/equipment/SupplierSelectOrCreate`
+2. Remplacer le bloc `Select` (lignes 284-292) par `SupplierSelectOrCreate` avec :
+   - `suppliers` : la liste deja chargee dans le composant
+   - `value` : `form.supplier_id || null`
+   - `onValueChange` : met a jour `form.supplier_id`
+   - `onSupplierCreated` : ajoute le nouveau fournisseur a la liste locale `suppliers`
+3. Ajouter un state local pour gerer la liste de fournisseurs mise a jour apres creation (ou utiliser le state existant si deja present)
 
-1. **Charger les articles existants avec plus de champs** : au lieu de ne charger que `serial_number`, charger aussi `title`, `brand`, `model`, `supplier_id`, `unit_price`
-2. **Creer un Set de "fingerprints"** : pour chaque article existant, generer une cle composite normalisee (ex: `normalize(title)|normalize(brand)|normalize(model)`)
-3. **Verifier chaque ligne importee** contre ces fingerprints :
-   - Si serial_number present et deja en base -> doublon
-   - Sinon, si fingerprint (titre+marque+modele) deja en base -> doublon
-4. **Ajouter les fingerprints des articles inseres** au Set pour eviter les doublons intra-fichier
-5. **Afficher le nombre de doublons ignores** dans le resultat (deja supporte par `StockImportResult.duplicates`)
-
-### Flux utilisateur
-1. L'utilisateur importe un fichier Excel
-2. Le systeme compare chaque ligne aux articles existants
-3. Les doublons sont ignores (pas de mise a jour, pas d'insertion)
-4. A la fin, un message indique : "X articles importes, Y doublons ignores, Z erreurs"
-
+Le composant `SupplierSelectOrCreate` gere deja :
+- La recherche dans la liste existante
+- L'ouverture d'une modale de creation identique a celle des commandes
+- Le callback apres creation pour rafraichir la liste
