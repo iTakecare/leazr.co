@@ -1171,7 +1171,7 @@ export const generateSelfLeasingMonthlyInvoice = async (
     // Récupérer les données complètes du contrat
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
-      .select('*, offers(id, equipment_data)')
+      .select('*')
       .eq('id', contractId)
       .single();
 
