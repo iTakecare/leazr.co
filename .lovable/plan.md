@@ -1,33 +1,29 @@
 
 
-# Correction de la liste des fournisseurs dans le formulaire de stock
+# Correction du scroll de la liste fournisseurs dans le formulaire de stock
 
-## Probleme identifie
+## Probleme
 
-Le composant `SupplierSelectOrCreate` utilise la bibliotheque `cmdk` pour la recherche et la selection. L'investigation montre que les deux pages (stock et commandes) utilisent exactement la meme fonction `fetchSuppliers(companyId)` pour charger les fournisseurs. La difference est que la page des commandes utilise un simple `Select` natif qui affiche tous les fournisseurs sans probleme, tandis que le formulaire de stock utilise `cmdk` qui peut filtrer/masquer certains elements de maniere inattendue.
+Le composant `SupplierSelectOrCreate` est utilise a l'identique dans les commandes et dans le stock. Dans les commandes, la liste deroulante des fournisseurs permet de scroller normalement. Dans le stock, le meme composant est rendu a l'interieur d'un `Dialog` avec `overflow-y-auto` (ligne 235 de `StockItemForm.tsx`), ce qui interfere avec le scroll du `PopoverContent` : les evenements de scroll "remontent" au dialog parent au lieu de rester dans la liste.
 
-Deux corrections a apporter :
+## Solution
 
-1. **Ajout de `shouldFilter={false}` sur le composant `Command`** dans `SupplierSelectOrCreate.tsx` pour eviter le filtrage automatique de cmdk qui peut masquer des resultats. Le filtrage sera gere manuellement sur le texte de recherche saisi.
-
-2. **Ajout d'un log de debug** temporaire pour verifier que tous les fournisseurs sont bien charges (sera retire apres validation).
-
-## Note secondaire
-
-Un fournisseur dans la base de donnees a le nom `[object Object]` (c'est le bug `[object Object]` visible dans la capture d'ecran precedente). Ce n'est pas un bug de code mais une donnee corrompue en base.
+Ajouter un gestionnaire `onWheel` avec `stopPropagation` sur le `CommandList` du composant `SupplierSelectOrCreate` pour empecher le dialog parent de capturer les evenements de scroll destines a la liste des fournisseurs.
 
 ## Fichier modifie
 
 | Fichier | Changement |
 |---|---|
-| `src/components/equipment/SupplierSelectOrCreate.tsx` | Desactiver le filtrage automatique de cmdk, implementer un filtrage manuel sur le champ de recherche |
+| `src/components/equipment/SupplierSelectOrCreate.tsx` | Ajouter `onWheel={(e) => e.stopPropagation()}` sur le `CommandList` pour isoler le scroll de la liste |
 
 ## Detail technique
 
-1. Ajouter un state `searchQuery` pour capturer le texte de recherche
-2. Ajouter `shouldFilter={false}` au composant `Command` pour desactiver le filtrage cmdk
-3. Filtrer manuellement la liste des fournisseurs avec `suppliers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))`
-4. Passer `onValueChange` au `CommandInput` pour capturer le texte de recherche
-5. Le bouton "Nouveau fournisseur" reste toujours visible en dehors du `CommandList`
+Dans `SupplierSelectOrCreate.tsx`, ligne 109, modifier le `CommandList` :
 
-Cela aligne le comportement avec la recommandation technique existante du projet (memoire `cmdk-server-side-filtering`) et garantit que tous les fournisseurs sont toujours visibles dans la liste.
+```text
+Avant:  <CommandList>
+Apres:  <CommandList onWheel={(e) => e.stopPropagation()}>
+```
+
+Cela empeche l'evenement de scroll de remonter au `DialogContent` parent et permet de scroller normalement dans la liste des fournisseurs, que le composant soit utilise dans un dialog ou non.
+
