@@ -1,60 +1,73 @@
 
+# Ajouter les lignes d'equipement dans la facture self-leasing mensuelle
 
-# Bouton de generation de facture mensuelle dans l'historique Mollie
+## Probleme
 
-## Contexte
+La fonction `generateSelfLeasingMonthlyInvoice` dans `invoiceService.ts` cree une facture avec un `billing_data` minimal (juste le type, mois, nom client). Il manque les donnees structurees `equipment_data`, `contract_data` et `leaser_data` que la page de detail de facture utilise pour afficher les lignes de commande.
 
-Dans la carte `MollieSepaCard` des contrats self-leasing, l'historique des paiements Mollie affiche le statut de chaque prelevement (Paye, En cours, Echoue). L'objectif est d'ajouter un bouton "Generer facture" a cote de chaque paiement pour creer la facture de location mensuelle correspondante.
+## Solution
 
-## Comportement souhaite
+Modifier la fonction `generateSelfLeasingMonthlyInvoice` pour :
 
-- **Paiement "Paye"** : Bouton actif permettant de generer la facture du mois
-- **Paiement "En cours"** : Bouton visible mais grise (desactive)
-- **Paiement "Echoue/Expire/Annule"** : Pas de bouton de facture (le bouton "Relancer" reste)
-- Si une facture existe deja pour ce contrat et ce mois, le bouton affiche "Facture generee" avec une icone de validation (desactive)
+1. **Recuperer les donnees completes du contrat** (tracking number, client, etc.) au lieu de seulement `client_name` et `client_email`
+2. **Recuperer les equipements du contrat** depuis la table `offer_equipment` (via l'offre liee au contrat)
+3. **Construire les lignes `equipment_data`** avec pour chaque equipement : titre, prix, quantite, numero de serie, TVA, et un intitule descriptif du type "Contrat de location LOC-XXX / NomEquipement"
+4. **Ajouter `contract_data` et `leaser_data`** (iTakecare comme bailleur pour le self-leasing) dans le `billing_data`
 
-## Modifications techniques
+## Changement technique
 
-### 1. Fichier : `src/components/contracts/MollieSepaCard.tsx`
+### Fichier : `src/services/invoiceService.ts`
 
-**Ajout d'un import** : `FileText` depuis lucide-react pour l'icone du bouton.
+Modifier la fonction `generateSelfLeasingMonthlyInvoice` (lignes 1140-1222) :
 
-**Ajout d'un state** pour suivre les factures deja generees par mois et le paiement en cours de facturation :
+**Etape 1** - Elargir la requete contrat pour recuperer plus de champs :
 ```typescript
-const [generatingInvoiceForPayment, setGeneratingInvoiceForPayment] = useState<string | null>(null);
-const [invoiceGeneratedForPayments, setInvoiceGeneratedForPayments] = useState<Set<string>>(new Set());
+const { data: contract } = await supabase
+  .from('contracts')
+  .select('*, offers(id, equipment_data)')
+  .eq('id', contractId)
+  .single();
 ```
 
-**Ajout d'une fonction** `handleGenerateMonthlyInvoice(payment)` qui :
-1. Determine le mois/annee du paiement
-2. Verifie si une facture existe deja pour ce contrat et ce mois dans la table `invoices`
-3. Si non, cree une facture de type `leasing` dans la table `invoices` avec les informations du paiement (montant, date, contrat)
-4. Met a jour le state local pour marquer cette facture comme generee
+**Etape 2** - Recuperer les equipements depuis `offer_equipment` via l'offre du contrat :
+```typescript
+const { data: equipmentItems } = await supabase
+  .from('offer_equipment')
+  .select('*')
+  .eq('offer_id', contract.offer_id);
+```
 
-**Ajout d'une verification au chargement** : lors du `fetchMollieDetails`, verifier quels paiements ont deja une facture associee (par mois/annee + contract_id dans la table `invoices`).
+**Etape 3** - Construire le `billing_data` complet avec `equipment_data` au meme format que les factures classiques :
+```typescript
+billing_data: {
+  type: 'self_leasing_monthly',
+  month: monthKey,
+  payment_source: 'mollie',
+  contract_data: {
+    id: contract.id,
+    tracking_number: contract.tracking_number,
+    client_name: contract.client_name,
+    client_email: contract.client_email,
+    offer_id: contract.offer_id,
+  },
+  leaser_data: {
+    name: 'iTakecare',
+    // Donnees de la company (bailleur = la company elle-meme en self-leasing)
+  },
+  equipment_data: equipmentItems.map(item => ({
+    title: `Contrat de location ${contract.tracking_number || ''} / ${item.title}`,
+    quantity: item.quantity || 1,
+    selling_price_excl_vat: item.monthly_payment || (amount / (equipmentItems.length || 1)),
+    serial_number: item.serial_number,
+    vat_rate: 21,
+  })),
+  invoice_totals: {
+    total_excl_vat: amount,
+    vat_amount: amount * 0.21,
+    total_incl_vat: amount * 1.21,
+  },
+  created_at: new Date().toISOString()
+}
+```
 
-**Modification du rendu** dans la boucle `recentPayments.map()` (lignes 508-542) : ajouter le bouton de generation de facture a cote du badge de statut :
-
-- Si statut `paid` et pas encore de facture : bouton actif "Facturer" avec icone FileText
-- Si statut `paid` et facture deja generee : badge vert "Facture" (desactive)
-- Si statut `pending`/`open` : bouton grise "Facturer" (desactive)
-- Si statut `failed`/`expired`/`canceled` : pas de bouton facture (le bouton Relancer reste inchange)
-
-### 2. Fichier : `src/services/invoiceService.ts`
-
-**Ajout d'une nouvelle fonction** `generateSelfLeasingMonthlyInvoice(contractId, companyId, paymentDate, amount)` qui :
-1. Verifie qu'une facture n'existe pas deja pour ce contrat et ce mois
-2. Recupere les donnees du contrat et de l'entreprise
-3. Cree une facture de type `leasing` avec :
-   - `contract_id` : l'ID du contrat
-   - `company_id` : l'ID de l'entreprise
-   - `amount` : le montant du paiement Mollie
-   - `invoice_date` : la date du paiement
-   - `due_date` : la date du paiement (deja paye)
-   - `status` : `paid`
-   - `payment_status` : `paid`
-   - `type` : `leasing`
-   - `invoice_number` : numero genere automatiquement
-4. Retourne la facture creee
-
-Cela permettra de generer les factures de location self-leasing mois par mois, en lien direct avec les paiements Mollie confirmes.
+Cela permettra a la page de detail de facture d'afficher correctement les lignes d'equipement avec description, quantite, prix unitaire et total, comme dans les factures classiques Billit.
