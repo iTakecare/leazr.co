@@ -52,9 +52,10 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
         .select(`
           *,
           contract_equipment (
-            id,
+          id,
             title,
-            quantity
+            quantity,
+            serial_number
           )
         `)
         .order('created_at', { ascending: false });
