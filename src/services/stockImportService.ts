@@ -77,6 +77,15 @@ function normalize(s: string): string {
     .trim();
 }
 
+// Sanitize serial numbers: treat placeholder values as null
+function sanitizeSerialNumber(value: string | null | undefined): string | null {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const IGNORED = ['/', '-', 'n/a', 'na', 'none', 'aucun', 'nc', 'neant', '//', '---', '.'];
+  if (IGNORED.includes(raw.toLowerCase())) return null;
+  return raw;
+}
+
 // Column auto-detection mappings
 const HEADER_PATTERNS: Record<keyof StockImportRow, string[]> = {
   title: ['titre', 'description', 'nom', 'designation', 'article', 'libelle', 'name', 'title'],
@@ -385,7 +394,7 @@ export async function importStockItems(
   const existingSerials = new Set<string>();
 
   (existingItems || []).forEach((item: any) => {
-    const sn = String(item.serial_number || '').trim();
+    const sn = sanitizeSerialNumber(item.serial_number);
     if (sn) existingSerials.add(normalize(sn));
   });
 
@@ -410,7 +419,7 @@ export async function importStockItems(
       }
 
       // Duplicate detection - criterion 1: serial number
-      const serialNumber = String(parsed.serial_number || '').trim() || null;
+      const serialNumber = sanitizeSerialNumber(parsed.serial_number);
       if (serialNumber && existingSerials.has(normalize(serialNumber))) {
         result.duplicates++;
         continue;
