@@ -1,61 +1,60 @@
 
 
-# Eviter le double comptage Self-Leasing / Factures Billit
+# Bouton de generation de facture mensuelle dans l'historique Mollie
 
-## Probleme identifie
+## Contexte
 
-La fonction SQL `get_monthly_financial_data` calcule le CA de deux facons pour les contrats self-leasing :
+Dans la carte `MollieSepaCard` des contrats self-leasing, l'historique des paiements Mollie affiche le statut de chaque prelevement (Paye, En cours, Echoue). L'objectif est d'ajouter un bouton "Generer facture" a cote de chaque paiement pour creer la facture de location mensuelle correspondante.
 
-1. **Via les factures** (`leasing_revenue` CTE) : somme de toutes les factures de type `leasing`
-2. **Via les contrats** (`self_leasing_by_month` CTE) : `monthly_payment` calcule a partir du contrat
+## Comportement souhaite
 
-Quand les factures Billit self-leasing sont importees et matchees aux contrats, le meme montant est compte deux fois.
+- **Paiement "Paye"** : Bouton actif permettant de generer la facture du mois
+- **Paiement "En cours"** : Bouton visible mais grise (desactive)
+- **Paiement "Echoue/Expire/Annule"** : Pas de bouton de facture (le bouton "Relancer" reste)
+- Si une facture existe deja pour ce contrat et ce mois, le bouton affiche "Facture generee" avec une icone de validation (desactive)
 
-## Solution
+## Modifications techniques
 
-Modifier la fonction SQL `get_monthly_financial_data` pour que le CTE `self_leasing_by_month` exclue les mois ou un contrat self-leasing a deja une facture enregistree. Ainsi :
+### 1. Fichier : `src/components/contracts/MollieSepaCard.tsx`
 
-- Si une facture existe pour un contrat self-leasing a un mois donne --> le CA vient de la facture (via `leasing_revenue`)
-- Si aucune facture n'existe pour ce mois --> le CA vient du calcul du contrat (via `self_leasing_by_month`)
+**Ajout d'un import** : `FileText` depuis lucide-react pour l'icone du bouton.
 
-## Changement technique
-
-**Migration SQL** : Mise a jour de `get_monthly_financial_data`
-
-Dans le CTE `self_leasing_by_month`, ajouter une condition qui verifie l'absence de facture pour ce contrat et ce mois :
-
-```text
-self_leasing_by_month AS (
-  SELECT
-    m.month_num as month,
-    SUM(
-      CASE 
-        WHEN [contrat actif ce mois]
-             AND NOT EXISTS (
-               SELECT 1 FROM invoices inv 
-               WHERE inv.contract_id = slc.id 
-                 AND EXTRACT(MONTH FROM inv.invoice_date) = m.month_num
-                 AND EXTRACT(YEAR FROM inv.invoice_date) = target_year
-             )
-        THEN slc.monthly_payment 
-        ELSE 0 
-      END
-    ) as sl_revenue,
-    SUM(
-      CASE 
-        WHEN [contrat actif ce mois]
-             AND NOT EXISTS (...)
-        THEN slc.total_equipment_cost / NULLIF(slc.duration, 0)
-        ELSE 0 
-      END
-    ) as sl_purchase
-  FROM months m
-  CROSS JOIN self_leasing_contracts slc
-  GROUP BY m.month_num
-)
+**Ajout d'un state** pour suivre les factures deja generees par mois et le paiement en cours de facturation :
+```typescript
+const [generatingInvoiceForPayment, setGeneratingInvoiceForPayment] = useState<string | null>(null);
+const [invoiceGeneratedForPayments, setInvoiceGeneratedForPayments] = useState<Set<string>>(new Set());
 ```
 
-Meme logique pour `sl_purchase` (amortissement) : si une facture existe, l'achat est deja couvert par `equipment_purchases_by_month` (qui exclut le self-leasing actuellement, mais cela peut etre ajuste si necessaire).
+**Ajout d'une fonction** `handleGenerateMonthlyInvoice(payment)` qui :
+1. Determine le mois/annee du paiement
+2. Verifie si une facture existe deja pour ce contrat et ce mois dans la table `invoices`
+3. Si non, cree une facture de type `leasing` dans la table `invoices` avec les informations du paiement (montant, date, contrat)
+4. Met a jour le state local pour marquer cette facture comme generee
 
-Cette approche est retrocompatible : tant qu'il n'y a pas de factures matchees, le comportement reste identique. Des qu'une facture est importee et matchee, elle prend le relais.
+**Ajout d'une verification au chargement** : lors du `fetchMollieDetails`, verifier quels paiements ont deja une facture associee (par mois/annee + contract_id dans la table `invoices`).
 
+**Modification du rendu** dans la boucle `recentPayments.map()` (lignes 508-542) : ajouter le bouton de generation de facture a cote du badge de statut :
+
+- Si statut `paid` et pas encore de facture : bouton actif "Facturer" avec icone FileText
+- Si statut `paid` et facture deja generee : badge vert "Facture" (desactive)
+- Si statut `pending`/`open` : bouton grise "Facturer" (desactive)
+- Si statut `failed`/`expired`/`canceled` : pas de bouton facture (le bouton Relancer reste inchange)
+
+### 2. Fichier : `src/services/invoiceService.ts`
+
+**Ajout d'une nouvelle fonction** `generateSelfLeasingMonthlyInvoice(contractId, companyId, paymentDate, amount)` qui :
+1. Verifie qu'une facture n'existe pas deja pour ce contrat et ce mois
+2. Recupere les donnees du contrat et de l'entreprise
+3. Cree une facture de type `leasing` avec :
+   - `contract_id` : l'ID du contrat
+   - `company_id` : l'ID de l'entreprise
+   - `amount` : le montant du paiement Mollie
+   - `invoice_date` : la date du paiement
+   - `due_date` : la date du paiement (deja paye)
+   - `status` : `paid`
+   - `payment_status` : `paid`
+   - `type` : `leasing`
+   - `invoice_number` : numero genere automatiquement
+4. Retourne la facture creee
+
+Cela permettra de generer les factures de location self-leasing mois par mois, en lien direct avec les paiements Mollie confirmes.
