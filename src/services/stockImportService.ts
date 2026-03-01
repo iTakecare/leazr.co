@@ -383,46 +383,11 @@ export async function importStockItems(
 
   // Build serial number set
   const existingSerials = new Set<string>();
-  // Build fingerprint count map: normalized(title)|normalized(brand)|normalized(model) -> count
-  const existingFingerprintCounts = new Map<string, number>();
-
-  const buildFingerprint = (title: string, brand: string, model: string): string => {
-    return `${normalize(title)}|${normalize(brand)}|${normalize(model)}`;
-  };
 
   (existingItems || []).forEach((item: any) => {
     const sn = String(item.serial_number || '').trim();
     if (sn) existingSerials.add(normalize(sn));
-    // Count fingerprints for existing items (only relevant for items without SN)
-    if (!sn) {
-      const fp = buildFingerprint(
-        String(item.title || ''),
-        String(item.brand || ''),
-        String(item.model || '')
-      );
-      existingFingerprintCounts.set(fp, (existingFingerprintCounts.get(fp) || 0) + 1);
-    }
   });
-
-  // Pre-count fingerprints in the import file for re-import detection
-  const importFingerprintTotals = new Map<string, number>();
-  for (const row of rows) {
-    const parsedPre: Record<string, any> = {};
-    mappings.forEach((m, colIdx) => {
-      if (m.field && colIdx < row.length) {
-        parsedPre[m.field] = row[colIdx];
-      }
-    });
-    const preTitle = String(parsedPre.title || '').trim();
-    const preSN = String(parsedPre.serial_number || '').trim();
-    if (preTitle && !preSN) {
-      const fp = buildFingerprint(preTitle, String(parsedPre.brand || '').trim(), String(parsedPre.model || '').trim());
-      importFingerprintTotals.set(fp, (importFingerprintTotals.get(fp) || 0) + 1);
-    }
-  }
-
-  // Track how many of each fingerprint we've already processed in this import
-  const importFingerprintProcessed = new Map<string, number>();
 
   for (let i = 0; i < rows.length; i++) {
     try {
@@ -449,28 +414,6 @@ export async function importStockItems(
       if (serialNumber && existingSerials.has(normalize(serialNumber))) {
         result.duplicates++;
         continue;
-      }
-
-      // Duplicate detection - criterion 2: fingerprint counting for items without SN
-      const rawBrandForDup = String(parsed.brand || '').trim();
-      const rawModelForDup = String(parsed.model || '').trim();
-      const fingerprint = buildFingerprint(title, rawBrandForDup, rawModelForDup);
-      if (!serialNumber) {
-        const existingCount = existingFingerprintCounts.get(fingerprint) || 0;
-        const importTotal = importFingerprintTotals.get(fingerprint) || 0;
-        const processed = importFingerprintProcessed.get(fingerprint) || 0;
-        importFingerprintProcessed.set(fingerprint, processed + 1);
-        
-        // If DB already has >= import file count for this fingerprint, it's a re-import
-        if (existingCount >= importTotal) {
-          result.duplicates++;
-          continue;
-        }
-        // If we've already allowed enough new ones (importTotal - existingCount), skip the rest
-        if (processed >= (importTotal - existingCount) + existingCount && existingCount > 0) {
-          result.duplicates++;
-          continue;
-        }
       }
 
       // Resolve supplier
