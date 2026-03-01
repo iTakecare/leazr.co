@@ -14,7 +14,7 @@ const OffersSearch = ({ value, onChange }: OffersSearchProps) => {
       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
       <Input
         type="search"
-        placeholder="Rechercher..."
+        placeholder="Rechercher par nom, équipement, entreprise..."
         className="pl-8 w-full sm:w-[200px]"
         value={value}
         onChange={(e) => onChange(e.target.value)}

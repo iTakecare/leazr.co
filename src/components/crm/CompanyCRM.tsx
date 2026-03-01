@@ -293,10 +293,15 @@ const CompanyCRM = () => {
                 </TableHeader>
                 <TableBody>
                   {offers
-                    .filter(offer => 
-                      !searchTerm || 
-                      offer.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
+                    .filter(offer => {
+                      if (!searchTerm) return true;
+                      const s = searchTerm.toLowerCase();
+                      return offer.client_name?.toLowerCase().includes(s) ||
+                        offer.equipment_description?.toLowerCase().includes(s) ||
+                        offer.client_email?.toLowerCase().includes(s) ||
+                        offer.client_company?.toLowerCase().includes(s) ||
+                        String(offer.amount).includes(s);
+                    })
                     .map((offer) => (
                       <TableRow key={offer.id}>
                         <TableCell className="font-medium">{offer.client_name}</TableCell>
@@ -345,10 +350,15 @@ const CompanyCRM = () => {
                 </TableHeader>
                 <TableBody>
                   {contracts
-                    .filter(contract => 
-                      !searchTerm || 
-                      contract.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
+                    .filter(contract => {
+                      if (!searchTerm) return true;
+                      const s = searchTerm.toLowerCase();
+                      return contract.client_name?.toLowerCase().includes(s) ||
+                        contract.equipment_description?.toLowerCase().includes(s) ||
+                        contract.leaser_name?.toLowerCase().includes(s) ||
+                        contract.contract_number?.toLowerCase().includes(s) ||
+                        String(contract.monthly_payment).includes(s);
+                    })
                     .map((contract) => (
                       <TableRow key={contract.id}>
                         <TableCell className="font-medium">{contract.client_name}</TableCell>

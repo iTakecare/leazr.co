@@ -14,7 +14,7 @@ const ContractsSearch: React.FC<ContractsSearchProps> = ({ value, onChange }) =>
       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
       <Input
         type="search"
-        placeholder="Rechercher un contrat..."
+        placeholder="Rechercher par nom, n° contrat, équipement..."
         className="pl-8 w-[250px]"
         value={value}
         onChange={(e) => onChange(e.target.value)}
