@@ -7045,11 +7045,13 @@ export type Database = {
           product_id: string | null
           purchase_date: string | null
           purchase_price: number | null
+          quantity: number
           reception_date: string | null
           serial_number: string | null
           status: string
           supplier_id: string | null
           title: string
+          unit_price: number | null
           updated_at: string
           warranty_end_date: string | null
         }
@@ -7069,11 +7071,13 @@ export type Database = {
           product_id?: string | null
           purchase_date?: string | null
           purchase_price?: number | null
+          quantity?: number
           reception_date?: string | null
           serial_number?: string | null
           status?: string
           supplier_id?: string | null
           title: string
+          unit_price?: number | null
           updated_at?: string
           warranty_end_date?: string | null
         }
@@ -7093,11 +7097,13 @@ export type Database = {
           product_id?: string | null
           purchase_date?: string | null
           purchase_price?: number | null
+          quantity?: number
           reception_date?: string | null
           serial_number?: string | null
           status?: string
           supplier_id?: string | null
           title?: string
+          unit_price?: number | null
           updated_at?: string
           warranty_end_date?: string | null
         }

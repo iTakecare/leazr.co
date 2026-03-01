@@ -14,6 +14,8 @@ export interface StockItem {
   status: StockStatus;
   condition: StockCondition;
   purchase_price: number;
+  quantity: number;
+  unit_price: number;
   supplier_id: string | null;
   order_reference: string | null;
   purchase_date: string | null;

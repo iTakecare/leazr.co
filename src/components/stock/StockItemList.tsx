@@ -62,10 +62,12 @@ const StockItemList: React.FC = () => {
                 <TableHead>Catégorie</TableHead>
                 <TableHead>Marque</TableHead>
                 <TableHead>Modèle</TableHead>
+                <TableHead className="text-right">Qté</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>État</TableHead>
                 <TableHead>Fournisseur</TableHead>
-                <TableHead className="text-right">Prix achat</TableHead>
+                <TableHead className="text-right">Prix unitaire</TableHead>
+                <TableHead className="text-right">Total</TableHead>
                 <TableHead>Contrat</TableHead>
                 <TableHead>Date</TableHead>
               </TableRow>
@@ -81,6 +83,7 @@ const StockItemList: React.FC = () => {
                     <TableCell className="text-xs">{item.category || '-'}</TableCell>
                     <TableCell className="text-xs">{item.brand || '-'}</TableCell>
                     <TableCell className="text-xs">{item.model || '-'}</TableCell>
+                    <TableCell className="text-right text-xs">{item.quantity || 1}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`${statusCfg.bgColor} ${statusCfg.color} border text-xs`}>
                         {statusCfg.label}
@@ -88,7 +91,8 @@ const StockItemList: React.FC = () => {
                     </TableCell>
                     <TableCell className="text-xs">{condCfg.label}</TableCell>
                     <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
-                    <TableCell className="text-right text-xs">{item.purchase_price?.toFixed(2)} €</TableCell>
+                    <TableCell className="text-right text-xs">{(item.unit_price || item.purchase_price)?.toFixed(2)} €</TableCell>
+                    <TableCell className="text-right text-xs font-medium">{item.purchase_price?.toFixed(2)} €</TableCell>
                     <TableCell className="text-xs">
                       {item.contract ? `${item.contract.contract_number} - ${item.contract.client_name}` : '-'}
                     </TableCell>

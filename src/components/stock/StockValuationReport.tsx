@@ -18,10 +18,11 @@ const StockValuationReport: React.FC = () => {
     const totalValue = items.reduce((s, i) => s + (i.purchase_price || 0), 0);
 
     // By status
-    const statusMap = new Map<StockStatus, { qty: number; value: number }>();
+    const statusMap = new Map<StockStatus, { qty: number; totalQty: number; value: number }>();
     items.forEach(item => {
-      const e = statusMap.get(item.status) || { qty: 0, value: 0 };
+      const e = statusMap.get(item.status) || { qty: 0, totalQty: 0, value: 0 };
       e.qty++;
+      e.totalQty += (item.quantity || 1);
       e.value += item.purchase_price || 0;
       statusMap.set(item.status, e);
     });
@@ -32,11 +33,12 @@ const StockValuationReport: React.FC = () => {
     }));
 
     // By category (use category field, fallback to product name)
-    const catMap = new Map<string, { qty: number; value: number }>();
+    const catMap = new Map<string, { qty: number; totalQty: number; value: number }>();
     items.forEach(item => {
       const cat = item.category || item.product?.name || "Sans catégorie";
-      const e = catMap.get(cat) || { qty: 0, value: 0 };
+      const e = catMap.get(cat) || { qty: 0, totalQty: 0, value: 0 };
       e.qty++;
+      e.totalQty += (item.quantity || 1);
       e.value += item.purchase_price || 0;
       catMap.set(cat, e);
     });
@@ -45,11 +47,12 @@ const StockValuationReport: React.FC = () => {
       .sort((a, b) => b.value - a.value);
 
     // By brand
-    const brandMap = new Map<string, { qty: number; value: number }>();
+    const brandMap = new Map<string, { qty: number; totalQty: number; value: number }>();
     items.forEach(item => {
       const b = item.brand || "Sans marque";
-      const e = brandMap.get(b) || { qty: 0, value: 0 };
+      const e = brandMap.get(b) || { qty: 0, totalQty: 0, value: 0 };
       e.qty++;
+      e.totalQty += (item.quantity || 1);
       e.value += item.purchase_price || 0;
       brandMap.set(b, e);
     });
@@ -126,7 +129,8 @@ const StockValuationReport: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Quantité</TableHead>
+                <TableHead className="text-right">Articles</TableHead>
+                <TableHead className="text-right">Qté totale</TableHead>
                 <TableHead className="text-right">Valeur totale</TableHead>
                 <TableHead className="text-right">% du total</TableHead>
               </TableRow>
@@ -142,6 +146,7 @@ const StockValuationReport: React.FC = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">{row.qty}</TableCell>
+                    <TableCell className="text-right">{row.totalQty}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(row.value)}</TableCell>
                     <TableCell className="text-right">{row.pct.toFixed(1)}%</TableCell>
                   </TableRow>
@@ -162,7 +167,8 @@ const StockValuationReport: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Catégorie</TableHead>
-                <TableHead className="text-right">Quantité</TableHead>
+                <TableHead className="text-right">Articles</TableHead>
+                <TableHead className="text-right">Qté totale</TableHead>
                 <TableHead className="text-right">Valeur totale</TableHead>
                 <TableHead className="text-right">% du total</TableHead>
               </TableRow>
@@ -171,14 +177,15 @@ const StockValuationReport: React.FC = () => {
               {byCategory.map(row => (
                 <TableRow key={row.category}>
                   <TableCell className="font-medium">{row.category}</TableCell>
-                  <TableCell className="text-right">{row.qty}</TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(row.value)}</TableCell>
+                    <TableCell className="text-right">{row.qty}</TableCell>
+                    <TableCell className="text-right">{row.totalQty}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(row.value)}</TableCell>
                   <TableCell className="text-right">{row.pct.toFixed(1)}%</TableCell>
                 </TableRow>
               ))}
               {byCategory.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
                     Aucun article en stock
                   </TableCell>
                 </TableRow>
@@ -198,7 +205,8 @@ const StockValuationReport: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Marque</TableHead>
-                <TableHead className="text-right">Quantité</TableHead>
+                <TableHead className="text-right">Articles</TableHead>
+                <TableHead className="text-right">Qté totale</TableHead>
                 <TableHead className="text-right">Valeur totale</TableHead>
                 <TableHead className="text-right">% du total</TableHead>
               </TableRow>
@@ -207,14 +215,15 @@ const StockValuationReport: React.FC = () => {
               {byBrand.map(row => (
                 <TableRow key={row.brand}>
                   <TableCell className="font-medium">{row.brand}</TableCell>
-                  <TableCell className="text-right">{row.qty}</TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(row.value)}</TableCell>
+                    <TableCell className="text-right">{row.qty}</TableCell>
+                    <TableCell className="text-right">{row.totalQty}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(row.value)}</TableCell>
                   <TableCell className="text-right">{row.pct.toFixed(1)}%</TableCell>
                 </TableRow>
               ))}
               {byBrand.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
                     Aucun article en stock
                   </TableCell>
                 </TableRow>
