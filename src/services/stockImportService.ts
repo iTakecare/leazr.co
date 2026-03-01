@@ -222,12 +222,77 @@ function mapCondition(value: any): StockCondition {
   return 'good';
 }
 
-export async function parseStockExcel(file: File): Promise<{
+function parseCSVContent(text: string): { headers: string[]; rows: any[][] } {
+  // Detect delimiter (semicolon or comma)
+  const firstLine = text.split(/\r?\n/)[0] || '';
+  const semicolonCount = (firstLine.match(/;/g) || []).length;
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const delimiter = semicolonCount > commaCount ? ';' : ',';
+
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  if (lines.length < 2) throw new Error('Le fichier CSV ne contient pas assez de lignes');
+
+  // Simple CSV parser handling quoted fields
+  const parseLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else if (ch === '"') {
+          inQuotes = false;
+        } else {
+          current += ch;
+        }
+      } else {
+        if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === delimiter) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = parseLine(lines[0]);
+  const rows: any[][] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseLine(lines[i]);
+    if (values.some(v => v !== '')) {
+      // Pad to header length
+      while (values.length < headers.length) values.push('');
+      rows.push(values);
+    }
+  }
+
+  return { headers, rows };
+}
+
+export async function parseStockFile(file: File): Promise<{
   headers: string[];
   mappings: StockColumnMapping[];
   rows: any[][];
   totalRows: number;
 }> {
+  const ext = file.name.split('.').pop()?.toLowerCase();
+
+  if (ext === 'csv' || ext === 'tsv') {
+    const text = await file.text();
+    const { headers, rows } = parseCSVContent(text);
+    const mappings = detectColumnMapping(headers);
+    return { headers, mappings, rows, totalRows: rows.length };
+  }
+
+  // Excel path
   const buffer = await file.arrayBuffer();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
@@ -244,22 +309,23 @@ export async function parseStockExcel(file: File): Promise<{
 
   const rows: any[][] = [];
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-    if (rowNumber === 1) return; // Skip header
+    if (rowNumber === 1) return;
     const values: any[] = [];
     for (let i = 1; i <= headers.length; i++) {
       const cell = row.getCell(i);
       values.push(cell.value);
     }
-    // Skip fully empty rows
     if (values.some(v => v !== null && v !== undefined && String(v).trim() !== '')) {
       rows.push(values);
     }
   });
 
   const mappings = detectColumnMapping(headers);
-
   return { headers, mappings, rows, totalRows: rows.length };
 }
+
+/** @deprecated Use parseStockFile instead */
+export const parseStockExcel = parseStockFile;
 
 export async function importStockItems(
   rows: any[][],
