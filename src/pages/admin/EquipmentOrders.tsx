@@ -9,7 +9,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X } from "lucide-react";
+import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X, Package, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -24,6 +25,7 @@ import {
   updateEquipmentUnit,
   syncUnitPricesToParent,
 } from "@/services/equipmentOrderService";
+import { receiveToStock } from "@/services/stockService";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
 
@@ -80,6 +82,7 @@ const EditablePrice: React.FC<{
 
 const EquipmentOrders: React.FC = () => {
   const { companyId } = useMultiTenant();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [items, setItems] = useState<EquipmentOrderItem[]>([]);
@@ -88,6 +91,7 @@ const EquipmentOrders: React.FC = () => {
   const [statusFilters, setStatusFilters] = useState<OrderStatus[]>(['to_order']);
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [addedToStock, setAddedToStock] = useState<Set<string>>(new Set());
 
   const getCompanySlug = () => {
     const match = location.pathname.match(/^\/([^/]+)\/admin/);
@@ -217,6 +221,36 @@ const EquipmentOrders: React.FC = () => {
     }
   };
 
+  const handleAddToStock = async (item: EquipmentOrderItem, unitId?: string) => {
+    if (!companyId || !user?.id) return;
+    const id = unitId || item.id;
+    try {
+      const slug = getCompanySlug();
+      await receiveToStock(companyId, {
+        title: item.title,
+        purchase_price: item.supplier_price || item.purchase_price,
+        supplier_id: item.supplier_id,
+        order_reference: item.order_reference,
+        product_id: item.product_id,
+        condition: 'new' as any,
+        ...(item.source_type === 'contract' ? {
+          current_contract_id: item.source_id,
+          current_contract_equipment_id: item.id,
+        } : {}),
+      }, user.id);
+      setAddedToStock(prev => new Set(prev).add(id));
+      toast.success("Équipement ajouté au stock", {
+        action: {
+          label: "Voir le stock",
+          onClick: () => navigate(`/${slug}/admin/stock`),
+        },
+      });
+    } catch (err) {
+      console.error('Error adding to stock:', err);
+      toast.error("Erreur lors de l'ajout au stock");
+    }
+  };
+
   const filteredItems = items.filter(item => {
     // For items with units, check if any unit matches the filter
     if (item.units && item.units.length > 0 && statusFilters.length > 0) {
@@ -308,7 +342,7 @@ const EquipmentOrders: React.FC = () => {
       .join(', ');
   };
 
-  const renderUnitRow = (unit: EquipmentOrderUnit, purchasePrice: number) => {
+  const renderUnitRow = (unit: EquipmentOrderUnit, purchasePrice: number, parentItem: EquipmentOrderItem) => {
     const unitStatus = (unit.order_status || 'to_order') as OrderStatus;
     const statusConfig = ORDER_STATUS_CONFIG[unitStatus];
     const unitPrice = unit.supplier_price || purchasePrice;
@@ -362,7 +396,18 @@ const EquipmentOrders: React.FC = () => {
             </SelectContent>
           </Select>
         </TableCell>
-        <TableCell></TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1">
+            {unitStatus === 'received' && !addedToStock.has(unit.id) && (
+              <Button size="sm" variant="ghost" title="Ajouter au stock" onClick={(e) => { e.stopPropagation(); handleAddToStock(parentItem, unit.id); }}>
+                <Package className="h-4 w-4 text-primary" />
+              </Button>
+            )}
+            {unitStatus === 'received' && addedToStock.has(unit.id) && (
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </TableCell>
       </TableRow>
     );
   };
@@ -491,12 +536,22 @@ const EquipmentOrders: React.FC = () => {
                       {hasUnits && <span className="text-xs text-muted-foreground italic">Voir unités</span>}
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); navigateToSource(item); }}>
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {!hasUnits && item.order_status === 'received' && !addedToStock.has(item.id) && (
+                          <Button size="sm" variant="ghost" title="Ajouter au stock" onClick={(e) => { e.stopPropagation(); handleAddToStock(item); }}>
+                            <Package className="h-4 w-4 text-primary" />
+                          </Button>
+                        )}
+                        {!hasUnits && item.order_status === 'received' && addedToStock.has(item.id) && (
+                          <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); navigateToSource(item); }}>
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                  {hasUnits && isExpanded && item.units!.map(unit => renderUnitRow(unit, item.purchase_price))}
+                  {hasUnits && isExpanded && item.units!.map(unit => renderUnitRow(unit, item.purchase_price, item))}
                 </React.Fragment>
               );
             })
