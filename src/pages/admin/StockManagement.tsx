@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import StockDashboard from "@/components/stock/StockDashboard";
 import StockItemList from "@/components/stock/StockItemList";
 import StockMovementHistory from "@/components/stock/StockMovementHistory";
 import StockRepairList from "@/components/stock/StockRepairList";
 import StockItemForm from "@/components/stock/StockItemForm";
 import StockValuationReport from "@/components/stock/StockValuationReport";
+import StockImportDialog from "@/components/stock/StockImportDialog";
 
 const StockManagement: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   return (
     <div className="space-y-6 p-6">
@@ -19,10 +21,16 @@ const StockManagement: React.FC = () => {
           <h1 className="text-2xl font-bold">Gestion du Stock</h1>
           <p className="text-muted-foreground text-sm">Suivi du cycle de vie des équipements physiques</p>
         </div>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvel article
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importer Excel
+          </Button>
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvel article
+          </Button>
+        </div>
       </div>
 
       <StockDashboard />
@@ -49,6 +57,7 @@ const StockManagement: React.FC = () => {
       </Tabs>
 
       <StockItemForm open={formOpen} onOpenChange={setFormOpen} />
+      <StockImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 };

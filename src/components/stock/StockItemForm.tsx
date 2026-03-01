@@ -36,6 +36,10 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
     reception_date: '',
     location: '',
     notes: '',
+    category: '',
+    brand: '',
+    model: '',
+    warranty_end_date: '',
   });
 
   useEffect(() => {
@@ -63,6 +67,10 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
         reception_date: form.reception_date || null,
         location: form.location || null,
         notes: form.notes || null,
+        category: form.category || null,
+        brand: form.brand || null,
+        model: form.model || null,
+        warranty_end_date: form.warranty_end_date || null,
       });
 
       await createMovement({
@@ -80,7 +88,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       toast.success("Article ajouté au stock");
       onOpenChange(false);
-      setForm({ title: '', serial_number: '', status: 'in_stock', condition: 'new', purchase_price: '', supplier_id: '', order_reference: '', purchase_date: '', reception_date: '', location: '', notes: '' });
+      setForm({ title: '', serial_number: '', status: 'in_stock', condition: 'new', purchase_price: '', supplier_id: '', order_reference: '', purchase_date: '', reception_date: '', location: '', notes: '', category: '', brand: '', model: '', warranty_end_date: '' });
     } catch (err: any) {
       toast.error("Erreur: " + (err.message || 'Impossible de créer l\'article'));
     } finally {
@@ -157,6 +165,22 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
             <div>
               <Label>Emplacement</Label>
               <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Catégorie</Label>
+              <Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Ex: PC portable, Écran..." />
+            </div>
+            <div>
+              <Label>Marque</Label>
+              <Input value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} placeholder="Ex: Dell, HP..." />
+            </div>
+            <div>
+              <Label>Modèle</Label>
+              <Input value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} placeholder="Ex: Latitude 5540..." />
+            </div>
+            <div>
+              <Label>Fin de garantie</Label>
+              <Input type="date" value={form.warranty_end_date} onChange={e => setForm(f => ({ ...f, warranty_end_date: e.target.value }))} />
             </div>
           </div>
           <div>

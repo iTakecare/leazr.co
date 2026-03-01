@@ -7030,6 +7030,8 @@ export type Database = {
       }
       stock_items: {
         Row: {
+          brand: string | null
+          category: string | null
           company_id: string
           condition: string
           created_at: string
@@ -7037,6 +7039,7 @@ export type Database = {
           current_contract_id: string | null
           id: string
           location: string | null
+          model: string | null
           notes: string | null
           order_reference: string | null
           product_id: string | null
@@ -7048,8 +7051,11 @@ export type Database = {
           supplier_id: string | null
           title: string
           updated_at: string
+          warranty_end_date: string | null
         }
         Insert: {
+          brand?: string | null
+          category?: string | null
           company_id: string
           condition?: string
           created_at?: string
@@ -7057,6 +7063,7 @@ export type Database = {
           current_contract_id?: string | null
           id?: string
           location?: string | null
+          model?: string | null
           notes?: string | null
           order_reference?: string | null
           product_id?: string | null
@@ -7068,8 +7075,11 @@ export type Database = {
           supplier_id?: string | null
           title: string
           updated_at?: string
+          warranty_end_date?: string | null
         }
         Update: {
+          brand?: string | null
+          category?: string | null
           company_id?: string
           condition?: string
           created_at?: string
@@ -7077,6 +7087,7 @@ export type Database = {
           current_contract_id?: string | null
           id?: string
           location?: string | null
+          model?: string | null
           notes?: string | null
           order_reference?: string | null
           product_id?: string | null
@@ -7088,6 +7099,7 @@ export type Database = {
           supplier_id?: string | null
           title?: string
           updated_at?: string
+          warranty_end_date?: string | null
         }
         Relationships: [
           {
