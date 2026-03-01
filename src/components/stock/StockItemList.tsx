@@ -75,7 +75,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const { user } = useAuth();
   const { companyId } = useMultiTenant();
 
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey | null>('title');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
