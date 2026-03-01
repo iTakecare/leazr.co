@@ -26,7 +26,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
 
   const [form, setForm] = useState({
     title: '',
-    serial_number: '',
+    serial_numbers: '',
     status: 'in_stock' as StockStatus,
     condition: 'new' as StockCondition,
     quantity: '1',
@@ -41,6 +41,11 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
     brand: '',
     model: '',
     warranty_end_date: '',
+    cpu: '',
+    memory: '',
+    storage: '',
+    color: '',
+    grade: '',
   });
 
   useEffect(() => {
@@ -55,10 +60,12 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
 
     setLoading(true);
     try {
+      const serialNumbers = form.serial_numbers.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
       const item = await createStockItem({
         company_id: companyId,
         title: form.title,
-        serial_number: form.serial_number || null,
+        serial_number: serialNumbers[0] || null,
+        serial_numbers: serialNumbers,
         status: form.status,
         condition: form.condition,
         quantity: parseInt(form.quantity) || 1,
@@ -74,6 +81,11 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
         brand: form.brand || null,
         model: form.model || null,
         warranty_end_date: form.warranty_end_date || null,
+        cpu: form.cpu || null,
+        memory: form.memory || null,
+        storage: form.storage || null,
+        color: form.color || null,
+        grade: form.grade || null,
       });
 
       await createMovement({
@@ -91,7 +103,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       toast.success("Article ajouté au stock");
       onOpenChange(false);
-      setForm({ title: '', serial_number: '', status: 'in_stock', condition: 'new', quantity: '1', unit_price: '', supplier_id: '', order_reference: '', purchase_date: '', reception_date: '', location: '', notes: '', category: '', brand: '', model: '', warranty_end_date: '' });
+      setForm({ title: '', serial_numbers: '', status: 'in_stock', condition: 'new', quantity: '1', unit_price: '', supplier_id: '', order_reference: '', purchase_date: '', reception_date: '', location: '', notes: '', category: '', brand: '', model: '', warranty_end_date: '', cpu: '', memory: '', storage: '', color: '', grade: '' });
     } catch (err: any) {
       toast.error("Erreur: " + (err.message || 'Impossible de créer l\'article'));
     } finally {
@@ -101,7 +113,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajouter un article au stock</DialogTitle>
         </DialogHeader>
@@ -111,9 +123,9 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
               <Label>Titre / Description *</Label>
               <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
             </div>
-            <div>
-              <Label>N° de série</Label>
-              <Input value={form.serial_number} onChange={e => setForm(f => ({ ...f, serial_number: e.target.value }))} />
+            <div className="col-span-2">
+              <Label>N° de série (séparés par virgule si plusieurs)</Label>
+              <Input value={form.serial_numbers} onChange={e => setForm(f => ({ ...f, serial_numbers: e.target.value }))} placeholder="SN001, SN002, SN003..." />
             </div>
             <div>
               <Label>Quantité</Label>
@@ -192,6 +204,29 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
             <div>
               <Label>Fin de garantie</Label>
               <Input type="date" value={form.warranty_end_date} onChange={e => setForm(f => ({ ...f, warranty_end_date: e.target.value }))} />
+            </div>
+            <div className="col-span-2 border-t pt-3 mt-1">
+              <Label className="text-sm font-semibold">Attributs techniques</Label>
+            </div>
+            <div>
+              <Label>CPU</Label>
+              <Input value={form.cpu} onChange={e => setForm(f => ({ ...f, cpu: e.target.value }))} placeholder="Ex: Intel i7-1365U" />
+            </div>
+            <div>
+              <Label>Mémoire</Label>
+              <Input value={form.memory} onChange={e => setForm(f => ({ ...f, memory: e.target.value }))} placeholder="Ex: 16 Go" />
+            </div>
+            <div>
+              <Label>Stockage</Label>
+              <Input value={form.storage} onChange={e => setForm(f => ({ ...f, storage: e.target.value }))} placeholder="Ex: 512 Go SSD" />
+            </div>
+            <div>
+              <Label>Couleur</Label>
+              <Input value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} placeholder="Ex: Noir, Argent..." />
+            </div>
+            <div>
+              <Label>Grade</Label>
+              <Input value={form.grade} onChange={e => setForm(f => ({ ...f, grade: e.target.value }))} placeholder="Ex: A, B, C..." />
             </div>
           </div>
           <div>

@@ -7032,13 +7032,17 @@ export type Database = {
         Row: {
           brand: string | null
           category: string | null
+          color: string | null
           company_id: string
           condition: string
+          cpu: string | null
           created_at: string
           current_contract_equipment_id: string | null
           current_contract_id: string | null
+          grade: string | null
           id: string
           location: string | null
+          memory: string | null
           model: string | null
           notes: string | null
           order_reference: string | null
@@ -7048,7 +7052,9 @@ export type Database = {
           quantity: number
           reception_date: string | null
           serial_number: string | null
+          serial_numbers: string[] | null
           status: string
+          storage: string | null
           supplier_id: string | null
           title: string
           unit_price: number | null
@@ -7058,13 +7064,17 @@ export type Database = {
         Insert: {
           brand?: string | null
           category?: string | null
+          color?: string | null
           company_id: string
           condition?: string
+          cpu?: string | null
           created_at?: string
           current_contract_equipment_id?: string | null
           current_contract_id?: string | null
+          grade?: string | null
           id?: string
           location?: string | null
+          memory?: string | null
           model?: string | null
           notes?: string | null
           order_reference?: string | null
@@ -7074,7 +7084,9 @@ export type Database = {
           quantity?: number
           reception_date?: string | null
           serial_number?: string | null
+          serial_numbers?: string[] | null
           status?: string
+          storage?: string | null
           supplier_id?: string | null
           title: string
           unit_price?: number | null
@@ -7084,13 +7096,17 @@ export type Database = {
         Update: {
           brand?: string | null
           category?: string | null
+          color?: string | null
           company_id?: string
           condition?: string
+          cpu?: string | null
           created_at?: string
           current_contract_equipment_id?: string | null
           current_contract_id?: string | null
+          grade?: string | null
           id?: string
           location?: string | null
+          memory?: string | null
           model?: string | null
           notes?: string | null
           order_reference?: string | null
@@ -7100,7 +7116,9 @@ export type Database = {
           quantity?: number
           reception_date?: string | null
           serial_number?: string | null
+          serial_numbers?: string[] | null
           status?: string
+          storage?: string | null
           supplier_id?: string | null
           title?: string
           unit_price?: number | null

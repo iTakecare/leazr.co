@@ -9,6 +9,7 @@ export interface StockItem {
   id: string;
   company_id: string;
   serial_number: string | null;
+  serial_numbers: string[];
   product_id: string | null;
   title: string;
   status: StockStatus;
@@ -28,6 +29,11 @@ export interface StockItem {
   brand: string | null;
   model: string | null;
   warranty_end_date: string | null;
+  cpu: string | null;
+  memory: string | null;
+  storage: string | null;
+  color: string | null;
+  grade: string | null;
   created_at: string;
   updated_at: string;
   // Joined

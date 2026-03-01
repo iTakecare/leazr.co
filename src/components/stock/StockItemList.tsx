@@ -19,10 +19,13 @@ const StockItemList: React.FC = () => {
     return (
       item.title.toLowerCase().includes(s) ||
       (item.serial_number || '').toLowerCase().includes(s) ||
+      (item.serial_numbers || []).some(sn => sn.toLowerCase().includes(s)) ||
       (item.supplier?.name || '').toLowerCase().includes(s) ||
       (item.category || '').toLowerCase().includes(s) ||
       (item.brand || '').toLowerCase().includes(s) ||
-      (item.model || '').toLowerCase().includes(s)
+      (item.model || '').toLowerCase().includes(s) ||
+      (item.cpu || '').toLowerCase().includes(s) ||
+      (item.grade || '').toLowerCase().includes(s)
     );
   });
 
@@ -79,7 +82,13 @@ const StockItemList: React.FC = () => {
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.title}</TableCell>
-                    <TableCell className="font-mono text-xs">{item.serial_number || '-'}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {item.serial_numbers && item.serial_numbers.length > 0
+                        ? item.serial_numbers.length > 2
+                          ? <span title={item.serial_numbers.join(', ')}>{item.serial_numbers[0]}... ({item.serial_numbers.length})</span>
+                          : item.serial_numbers.join(', ')
+                        : item.serial_number || '-'}
+                    </TableCell>
                     <TableCell className="text-xs">{item.category || '-'}</TableCell>
                     <TableCell className="text-xs">{item.brand || '-'}</TableCell>
                     <TableCell className="text-xs">{item.model || '-'}</TableCell>
