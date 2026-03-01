@@ -48,6 +48,7 @@ const SupplierSelectOrCreate: React.FC<SupplierSelectOrCreateProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -103,15 +104,17 @@ const SupplierSelectOrCreate: React.FC<SupplierSelectOrCreateProps> = ({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Rechercher..." />
+          <Command shouldFilter={false}>
+            <CommandInput placeholder="Rechercher..." onValueChange={setSearchQuery} />
             <CommandList>
               <CommandEmpty>Aucun fournisseur trouvé</CommandEmpty>
               <CommandGroup>
-                {suppliers.map((supplier) => (
+                {suppliers
+                  .filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((supplier) => (
                   <CommandItem
                     key={supplier.id}
-                    value={supplier.name}
+                    value={supplier.id}
                     onSelect={() => {
                       onValueChange(supplier.id);
                       setOpen(false);
