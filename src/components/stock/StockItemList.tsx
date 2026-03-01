@@ -11,8 +11,11 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { updateStockItem, createMovement } from "@/services/stockService";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 
 interface StockItemListProps {
   onEdit?: (item: StockItem) => void;
@@ -25,6 +28,31 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const [deleteItem, setDeleteItem] = useState<StockItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { companyId } = useMultiTenant();
+
+  const handleStatusChange = async (item: StockItem, newStatus: StockStatus) => {
+    if (newStatus === item.status || !companyId) return;
+    try {
+      const oldStatus = item.status;
+      await updateStockItem(item.id, { status: newStatus });
+      await createMovement({
+        company_id: companyId,
+        stock_item_id: item.id,
+        movement_type: 'reception',
+        from_status: oldStatus,
+        to_status: newStatus,
+        performed_by: user?.id || null,
+        notes: `Changement rapide: ${STOCK_STATUS_CONFIG[oldStatus]?.label} → ${STOCK_STATUS_CONFIG[newStatus]?.label}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      toast.success(`Statut changé en "${STOCK_STATUS_CONFIG[newStatus].label}"`);
+    } catch (err: any) {
+      toast.error("Erreur: " + (err.message || "Impossible de changer le statut"));
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteItem) return;
@@ -137,10 +165,17 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
                     <TableCell className="text-xs">{item.brand || '-'}</TableCell>
                     <TableCell className="text-xs">{item.model || '-'}</TableCell>
                     <TableCell className="text-right text-xs">{item.quantity || 1}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`${statusCfg.bgColor} ${statusCfg.color} border text-xs`}>
-                        {statusCfg.label}
-                      </Badge>
+                    <TableCell onClick={e => e.stopPropagation()}>
+                      <Select value={item.status} onValueChange={v => handleStatusChange(item, v as StockStatus)}>
+                        <SelectTrigger className={`h-7 w-auto min-w-[120px] text-xs border ${statusCfg.bgColor} ${statusCfg.color}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(STOCK_STATUS_CONFIG).map(([k, v]) => (
+                            <SelectItem key={k} value={k} className="text-xs">{v.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell className="text-xs">{condCfg.label}</TableCell>
                     <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
