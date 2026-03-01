@@ -7028,6 +7028,245 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_items: {
+        Row: {
+          company_id: string
+          condition: string
+          created_at: string
+          current_contract_equipment_id: string | null
+          current_contract_id: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          order_reference: string | null
+          product_id: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          reception_date: string | null
+          serial_number: string | null
+          status: string
+          supplier_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          condition?: string
+          created_at?: string
+          current_contract_equipment_id?: string | null
+          current_contract_id?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          order_reference?: string | null
+          product_id?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          reception_date?: string | null
+          serial_number?: string | null
+          status?: string
+          supplier_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          condition?: string
+          created_at?: string
+          current_contract_equipment_id?: string | null
+          current_contract_id?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          order_reference?: string | null
+          product_id?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          reception_date?: string | null
+          serial_number?: string | null
+          status?: string
+          supplier_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_current_contract_id_fkey"
+            columns: ["current_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          company_id: string
+          contract_id: string | null
+          cost: number | null
+          created_at: string
+          from_status: string | null
+          id: string
+          movement_type: string
+          notes: string | null
+          performed_by: string | null
+          related_stock_item_id: string | null
+          stock_item_id: string
+          to_status: string | null
+        }
+        Insert: {
+          company_id: string
+          contract_id?: string | null
+          cost?: number | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          movement_type: string
+          notes?: string | null
+          performed_by?: string | null
+          related_stock_item_id?: string | null
+          stock_item_id: string
+          to_status?: string | null
+        }
+        Update: {
+          company_id?: string
+          contract_id?: string | null
+          cost?: number | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          performed_by?: string | null
+          related_stock_item_id?: string | null
+          stock_item_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_related_stock_item_id_fkey"
+            columns: ["related_stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_repairs: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          notes: string | null
+          reason: string
+          repair_cost: number | null
+          result_condition: string | null
+          started_at: string
+          status: string
+          stock_item_id: string
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          reason: string
+          repair_cost?: number | null
+          result_condition?: string | null
+          started_at?: string
+          status?: string
+          stock_item_id: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string
+          repair_cost?: number | null
+          result_condition?: string | null
+          started_at?: string
+          status?: string
+          stock_item_id?: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_repairs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_repairs_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_repairs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           company_id: string | null
