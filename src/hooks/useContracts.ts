@@ -92,9 +92,16 @@ export const useContracts = () => {
     if (searchTerm.trim() !== "") {
       const lowerCaseSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(contract => 
-        contract.client_name.toLowerCase().includes(lowerCaseSearch) ||
+        contract.client_name?.toLowerCase().includes(lowerCaseSearch) ||
         contract.equipment_description?.toLowerCase().includes(lowerCaseSearch) ||
-        contract.leaser_name.toLowerCase().includes(lowerCaseSearch)
+        contract.leaser_name?.toLowerCase().includes(lowerCaseSearch) ||
+        contract.contract_number?.toLowerCase().includes(lowerCaseSearch) ||
+        contract.offer_dossier_number?.toLowerCase().includes(lowerCaseSearch) ||
+        contract.tracking_number?.toLowerCase().includes(lowerCaseSearch) ||
+        contract.client_email?.toLowerCase().includes(lowerCaseSearch) ||
+        contract.client_phone?.toLowerCase().includes(lowerCaseSearch) ||
+        contract.clients?.company?.toLowerCase().includes(lowerCaseSearch) ||
+        contract.clients?.vat_number?.toLowerCase().includes(lowerCaseSearch)
       );
     }
     

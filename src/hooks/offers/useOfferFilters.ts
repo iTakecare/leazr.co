@@ -100,8 +100,11 @@ export const useOfferFilters = (offers: Offer[]) => {
       result = result.filter(offer => {
         return offer.client_name?.toLowerCase().includes(lowercasedSearch) ||
                offer.equipment_description?.toLowerCase().includes(lowercasedSearch) ||
+               offer.client_email?.toLowerCase().includes(lowercasedSearch) ||
+               offer.client_company?.toLowerCase().includes(lowercasedSearch) ||
                String(offer.amount).includes(lowercasedSearch) ||
-               String(offer.monthly_payment).includes(lowercasedSearch);
+               String(offer.monthly_payment).includes(lowercasedSearch) ||
+               offer.id?.toLowerCase().includes(lowercasedSearch);
       });
     }
     
