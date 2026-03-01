@@ -16,6 +16,7 @@ const ContractsFilter: React.FC<ContractsFilterProps> = ({
     <Tabs value={activeStatus} onValueChange={onStatusChange}>
       <TabsList className="bg-muted/60">
         <TabsTrigger value="all">Tous</TabsTrigger>
+        <TabsTrigger value="self_leasing">Self-Leasing</TabsTrigger>
         <TabsTrigger value="in_progress">En cours</TabsTrigger>
         <TabsTrigger value={contractStatuses.CONTRACT_SIGNED}>Signés</TabsTrigger>
         <TabsTrigger value={contractStatuses.ACTIVE}>Actifs</TabsTrigger>
