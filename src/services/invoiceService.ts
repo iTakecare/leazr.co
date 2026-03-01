@@ -1168,10 +1168,10 @@ export const generateSelfLeasingMonthlyInvoice = async (
       return { alreadyExists: true, invoice: existing };
     }
 
-    // Récupérer les données du contrat
+    // Récupérer les données complètes du contrat
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
-      .select('client_name, client_email')
+      .select('*, offers(id, equipment_data)')
       .eq('id', contractId)
       .single();
 
@@ -1179,10 +1179,29 @@ export const generateSelfLeasingMonthlyInvoice = async (
       throw new Error('Contrat non trouvé');
     }
 
+    // Récupérer les équipements depuis offer_equipment via l'offre du contrat
+    let equipmentItems: any[] = [];
+    if (contract.offer_id) {
+      const { data: eqData } = await supabase
+        .from('offer_equipment')
+        .select('*')
+        .eq('offer_id', contract.offer_id);
+      if (eqData) equipmentItems = eqData;
+    }
+
     // Générer un numéro de facture
     const invoiceNumber = `SL-${monthKey}-${contractId.substring(0, 6).toUpperCase()}`;
 
-    // Créer la facture
+    // Construire equipment_data pour l'affichage des lignes
+    const equipmentData = equipmentItems.map(item => ({
+      title: `Contrat de location ${contract.tracking_number || ''} / ${item.title}`,
+      quantity: item.quantity || 1,
+      selling_price_excl_vat: item.monthly_payment || (amount / (equipmentItems.length || 1)),
+      serial_number: item.serial_number || null,
+      vat_rate: 21,
+    }));
+
+    // Créer la facture avec billing_data complet
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .insert({
@@ -1200,8 +1219,23 @@ export const generateSelfLeasingMonthlyInvoice = async (
         billing_data: {
           type: 'self_leasing_monthly',
           month: monthKey,
-          client_name: contract.client_name,
           payment_source: 'mollie',
+          contract_data: {
+            id: contract.id,
+            tracking_number: contract.tracking_number,
+            client_name: contract.client_name,
+            client_email: contract.client_email,
+            offer_id: contract.offer_id,
+          },
+          leaser_data: {
+            name: 'iTakecare',
+          },
+          equipment_data: equipmentData,
+          invoice_totals: {
+            total_excl_vat: amount,
+            vat_amount: amount * 0.21,
+            total_incl_vat: amount * 1.21,
+          },
           created_at: new Date().toISOString()
         }
       })
