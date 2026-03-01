@@ -1,49 +1,39 @@
 
 
-# Ajouter l'edition des articles de stock
+# Gestion des doublons lors du reimport Excel
 
-## Objectif
-Permettre de cliquer sur un article dans la liste du stock pour ouvrir un formulaire pre-rempli et modifier ses informations.
+## Probleme actuel
+La detection de doublons repose uniquement sur le numero de serie (`serial_number`). Les articles sans numero de serie sont reinsertes a chaque import, ce qui explique que vous avez 69 articles au lieu de 100 : seuls les articles avec un serial deja present sont ignores.
 
-## Modifications
+## Solution proposee
+Ajouter une detection de doublons multi-criteres qui fonctionne meme sans numero de serie.
 
-### 1. StockItemList.tsx - Ajouter un clic sur les lignes
-- Ajouter une prop `onEdit(item)` ou un state local pour l'article selectionne
-- Rendre chaque `TableRow` cliquable avec un curseur pointer
-- Ajouter un bouton d'action (icone crayon) dans une nouvelle colonne "Actions"
-- Au clic, ouvrir le formulaire d'edition avec l'article selectionne
+### Criteres de detection (par ordre de priorite)
+1. **Numero de serie** : si l'article a un serial number identique a un existant -> doublon
+2. **Combinaison titre + marque + modele + numero de serie (vide)** : si un article sans serial a le meme titre, la meme marque et le meme modele qu'un existant -> doublon
+3. **Titre + fournisseur + prix unitaire** : pour les articles generiques sans marque/modele specifique
 
-### 2. StockItemForm.tsx - Support du mode edition
-- Ajouter une prop optionnelle `editItem?: StockItem` au composant
-- Pre-remplir tous les champs du formulaire quand `editItem` est fourni
-- Changer le titre du dialog : "Modifier l'article" au lieu de "Nouvel article"
-- Changer le bouton de soumission : "Enregistrer" au lieu de "Creer"
-- Appeler une fonction `updateStockItem` au lieu de `createStockItem` en mode edition
-- Enregistrer un mouvement de type "update" dans l'historique si le statut change
+### Fichier modifie
 
-### 3. stockService.ts - Ajouter la fonction de mise a jour
-- Creer `updateStockItem(id, data)` qui fait un UPDATE sur `stock_items`
-- Gerer le changement de statut : creer automatiquement un mouvement si le statut a change
-
-### 4. StockManagement.tsx - Connecter le tout
-- Ajouter un state `editingItem` pour stocker l'article en cours d'edition
-- Passer une callback `onEdit` a `StockItemList`
-- Passer `editItem` a `StockItemForm`
-
-## Flux utilisateur
-1. L'utilisateur voit la liste des articles
-2. Il clique sur l'icone crayon ou sur la ligne
-3. Le formulaire s'ouvre pre-rempli avec toutes les donnees
-4. Il modifie les champs souhaites
-5. Il clique "Enregistrer"
-6. L'article est mis a jour, la liste se rafraichit
-
-## Fichiers modifies
-
-| Fichier | Action |
+| Fichier | Modification |
 |---|---|
-| `src/services/stockService.ts` | Ajouter `updateStockItem()` |
-| `src/components/stock/StockItemForm.tsx` | Ajouter prop `editItem`, pre-remplissage, mode edition |
-| `src/components/stock/StockItemList.tsx` | Ajouter colonne Actions avec bouton edition + callback `onEdit` |
-| `src/pages/admin/StockManagement.tsx` | State `editingItem`, connecter liste et formulaire |
+| `src/services/stockImportService.ts` | Ameliorer la logique de detection des doublons dans `importStockItems()` |
+
+### Detail technique
+
+Dans `importStockItems()` :
+
+1. **Charger les articles existants avec plus de champs** : au lieu de ne charger que `serial_number`, charger aussi `title`, `brand`, `model`, `supplier_id`, `unit_price`
+2. **Creer un Set de "fingerprints"** : pour chaque article existant, generer une cle composite normalisee (ex: `normalize(title)|normalize(brand)|normalize(model)`)
+3. **Verifier chaque ligne importee** contre ces fingerprints :
+   - Si serial_number present et deja en base -> doublon
+   - Sinon, si fingerprint (titre+marque+modele) deja en base -> doublon
+4. **Ajouter les fingerprints des articles inseres** au Set pour eviter les doublons intra-fichier
+5. **Afficher le nombre de doublons ignores** dans le resultat (deja supporte par `StockImportResult.duplicates`)
+
+### Flux utilisateur
+1. L'utilisateur importe un fichier Excel
+2. Le systeme compare chaque ligne aux articles existants
+3. Les doublons sont ignores (pas de mise a jour, pas d'insertion)
+4. A la fin, un message indique : "X articles importes, Y doublons ignores, Z erreurs"
 
