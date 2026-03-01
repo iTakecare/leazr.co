@@ -6,11 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDropzone } from "react-dropzone";
-import { Upload, FileSpreadsheet, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle, AlertTriangle, Loader2, Sparkles } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   parseStockExcel,
   importStockItems,
@@ -42,6 +43,7 @@ const StockImportDialog: React.FC<StockImportDialogProps> = ({ open, onOpenChang
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<StockImportResult | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [aiMapping, setAiMapping] = useState(false);
 
   const reset = () => {
     setStep('upload');
@@ -53,6 +55,32 @@ const StockImportDialog: React.FC<StockImportDialogProps> = ({ open, onOpenChang
     setProgress(0);
     setResult(null);
     setParseError(null);
+    setAiMapping(false);
+  };
+
+  const runAiMapping = async (hdrs: string[], dataRows: any[][]) => {
+    setAiMapping(true);
+    try {
+      const sampleRows = dataRows.slice(0, 8);
+      const { data, error } = await supabase.functions.invoke('ai-column-mapping', {
+        body: { headers: hdrs, sampleRows },
+      });
+
+      if (error) throw error;
+      if (data?.mappings && Array.isArray(data.mappings)) {
+        const aiMappings: StockColumnMapping[] = hdrs.map((h, i) => ({
+          excelHeader: h,
+          field: data.mappings[i]?.field || null,
+        }));
+        setMappings(aiMappings);
+        toast.success("Mapping IA appliqué avec succès");
+      }
+    } catch (err: any) {
+      console.error('AI mapping error:', err);
+      toast.error("Mapping IA échoué, mapping par défaut utilisé");
+    } finally {
+      setAiMapping(false);
+    }
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -68,6 +96,13 @@ const StockImportDialog: React.FC<StockImportDialogProps> = ({ open, onOpenChang
       setRows(parsed.rows);
       setTotalRows(parsed.totalRows);
       setStep('preview');
+
+      // Check if pattern-based mapping found a title — if not, trigger AI
+      const hasTitleFromPatterns = parsed.mappings.some(m => m.field === 'title');
+      const hasAnyMapping = parsed.mappings.some(m => m.field !== null);
+      if (!hasTitleFromPatterns || !hasAnyMapping) {
+        runAiMapping(parsed.headers, parsed.rows);
+      }
     } catch (err: any) {
       setParseError(err.message || 'Erreur de lecture du fichier');
     }
@@ -164,7 +199,23 @@ const StockImportDialog: React.FC<StockImportDialogProps> = ({ open, onOpenChang
 
             {/* Column mapping */}
             <div>
-              <h3 className="text-sm font-medium mb-2">Mapping des colonnes</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium">Mapping des colonnes</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => runAiMapping(headers, rows)}
+                  disabled={aiMapping}
+                >
+                  {aiMapping ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  {aiMapping ? 'Détection IA...' : 'Détection IA'}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {mappings.map((m, idx) => (
                   <div key={idx} className="flex flex-col gap-1">
