@@ -47,7 +47,7 @@ const StockManagement: React.FC = () => {
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
-            Importer Excel
+            Importer
           </Button>
           <Button onClick={() => { setEditingItem(null); setFormOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />

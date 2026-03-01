@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  parseStockExcel,
+  parseStockFile,
   importStockItems,
   StockColumnMapping,
   StockImportResult,
@@ -90,7 +90,7 @@ const StockImportDialog: React.FC<StockImportDialogProps> = ({ open, onOpenChang
     setFileName(file.name);
 
     try {
-      const parsed = await parseStockExcel(file);
+      const parsed = await parseStockFile(file);
       setHeaders(parsed.headers);
       setMappings(parsed.mappings);
       setRows(parsed.rows);
@@ -113,6 +113,8 @@ const StockImportDialog: React.FC<StockImportDialogProps> = ({ open, onOpenChang
     accept: {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
       'application/vnd.ms-excel': ['.xls'],
+      'text/csv': ['.csv'],
+      'text/tab-separated-values': ['.tsv'],
     },
     maxFiles: 1,
   });
@@ -158,9 +160,9 @@ const StockImportDialog: React.FC<StockImportDialogProps> = ({ open, onOpenChang
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+         <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            Importer le stock depuis Excel
+            Importer le stock
           </DialogTitle>
         </DialogHeader>
 
@@ -175,9 +177,9 @@ const StockImportDialog: React.FC<StockImportDialogProps> = ({ open, onOpenChang
               <input {...getInputProps()} />
               <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
               <p className="text-sm font-medium">
-                {isDragActive ? 'Déposez le fichier ici...' : 'Glissez-déposez un fichier Excel ou cliquez pour parcourir'}
+                {isDragActive ? 'Déposez le fichier ici...' : 'Glissez-déposez un fichier Excel ou CSV, ou cliquez pour parcourir'}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">Formats acceptés : .xlsx, .xls</p>
+              <p className="text-xs text-muted-foreground mt-1">Formats acceptés : .xlsx, .xls, .csv</p>
             </div>
             {parseError && (
               <Alert variant="destructive">
