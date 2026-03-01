@@ -510,7 +510,6 @@ export async function importStockItems(
       if (serialNumber) {
         existingSerials.add(normalize(serialNumber));
       }
-      existingFingerprints.add(fingerprint);
       result.success++;
     } catch (err: any) {
       result.errors.push({ row: i + 2, error: err.message || 'Erreur inconnue' });
