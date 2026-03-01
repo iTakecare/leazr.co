@@ -59,6 +59,12 @@ export const useContracts = () => {
         [contractStatuses.CONTRACT_SENT, contractStatuses.EQUIPMENT_ORDERED, contractStatuses.DELIVERED].includes(contract.status as any) &&
         contract.status !== contractStatuses.CANCELLED
       );
+    } else if (activeStatusFilter === "self_leasing") {
+      // Self-Leasing : uniquement les contrats self-leasing (exclure annulés)
+      filtered = filtered.filter(contract => 
+        (contract as any).is_self_leasing === true &&
+        contract.status !== contractStatuses.CANCELLED
+      );
     } else if (activeStatusFilter === "expiring_soon") {
       // Expiration prochaine : actifs dont la date de fin est dans les 3 prochains mois
       const threeMonthsFromNow = new Date();
