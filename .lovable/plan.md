@@ -1,57 +1,49 @@
 
-# Extraction automatique de la marque depuis la description
+
+# Ajouter l'edition des articles de stock
 
 ## Objectif
-Quand la colonne "Marque" est absente ou vide dans l'Excel, extraire automatiquement la marque depuis le champ titre/description en la comparant aux marques existantes du catalogue.
+Permettre de cliquer sur un article dans la liste du stock pour ouvrir un formulaire pre-rempli et modifier ses informations.
 
-## Logique
-Apres avoir charge les marques du catalogue (ligne ~292-299), ajouter une fonction `extractBrandFromTitle(title, brandNameMap)` qui :
-1. Decoupe le titre en mots
-2. Compare chaque mot (normalise) aux noms de marques du catalogue
-3. Retourne la premiere marque trouvee, ou `null` si aucune correspondance
+## Modifications
 
-## Modification dans `src/services/stockImportService.ts`
+### 1. StockItemList.tsx - Ajouter un clic sur les lignes
+- Ajouter une prop `onEdit(item)` ou un state local pour l'article selectionne
+- Rendre chaque `TableRow` cliquable avec un curseur pointer
+- Ajouter un bouton d'action (icone crayon) dans une nouvelle colonne "Actions"
+- Au clic, ouvrir le formulaire d'edition avec l'article selectionne
 
-### Nouvelle fonction `extractBrandFromTitle`
-```text
-function extractBrandFromTitle(
-  title: string, 
-  brandNames: string[]
-): string | null {
-  const normalizedTitle = normalize(title);
-  for (const brand of brandNames) {
-    if (normalizedTitle.includes(normalize(brand))) {
-      return brand; // Retourne le nom exact du catalogue
-    }
-  }
-  return null;
-}
-```
+### 2. StockItemForm.tsx - Support du mode edition
+- Ajouter une prop optionnelle `editItem?: StockItem` au composant
+- Pre-remplir tous les champs du formulaire quand `editItem` est fourni
+- Changer le titre du dialog : "Modifier l'article" au lieu de "Nouvel article"
+- Changer le bouton de soumission : "Enregistrer" au lieu de "Creer"
+- Appeler une fonction `updateStockItem` au lieu de `createStockItem` en mode edition
+- Enregistrer un mouvement de type "update" dans l'historique si le statut change
 
-### Integration dans `importStockItems`
-Apres la resolution de la marque (ligne ~371-372), si `matchedBrand` est toujours `null`, appeler `extractBrandFromTitle` avec le titre :
+### 3. stockService.ts - Ajouter la fonction de mise a jour
+- Creer `updateStockItem(id, data)` qui fait un UPDATE sur `stock_items`
+- Gerer le changement de statut : creer automatiquement un mouvement si le statut a change
 
-```text
-// Ligne ~372 existante :
-const matchedBrand = rawBrand 
-  ? (brandNameMap.get(normalize(rawBrand)) || rawBrand) 
-  : null;
+### 4. StockManagement.tsx - Connecter le tout
+- Ajouter un state `editingItem` pour stocker l'article en cours d'edition
+- Passer une callback `onEdit` a `StockItemList`
+- Passer `editItem` a `StockItemForm`
 
-// Ajout : fallback extraction depuis le titre
-const finalBrand = matchedBrand 
-  || extractBrandFromTitle(title, Array.from(brandNameMap.values()));
-```
+## Flux utilisateur
+1. L'utilisateur voit la liste des articles
+2. Il clique sur l'icone crayon ou sur la ligne
+3. Le formulaire s'ouvre pre-rempli avec toutes les donnees
+4. Il modifie les champs souhaites
+5. Il clique "Enregistrer"
+6. L'article est mis a jour, la liste se rafraichit
 
-Puis utiliser `finalBrand` dans `itemData.brand` a la place de `matchedBrand`.
-
-## Fichier modifie
+## Fichiers modifies
 
 | Fichier | Action |
 |---|---|
-| `src/services/stockImportService.ts` | Ajouter `extractBrandFromTitle` + l'appeler en fallback quand la marque est vide |
+| `src/services/stockService.ts` | Ajouter `updateStockItem()` |
+| `src/components/stock/StockItemForm.tsx` | Ajouter prop `editItem`, pre-remplissage, mode edition |
+| `src/components/stock/StockItemList.tsx` | Ajouter colonne Actions avec bouton edition + callback `onEdit` |
+| `src/pages/admin/StockManagement.tsx` | State `editingItem`, connecter liste et formulaire |
 
-## Cas geres
-- "Lenovo V14 G4" avec "Lenovo" dans le catalogue -> marque = "Lenovo"
-- "HP ProBook 450 G8" avec "HP" dans le catalogue -> marque = "HP"
-- Marque deja renseignee dans l'Excel -> pas de changement, priorite a la colonne
-- Aucune marque reconnue -> reste `null` comme avant
