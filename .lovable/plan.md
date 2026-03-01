@@ -1,29 +1,45 @@
 
 
-# Correction du scroll de la liste fournisseurs dans le formulaire de stock
+# Modifications du tableau de stock
 
-## Probleme
+## Changements demandes
 
-Le composant `SupplierSelectOrCreate` est utilise a l'identique dans les commandes et dans le stock. Dans les commandes, la liste deroulante des fournisseurs permet de scroller normalement. Dans le stock, le meme composant est rendu a l'interieur d'un `Dialog` avec `overflow-y-auto` (ligne 235 de `StockItemForm.tsx`), ce qui interfere avec le scroll du `PopoverContent` : les evenements de scroll "remontent" au dialog parent au lieu de rester dans la liste.
-
-## Solution
-
-Ajouter un gestionnaire `onWheel` avec `stopPropagation` sur le `CommandList` du composant `SupplierSelectOrCreate` pour empecher le dialog parent de capturer les evenements de scroll destines a la liste des fournisseurs.
+1. **Reduire la taille des typographies** : Ajouter `text-xs` sur toutes les cellules et en-tetes du tableau pour une apparence plus compacte
+2. **Supprimer la colonne Contrat** : Retirer la colonne "Contrat" des en-tetes et de toutes les fonctions de rendu (renderRow, renderGroupParentRow)
+3. **Ajouter la colonne Grade** : Nouvelle colonne triable affichant `item.grade` (le champ existe deja dans StockItem)
+4. **Ajouter la colonne Notes** : Nouvelle colonne affichant `item.notes` avec troncature pour eviter de casser la mise en page
 
 ## Fichier modifie
 
 | Fichier | Changement |
 |---|---|
-| `src/components/equipment/SupplierSelectOrCreate.tsx` | Ajouter `onWheel={(e) => e.stopPropagation()}` sur le `CommandList` pour isoler le scroll de la liste |
+| `src/components/stock/StockItemList.tsx` | Modifier les en-tetes, renderRow, renderGroupParentRow |
 
 ## Detail technique
 
-Dans `SupplierSelectOrCreate.tsx`, ligne 109, modifier le `CommandList` :
+### Type SortKey (ligne 25)
+Ajouter `'grade'` et `'notes'` au type union SortKey.
 
-```text
-Avant:  <CommandList>
-Apres:  <CommandList onWheel={(e) => e.stopPropagation()}>
-```
+### getSortValue (ligne 49)
+Ajouter les cas `grade` et `notes` retournant les valeurs en lowercase.
 
-Cela empeche l'evenement de scroll de remonter au `DialogContent` parent et permet de scroller normalement dans la liste des fournisseurs, que le composant soit utilise dans un dialog ou non.
+### tableHeaders (lignes 415-433)
+- Supprimer `<TableHead>Contrat</TableHead>`
+- Ajouter `<SortableHead column="grade">Grade</SortableHead>` apres la colonne Etat
+- Ajouter `<SortableHead column="notes">Notes</SortableHead>` en derniere position
+- Reduire la taille des en-tetes avec des classes plus compactes
+
+### renderRow (lignes 358-413)
+- Supprimer la cellule Contrat (lignes 404-406)
+- Ajouter une cellule Grade apres Etat : `item.grade || '-'`
+- Ajouter une cellule Notes en fin de ligne : `item.notes` tronque avec `truncate max-w-[150px]`
+- S'assurer que toutes les cellules ont `text-xs`
+
+### renderGroupParentRow (lignes 243-331)
+- Meme modifications : supprimer Contrat, ajouter Grade et Notes (tirets pour la ligne parent)
+- Ajuster le nombre de cellules placeholder pour les lignes enfant egalement
+- Lignes enfant : afficher `item.grade` et `item.notes`
+
+### Ordre des colonnes final
+Actions | Article | N de serie | Categorie | Marque | Modele | Qte | Statut | Etat | Grade | Fournisseur | Prix unitaire | Total | Date | Notes
 
