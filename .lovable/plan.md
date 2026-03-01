@@ -1,37 +1,95 @@
 
-# Ajouter un bouton "Ajouter au stock" sur la page des commandes fournisseurs
+# Actions de Swap et Recuperation de materiel dans le detail contrat
 
-## Objectif
+## Vue d'ensemble
 
-Quand un equipement a le statut "recu" (`received`), afficher un bouton "Ajouter au stock" dans la derniere colonne du tableau. Ce bouton cree automatiquement un `stock_item` a partir des informations de la commande.
+Ajouter deux fonctionnalites directement dans la page de detail d'un contrat :
+1. **Swap** : remplacer un equipement defaillant par un article disponible en stock
+2. **Recuperation fin de contrat** : remettre le materiel en stock, le vendre au client, ou le mettre au rebut
 
-## Modifications
+Ces actions seront regroupees dans une nouvelle carte "Gestion du stock" placee dans la colonne principale du detail contrat, apres la section "Suivi des achats".
 
-### 1. `src/pages/admin/EquipmentOrders.tsx`
+---
 
-- Importer `receiveToStock` depuis `stockService` et `useAuth` pour obtenir le `user.id`, ainsi que l'icone `Package` de lucide-react
-- Ajouter une fonction `handleAddToStock(item)` qui :
-  - Appelle `receiveToStock(companyId, {...}, userId)` avec les donnees de l'equipement (titre, prix, fournisseur, reference commande, date de reception, product_id, contract lien)
-  - Affiche un toast de succes avec lien vers la page stock
-  - Marque l'item visuellement comme "deja ajoute" (en stockant les IDs ajoutes dans un state local `addedToStock`)
-- Dans le tableau, colonne actions (derniere colonne, a cote du bouton ExternalLink) :
-  - Si `item.order_status === 'received'` et pas encore ajoute : afficher un bouton avec icone `Package` + tooltip "Ajouter au stock"
-  - Si deja ajoute : afficher une icone `Check` grisee
-- Meme logique pour les lignes d'unites (`renderUnitRow`) quand une unite individuelle est au statut `received`
+## Nouveaux composants
 
-### 2. Donnees transmises au stock
+### 1. `src/components/stock/ContractStockManager.tsx`
 
-Le `stock_item` cree reprendra :
-- `title` : titre de l'equipement
-- `purchase_price` : prix fournisseur ou prix d'achat
-- `supplier_id` : fournisseur assigne
-- `order_reference` : reference de commande
-- `reception_date` : date de reception
-- `current_contract_id` : ID du contrat source (si source_type = contract)
-- `current_contract_equipment_id` : ID de l'equipement contrat
-- `status` : `in_stock`
-- `condition` : `new`
+Carte principale qui :
+- Charge les `stock_items` attribues au contrat (`current_contract_id = contractId`) via `fetchStockItems`
+- Affiche la liste des articles de stock lies au contrat (titre, numero de serie, etat)
+- Propose un bouton **"Swap"** sur chaque article assigne (ouvre le `SwapDialog`)
+- Propose les boutons de **fin de contrat** (Remettre en stock / Vendre / Rebuter) sur chaque article assigne
+- Si aucun article de stock n'est lie, affiche un message explicatif
 
-### Aucune modification de base de donnees necessaire
+Props : `contractId`, `companyId`, `onUpdate`
 
-Les tables `stock_items` et `stock_movements` existent deja avec tous les champs requis. La fonction `receiveToStock` du service stock gere la creation de l'item et du mouvement de reception.
+### 2. `src/components/stock/SwapDialog.tsx`
+
+Dialog de swap qui :
+- Recoit l'article defaillant (`currentItem: StockItem`) et le `contractId`
+- Charge les articles disponibles en stock (`status = 'in_stock'` pour la meme `company_id`)
+- Permet de selectionner un article de remplacement dans une liste filtrable (par titre/serial)
+- Champ texte pour la raison du swap (obligatoire)
+- Bouton de confirmation qui appelle `performSwap()` du `stockService`
+- Affiche un toast de succes et rafraichit la liste
+
+### 3. `src/components/stock/EndOfContractActions.tsx`
+
+Composant qui affiche 3 boutons d'action pour un article assigne :
+- **Remettre en stock** : ouvre un dialog pour choisir la condition (neuf, comme neuf, bon etat, etc.), puis met a jour le `stock_item` en `in_stock` avec `current_contract_id = null` et cree un mouvement `unassign_contract`
+- **Vendre au client** : met a jour le statut en `sold` et cree un mouvement `sell`
+- **Mettre au rebut** : met a jour le statut en `scrapped` et cree un mouvement `scrap`
+
+Chaque action demande confirmation via un AlertDialog.
+
+---
+
+## Modifications au service stock (`stockService.ts`)
+
+Ajouter 3 nouvelles fonctions composites :
+
+### `fetchStockItemsByContract(contractId: string)`
+Requete filtree sur `current_contract_id = contractId` pour charger uniquement les articles de stock lies a ce contrat.
+
+### `recoverToStock(companyId, itemId, condition, userId)`
+- Met a jour le stock_item : `status = 'in_stock'`, `condition = condition`, `current_contract_id = null`, `current_contract_equipment_id = null`
+- Cree un mouvement `unassign_contract`
+
+### `sellItem(companyId, itemId, userId)` et `scrapItem(companyId, itemId, userId)`
+- Mettent a jour le statut en `sold` / `scrapped` et creent les mouvements correspondants
+
+---
+
+## Integration dans ContractDetail.tsx
+
+- Importer `ContractStockManager`
+- Ajouter la carte dans la colonne principale, apres `ContractPurchaseTracking` :
+
+```text
+<ContractStockManager 
+  contractId={contract.id}
+  companyId={companyId}
+  onUpdate={refetch}
+/>
+```
+
+La carte ne sera visible que si `companyId` est disponible (multi-tenant).
+
+---
+
+## Aucune modification de base de donnees
+
+Les tables `stock_items`, `stock_movements` et `stock_repairs` existent deja avec tous les champs et statuts necessaires. Les fonctions `performSwap`, `updateStockItem`, `createMovement` et `createRepair` sont deja implementees dans `stockService.ts`.
+
+---
+
+## Resume des fichiers
+
+| Fichier | Action |
+|---|---|
+| `src/components/stock/ContractStockManager.tsx` | Creer - carte principale |
+| `src/components/stock/SwapDialog.tsx` | Creer - dialog de swap |
+| `src/components/stock/EndOfContractActions.tsx` | Creer - boutons recuperation/vente/rebut |
+| `src/services/stockService.ts` | Modifier - ajouter `fetchStockItemsByContract`, `recoverToStock`, `sellItem`, `scrapItem` |
+| `src/pages/ContractDetail.tsx` | Modifier - integrer `ContractStockManager` |
