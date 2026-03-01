@@ -266,7 +266,6 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
           <TableCell className="text-right text-xs">{totalQty}</TableCell>
           <TableCell className="text-xs text-muted-foreground">—</TableCell>
           <TableCell className="text-xs text-muted-foreground">—</TableCell>
-          <TableCell className="text-xs text-muted-foreground">—</TableCell>
           <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
           <TableCell className="text-right text-xs font-medium">{totalPrice.toFixed(2)} €</TableCell>
           <TableCell className="text-xs text-muted-foreground">—</TableCell>
@@ -314,7 +313,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
                   </SelectContent>
                 </Select>
               </TableCell>
-              <TableCell className="text-xs">{condCfg.label}</TableCell>
+              
               <TableCell className="text-xs">{item.grade || '-'}</TableCell>
               <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
               <TableCell className="text-right text-xs">{(item.unit_price || item.purchase_price)?.toFixed(2)} €</TableCell>
@@ -323,7 +322,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
                 {item.reception_date ? format(new Date(item.reception_date), 'dd/MM/yyyy', { locale: fr }) :
                  item.purchase_date ? format(new Date(item.purchase_date), 'dd/MM/yyyy', { locale: fr }) : '-'}
               </TableCell>
-              <TableCell className="text-xs truncate max-w-[150px]" title={item.notes || ''}>{item.notes || '-'}</TableCell>
+              <TableCell className="text-xs whitespace-pre-wrap">{item.notes || '-'}</TableCell>
             </TableRow>
           );
         })}
@@ -398,7 +397,6 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
             </SelectContent>
           </Select>
         </TableCell>
-        <TableCell className="text-xs">{condCfg.label}</TableCell>
         <TableCell className="text-xs">{item.grade || '-'}</TableCell>
         <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
         <TableCell className="text-right text-xs">{(item.unit_price || item.purchase_price)?.toFixed(2)} €</TableCell>
@@ -407,7 +405,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
           {item.reception_date ? format(new Date(item.reception_date), 'dd/MM/yyyy', { locale: fr }) :
            item.purchase_date ? format(new Date(item.purchase_date), 'dd/MM/yyyy', { locale: fr }) : '-'}
         </TableCell>
-        <TableCell className="text-xs truncate max-w-[150px]" title={item.notes || ''}>{item.notes || '-'}</TableCell>
+        <TableCell className="text-xs whitespace-pre-wrap">{item.notes || '-'}</TableCell>
       </TableRow>
     );
   };
@@ -423,7 +421,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
         <SortableHead column="model" className="text-xs">Modèle</SortableHead>
         <SortableHead column="quantity" className="text-right text-xs">Qté</SortableHead>
         <SortableHead column="status" className="text-xs">Statut</SortableHead>
-        <SortableHead column="condition" className="text-xs">État</SortableHead>
+        
         <SortableHead column="grade" className="text-xs">Grade</SortableHead>
         <SortableHead column="supplier" className="text-xs">Fournisseur</SortableHead>
         <SortableHead column="unit_price" className="text-right text-xs">Prix unitaire</SortableHead>
