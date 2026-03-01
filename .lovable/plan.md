@@ -1,54 +1,52 @@
 
-
-# Ajouter un badge compteur sur l'onglet "Materiel"
+# Export Excel du parc materiel client
 
 ## Objectif
 
-Afficher un badge avec le nombre total d'equipements actifs directement sur l'onglet "Materiel" de la fiche client, sans avoir a cliquer dessus.
+Ajouter un bouton d'export Excel dans le composant `ClientActiveEquipment` pour telecharger la liste des equipements actifs du client.
 
-## Approche
-
-Le hook `useClientContracts` est deja utilise dans `ClientActiveEquipment`. On va aussi l'appeler dans `UnifiedClientView` pour calculer le nombre d'equipements et afficher un `Badge` a cote du texte "Materiel" dans le `TabsTrigger`.
-
-## Fichier modifie
+## Fichiers concernes
 
 | Fichier | Changement |
 |---|---|
-| `src/components/clients/UnifiedClientView.tsx` | Appeler `useClientContracts`, calculer le compteur, ajouter un Badge sur l'onglet |
+| `src/components/clients/ClientActiveEquipment.tsx` | Ajouter le bouton export et la logique d'export Excel via ExcelJS |
 
 ## Detail technique
 
-### 1. Importer et appeler le hook (en haut du composant)
+### Logique d'export (dans le composant)
 
-Ajouter `useClientContracts` et calculer le nombre d'equipements des contrats actifs :
+Ajouter une fonction `handleExportExcel` qui :
+- Utilise `ExcelJS` (deja installe dans le projet) pour creer un classeur
+- Cree une feuille "Parc materiel" avec les colonnes : Designation, Quantite, N de serie, N contrat, Statut contrat, Echeance
+- Remplit les lignes a partir de `equipmentRows` (deja calcule dans le composant)
+- Style l'en-tete (fond colore, texte blanc, gras)
+- Ajoute un auto-filtre
+- Declenche le telechargement du fichier `.xlsx`
 
-```typescript
-const { contracts: clientContracts } = useClientContracts(client.email, client.id);
-const activeEquipmentCount = clientContracts
-  .filter(c => ["active", "signed", "in_progress", "delivered"].includes(c.status))
-  .flatMap(c => c.contract_equipment || [])
-  .reduce((sum, eq) => sum + (eq.quantity || 1), 0);
+Le nom du fichier inclura le nom du client si disponible : `parc_materiel_[client]_[date].xlsx`
+
+### Modifications UI
+
+Ajouter un bouton "Exporter" avec l'icone `Download` dans le `CardHeader`, a cote du titre, aligne a droite. Le bouton est desactive si la liste est vide.
+
+```text
+CardHeader
++-----------------------------------------------+
+| [Monitor] Materiel en cours    [Exporter xlsx] |
+| Description...                                 |
++-----------------------------------------------+
 ```
 
-### 2. Modifier le TabsTrigger "equipment" (ligne 576-579)
+### Props
 
-Ajouter un Badge conditionnel apres le texte :
+Le composant recevra une prop optionnelle `clientName?: string` pour nommer le fichier d'export. On ajoutera cette prop dans `UnifiedClientView.tsx` lors de l'appel au composant.
 
-```tsx
-<TabsTrigger value="equipment" className="flex items-center gap-2">
-  <Monitor className="h-4 w-4" />
-  Matériel
-  {activeEquipmentCount > 0 && (
-    <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-xs">
-      {activeEquipmentCount}
-    </Badge>
-  )}
-</TabsTrigger>
-```
+### Fichier supplementaire modifie
 
-## Ce qui ne change pas
+| Fichier | Changement |
+|---|---|
+| `src/components/clients/UnifiedClientView.tsx` | Passer `clientName={client.name}` au composant `ClientActiveEquipment` |
 
-- Le composant `ClientActiveEquipment` reste inchange
-- Les autres onglets ne sont pas affectes
-- Le hook `useClientContracts` est reutilise tel quel (pas de requete supplementaire si le composant enfant l'appelle aussi grace au cache)
+## Patron suivi
 
+Le code suit le meme patron que `stockExportService.ts` : creation de workbook ExcelJS, style d'en-tete, auto-filtre, generation de buffer et telechargement via Blob URL.
