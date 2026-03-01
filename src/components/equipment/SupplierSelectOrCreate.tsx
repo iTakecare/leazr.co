@@ -106,7 +106,7 @@ const SupplierSelectOrCreate: React.FC<SupplierSelectOrCreateProps> = ({
         <PopoverContent className="w-56 p-0" align="start">
           <Command shouldFilter={false}>
             <CommandInput placeholder="Rechercher..." onValueChange={setSearchQuery} />
-            <CommandList>
+            <CommandList onWheel={(e) => e.stopPropagation()}>
               <CommandEmpty>Aucun fournisseur trouvé</CommandEmpty>
               <CommandGroup>
                 {suppliers
