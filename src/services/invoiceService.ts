@@ -1141,7 +1141,7 @@ export const generateSelfLeasingMonthlyInvoice = async (
   contractId: string, 
   companyId: string, 
   paymentDate: string, 
-  amount: number
+  amountTvac: number
 ) => {
   try {
     const date = new Date(paymentDate);
@@ -1192,16 +1192,23 @@ export const generateSelfLeasingMonthlyInvoice = async (
     // Générer un numéro de facture
     const invoiceNumber = `SL-${monthKey}-${contractId.substring(0, 6).toUpperCase()}`;
 
+    // Utiliser la mensualité du contrat (toujours HTVA) plutôt que le montant Mollie
+    // car le montant Mollie peut être TVAC ou HTVA selon la configuration
+    const vatRate = 21;
+    const amountHtva = contract.monthly_payment || Math.round((amountTvac / (1 + vatRate / 100)) * 100) / 100;
+    const vatAmount = Math.round((amountHtva * vatRate / 100) * 100) / 100;
+    const amountTvacCalc = Math.round((amountHtva + vatAmount) * 100) / 100;
+
     // Construire equipment_data pour l'affichage des lignes
     const equipmentData = equipmentItems.map(item => ({
       title: `Contrat de location ${contract.tracking_number || ''} / ${item.title}`,
       quantity: item.quantity || 1,
-      selling_price_excl_vat: item.monthly_payment || (amount / (equipmentItems.length || 1)),
+      selling_price_excl_vat: item.monthly_payment || (amountHtva / (equipmentItems.length || 1)),
       serial_number: item.serial_number || null,
-      vat_rate: 21,
+      vat_rate: vatRate,
     }));
 
-    // Créer la facture avec billing_data complet
+    // Créer la facture avec billing_data complet - amount = HTVA
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .insert({
@@ -1210,7 +1217,7 @@ export const generateSelfLeasingMonthlyInvoice = async (
         leaser_name: 'iTakecare',
         invoice_type: 'leasing',
         invoice_number: invoiceNumber,
-        amount: amount,
+        amount: amountHtva,
         status: 'paid',
         integration_type: 'mollie',
         invoice_date: paymentDate.split('T')[0],
@@ -1232,9 +1239,9 @@ export const generateSelfLeasingMonthlyInvoice = async (
           },
           equipment_data: equipmentData,
           invoice_totals: {
-            total_excl_vat: amount,
-            vat_amount: amount * 0.21,
-            total_incl_vat: amount * 1.21,
+            total_excl_vat: amountHtva,
+            vat_amount: vatAmount,
+            total_incl_vat: amountTvacCalc,
           },
           created_at: new Date().toISOString()
         }
