@@ -30,6 +30,7 @@ import { ClientLogoUploader } from "./ClientLogoUploader";
 import { CompanySearchModal } from "./CompanySearchModal";
 import ClientCommercialHistory from "./ClientCommercialHistory";
 import ClientActiveEquipment from "./ClientActiveEquipment";
+import { useClientContracts } from "@/hooks/useClientContracts";
 
 interface UnifiedClientViewProps {
   client: Client;
@@ -58,6 +59,13 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
     clientName: client.name,
     timestamp: new Date().toISOString()
   });
+
+  // Fetch client contracts for equipment count badge
+  const { contracts: clientContracts } = useClientContracts(client.email, client.id);
+  const activeEquipmentCount = clientContracts
+    .filter(c => ["active", "signed", "in_progress", "delivered"].includes(c.status))
+    .flatMap(c => c.contract_equipment || [])
+    .reduce((sum, eq) => sum + (eq.quantity || 1), 0);
 
   // Fetch leasers for the default leaser selector
   const { data: leasers = [] } = useQuery({
@@ -576,6 +584,11 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           <TabsTrigger value="equipment" className="flex items-center gap-2">
             <Monitor className="h-4 w-4" />
             Matériel
+            {activeEquipmentCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-xs">
+                {activeEquipmentCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="logo" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
