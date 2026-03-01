@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, User, CheckCircle, 
-  AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package, Globe, Search
+  AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package, Globe, Search, Monitor
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -29,6 +29,7 @@ import { CompanyLookupButton } from "./CompanyLookupButton";
 import { ClientLogoUploader } from "./ClientLogoUploader";
 import { CompanySearchModal } from "./CompanySearchModal";
 import ClientCommercialHistory from "./ClientCommercialHistory";
+import ClientActiveEquipment from "./ClientActiveEquipment";
 
 interface UnifiedClientViewProps {
   client: Client;
@@ -559,7 +560,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
 
       {/* Onglets avec contenu principal */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Informations générales
@@ -571,6 +572,10 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           <TabsTrigger value="delivery-sites" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
             Sites de livraison
+          </TabsTrigger>
+          <TabsTrigger value="equipment" className="flex items-center gap-2">
+            <Monitor className="h-4 w-4" />
+            Matériel
           </TabsTrigger>
           <TabsTrigger value="logo" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -893,6 +898,13 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           <DeliverySitesManager 
             clientId={client.id} 
             clientName={client.name}
+          />
+        </TabsContent>
+
+        <TabsContent value="equipment">
+          <ClientActiveEquipment 
+            clientId={client.id} 
+            clientEmail={client.email || undefined}
           />
         </TabsContent>
 
