@@ -1,50 +1,57 @@
 
+# Extraction automatique de la marque depuis la description
 
-# Lier les categories et marques du stock au catalogue existant
+## Objectif
+Quand la colonne "Marque" est absente ou vide dans l'Excel, extraire automatiquement la marque depuis le champ titre/description en la comparant aux marques existantes du catalogue.
 
-## Contexte
+## Logique
+Apres avoir charge les marques du catalogue (ligne ~292-299), ajouter une fonction `extractBrandFromTitle(title, brandNameMap)` qui :
+1. Decoupe le titre en mots
+2. Compare chaque mot (normalise) aux noms de marques du catalogue
+3. Retourne la premiere marque trouvee, ou `null` si aucune correspondance
 
-Actuellement, les champs `category` et `brand` de `stock_items` sont du texte libre. Or, le catalogue dispose deja de tables `categories` (avec id, name, translation) et `brands` (avec id, name) qui contiennent les valeurs de reference. Il faut utiliser ces tables pour alimenter les selects du formulaire stock et faire correspondre les valeurs lors de l'import Excel.
+## Modification dans `src/services/stockImportService.ts`
 
-## Etape 1 : Formulaire StockItemForm.tsx
+### Nouvelle fonction `extractBrandFromTitle`
+```text
+function extractBrandFromTitle(
+  title: string, 
+  brandNames: string[]
+): string | null {
+  const normalizedTitle = normalize(title);
+  for (const brand of brandNames) {
+    if (normalizedTitle.includes(normalize(brand))) {
+      return brand; // Retourne le nom exact du catalogue
+    }
+  }
+  return null;
+}
+```
 
-Remplacer les champs texte libres "Categorie" et "Marque" par des **Select** alimentes depuis les tables du catalogue :
+### Integration dans `importStockItems`
+Apres la resolution de la marque (ligne ~371-372), si `matchedBrand` est toujours `null`, appeler `extractBrandFromTitle` avec le titre :
 
-- **Categorie** : charger les categories via `useCategories()` (hook existant dans `src/hooks/products/useCategories.ts`). Afficher `translation` comme label dans le select, stocker `name` comme valeur dans `stock_items.category` (pour rester compatible avec le champ texte existant et les groupements du rapport de valorisation).
-- **Marque** : charger les marques via `useBrands()` (hook existant dans `src/hooks/products/useBrands.ts`). Afficher `name` comme label, stocker `name` comme valeur dans `stock_items.brand`.
-- Garder une option "Autre" qui permet la saisie libre en cas de valeur absente du catalogue.
+```text
+// Ligne ~372 existante :
+const matchedBrand = rawBrand 
+  ? (brandNameMap.get(normalize(rawBrand)) || rawBrand) 
+  : null;
 
-### Modifications dans `StockItemForm.tsx`
-- Importer `useCategories` et `useBrands`
-- Remplacer le `<Input>` categorie (ligne 193-194) par un `<Select>` avec les categories du catalogue + option "Autre"
-- Remplacer le `<Input>` marque (ligne 197-198) par un `<Select>` avec les marques du catalogue + option "Autre"
+// Ajout : fallback extraction depuis le titre
+const finalBrand = matchedBrand 
+  || extractBrandFromTitle(title, Array.from(brandNameMap.values()));
+```
 
-## Etape 2 : Import Excel (stockImportService.ts)
+Puis utiliser `finalBrand` dans `itemData.brand` a la place de `matchedBrand`.
 
-Lors de l'import, faire correspondre les valeurs texte importees avec les tables existantes :
-
-- Apres le parsing, normaliser la categorie importee et la comparer aux `categories.name` et `categories.translation` existantes. Si match, utiliser le `name` de la categorie. Sinon, garder la valeur telle quelle.
-- Meme logique pour la marque : normaliser et comparer aux `brands.name`. Si match, utiliser le nom exact de la marque.
-
-### Modifications dans `stockImportService.ts`
-- Dans `importStockFromExcel`, charger les categories et brands depuis Supabase en debut d'import
-- Creer des maps de normalisation (comme pour les fournisseurs)
-- Appliquer la correspondance lors de la construction de `itemData`
-
-## Etape 3 : Liste StockItemList.tsx
-
-Pas de changement structurel necessaire -- les colonnes affichent deja les valeurs texte `category` et `brand`. Aucune modification requise.
-
-## Resume des fichiers
+## Fichier modifie
 
 | Fichier | Action |
 |---|---|
-| `src/components/stock/StockItemForm.tsx` | Remplacer Input par Select pour categorie et marque, avec donnees du catalogue |
-| `src/services/stockImportService.ts` | Matcher les valeurs importees avec les categories et marques existantes |
+| `src/services/stockImportService.ts` | Ajouter `extractBrandFromTitle` + l'appeler en fallback quand la marque est vide |
 
-## Details techniques
-
-- Les hooks `useCategories` et `useBrands` sont deja disponibles et caches via React Query
-- On stocke le `name` (pas l'id) dans `stock_items.category` et `stock_items.brand` pour rester compatible avec le rapport de valorisation qui groupe par ces valeurs texte
-- L'option "Autre" dans les selects bascule vers un champ texte libre pour ne pas bloquer l'utilisateur si une valeur n'existe pas encore dans le catalogue
-
+## Cas geres
+- "Lenovo V14 G4" avec "Lenovo" dans le catalogue -> marque = "Lenovo"
+- "HP ProBook 450 G8" avec "HP" dans le catalogue -> marque = "HP"
+- Marque deja renseignee dans l'Excel -> pas de changement, priorite a la colonne
+- Aucune marque reconnue -> reste `null` comme avant
