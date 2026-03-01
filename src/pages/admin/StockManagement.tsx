@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, Download } from "lucide-react";
 import StockDashboard from "@/components/stock/StockDashboard";
 import StockItemList from "@/components/stock/StockItemList";
 import StockMovementHistory from "@/components/stock/StockMovementHistory";
@@ -9,11 +9,28 @@ import StockRepairList from "@/components/stock/StockRepairList";
 import StockItemForm from "@/components/stock/StockItemForm";
 import StockValuationReport from "@/components/stock/StockValuationReport";
 import StockImportDialog from "@/components/stock/StockImportDialog";
+import { exportStockToExcel } from "@/services/stockExportService";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { toast } from "sonner";
 
 const StockManagement: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const { companyId } = useMultiTenant();
 
+  const handleExport = async () => {
+    if (!companyId) return;
+    setExporting(true);
+    try {
+      await exportStockToExcel(companyId);
+      toast.success("Export Excel téléchargé");
+    } catch (err: any) {
+      toast.error("Erreur lors de l'export: " + (err.message || "Erreur inconnue"));
+    } finally {
+      setExporting(false);
+    }
+  };
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -22,6 +39,10 @@ const StockManagement: React.FC = () => {
           <p className="text-muted-foreground text-sm">Suivi du cycle de vie des équipements physiques</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            <Download className="h-4 w-4 mr-2" />
+            {exporting ? 'Export...' : 'Exporter Excel'}
+          </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
             Importer Excel
