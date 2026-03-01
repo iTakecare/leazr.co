@@ -309,15 +309,32 @@ export async function importStockItems(
     return null;
   }
 
-  // Check existing serial numbers for duplicate detection
+  // Load existing items for multi-criteria duplicate detection
   const { data: existingItems } = await supabase
     .from('stock_items' as any)
-    .select('serial_number')
-    .eq('company_id', companyId)
-    .not('serial_number', 'is', null);
-  const existingSerials = new Set<string>(
-    (existingItems || []).map((i: any) => normalize(String(i.serial_number || '')))
-  );
+    .select('serial_number, title, brand, model, supplier_id, unit_price')
+    .eq('company_id', companyId);
+
+  // Build serial number set
+  const existingSerials = new Set<string>();
+  // Build fingerprint set: normalized(title)|normalized(brand)|normalized(model)
+  const existingFingerprints = new Set<string>();
+
+  const buildFingerprint = (title: string, brand: string, model: string): string => {
+    return `${normalize(title)}|${normalize(brand)}|${normalize(model)}`;
+  };
+
+  (existingItems || []).forEach((item: any) => {
+    const sn = String(item.serial_number || '').trim();
+    if (sn) existingSerials.add(normalize(sn));
+    // Build fingerprint for all existing items
+    const fp = buildFingerprint(
+      String(item.title || ''),
+      String(item.brand || ''),
+      String(item.model || '')
+    );
+    existingFingerprints.add(fp);
+  });
 
   for (let i = 0; i < rows.length; i++) {
     try {
@@ -339,9 +356,18 @@ export async function importStockItems(
         continue;
       }
 
-      // Check duplicate serial
+      // Duplicate detection - criterion 1: serial number
       const serialNumber = String(parsed.serial_number || '').trim() || null;
       if (serialNumber && existingSerials.has(normalize(serialNumber))) {
+        result.duplicates++;
+        continue;
+      }
+
+      // Duplicate detection - criterion 2: title + brand + model fingerprint
+      const rawBrandForDup = String(parsed.brand || '').trim();
+      const rawModelForDup = String(parsed.model || '').trim();
+      const fingerprint = buildFingerprint(title, rawBrandForDup, rawModelForDup);
+      if (!serialNumber && existingFingerprints.has(fingerprint)) {
         result.duplicates++;
         continue;
       }
@@ -436,9 +462,11 @@ export async function importStockItems(
           } as any);
       }
 
+      // Track new items to prevent intra-file duplicates
       if (serialNumber) {
         existingSerials.add(normalize(serialNumber));
       }
+      existingFingerprints.add(fingerprint);
       result.success++;
     } catch (err: any) {
       result.errors.push({ row: i + 2, error: err.message || 'Erreur inconnue' });
