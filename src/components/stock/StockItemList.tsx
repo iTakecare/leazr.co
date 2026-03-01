@@ -79,6 +79,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set());
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -186,6 +187,33 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
     return result;
   }, [items, search, sortKey, sortDir]);
 
+  // Group identical articles (same title+brand+model)
+  type ArticleGroup = { key: string; items: StockItem[]; title: string; brand: string; model: string; category: string };
+
+  const articleGroups = useMemo((): ArticleGroup[] => {
+    const map = new Map<string, StockItem[]>();
+    const order: string[] = [];
+    filtered.forEach(item => {
+      const key = `${item.title.toLowerCase().trim()}|${(item.brand || '').toLowerCase().trim()}|${(item.model || '').toLowerCase().trim()}`;
+      if (!map.has(key)) { map.set(key, []); order.push(key); }
+      map.get(key)!.push(item);
+    });
+    return order.map(key => {
+      const items = map.get(key)!;
+      const first = items[0];
+      return { key, items, title: first.title, brand: first.brand || '', model: first.model || '', category: first.category || '' };
+    });
+  }, [filtered]);
+
+  const toggleArticle = (key: string) => {
+    setExpandedArticles(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   const grouped = useMemo(() => {
     if (groupBy === 'none') return null;
     const groups: Record<string, StockItem[]> = {};
@@ -196,6 +224,118 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
     });
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered, groupBy]);
+
+  const groupItemsIntoArticles = (items: StockItem[]): ArticleGroup[] => {
+    const map = new Map<string, StockItem[]>();
+    const order: string[] = [];
+    items.forEach(item => {
+      const key = `${item.title.toLowerCase().trim()}|${(item.brand || '').toLowerCase().trim()}|${(item.model || '').toLowerCase().trim()}`;
+      if (!map.has(key)) { map.set(key, []); order.push(key); }
+      map.get(key)!.push(item);
+    });
+    return order.map(key => {
+      const its = map.get(key)!;
+      const first = its[0];
+      return { key, items: its, title: first.title, brand: first.brand || '', model: first.model || '', category: first.category || '' };
+    });
+  };
+
+  const renderGroupParentRow = (group: ArticleGroup) => {
+    const isExpanded = expandedArticles.has(group.key);
+    const totalPrice = group.items.reduce((sum, i) => sum + (i.purchase_price || 0), 0);
+    const totalQty = group.items.reduce((sum, i) => sum + (i.quantity || 1), 0);
+    return (
+      <React.Fragment key={`group-${group.key}`}>
+        <TableRow
+          className="cursor-pointer hover:bg-muted/50 bg-muted/20"
+          onClick={() => toggleArticle(group.key)}
+        >
+          <TableCell className="p-1 w-10">
+            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+          </TableCell>
+          <TableCell className="font-medium">
+            {group.title}
+            <Badge variant="secondary" className="ml-2 text-xs">{group.items.length} unités</Badge>
+          </TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-xs">{group.category || '-'}</TableCell>
+          <TableCell className="text-xs">{group.brand || '-'}</TableCell>
+          <TableCell className="text-xs">{group.model || '-'}</TableCell>
+          <TableCell className="text-right text-xs">{totalQty}</TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-right text-xs font-medium">{totalPrice.toFixed(2)} €</TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+        </TableRow>
+        {isExpanded && group.items.map(item => {
+          const statusCfg = STOCK_STATUS_CONFIG[item.status] || STOCK_STATUS_CONFIG.in_stock;
+          const condCfg = CONDITION_CONFIG[item.condition] || CONDITION_CONFIG.new;
+          return (
+            <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50 bg-accent/30" onClick={() => onEdit?.(item)}>
+              <TableCell className="p-1 pl-6">
+                <div className="flex gap-0.5">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); onEdit?.(item); }}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => handleDuplicate(item, e)} disabled={duplicating === item.id} title="Dupliquer">
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={e => { e.stopPropagation(); setDeleteItem(item); }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </TableCell>
+              <TableCell className="text-xs text-muted-foreground pl-6">↳ Unité</TableCell>
+              <TableCell className="font-mono text-xs">
+                {item.serial_numbers && item.serial_numbers.length > 0
+                  ? item.serial_numbers.length > 2
+                    ? <span title={item.serial_numbers.join(', ')}>{item.serial_numbers[0]}... ({item.serial_numbers.length})</span>
+                    : item.serial_numbers.join(', ')
+                  : item.serial_number || '-'}
+              </TableCell>
+              <TableCell className="text-xs">{item.category || '-'}</TableCell>
+              <TableCell className="text-xs">{item.brand || '-'}</TableCell>
+              <TableCell className="text-xs">{item.model || '-'}</TableCell>
+              <TableCell className="text-right text-xs">{item.quantity || 1}</TableCell>
+              <TableCell onClick={e => e.stopPropagation()}>
+                <Select value={item.status} onValueChange={v => handleStatusChange(item, v as StockStatus)}>
+                  <SelectTrigger className={`h-7 w-auto min-w-[120px] text-xs border ${statusCfg.bgColor} ${statusCfg.color}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(STOCK_STATUS_CONFIG).map(([k, v]) => (
+                      <SelectItem key={k} value={k} className="text-xs">{v.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableCell>
+              <TableCell className="text-xs">{condCfg.label}</TableCell>
+              <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
+              <TableCell className="text-right text-xs">{(item.unit_price || item.purchase_price)?.toFixed(2)} €</TableCell>
+              <TableCell className="text-right text-xs font-medium">{item.purchase_price?.toFixed(2)} €</TableCell>
+              <TableCell className="text-xs">
+                {item.contract ? `${item.contract.contract_number} - ${item.contract.client_name}` : '-'}
+              </TableCell>
+              <TableCell className="text-xs text-muted-foreground">
+                {item.reception_date ? format(new Date(item.reception_date), 'dd/MM/yyyy', { locale: fr }) :
+                 item.purchase_date ? format(new Date(item.purchase_date), 'dd/MM/yyyy', { locale: fr }) : '-'}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </React.Fragment>
+    );
+  };
+
+  const renderArticleGroups = (groups: ArticleGroup[]) => {
+    return groups.map(group => {
+      if (group.items.length === 1) return renderRow(group.items[0]);
+      return renderGroupParentRow(group);
+    });
+  };
 
   const SortIcon: React.FC<{ column: SortKey }> = ({ column }) => {
     if (sortKey !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
@@ -336,7 +476,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
           <Table>
             {tableHeaders}
             <TableBody>
-              {filtered.map(renderRow)}
+              {renderArticleGroups(articleGroups)}
             </TableBody>
           </Table>
         </div>
@@ -344,6 +484,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
         <div className="space-y-2">
           {grouped?.map(([group, groupItems]) => {
             const isCollapsed = collapsedGroups.has(group);
+            const subGroups = groupItemsIntoArticles(groupItems);
             return (
               <div key={group} className="border rounded-lg overflow-hidden">
                 <button
@@ -359,7 +500,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
                   <Table>
                     {tableHeaders}
                     <TableBody>
-                      {groupItems.map(renderRow)}
+                      {renderArticleGroups(subGroups)}
                     </TableBody>
                   </Table>
                 )}
