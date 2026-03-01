@@ -1,71 +1,107 @@
 
 
-# Nouvel onglet "Materiel en cours" dans la fiche client
+# Recherche multi-criteres pour Contrats et Demandes
 
-## Objectif
+## Constat actuel
 
-Ajouter un 5e onglet dans `UnifiedClientView` qui affiche tout le materiel issu des contrats actifs du client, avec pour chaque equipement le lien vers le contrat associe. Cela permet de voir en un coup d'oeil le parc materiel en cours chez le client.
+Les recherches actuelles sont tres limitees :
 
-## Approche
+| Ecran | Champs recherches |
+|---|---|
+| Contrats (`useContracts.ts`) | client_name, equipment_description, leaser_name |
+| Demandes (`useOfferFilters.ts`) | client_name, equipment_description, amount, monthly_payment |
+| CRM (`CompanyCRM.tsx`) | client name/company/email (clients), client_name seulement (offres et contrats) |
 
-### 1. Creer un nouveau composant `ClientActiveEquipment`
+Il manque : numero de contrat, numero de dossier, numero de serie, nom de l'entreprise cliente, email, telephone, bailleur, etc.
 
-**Fichier** : `src/components/clients/ClientActiveEquipment.tsx`
+## Solution proposee
 
-Ce composant :
-- Recoit `clientId` et `clientEmail` en props
-- Utilise le hook `useClientContracts` existant pour recuperer les contrats du client (il inclut deja la jointure sur `contract_equipment`)
-- Filtre les contrats avec un statut actif (`active`, `signed`, `in_progress`)
-- Construit une liste a plat de tous les equipements avec les infos du contrat parent
-- Affiche un tableau avec les colonnes :
-  - **Designation** : titre de l'equipement
-  - **Quantite**
-  - **N de serie** (si disponible)
-  - **Contrat** : numero du contrat (lien cliquable vers la page du contrat)
-  - **Statut contrat** : badge du statut
-  - **Echeance** : date de fin du contrat
-- Gere les etats de chargement et liste vide
+Etendre la logique de filtrage dans les hooks existants pour chercher sur tous les champs pertinents. Pas besoin de nouveaux composants UI -- les barres de recherche existantes restent en place, seule la logique de matching change.
 
-### 2. Modifier `UnifiedClientView` pour ajouter l'onglet
-
-**Fichier** : `src/components/clients/UnifiedClientView.tsx`
-
-Modifications :
-- Importer `ClientActiveEquipment` et l'icone `Monitor` de lucide-react
-- Passer la grille des onglets de `grid-cols-4` a `grid-cols-5`
-- Ajouter un nouveau `TabsTrigger` "Materiel" entre "Sites de livraison" et "Logo"
-- Ajouter le `TabsContent` correspondant avec le composant `ClientActiveEquipment`
-
-### 3. Enrichir le hook `useClientContracts`
-
-Le hook recupere deja `contract_equipment (id, title, quantity)`. Il faut ajouter `serial_number` a la selection pour l'afficher dans le tableau.
-
-**Fichier** : `src/hooks/useClientContracts.ts`
-
-Modification de la requete select pour inclure `serial_number` dans la jointure `contract_equipment`.
-
-## Detail technique
-
-### Structure du tableau (ClientActiveEquipment)
-
-```text
-+---------------------+-----+------------+-----------+--------+-----------+
-| Designation         | Qte | N serie    | Contrat   | Statut | Echeance  |
-+---------------------+-----+------------+-----------+--------+-----------+
-| Lenovo ThinkPad X1  |  2  | SN123, ... | CTR-001   | Actif  | 01/2028   |
-| HP LaserJet Pro     |  1  |     -      | CTR-002   | Actif  | 06/2027   |
-+---------------------+-----+------------+-----------+--------+-----------+
-```
-
-### Fichiers modifies
+## Fichiers modifies
 
 | Fichier | Changement |
 |---|---|
-| `src/components/clients/ClientActiveEquipment.tsx` | Nouveau composant (tableau du parc materiel) |
-| `src/components/clients/UnifiedClientView.tsx` | Ajout du 5e onglet "Materiel" |
-| `src/hooks/useClientContracts.ts` | Ajout de `serial_number` dans la requete |
+| `src/hooks/useContracts.ts` | Etendre le filtre de recherche a 8+ champs |
+| `src/hooks/offers/useOfferFilters.ts` | Etendre le filtre de recherche a 8+ champs |
+| `src/components/contracts/ContractsSearch.tsx` | Mettre a jour le placeholder pour refléter le multi-critères |
+| `src/components/offers/OffersSearch.tsx` | Mettre a jour le placeholder |
+| `src/components/crm/CompanyCRM.tsx` | Etendre les filtres dans les onglets offres et contrats |
 
-### Aucune migration DB necessaire
+## Detail technique
 
-Toutes les donnees existent deja dans `contracts` et `contract_equipment`. On utilise les colonnes existantes.
+### 1. Contrats - `useContracts.ts` (ligne 92-98)
+
+Champs recherches actuellement : `client_name`, `equipment_description`, `leaser_name`
+
+Champs ajoutes :
+- `contract_number` (numero de contrat)
+- `offer_dossier_number` (numero de dossier)
+- `tracking_number` (numero de suivi)
+- `client_email`
+- `client_phone`
+- `clients?.company` (nom de l'entreprise)
+- `clients?.vat_number` (numero de TVA)
+
+Logique :
+```typescript
+const lowerCaseSearch = searchTerm.toLowerCase();
+filtered = filtered.filter(contract => 
+  contract.client_name?.toLowerCase().includes(lowerCaseSearch) ||
+  contract.equipment_description?.toLowerCase().includes(lowerCaseSearch) ||
+  contract.leaser_name?.toLowerCase().includes(lowerCaseSearch) ||
+  contract.contract_number?.toLowerCase().includes(lowerCaseSearch) ||
+  contract.offer_dossier_number?.toLowerCase().includes(lowerCaseSearch) ||
+  contract.tracking_number?.toLowerCase().includes(lowerCaseSearch) ||
+  contract.client_email?.toLowerCase().includes(lowerCaseSearch) ||
+  contract.client_phone?.toLowerCase().includes(lowerCaseSearch) ||
+  contract.clients?.company?.toLowerCase().includes(lowerCaseSearch) ||
+  contract.clients?.vat_number?.toLowerCase().includes(lowerCaseSearch)
+);
+```
+
+### 2. Demandes - `useOfferFilters.ts` (ligne 97-105)
+
+Champs recherches actuellement : `client_name`, `equipment_description`, `amount`, `monthly_payment`
+
+Champs ajoutes :
+- `client_email`
+- `client_company` (entreprise)
+- `id` (recherche par fragment d'ID)
+- Equipements des packs personnalises (titre des produits dans `offer_custom_packs`)
+
+Logique :
+```typescript
+result = result.filter(offer => {
+  return offer.client_name?.toLowerCase().includes(lowercasedSearch) ||
+    offer.equipment_description?.toLowerCase().includes(lowercasedSearch) ||
+    offer.client_email?.toLowerCase().includes(lowercasedSearch) ||
+    offer.client_company?.toLowerCase().includes(lowercasedSearch) ||
+    String(offer.amount).includes(lowercasedSearch) ||
+    String(offer.monthly_payment).includes(lowercasedSearch) ||
+    offer.id?.toLowerCase().includes(lowercasedSearch);
+});
+```
+
+Note : il faudra verifier quels champs sont presents dans le type `Offer` (de `useFetchOffers`) -- `client_email` et `client_company` sont probablement deja dans l'interface.
+
+### 3. CRM - `CompanyCRM.tsx`
+
+Dans les filtres des onglets "Offres" et "Contrats", etendre la recherche aux memes champs que ci-dessus (actuellement ca ne cherche que sur `client_name`).
+
+### 4. Placeholders mis a jour
+
+- **Contrats** : `"Rechercher par nom, n° contrat, équipement, n° série..."` (au lieu de "Rechercher un contrat...")
+- **Demandes** : `"Rechercher par nom, équipement, entreprise..."` (au lieu de "Rechercher...")
+
+## Ce qui ne change PAS
+
+- L'apparence visuelle des barres de recherche (pas de nouveau composant UI)
+- La structure des hooks (toujours du filtrage client-side)
+- Les autres ecrans (catalogue, taches, etc.) qui ont deja leur propre logique adaptee
+
+## Points d'attention
+
+- La recherche reste client-side (filtrage sur les donnees deja chargees en memoire), ce qui est performant pour le volume actuel
+- Pour les contrats, il faudra verifier que le champ `contract_equipment` avec `serial_number` est charge dans le `getContracts()` pour pouvoir chercher par numero de serie. Si ce n'est pas le cas, il faudra enrichir la requete.
 
