@@ -1,73 +1,43 @@
 
-# Ajouter les lignes d'equipement dans la facture self-leasing mensuelle
+# Corriger l'affichage du CA Self-Leasing dans le dashboard
 
-## Probleme
+## Probleme identifie
 
-La fonction `generateSelfLeasingMonthlyInvoice` dans `invoiceService.ts` cree une facture avec un `billing_data` minimal (juste le type, mois, nom client). Il manque les donnees structurees `equipment_data`, `contract_data` et `leaser_data` que la page de detail de facture utilise pour afficher les lignes de commande.
+Les factures self-leasing generees depuis Mollie ont `invoice_type = 'leasing'` et `billing_data->>'type' = 'self_leasing_monthly'`. La fonction SQL les compte dans la colonne "CA Leasing" au lieu de "CA Self-Leasing" car :
+
+- Le CTE `leasing_revenue` selectionne toutes les factures `invoice_type = 'leasing'` sans distinction
+- Le CTE `self_leasing_by_month` exclut les mois ou une facture existe deja (via `NOT EXISTS`), ce qui est correct pour eviter le double comptage, mais le revenu atterrit dans la mauvaise colonne
 
 ## Solution
 
-Modifier la fonction `generateSelfLeasingMonthlyInvoice` pour :
+Modifier la fonction SQL `get_monthly_financial_data` dans une nouvelle migration :
 
-1. **Recuperer les donnees completes du contrat** (tracking number, client, etc.) au lieu de seulement `client_name` et `client_email`
-2. **Recuperer les equipements du contrat** depuis la table `offer_equipment` (via l'offre liee au contrat)
-3. **Construire les lignes `equipment_data`** avec pour chaque equipement : titre, prix, quantite, numero de serie, TVA, et un intitule descriptif du type "Contrat de location LOC-XXX / NomEquipement"
-4. **Ajouter `contract_data` et `leaser_data`** (iTakecare comme bailleur pour le self-leasing) dans le `billing_data`
+1. **Exclure les factures self-leasing du CTE `leasing_revenue`** en ajoutant la condition :
+   ```sql
+   AND (i.billing_data->>'type' IS DISTINCT FROM 'self_leasing_monthly')
+   ```
 
-## Changement technique
+2. **Ajouter un nouveau CTE `self_leasing_invoices`** qui comptabilise les factures self-leasing reelles :
+   ```sql
+   self_leasing_invoices AS (
+     SELECT
+       EXTRACT(MONTH FROM i.invoice_date)::integer as month,
+       SUM(i.amount) as total_invoiced
+     FROM invoices i
+     WHERE i.company_id = user_company_id
+       AND i.billing_data->>'type' = 'self_leasing_monthly'
+       AND EXTRACT(YEAR FROM i.invoice_date) = target_year
+     GROUP BY 1
+   )
+   ```
 
-### Fichier : `src/services/invoiceService.ts`
+3. **Combiner les deux sources** dans la colonne `self_leasing_revenue` :
+   ```sql
+   (COALESCE(sl.sl_revenue, 0) + COALESCE(sli.total_invoiced, 0))::numeric as self_leasing_revenue
+   ```
 
-Modifier la fonction `generateSelfLeasingMonthlyInvoice` (lignes 1140-1222) :
+Ainsi, le CA self-leasing comprendra a la fois les montants calcules automatiquement (mois sans facture) et les factures reellement generees, sans jamais compter deux fois le meme mois.
 
-**Etape 1** - Elargir la requete contrat pour recuperer plus de champs :
-```typescript
-const { data: contract } = await supabase
-  .from('contracts')
-  .select('*, offers(id, equipment_data)')
-  .eq('id', contractId)
-  .single();
-```
+## Fichier concerne
 
-**Etape 2** - Recuperer les equipements depuis `offer_equipment` via l'offre du contrat :
-```typescript
-const { data: equipmentItems } = await supabase
-  .from('offer_equipment')
-  .select('*')
-  .eq('offer_id', contract.offer_id);
-```
-
-**Etape 3** - Construire le `billing_data` complet avec `equipment_data` au meme format que les factures classiques :
-```typescript
-billing_data: {
-  type: 'self_leasing_monthly',
-  month: monthKey,
-  payment_source: 'mollie',
-  contract_data: {
-    id: contract.id,
-    tracking_number: contract.tracking_number,
-    client_name: contract.client_name,
-    client_email: contract.client_email,
-    offer_id: contract.offer_id,
-  },
-  leaser_data: {
-    name: 'iTakecare',
-    // Donnees de la company (bailleur = la company elle-meme en self-leasing)
-  },
-  equipment_data: equipmentItems.map(item => ({
-    title: `Contrat de location ${contract.tracking_number || ''} / ${item.title}`,
-    quantity: item.quantity || 1,
-    selling_price_excl_vat: item.monthly_payment || (amount / (equipmentItems.length || 1)),
-    serial_number: item.serial_number,
-    vat_rate: 21,
-  })),
-  invoice_totals: {
-    total_excl_vat: amount,
-    vat_amount: amount * 0.21,
-    total_incl_vat: amount * 1.21,
-  },
-  created_at: new Date().toISOString()
-}
-```
-
-Cela permettra a la page de detail de facture d'afficher correctement les lignes d'equipement avec description, quantite, prix unitaire et total, comme dans les factures classiques Billit.
+- Nouvelle migration SQL modifiant `get_monthly_financial_data`
