@@ -20,6 +20,11 @@ export interface StockImportRow {
   warranty_end_date?: string;
   order_reference?: string;
   notes?: string;
+  cpu?: string;
+  memory?: string;
+  storage?: string;
+  color?: string;
+  grade?: string;
 }
 
 export interface StockImportResult {
@@ -51,6 +56,11 @@ const FIELD_LABELS: Record<keyof StockImportRow, string> = {
   warranty_end_date: 'Fin de garantie',
   order_reference: 'Réf. commande',
   notes: 'Notes',
+  cpu: 'CPU / Processeur',
+  memory: 'Mémoire / RAM',
+  storage: 'Stockage / Disque',
+  color: 'Couleur',
+  grade: 'Grade',
 };
 
 export const getFieldLabel = (field: keyof StockImportRow) => FIELD_LABELS[field] || field;
@@ -86,6 +96,11 @@ const HEADER_PATTERNS: Record<keyof StockImportRow, string[]> = {
   warranty_end_date: ['garantie', 'warranty', 'fingarantie', 'warrantyend', 'dategarantie', 'findegarantie'],
   order_reference: ['refcommande', 'referencecommande', 'orderreference', 'numcommande', 'numerocommande', 'boncommande'],
   notes: ['notes', 'remarques', 'commentaire', 'observation', 'commentaires', 'remarque'],
+  cpu: ['cpu', 'processeur', 'processor', 'proc'],
+  memory: ['memoire', 'ram', 'memory', 'mem'],
+  storage: ['stockage', 'disque', 'disk', 'ssd', 'hdd', 'storage', 'capacite'],
+  color: ['couleur', 'color', 'colour'],
+  grade: ['grade', 'classement', 'qualitegrade', 'etatgrade'],
 };
 
 // Status mapping from French labels to enum values
@@ -335,6 +350,7 @@ export async function importStockItems(
         company_id: companyId,
         title,
         serial_number: serialNumber,
+        serial_numbers: serialNumber ? [serialNumber] : [],
         category: String(parsed.category || '').trim() || null,
         brand: String(parsed.brand || '').trim() || null,
         model: String(parsed.model || '').trim() || null,
@@ -350,6 +366,11 @@ export async function importStockItems(
         warranty_end_date: parseDate(parsed.warranty_end_date) || null,
         order_reference: String(parsed.order_reference || '').trim() || null,
         notes: String(parsed.notes || '').trim() || null,
+        cpu: String(parsed.cpu || '').trim() || null,
+        memory: String(parsed.memory || '').trim() || null,
+        storage: String(parsed.storage || '').trim() || null,
+        color: String(parsed.color || '').trim() || null,
+        grade: String(parsed.grade || '').trim() || null,
       };
 
       const { data: created, error } = await supabase
