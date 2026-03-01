@@ -22,7 +22,7 @@ interface StockItemListProps {
   onEdit?: (item: StockItem) => void;
 }
 
-type SortKey = 'title' | 'serial_number' | 'category' | 'brand' | 'model' | 'quantity' | 'status' | 'condition' | 'supplier' | 'unit_price' | 'purchase_price' | 'date';
+type SortKey = 'title' | 'serial_number' | 'category' | 'brand' | 'model' | 'quantity' | 'status' | 'condition' | 'grade' | 'supplier' | 'unit_price' | 'purchase_price' | 'date' | 'notes';
 type SortDir = 'asc' | 'desc';
 type GroupBy = 'none' | 'brand' | 'status' | 'supplier' | 'category' | 'condition';
 
@@ -59,7 +59,9 @@ const getSortValue = (item: StockItem, key: SortKey): string | number => {
     case 'supplier': return (item.supplier?.name || '').toLowerCase();
     case 'unit_price': return item.unit_price || item.purchase_price || 0;
     case 'purchase_price': return item.purchase_price || 0;
+    case 'grade': return (item.grade || '').toLowerCase();
     case 'date': return item.reception_date || item.purchase_date || '';
+    case 'notes': return (item.notes || '').toLowerCase();
     default: return '';
   }
 };
@@ -313,16 +315,15 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
                 </Select>
               </TableCell>
               <TableCell className="text-xs">{condCfg.label}</TableCell>
+              <TableCell className="text-xs">{item.grade || '-'}</TableCell>
               <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
               <TableCell className="text-right text-xs">{(item.unit_price || item.purchase_price)?.toFixed(2)} €</TableCell>
               <TableCell className="text-right text-xs font-medium">{item.purchase_price?.toFixed(2)} €</TableCell>
-              <TableCell className="text-xs">
-                {item.contract ? `${item.contract.contract_number} - ${item.contract.client_name}` : '-'}
-              </TableCell>
               <TableCell className="text-xs text-muted-foreground">
                 {item.reception_date ? format(new Date(item.reception_date), 'dd/MM/yyyy', { locale: fr }) :
                  item.purchase_date ? format(new Date(item.purchase_date), 'dd/MM/yyyy', { locale: fr }) : '-'}
               </TableCell>
+              <TableCell className="text-xs truncate max-w-[150px]" title={item.notes || ''}>{item.notes || '-'}</TableCell>
             </TableRow>
           );
         })}
@@ -373,7 +374,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
             </Button>
           </div>
         </TableCell>
-        <TableCell className="font-medium">{item.title}</TableCell>
+        <TableCell className="font-medium text-xs">{item.title}</TableCell>
         <TableCell className="font-mono text-xs">
           {item.serial_numbers && item.serial_numbers.length > 0
             ? item.serial_numbers.length > 2
@@ -398,16 +399,15 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
           </Select>
         </TableCell>
         <TableCell className="text-xs">{condCfg.label}</TableCell>
+        <TableCell className="text-xs">{item.grade || '-'}</TableCell>
         <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
         <TableCell className="text-right text-xs">{(item.unit_price || item.purchase_price)?.toFixed(2)} €</TableCell>
         <TableCell className="text-right text-xs font-medium">{item.purchase_price?.toFixed(2)} €</TableCell>
-        <TableCell className="text-xs">
-          {item.contract ? `${item.contract.contract_number} - ${item.contract.client_name}` : '-'}
-        </TableCell>
         <TableCell className="text-xs text-muted-foreground">
           {item.reception_date ? format(new Date(item.reception_date), 'dd/MM/yyyy', { locale: fr }) :
            item.purchase_date ? format(new Date(item.purchase_date), 'dd/MM/yyyy', { locale: fr }) : '-'}
         </TableCell>
+        <TableCell className="text-xs truncate max-w-[150px]" title={item.notes || ''}>{item.notes || '-'}</TableCell>
       </TableRow>
     );
   };
@@ -415,20 +415,21 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const tableHeaders = (
     <TableHeader>
       <TableRow>
-        <TableHead className="w-10"></TableHead>
-        <SortableHead column="title">Article</SortableHead>
-        <SortableHead column="serial_number">N° série</SortableHead>
-        <SortableHead column="category">Catégorie</SortableHead>
-        <SortableHead column="brand">Marque</SortableHead>
-        <SortableHead column="model">Modèle</SortableHead>
-        <SortableHead column="quantity" className="text-right">Qté</SortableHead>
-        <SortableHead column="status">Statut</SortableHead>
-        <SortableHead column="condition">État</SortableHead>
-        <SortableHead column="supplier">Fournisseur</SortableHead>
-        <SortableHead column="unit_price" className="text-right">Prix unitaire</SortableHead>
-        <SortableHead column="purchase_price" className="text-right">Total</SortableHead>
-        <TableHead>Contrat</TableHead>
-        <SortableHead column="date">Date</SortableHead>
+        <TableHead className="w-10 text-xs"></TableHead>
+        <SortableHead column="title" className="text-xs">Article</SortableHead>
+        <SortableHead column="serial_number" className="text-xs">N° série</SortableHead>
+        <SortableHead column="category" className="text-xs">Catégorie</SortableHead>
+        <SortableHead column="brand" className="text-xs">Marque</SortableHead>
+        <SortableHead column="model" className="text-xs">Modèle</SortableHead>
+        <SortableHead column="quantity" className="text-right text-xs">Qté</SortableHead>
+        <SortableHead column="status" className="text-xs">Statut</SortableHead>
+        <SortableHead column="condition" className="text-xs">État</SortableHead>
+        <SortableHead column="grade" className="text-xs">Grade</SortableHead>
+        <SortableHead column="supplier" className="text-xs">Fournisseur</SortableHead>
+        <SortableHead column="unit_price" className="text-right text-xs">Prix unitaire</SortableHead>
+        <SortableHead column="purchase_price" className="text-right text-xs">Total</SortableHead>
+        <SortableHead column="date" className="text-xs">Date</SortableHead>
+        <SortableHead column="notes" className="text-xs">Notes</SortableHead>
       </TableRow>
     </TableHeader>
   );
