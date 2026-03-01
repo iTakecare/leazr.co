@@ -9,6 +9,8 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useAuth } from "@/context/AuthContext";
 import { createStockItem, createMovement, STOCK_STATUS_CONFIG, CONDITION_CONFIG, StockStatus, StockCondition } from "@/services/stockService";
 import { fetchSuppliers } from "@/services/equipmentOrderService";
+import { useCategories } from "@/hooks/products/useCategories";
+import { useBrands } from "@/hooks/products/useBrands";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -23,6 +25,10 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const { data: categories = [] } = useCategories();
+  const { data: brands = [] } = useBrands();
+  const [customCategory, setCustomCategory] = useState(false);
+  const [customBrand, setCustomBrand] = useState(false);
 
   const [form, setForm] = useState({
     title: '',
@@ -104,6 +110,8 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
       toast.success("Article ajouté au stock");
       onOpenChange(false);
       setForm({ title: '', serial_numbers: '', status: 'in_stock', condition: 'new', quantity: '1', unit_price: '', supplier_id: '', order_reference: '', purchase_date: '', reception_date: '', location: '', notes: '', category: '', brand: '', model: '', warranty_end_date: '', cpu: '', memory: '', storage: '', color: '', grade: '' });
+      setCustomCategory(false);
+      setCustomBrand(false);
     } catch (err: any) {
       toast.error("Erreur: " + (err.message || 'Impossible de créer l\'article'));
     } finally {
@@ -191,11 +199,51 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
             </div>
             <div>
               <Label>Catégorie</Label>
-              <Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Ex: PC portable, Écran..." />
+              {customCategory ? (
+                <div className="flex gap-2">
+                  <Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Saisir une catégorie..." className="flex-1" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => { setCustomCategory(false); setForm(f => ({ ...f, category: '' })); }}>Liste</Button>
+                </div>
+              ) : (
+                <Select value={form.category || '__none__'} onValueChange={v => {
+                  if (v === '__other__') { setCustomCategory(true); setForm(f => ({ ...f, category: '' })); }
+                  else if (v === '__none__') { setForm(f => ({ ...f, category: '' })); }
+                  else { setForm(f => ({ ...f, category: v })); }
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Aucune —</SelectItem>
+                    {categories.map((c: any) => (
+                      <SelectItem key={c.id} value={c.name}>{c.translation || c.name}</SelectItem>
+                    ))}
+                    <SelectItem value="__other__">✏️ Autre (saisie libre)</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div>
               <Label>Marque</Label>
-              <Input value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} placeholder="Ex: Dell, HP..." />
+              {customBrand ? (
+                <div className="flex gap-2">
+                  <Input value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} placeholder="Saisir une marque..." className="flex-1" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => { setCustomBrand(false); setForm(f => ({ ...f, brand: '' })); }}>Liste</Button>
+                </div>
+              ) : (
+                <Select value={form.brand || '__none__'} onValueChange={v => {
+                  if (v === '__other__') { setCustomBrand(true); setForm(f => ({ ...f, brand: '' })); }
+                  else if (v === '__none__') { setForm(f => ({ ...f, brand: '' })); }
+                  else { setForm(f => ({ ...f, brand: v })); }
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Aucune —</SelectItem>
+                    {brands.map((b: any) => (
+                      <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
+                    ))}
+                    <SelectItem value="__other__">✏️ Autre (saisie libre)</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div>
               <Label>Modèle</Label>

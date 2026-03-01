@@ -278,6 +278,26 @@ export async function importStockItems(
   const supplierMap = new Map<string, string>();
   (existingSuppliers || []).forEach((s: any) => supplierMap.set(normalize(s.name), s.id));
 
+  // Build lookups for categories and brands from catalogue
+  const { data: catalogCategories } = await supabase
+    .from('categories')
+    .select('name, translation')
+    .eq('company_id', companyId);
+  const categoryNameMap = new Map<string, string>();
+  (catalogCategories || []).forEach((c: any) => {
+    categoryNameMap.set(normalize(c.name), c.name);
+    if (c.translation) categoryNameMap.set(normalize(c.translation), c.name);
+  });
+
+  const { data: catalogBrands } = await supabase
+    .from('brands')
+    .select('name')
+    .eq('company_id', companyId);
+  const brandNameMap = new Map<string, string>();
+  (catalogBrands || []).forEach((b: any) => {
+    brandNameMap.set(normalize(b.name), b.name);
+  });
+
   // Check existing serial numbers for duplicate detection
   const { data: existingItems } = await supabase
     .from('stock_items' as any)
@@ -346,13 +366,18 @@ export async function importStockItems(
       const finalUnitPrice = unitPrice > 0 ? unitPrice : (totalPrice > 0 && qty > 0 ? totalPrice / qty : 0);
       const finalTotal = unitPrice > 0 ? qty * unitPrice : (totalPrice > 0 ? totalPrice : qty * finalUnitPrice);
 
+        const rawCategory = String(parsed.category || '').trim();
+        const matchedCategory = rawCategory ? (categoryNameMap.get(normalize(rawCategory)) || rawCategory) : null;
+        const rawBrand = String(parsed.brand || '').trim();
+        const matchedBrand = rawBrand ? (brandNameMap.get(normalize(rawBrand)) || rawBrand) : null;
+
       const itemData: any = {
         company_id: companyId,
         title,
         serial_number: serialNumber,
         serial_numbers: serialNumber ? [serialNumber] : [],
-        category: String(parsed.category || '').trim() || null,
-        brand: String(parsed.brand || '').trim() || null,
+        category: matchedCategory,
+        brand: matchedBrand,
         model: String(parsed.model || '').trim() || null,
         supplier_id: supplierId,
         quantity: qty,
