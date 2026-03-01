@@ -9,6 +9,8 @@ export interface StockImportRow {
   brand?: string;
   model?: string;
   supplier_name?: string;
+  quantity?: number;
+  unit_price?: number;
   purchase_price?: number;
   status?: string;
   condition?: string;
@@ -38,7 +40,9 @@ const FIELD_LABELS: Record<keyof StockImportRow, string> = {
   brand: 'Marque',
   model: 'Modèle',
   supplier_name: 'Fournisseur',
-  purchase_price: 'Prix d\'achat',
+  quantity: 'Quantité',
+  unit_price: 'Prix unitaire',
+  purchase_price: 'Prix total',
   status: 'Statut',
   condition: 'État',
   location: 'Emplacement',
@@ -71,7 +75,9 @@ const HEADER_PATTERNS: Record<keyof StockImportRow, string[]> = {
   brand: ['marque', 'brand', 'fabricant', 'constructeur', 'manufacturer'],
   model: ['modele', 'model', 'reference', 'ref'],
   supplier_name: ['fournisseur', 'supplier', 'vendeur', 'revendeur'],
-  purchase_price: ['prixachat', 'prix', 'price', 'cout', 'cost', 'montant', 'purchaseprice', 'prixht', 'prixunitaire'],
+  quantity: ['quantite', 'qty', 'qte', 'nombre', 'nb', 'quantity', 'nbre'],
+  unit_price: ['prixunitaire', 'unitprice', 'pu', 'prixunit', 'coutunitaire', 'unitcost'],
+  purchase_price: ['prixachat', 'prix', 'price', 'cout', 'cost', 'montant', 'purchaseprice', 'prixht', 'prixtotal', 'total'],
   status: ['statut', 'status', 'etat', 'state'],
   condition: ['condition', 'etatphysique', 'etatmateriel', 'qualite'],
   location: ['emplacement', 'location', 'lieu', 'site', 'entrepot', 'depot', 'bureau'],
@@ -318,6 +324,13 @@ export async function importStockItems(
       const status = mapStatus(parsed.status);
       const condition = mapCondition(parsed.condition);
 
+      const qty = Math.max(1, Math.round(parseNumeric(parsed.quantity)) || 1);
+      const unitPrice = parseNumeric(parsed.unit_price);
+      const totalPrice = parseNumeric(parsed.purchase_price);
+      // If unit_price provided, use it; otherwise derive from total/qty
+      const finalUnitPrice = unitPrice > 0 ? unitPrice : (totalPrice > 0 && qty > 0 ? totalPrice / qty : 0);
+      const finalTotal = unitPrice > 0 ? qty * unitPrice : (totalPrice > 0 ? totalPrice : qty * finalUnitPrice);
+
       const itemData: any = {
         company_id: companyId,
         title,
@@ -326,7 +339,9 @@ export async function importStockItems(
         brand: String(parsed.brand || '').trim() || null,
         model: String(parsed.model || '').trim() || null,
         supplier_id: supplierId,
-        purchase_price: parseNumeric(parsed.purchase_price),
+        quantity: qty,
+        unit_price: finalUnitPrice,
+        purchase_price: finalTotal,
         status,
         condition,
         location: String(parsed.location || '').trim() || null,

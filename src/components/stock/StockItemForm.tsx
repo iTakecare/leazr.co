@@ -29,7 +29,8 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
     serial_number: '',
     status: 'in_stock' as StockStatus,
     condition: 'new' as StockCondition,
-    purchase_price: '',
+    quantity: '1',
+    unit_price: '',
     supplier_id: '',
     order_reference: '',
     purchase_date: '',
@@ -60,7 +61,9 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
         serial_number: form.serial_number || null,
         status: form.status,
         condition: form.condition,
-        purchase_price: parseFloat(form.purchase_price) || 0,
+        quantity: parseInt(form.quantity) || 1,
+        unit_price: parseFloat(form.unit_price) || 0,
+        purchase_price: (parseInt(form.quantity) || 1) * (parseFloat(form.unit_price) || 0),
         supplier_id: form.supplier_id || null,
         order_reference: form.order_reference || null,
         purchase_date: form.purchase_date || null,
@@ -88,7 +91,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       toast.success("Article ajouté au stock");
       onOpenChange(false);
-      setForm({ title: '', serial_number: '', status: 'in_stock', condition: 'new', purchase_price: '', supplier_id: '', order_reference: '', purchase_date: '', reception_date: '', location: '', notes: '', category: '', brand: '', model: '', warranty_end_date: '' });
+      setForm({ title: '', serial_number: '', status: 'in_stock', condition: 'new', quantity: '1', unit_price: '', supplier_id: '', order_reference: '', purchase_date: '', reception_date: '', location: '', notes: '', category: '', brand: '', model: '', warranty_end_date: '' });
     } catch (err: any) {
       toast.error("Erreur: " + (err.message || 'Impossible de créer l\'article'));
     } finally {
@@ -113,8 +116,16 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
               <Input value={form.serial_number} onChange={e => setForm(f => ({ ...f, serial_number: e.target.value }))} />
             </div>
             <div>
-              <Label>Prix d'achat (€)</Label>
-              <Input type="number" step="0.01" value={form.purchase_price} onChange={e => setForm(f => ({ ...f, purchase_price: e.target.value }))} />
+              <Label>Quantité</Label>
+              <Input type="number" min="1" step="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Prix unitaire HT (€)</Label>
+              <Input type="number" step="0.01" value={form.unit_price} onChange={e => setForm(f => ({ ...f, unit_price: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Prix total HT</Label>
+              <Input type="text" readOnly value={((parseInt(form.quantity) || 1) * (parseFloat(form.unit_price) || 0)).toFixed(2) + ' €'} className="bg-muted" />
             </div>
             <div>
               <Label>Statut</Label>
