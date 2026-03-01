@@ -11,8 +11,10 @@ import { createStockItem, createMovement, STOCK_STATUS_CONFIG, CONDITION_CONFIG,
 import { fetchSuppliers } from "@/services/equipmentOrderService";
 import { useCategories } from "@/hooks/products/useCategories";
 import { useBrands } from "@/hooks/products/useBrands";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 
 interface StockItemFormProps {
   open: boolean;
@@ -29,6 +31,50 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
   const { data: brands = [] } = useBrands();
   const [customCategory, setCustomCategory] = useState(false);
   const [customBrand, setCustomBrand] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [savingBrand, setSavingBrand] = useState(false);
+
+  const handleCreateCategory = async () => {
+    const name = form.category.trim();
+    if (!name || !companyId) return;
+    setSavingCategory(true);
+    try {
+      const { error } = await supabase.from('categories').insert({
+        company_id: companyId,
+        name,
+        translation: name,
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setCustomCategory(false);
+      toast.success(`Catégorie "${name}" créée`);
+    } catch (err: any) {
+      toast.error("Erreur: " + (err.message || "Impossible de créer la catégorie"));
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleCreateBrand = async () => {
+    const name = form.brand.trim();
+    if (!name || !companyId) return;
+    setSavingBrand(true);
+    try {
+      const { error } = await supabase.from('brands').insert({
+        company_id: companyId,
+        name,
+        translation: name,
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+      setCustomBrand(false);
+      toast.success(`Marque "${name}" créée`);
+    } catch (err: any) {
+      toast.error("Erreur: " + (err.message || "Impossible de créer la marque"));
+    } finally {
+      setSavingBrand(false);
+    }
+  };
 
   const [form, setForm] = useState({
     title: '',
@@ -201,7 +247,10 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
               <Label>Catégorie</Label>
               {customCategory ? (
                 <div className="flex gap-2">
-                  <Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Saisir une catégorie..." className="flex-1" />
+                  <Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Nouvelle catégorie..." className="flex-1" />
+                  <Button type="button" variant="default" size="sm" onClick={handleCreateCategory} disabled={savingCategory || !form.category.trim()}>
+                    <Plus className="h-4 w-4 mr-1" />{savingCategory ? '...' : 'Créer'}
+                  </Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => { setCustomCategory(false); setForm(f => ({ ...f, category: '' })); }}>Liste</Button>
                 </div>
               ) : (
@@ -225,7 +274,10 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => 
               <Label>Marque</Label>
               {customBrand ? (
                 <div className="flex gap-2">
-                  <Input value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} placeholder="Saisir une marque..." className="flex-1" />
+                  <Input value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} placeholder="Nouvelle marque..." className="flex-1" />
+                  <Button type="button" variant="default" size="sm" onClick={handleCreateBrand} disabled={savingBrand || !form.brand.trim()}>
+                    <Plus className="h-4 w-4 mr-1" />{savingBrand ? '...' : 'Créer'}
+                  </Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => { setCustomBrand(false); setForm(f => ({ ...f, brand: '' })); }}>Liste</Button>
                 </div>
               ) : (
