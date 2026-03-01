@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
 
 interface StockItemFormProps {
   open: boolean;
@@ -51,7 +52,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange, editI
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string; supplier_type?: string }[]>([]);
   const { data: categories = [] } = useCategories();
   const { data: brands = [] } = useBrands();
   const [customCategory, setCustomCategory] = useState(false);
@@ -281,15 +282,13 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange, editI
             </div>
             <div>
               <Label>Fournisseur</Label>
-              <Select value={form.supplier_id || 'none'} onValueChange={v => setForm(f => ({ ...f, supplier_id: v === 'none' ? '' : v }))}>
-                <SelectTrigger><SelectValue placeholder="Aucun" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucun</SelectItem>
-                  {suppliers.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SupplierSelectOrCreate
+                suppliers={suppliers}
+                value={form.supplier_id || null}
+                onValueChange={v => setForm(f => ({ ...f, supplier_id: v }))}
+                onSupplierCreated={newSupplier => setSuppliers(prev => [...prev, newSupplier])}
+                className="w-full"
+              />
             </div>
             <div>
               <Label>Réf. commande</Label>
