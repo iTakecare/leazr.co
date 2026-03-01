@@ -1,64 +1,40 @@
 
+# Correction de la detection de doublons - suppression du fingerprint sans SN
 
-# Correction de la detection de doublons a l'import du stock
+## Probleme
 
-## Probleme identifie
-
-La detection de doublons utilise une empreinte composite `titre|marque|modele` pour les articles sans numero de serie. Or, il est parfaitement normal d'avoir plusieurs exemplaires du meme article (ex: 5 "Lenovo V15 G4" avec la marque "Lenovo" et sans modele specifie). Le systeme considere a tort qu'un nouvel article avec le meme titre/marque/modele est un doublon, alors qu'il s'agit d'un equipement supplementaire.
-
-Par exemple dans la base actuelle, il y a deja plusieurs "Lenovo V15 G4" sans numero de serie. Tout import d'un nouveau "Lenovo V15 G4" sans SN sera donc bloque.
+La logique de comptage par fingerprint (`titre|marque|modele`) bloque toujours l'import des articles sans numero de serie. Exemple : la base contient deja 4 "Lenovo V15 G4" sans SN. Le fichier d'import en contient 2. La condition `existingCount(4) >= importTotal(2)` est vraie, donc les 25 articles sont marques comme doublons.
 
 ## Solution
 
-Remplacer la logique de deduplication par empreinte Set (qui empeche tout doublon titre|marque|modele) par une logique de **comptage** :
-
-1. Compter combien d'exemplaires de chaque empreinte existent deja en base
-2. Compter combien d'exemplaires de chaque empreinte sont dans le fichier d'import
-3. Ne marquer comme doublon que si le nombre total (base + fichier) depasse ce qui est attendu
-
-Concretement, pour les articles **sans numero de serie** :
-- Compter les occurrences de chaque fingerprint dans la base existante (Map au lieu de Set)
-- Compter les occurrences de chaque fingerprint dans le fichier d'import
-- Chaque occurrence dans le fichier est autorisee (ce sont des equipements supplementaires)
-- Seule la deduplication **intra-fichier** est maintenue (eviter d'importer 2 fois le meme fichier)
-
-Pour les articles **avec numero de serie** : la logique reste inchangee (un SN est unique par definition).
-
-## Deduplication intra-fichier revisee
-
-Pour eviter la reimportation du meme fichier, on verifie si le nombre d'articles avec la meme empreinte en base est deja >= au nombre dans le fichier. Si oui, c'est une reimportation.
+Supprimer entierement la detection de doublons par fingerprint pour les articles sans numero de serie. Seuls les numeros de serie sont un critere de doublon fiable. Les articles sans SN sont des equipements fongibles dont il est normal d'ajouter plusieurs exemplaires.
 
 ## Fichier modifie
 
 | Fichier | Changement |
 |---|---|
-| `src/services/stockImportService.ts` | Remplacer `existingFingerprints` (Set) par un Map de comptage, ajuster la logique de deduplication pour permettre les multiples exemplaires |
+| `src/services/stockImportService.ts` | Supprimer le Map de fingerprints, le pre-comptage, et la verification fingerprint dans la boucle d'import |
 
 ## Detail technique
 
-### Changement dans la section de chargement des doublons (lignes 385-403)
+### Suppressions (lignes 386-425)
 
-Remplacer :
-```typescript
-const existingFingerprints = new Set<string>();
-```
-Par :
-```typescript
-const existingFingerprintCounts = new Map<string, number>();
-const importFingerprintCounts = new Map<string, number>();
-```
+Supprimer :
+- `existingFingerprintCounts` (Map, ligne 387)
+- Le comptage des fingerprints dans la boucle des items existants (lignes 396-404)
+- `importFingerprintTotals` et sa boucle de pre-comptage (lignes 407-422)
+- `importFingerprintProcessed` (ligne 425)
 
-Compter les occurrences en base au lieu d'un simple add dans un Set.
+Conserver uniquement :
+- `existingSerials` (Set) pour la detection par numero de serie
+- La fonction `buildFingerprint` peut aussi etre supprimee
 
-### Changement dans la boucle d'import (lignes 432-439)
+### Suppressions dans la boucle d'import (lignes 454-474)
 
-Remplacer la verification `existingFingerprints.has(fingerprint)` par :
-- Compter combien de fois ce fingerprint apparait dans le fichier (premiere passe ou comptage incremental)
-- Compter combien existent deja en base
-- Si `existingCount >= importCountSoFar` pour ce fingerprint, c'est un doublon (reimportation)
-- Sinon, c'est un nouvel exemplaire a importer
+Supprimer tout le bloc de detection par fingerprint (lignes 454-474). Seul le bloc de detection par numero de serie (lignes 447-452) est conserve.
 
-### Pre-comptage des fingerprints du fichier
+### Resultat attendu
 
-Avant la boucle d'import, faire une premiere passe sur toutes les lignes pour compter les fingerprints du fichier. Ensuite dans la boucle principale, consommer progressivement ce comptage.
-
+- Les articles avec SN sont dedupliques normalement (un SN = un article unique)
+- Les articles sans SN sont toujours importes comme nouveaux exemplaires
+- La reimportation du meme fichier creera effectivement des doublons, mais c'est preferable a bloquer les imports legitimes
