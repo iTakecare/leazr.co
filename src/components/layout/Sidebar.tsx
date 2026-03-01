@@ -19,7 +19,8 @@ import {
   Package,
   Mail,
   Truck,
-  CheckSquare
+  CheckSquare,
+  Warehouse
 } from "lucide-react";
 import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
@@ -105,6 +106,13 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         icon: Truck, 
         label: "Commandes", 
         href: `${basePrefix}/admin/equipment-orders`, 
+        moduleSlug: "contracts",
+        alwaysVisible: false 
+      },
+      { 
+        icon: Warehouse, 
+        label: "Stock", 
+        href: `${basePrefix}/admin/stock`, 
         moduleSlug: "contracts",
         alwaysVisible: false 
       },

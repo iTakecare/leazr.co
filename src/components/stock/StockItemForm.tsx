@@ -1,0 +1,176 @@
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useAuth } from "@/context/AuthContext";
+import { createStockItem, createMovement, STOCK_STATUS_CONFIG, CONDITION_CONFIG, StockStatus, StockCondition } from "@/services/stockService";
+import { fetchSuppliers } from "@/services/equipmentOrderService";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+
+interface StockItemFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange }) => {
+  const { companyId } = useMultiTenant();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+
+  const [form, setForm] = useState({
+    title: '',
+    serial_number: '',
+    status: 'in_stock' as StockStatus,
+    condition: 'new' as StockCondition,
+    purchase_price: '',
+    supplier_id: '',
+    order_reference: '',
+    purchase_date: '',
+    reception_date: '',
+    location: '',
+    notes: '',
+  });
+
+  useEffect(() => {
+    if (open && companyId) {
+      fetchSuppliers(companyId).then(setSuppliers).catch(() => {});
+    }
+  }, [open, companyId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId || !form.title) return;
+
+    setLoading(true);
+    try {
+      const item = await createStockItem({
+        company_id: companyId,
+        title: form.title,
+        serial_number: form.serial_number || null,
+        status: form.status,
+        condition: form.condition,
+        purchase_price: parseFloat(form.purchase_price) || 0,
+        supplier_id: form.supplier_id || null,
+        order_reference: form.order_reference || null,
+        purchase_date: form.purchase_date || null,
+        reception_date: form.reception_date || null,
+        location: form.location || null,
+        notes: form.notes || null,
+      });
+
+      await createMovement({
+        company_id: companyId,
+        stock_item_id: item.id,
+        movement_type: 'reception',
+        from_status: null,
+        to_status: form.status,
+        performed_by: user?.id || null,
+        notes: 'Création manuelle',
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      toast.success("Article ajouté au stock");
+      onOpenChange(false);
+      setForm({ title: '', serial_number: '', status: 'in_stock', condition: 'new', purchase_price: '', supplier_id: '', order_reference: '', purchase_date: '', reception_date: '', location: '', notes: '' });
+    } catch (err: any) {
+      toast.error("Erreur: " + (err.message || 'Impossible de créer l\'article'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Ajouter un article au stock</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <Label>Titre / Description *</Label>
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
+            </div>
+            <div>
+              <Label>N° de série</Label>
+              <Input value={form.serial_number} onChange={e => setForm(f => ({ ...f, serial_number: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Prix d'achat (€)</Label>
+              <Input type="number" step="0.01" value={form.purchase_price} onChange={e => setForm(f => ({ ...f, purchase_price: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Statut</Label>
+              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as StockStatus }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(STOCK_STATUS_CONFIG).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>État</Label>
+              <Select value={form.condition} onValueChange={v => setForm(f => ({ ...f, condition: v as StockCondition }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CONDITION_CONFIG).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Fournisseur</Label>
+              <Select value={form.supplier_id || 'none'} onValueChange={v => setForm(f => ({ ...f, supplier_id: v === 'none' ? '' : v }))}>
+                <SelectTrigger><SelectValue placeholder="Aucun" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucun</SelectItem>
+                  {suppliers.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Réf. commande</Label>
+              <Input value={form.order_reference} onChange={e => setForm(f => ({ ...f, order_reference: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Date d'achat</Label>
+              <Input type="date" value={form.purchase_date} onChange={e => setForm(f => ({ ...f, purchase_date: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Date de réception</Label>
+              <Input type="date" value={form.reception_date} onChange={e => setForm(f => ({ ...f, reception_date: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Emplacement</Label>
+              <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
+            </div>
+          </div>
+          <div>
+            <Label>Notes</Label>
+            <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
+            <Button type="submit" disabled={loading}>{loading ? 'Ajout...' : 'Ajouter'}</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default StockItemForm;
