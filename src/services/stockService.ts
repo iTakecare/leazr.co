@@ -260,6 +260,80 @@ export const receiveToStock = async (
   return created;
 };
 
+// ===== CONTRACT-SPECIFIC =====
+
+export const fetchStockItemsByContract = async (contractId: string) => {
+  const { data, error } = await supabase
+    .from('stock_items' as any)
+    .select(`
+      *,
+      supplier:suppliers(name),
+      product:products(name),
+      contract:contracts(contract_number, client_name)
+    `)
+    .eq('current_contract_id', contractId)
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as unknown as StockItem[];
+};
+
+export const recoverToStock = async (
+  companyId: string,
+  itemId: string,
+  condition: StockCondition,
+  userId: string
+) => {
+  await updateStockItem(itemId, {
+    status: 'in_stock',
+    condition,
+    current_contract_id: null,
+    current_contract_equipment_id: null,
+  });
+  await createMovement({
+    company_id: companyId,
+    stock_item_id: itemId,
+    movement_type: 'unassign_contract',
+    from_status: 'assigned',
+    to_status: 'in_stock',
+    performed_by: userId,
+    notes: `Récupération fin de contrat - condition: ${CONDITION_CONFIG[condition].label}`,
+  });
+};
+
+export const sellItem = async (companyId: string, itemId: string, userId: string) => {
+  await updateStockItem(itemId, {
+    status: 'sold',
+    current_contract_id: null,
+    current_contract_equipment_id: null,
+  });
+  await createMovement({
+    company_id: companyId,
+    stock_item_id: itemId,
+    movement_type: 'sell',
+    from_status: 'assigned',
+    to_status: 'sold',
+    performed_by: userId,
+    notes: 'Vente au client',
+  });
+};
+
+export const scrapItem = async (companyId: string, itemId: string, userId: string) => {
+  await updateStockItem(itemId, {
+    status: 'scrapped',
+    current_contract_id: null,
+    current_contract_equipment_id: null,
+  });
+  await createMovement({
+    company_id: companyId,
+    stock_item_id: itemId,
+    movement_type: 'scrap',
+    from_status: 'assigned',
+    to_status: 'scrapped',
+    performed_by: userId,
+    notes: 'Mise au rebut',
+  });
+};
+
 export const performSwap = async (
   companyId: string,
   oldItemId: string,
