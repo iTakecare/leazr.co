@@ -1,47 +1,61 @@
 
 
-# Synchronisation de la date d'achat vers le dashboard
+# Eviter le double comptage Self-Leasing / Factures Billit
 
-## Constat
+## Probleme identifie
 
-Apres analyse du code, voici l'etat actuel :
+La fonction SQL `get_monthly_financial_data` calcule le CA de deux facons pour les contrats self-leasing :
 
-### Ce qui fonctionne correctement
-- **Prix d'achat** : Quand vous modifiez le `supplier_price` (dans Commandes ou Suivi des achats), le champ `actual_purchase_price` est bien mis a jour via `updateContractEquipmentOrder`. Le dashboard utilise `COALESCE(actual_purchase_price, purchase_price)` donc le bon montant est pris en compte.
-- **Date dans Suivi des achats** (carte dans le detail du contrat) : La composante `ContractPurchaseTracking` sauvegarde bien `actual_purchase_date` directement.
+1. **Via les factures** (`leasing_revenue` CTE) : somme de toutes les factures de type `leasing`
+2. **Via les contrats** (`self_leasing_by_month` CTE) : `monthly_payment` calcule a partir du contrat
 
-### Ce qui ne fonctionne PAS
-- **Date dans la page Commandes fournisseurs** : Quand le statut passe a "commande" ou "recu", les champs `order_date` et `reception_date` sont remplis automatiquement, mais `actual_purchase_date` n'est **jamais mis a jour**. Or c'est `actual_purchase_date` que le dashboard utilise pour imputer les achats au bon mois.
-
-Le dashboard SQL utilise :
-```text
-COALESCE(ce.actual_purchase_date, i.invoice_date) pour determiner le mois d'imputation
-```
-
-Si `actual_purchase_date` reste NULL et qu'il n'y a pas de facture associee, l'achat n'apparait dans aucun mois du dashboard.
+Quand les factures Billit self-leasing sont importees et matchees aux contrats, le meme montant est compte deux fois.
 
 ## Solution
 
-Modifier `updateContractEquipmentOrder` dans `src/services/equipmentOrderService.ts` pour synchroniser automatiquement la date vers `actual_purchase_date` :
+Modifier la fonction SQL `get_monthly_financial_data` pour que le CTE `self_leasing_by_month` exclue les mois ou un contrat self-leasing a deja une facture enregistree. Ainsi :
 
-1. Quand `order_date` est defini dans la mise a jour, copier cette valeur dans `actual_purchase_date`
-2. Quand `reception_date` est defini, mettre a jour `actual_purchase_date` avec cette date (la date de reception est plus precise que la date de commande)
+- Si une facture existe pour un contrat self-leasing a un mois donne --> le CA vient de la facture (via `leasing_revenue`)
+- Si aucune facture n'existe pour ce mois --> le CA vient du calcul du contrat (via `self_leasing_by_month`)
 
-Cela garantit que toute modification de date dans la page Commandes fournisseurs se repercute correctement dans le dashboard.
+## Changement technique
 
-## Detail technique
+**Migration SQL** : Mise a jour de `get_monthly_financial_data`
 
-### Fichier modifie : `src/services/equipmentOrderService.ts`
+Dans le CTE `self_leasing_by_month`, ajouter une condition qui verifie l'absence de facture pour ce contrat et ce mois :
 
-Fonction `updateContractEquipmentOrder` (lignes 52-63) :
+```text
+self_leasing_by_month AS (
+  SELECT
+    m.month_num as month,
+    SUM(
+      CASE 
+        WHEN [contrat actif ce mois]
+             AND NOT EXISTS (
+               SELECT 1 FROM invoices inv 
+               WHERE inv.contract_id = slc.id 
+                 AND EXTRACT(MONTH FROM inv.invoice_date) = m.month_num
+                 AND EXTRACT(YEAR FROM inv.invoice_date) = target_year
+             )
+        THEN slc.monthly_payment 
+        ELSE 0 
+      END
+    ) as sl_revenue,
+    SUM(
+      CASE 
+        WHEN [contrat actif ce mois]
+             AND NOT EXISTS (...)
+        THEN slc.total_equipment_cost / NULLIF(slc.duration, 0)
+        ELSE 0 
+      END
+    ) as sl_purchase
+  FROM months m
+  CROSS JOIN self_leasing_contracts slc
+  GROUP BY m.month_num
+)
+```
 
-- Ajouter une logique de sync similaire a celle du prix :
-  - Si `reception_date` est fourni, `actual_purchase_date = reception_date`
-  - Sinon si `order_date` est fourni, `actual_purchase_date = order_date`
-- Cette priorite (reception > commande) assure que le mois d'imputation reflette la date la plus significative pour la comptabilite
+Meme logique pour `sl_purchase` (amortissement) : si une facture existe, l'achat est deja couvert par `equipment_purchases_by_month` (qui exclut le self-leasing actuellement, mais cela peut etre ajuste si necessaire).
 
-### Impact
-- Le dashboard mensuel imputera les achats au bon mois/annee
-- Les KPIs du dashboard seront corrects
-- Aucun changement sur les autres composants (ils utilisent deja les bons champs)
+Cette approche est retrocompatible : tant qu'il n'y a pas de factures matchees, le comportement reste identique. Des qu'une facture est importee et matchee, elle prend le relais.
 
