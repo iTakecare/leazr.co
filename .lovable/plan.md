@@ -1,106 +1,68 @@
 
 
-# Import du stock depuis Excel et ajout des champs manquants
+# Ajout de la gestion des quantites et du prix d'achat unitaire
 
 ## Contexte
 
-Le fichier `stock_itc.xlsx` contient un inventaire complet a importer. Comme le fichier ne peut pas etre lu directement (format binaire), une fonctionnalite d'import Excel sera creee pour parser le fichier cote client avec ExcelJS (deja installe dans le projet), detecter automatiquement les colonnes et les mapper vers la table `stock_items`.
+Actuellement, chaque `stock_item` n'a qu'un champ `purchase_price` qui represente un montant global. Il manque deux informations essentielles :
+- **Quantite** (`quantity`) : combien d'unites de cet article
+- **Prix d'achat unitaire** (`unit_price`) : le prix par unite
 
-## Etape 1 : Ajouter les colonnes manquantes a la table `stock_items`
+Le `purchase_price` existant deviendra le prix total calcule (quantite x prix unitaire).
 
-La table actuelle manque de champs importants pour une gestion de stock complete. Migration SQL pour ajouter :
+## Etape 1 : Migration SQL
 
-| Nouveau champ | Type | Description |
-|---|---|---|
-| `category` | text | Categorie de l'article (ex: PC portable, Ecran, Accessoire) |
-| `brand` | text | Marque (ex: Dell, HP, Lenovo) |
-| `model` | text | Modele precis de l'article |
-| `warranty_end_date` | date | Date de fin de garantie |
+Ajouter deux colonnes a la table `stock_items` :
 
-Ces champs sont independants de `product_id` pour permettre l'import de stock sans catalogue produit pre-existant.
+| Champ | Type | Default | Description |
+|---|---|---|---|
+| `quantity` | integer | 1 | Nombre d'unites |
+| `unit_price` | numeric | 0 | Prix d'achat unitaire HT |
 
-## Etape 2 : Creer le service d'import stock
-
-### `src/services/stockImportService.ts`
-
-Service qui :
-- Parse le fichier Excel avec ExcelJS (meme pattern que `excelImportService.ts`)
-- Detection automatique des colonnes via normalisation des en-tetes (sans accents, minuscules)
-- Mapping flexible des colonnes Excel vers les champs stock_items :
-
-```text
-Colonnes possibles -> Champ stock_items
----------------------------------------------
-Titre/Description/Nom   -> title
-N serie/Serial          -> serial_number
-Categorie/Type          -> category
-Marque/Brand            -> brand
-Modele/Model            -> model
-Fournisseur/Supplier    -> supplier (lookup par nom)
-Prix achat/Purchase     -> purchase_price
-Statut/Status           -> status (mapping vers enum)
-Etat/Condition          -> condition (mapping vers enum)
-Emplacement/Location    -> location
-Date achat              -> purchase_date
-Date reception          -> reception_date
-Garantie fin/Warranty   -> warranty_end_date
-Ref commande            -> order_reference
-Notes/Remarques         -> notes
+Migration :
+```sql
+ALTER TABLE stock_items ADD COLUMN quantity integer DEFAULT 1 NOT NULL;
+ALTER TABLE stock_items ADD COLUMN unit_price numeric DEFAULT 0;
+-- Initialiser unit_price depuis purchase_price pour les donnees existantes
+UPDATE stock_items SET unit_price = COALESCE(purchase_price, 0), quantity = 1 WHERE unit_price = 0 OR unit_price IS NULL;
 ```
 
-- Pour les fournisseurs : recherche par nom dans la table `suppliers`, creation automatique si non trouve
-- Pour les statuts : mapping des valeurs francaises vers les enums internes (ex: "En stock" -> `in_stock`)
-- Retourne un rapport d'import (succes, erreurs, doublons par numero de serie)
+## Etape 2 : Mise a jour du service stock (`stockService.ts`)
 
-## Etape 3 : Creer le composant d'import
+- Ajouter `quantity` et `unit_price` a l'interface `StockItem`
+- Le `purchase_price` reste en base mais represente le total (quantity * unit_price)
 
-### `src/components/stock/StockImportDialog.tsx`
+## Etape 3 : Mise a jour du formulaire (`StockItemForm.tsx`)
 
-Dialog modal avec 3 etapes :
-1. **Upload** : zone de drop (react-dropzone deja installe) pour deposer le fichier Excel
-2. **Preview** : affiche les N premieres lignes detectees avec le mapping des colonnes, permet de corriger
-3. **Import** : barre de progression, rapport final (X importes, Y erreurs, Z doublons)
+- Ajouter un champ **Quantite** (input number, min 1, default 1)
+- Renommer le champ prix actuel en **Prix unitaire HT**
+- Afficher le **Prix total** calcule automatiquement (quantite x prix unitaire) en lecture seule
+- Lors de la soumission, envoyer `quantity`, `unit_price` et `purchase_price = quantity * unit_price`
 
-## Etape 4 : Integrer dans StockManagement
+## Etape 4 : Mise a jour de la liste (`StockItemList.tsx`)
 
-### `src/pages/admin/StockManagement.tsx`
+- Ajouter une colonne **Qte** apres le modele
+- Renommer la colonne "Prix achat" en "Prix unitaire"
+- Ajouter une colonne **Total** (quantite x prix unitaire)
 
-- Ajouter un bouton "Importer Excel" a cote du bouton "Nouvel article" existant (icone `Upload`)
-- Ouvrir le `StockImportDialog`
+## Etape 5 : Mise a jour du rapport de valorisation (`StockValuationReport.tsx`)
 
-## Etape 5 : Mettre a jour l'interface et le service stock
+- Les calculs de valeur utilisent deja `purchase_price` qui reste le total, donc pas de changement de logique majeur
+- Ajouter l'affichage de la quantite totale dans les tableaux de regroupement
 
-### `src/services/stockService.ts`
-- Ajouter les nouveaux champs (`category`, `brand`, `model`, `warranty_end_date`) a l'interface `StockItem`
+## Etape 6 : Mise a jour de l'import Excel (`stockImportService.ts`)
 
-### `src/components/stock/StockItemList.tsx`
-- Ajouter les colonnes Categorie, Marque, Modele dans le tableau
-
-### `src/components/stock/StockItemForm.tsx`
-- Ajouter les champs Categorie, Marque, Modele, Date fin garantie dans le formulaire de creation manuelle
-
-### `src/components/stock/StockValuationReport.tsx`
-- Permettre aussi le regroupement par marque dans le rapport de valorisation
+- Ajouter les champs `quantity` et `unit_price` au `StockImportRow`
+- Ajouter les patterns de detection : "quantite", "qty", "qte", "nombre" pour quantity et "prixunitaire", "unitprice", "pu" pour unit_price
+- Lors de l'import, calculer `purchase_price = quantity * unit_price`
 
 ## Resume des fichiers
 
 | Fichier | Action |
 |---|---|
-| Migration SQL | Ajouter colonnes `category`, `brand`, `model`, `warranty_end_date` |
-| `src/services/stockImportService.ts` | Creer - service de parsing et import Excel |
-| `src/components/stock/StockImportDialog.tsx` | Creer - dialog d'import avec preview |
-| `src/pages/admin/StockManagement.tsx` | Modifier - bouton "Importer Excel" |
-| `src/services/stockService.ts` | Modifier - ajouter champs a l'interface StockItem |
-| `src/components/stock/StockItemList.tsx` | Modifier - colonnes supplementaires |
-| `src/components/stock/StockItemForm.tsx` | Modifier - champs supplementaires |
-| `src/components/stock/StockValuationReport.tsx` | Modifier - regroupement par marque |
-
-## Workflow utilisateur
-
-1. Cliquer sur "Importer Excel" dans la page Stock
-2. Deposer le fichier `stock_itc.xlsx`
-3. Le systeme parse et affiche un apercu avec les colonnes detectees
-4. Confirmer l'import
-5. Les articles sont crees dans `stock_items` avec un mouvement de reception automatique
-6. Le dashboard et la liste se rafraichissent automatiquement
-
+| Migration SQL | Ajouter colonnes `quantity` et `unit_price` |
+| `src/services/stockService.ts` | Ajouter champs a l'interface StockItem |
+| `src/components/stock/StockItemForm.tsx` | Champs quantite + prix unitaire + total calcule |
+| `src/components/stock/StockItemList.tsx` | Colonnes Qte, Prix unitaire, Total |
+| `src/components/stock/StockValuationReport.tsx` | Quantites totales dans les regroupements |
+| `src/services/stockImportService.ts` | Mapping quantite et prix unitaire |
