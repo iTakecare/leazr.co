@@ -264,7 +264,16 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
               <User className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-muted-foreground">Client</span>
             </div>
-            <p className="font-semibold">{contract.client_name}</p>
+            {contract.client_id ? (
+              <button
+                onClick={() => navigateToAdmin(`clients/${contract.client_id}`)}
+                className="font-semibold text-primary hover:underline cursor-pointer text-left"
+              >
+                {contract.client_name}
+              </button>
+            ) : (
+              <p className="font-semibold">{contract.client_name}</p>
+            )}
             {contract.clients?.company && (
               <p className="text-sm text-muted-foreground">{contract.clients.company}</p>
             )}
