@@ -1057,20 +1057,31 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 
                 <TableCell className="text-right py-4">
                   <div className="flex flex-col items-end">
-                    {totals.discountAmount > 0 ? (
-                      <>
-                        <span className="text-sm line-through text-muted-foreground">
-                          {formatPrice(totals.originalFinancedAmount)}
-                        </span>
+                    {(() => {
+                      // P.V. total = somme exacte des P.V. affichés ligne par ligne
+                      const sumDisplayedPV = equipment.reduce((sum, item) => sum + (adjustedSellingPrices[item.id] || 0), 0);
+                      const round2 = (n: number) => Math.round(n * 100) / 100;
+                      const displayTotal = round2(sumDisplayedPV);
+                      
+                      if (totals.discountAmount > 0) {
+                        const originalSumPV = round2(sumDisplayedPV + totals.discountAmount);
+                        return (
+                          <>
+                            <span className="text-sm line-through text-muted-foreground">
+                              {formatPrice(originalSumPV)}
+                            </span>
+                            <span className="font-bold text-base text-green-600">
+                              {formatPrice(displayTotal)}
+                            </span>
+                          </>
+                        );
+                      }
+                      return (
                         <span className="font-bold text-base text-green-600">
-                          {formatPrice(totals.effectiveFinancedAmount)}
+                          {formatPrice(displayTotal)}
                         </span>
-                      </>
-                    ) : (
-                      <span className="font-bold text-base text-green-600">
-                        {formatPrice(totals.effectiveFinancedAmount)}
-                      </span>
-                    )}
+                      );
+                    })()}
                   </div>
                 </TableCell>
                 
