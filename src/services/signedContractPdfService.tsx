@@ -1,197 +1,39 @@
-import React from 'react';
-import { pdf } from '@react-pdf/renderer';
-import { SignedContractPDFDocument, SignedContractPDFData } from '@/components/pdf/templates/SignedContractPDFDocument';
 import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
-import { getPDFContentBlocksByPage, DEFAULT_PDF_CONTENT_BLOCKS } from './pdfContentService';
+
+// Re-export the type for backward compatibility
+export type { SignedContractPDFData } from '@/components/pdf/templates/SignedContractPDFDocument';
 
 /**
- * Fetch contract data from Supabase for PDF generation
- */
-export async function fetchContractDataForPDF(contractId: string): Promise<SignedContractPDFData | null> {
-  try {
-    console.log('[SIGNED-CONTRACT-PDF] Fetching contract data for:', contractId);
-
-    // Fetch contract with related data including client details and offer fees
-    const { data: contract, error: contractError } = await supabase
-      .from('contracts')
-      .select(`
-        *,
-        special_provisions,
-        companies!inner(
-          name,
-          logo_url,
-          primary_color,
-          signature_url,
-          signature_representative_name,
-          signature_representative_title
-        ),
-        clients(
-          company,
-          address,
-          city,
-          postal_code,
-          country,
-          vat_number,
-          phone,
-          email
-        ),
-        offers(
-          file_fee,
-          annual_insurance,
-          down_payment,
-          coefficient,
-          financed_amount,
-          amount
-        )
-      `)
-      .eq('id', contractId)
-      .single();
-
-    if (contractError || !contract) {
-      console.error('[SIGNED-CONTRACT-PDF] Error fetching contract:', contractError);
-      return null;
-    }
-
-    // Fetch company customizations
-    const { data: customization } = await supabase
-      .from('company_customizations')
-      .select('company_email, company_phone, company_address, company_vat_number')
-      .eq('company_id', contract.company_id)
-      .single();
-
-    // Fetch equipment with complete details
-    const { data: equipment } = await supabase
-      .from('contract_equipment')
-      .select('id, title, quantity, monthly_payment, purchase_price, margin, serial_number')
-      .eq('contract_id', contractId);
-
-    // Try to get leaser company name
-    let leaserDisplayName = contract.leaser_name || 'Non spécifié';
-    if (contract.leaser_id) {
-      const { data: leaser } = await supabase
-        .from('leasers')
-        .select('name, company_name, is_own_company')
-        .eq('id', contract.leaser_id)
-        .single();
-      
-      if (leaser) {
-        leaserDisplayName = leaser.company_name || leaser.name;
-        if (leaser.is_own_company) {
-          contract.is_self_leasing = true;
-        }
-      }
-    }
-
-    // Fetch contract template content from pdf_content_blocks
-    let contractContent: Record<string, string> = {};
-    try {
-      contractContent = await getPDFContentBlocksByPage(contract.company_id, 'contract');
-      console.log('[SIGNED-CONTRACT-PDF] Contract template blocks loaded:', Object.keys(contractContent).length);
-    } catch (e) {
-      console.warn('[SIGNED-CONTRACT-PDF] Failed to load contract template, using defaults');
-      contractContent = DEFAULT_PDF_CONTENT_BLOCKS.contract;
-    }
-
-    // If no template blocks found, use defaults
-    if (Object.keys(contractContent).length === 0) {
-      console.log('[SIGNED-CONTRACT-PDF] No contract template found, using defaults');
-      contractContent = DEFAULT_PDF_CONTENT_BLOCKS.contract;
-    }
-
-    const pdfData: SignedContractPDFData = {
-      id: contract.id,
-      tracking_number: contract.contract_number || contract.tracking_number || `CON-${contract.id.slice(0, 8)}`,
-      created_at: contract.created_at,
-      // Contract dates
-      contract_start_date: contract.contract_start_date || undefined,
-      contract_end_date: contract.contract_end_date || undefined,
-      // Client - use data from clients table via relationship
-      client_name: contract.client_name || 'Client',
-      client_company: (contract.clients as any)?.company || undefined,
-      client_address: (contract.clients as any)?.address || undefined,
-      client_city: (contract.clients as any)?.city || undefined,
-      client_postal_code: (contract.clients as any)?.postal_code || undefined,
-      client_country: (contract.clients as any)?.country || 'Belgique',
-      client_vat_number: (contract.clients as any)?.vat_number || undefined,
-      client_phone: (contract.clients as any)?.phone || undefined,
-      client_email: contract.client_email || (contract.clients as any)?.email || undefined,
-      client_iban: contract.client_iban || undefined,
-      client_bic: contract.client_bic || undefined,
-      // Leaser
-      leaser_name: leaserDisplayName,
-      is_self_leasing: contract.is_self_leasing || false,
-      // Company
-      company_name: contract.companies?.name || '',
-      company_address: customization?.company_address || undefined,
-      company_email: customization?.company_email || undefined,
-      company_phone: customization?.company_phone || undefined,
-      company_vat_number: customization?.company_vat_number || undefined,
-      company_logo_url: contract.companies?.logo_url || undefined,
-      // Lessor signature (automatic)
-      lessor_signature_url: contract.companies?.signature_url || undefined,
-      lessor_representative_name: contract.companies?.signature_representative_name || undefined,
-      lessor_representative_title: contract.companies?.signature_representative_title || undefined,
-      // Financial
-      monthly_payment: contract.monthly_payment || 0,
-      contract_duration: contract.contract_duration || 36,
-      file_fee: (contract.offers as any)?.file_fee || contract.file_fee || 0,
-      annual_insurance: (contract.offers as any)?.annual_insurance || 0,
-      down_payment: (contract.offers as any)?.down_payment || 0,
-      coefficient: (contract.offers as any)?.coefficient || 0,
-      financed_amount: (contract.offers as any)?.financed_amount || 0,
-      amount: (contract.offers as any)?.amount || 0,
-      // Equipment with complete details
-      equipment: equipment?.map(eq => ({
-        title: eq.title,
-        quantity: eq.quantity || 1,
-        monthly_payment: eq.monthly_payment || 0,
-        purchase_price: eq.purchase_price || 0,
-        margin: eq.margin || 0,
-        serial_number: eq.serial_number || undefined,
-      })) || [],
-      // Signature - use correct column names from contracts table
-      signature_data: contract.contract_signature_data || contract.signature_data || undefined,
-      signer_name: contract.contract_signer_name || contract.signer_name || contract.client_name,
-      signer_ip: contract.contract_signer_ip || contract.signer_ip || undefined,
-      signed_at: contract.contract_signed_at || contract.signed_at || undefined,
-      // Contract template content
-      contract_content: contractContent,
-      // Brand
-      primary_color: contract.companies?.primary_color || '#33638e',
-      // Special provisions (self-leasing only)
-      special_provisions: contract.special_provisions || undefined,
-    };
-
-    console.log('[SIGNED-CONTRACT-PDF] PDF data prepared:', {
-      trackingNumber: pdfData.tracking_number,
-      clientName: pdfData.client_name,
-      equipmentCount: pdfData.equipment.length,
-      hasSig: !!pdfData.signature_data,
-      templateBlocks: Object.keys(contractContent).length,
-    });
-
-    return pdfData;
-  } catch (e) {
-    console.error('[SIGNED-CONTRACT-PDF] fetchContractDataForPDF error:', e);
-    return null;
-  }
-}
-
-/**
- * Generate PDF blob for a signed contract
+ * Generate PDF blob for a signed contract via edge function (avoids WASM/CSP issues)
  */
 export async function generateSignedContractPDF(contractId: string): Promise<Blob> {
-  console.log('[SIGNED-CONTRACT-PDF] Generating PDF for contract:', contractId);
+  console.log('[SIGNED-CONTRACT-PDF] Generating PDF via edge function for contract:', contractId);
 
-  const contractData = await fetchContractDataForPDF(contractId);
-  if (!contractData) {
-    throw new Error('Impossible de récupérer les données du contrat');
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('Non authentifié. Veuillez vous reconnecter.');
   }
 
-  const blob = await pdf(
-    <SignedContractPDFDocument contract={contractData} />
-  ).toBlob();
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const url = `https://${projectId}.supabase.co/functions/v1/generate-signed-contract-pdf`;
 
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify({ contractId, action: 'download' }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+    console.error('[SIGNED-CONTRACT-PDF] Edge function error:', errorData);
+    throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
+  }
+
+  const blob = await response.blob();
   console.log(`[SIGNED-CONTRACT-PDF] Generated PDF (${blob.size} bytes)`);
   return blob;
 }
@@ -254,12 +96,36 @@ export async function uploadSignedContractPDF(contractId: string, blob: Blob): P
 }
 
 /**
- * Generate and upload signed contract PDF in one call
+ * Generate and upload signed contract PDF in one call via edge function
  */
 export async function generateAndUploadSignedContractPDF(contractId: string): Promise<string> {
-  const blob = await generateSignedContractPDF(contractId);
-  const url = await uploadSignedContractPDF(contractId, blob);
-  return url;
+  console.log('[SIGNED-CONTRACT-PDF] Generate + upload via edge function for:', contractId);
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('Non authentifié. Veuillez vous reconnecter.');
+  }
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const url = `https://${projectId}.supabase.co/functions/v1/generate-signed-contract-pdf`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify({ contractId, action: 'upload' }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+    throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.url;
 }
 
 /**
@@ -267,15 +133,19 @@ export async function generateAndUploadSignedContractPDF(contractId: string): Pr
  */
 export async function downloadSignedContractPDF(contractId: string): Promise<void> {
   try {
-    const contractData = await fetchContractDataForPDF(contractId);
-    if (!contractData) {
-      throw new Error('Impossible de récupérer les données du contrat');
-    }
+    // Fetch minimal contract info for filename
+    const { data: contract } = await supabase
+      .from('contracts')
+      .select('tracking_number, client_name')
+      .eq('id', contractId)
+      .single();
 
     const blob = await generateSignedContractPDF(contractId);
 
     // Create filename
-    const filename = `Contrat ${contractData.tracking_number} - ${contractData.client_name}.pdf`
+    const trackingNumber = contract?.tracking_number || contractId.slice(0, 8);
+    const clientName = contract?.client_name || 'Client';
+    const filename = `Contrat ${trackingNumber} - ${clientName}.pdf`
       .replace(/[/\\:*?"<>|]/g, '');
 
     // Download
