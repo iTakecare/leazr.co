@@ -1,52 +1,63 @@
 
-# Export Excel du parc materiel client
+# Fix: PDF du contrat signe et erreur de chargement
 
-## Objectif
+## Probleme 1 : "Failed to fetch" sur le PDF
 
-Ajouter un bouton d'export Excel dans le composant `ClientActiveEquipment` pour telecharger la liste des equipements actifs du client.
+**Cause racine** : L'edge function `generate-signed-contract-pdf` utilise `PDFKit` importe via `esm.sh`. PDFKit est une bibliotheque Node.js qui depend de modules natifs (`stream`, `zlib`, `fs`, `crypto`). Ces modules ne sont pas disponibles dans l'environnement Deno des Edge Functions Supabase, ce qui fait crasher la fonction au moment de l'import -- avant meme que le moindre log ne soit ecrit.
 
-## Fichiers concernes
+**Solution** : Remplacer `pdfkit` par `pdf-lib` dans l'edge function. `pdf-lib` est une bibliotheque 100% JavaScript qui fonctionne nativement dans Deno sans aucune dependance Node.js.
 
-| Fichier | Changement |
-|---|---|
-| `src/components/clients/ClientActiveEquipment.tsx` | Ajouter le bouton export et la logique d'export Excel via ExcelJS |
+### Fichier modifie
 
-## Detail technique
+`supabase/functions/generate-signed-contract-pdf/index.ts`
 
-### Logique d'export (dans le composant)
+- Remplacer l'import `pdfkit` par `pdf-lib` (via `https://esm.sh/pdf-lib@1.17.1`)
+- Reecrire la generation du PDF en utilisant l'API de `pdf-lib` :
+  - Creer le document avec `PDFDocument.create()`
+  - Utiliser les fonts embarquees Helvetica (standard PDF)
+  - Recreer les memes sections : header, tableau des equipements, resume financier, conditions, page de signature
+  - Inclure la signature client (image base64) via `doc.embedPng()`
+  - Inclure la signature du bailleur (fetch de l'URL et embed)
+- Conserver toute la logique metier existante (fetch contract, equipment, leaser, content blocks, placeholder replacement)
+- Conserver les deux modes `download` (retourne le PDF binaire) et `upload` (stocke dans le bucket)
 
-Ajouter une fonction `handleExportExcel` qui :
-- Utilise `ExcelJS` (deja installe dans le projet) pour creer un classeur
-- Cree une feuille "Parc materiel" avec les colonnes : Designation, Quantite, N de serie, N contrat, Statut contrat, Echeance
-- Remplit les lignes a partir de `equipmentRows` (deja calcule dans le composant)
-- Style l'en-tete (fond colore, texte blanc, gras)
-- Ajoute un auto-filtre
-- Declenche le telechargement du fichier `.xlsx`
-
-Le nom du fichier inclura le nom du client si disponible : `parc_materiel_[client]_[date].xlsx`
-
-### Modifications UI
-
-Ajouter un bouton "Exporter" avec l'icone `Download` dans le `CardHeader`, a cote du titre, aligne a droite. Le bouton est desactive si la liste est vide.
+### Approche technique
 
 ```text
-CardHeader
-+-----------------------------------------------+
-| [Monitor] Materiel en cours    [Exporter xlsx] |
-| Description...                                 |
-+-----------------------------------------------+
+pdf-lib API pattern:
+  const doc = await PDFDocument.create();
+  const page = doc.addPage(PageSizes.A4);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  page.drawText('...', { x, y, font, size });
+  page.drawRectangle({ x, y, width, height, color });
+  // Pour les images signatures :
+  const img = await doc.embedPng(base64Data);
+  page.drawImage(img, { x, y, width, height });
+  const pdfBytes = await doc.save();
 ```
 
-### Props
+## Probleme 2 : "Erreur lors du chargement" (toast)
 
-Le composant recevra une prop optionnelle `clientName?: string` pour nommer le fichier d'export. On ajoutera cette prop dans `UnifiedClientView.tsx` lors de l'appel au composant.
+Ce toast provient du composant `EquipmentOrderTracker.tsx` (ligne 87). Il s'affiche quand le chargement des donnees de commande echoue. D'apres les requetes reseau, la requete `contract_equipment` retourne bien des donnees (status 200), donc cette erreur est probablement intermittente ou liee a une condition de course.
 
-### Fichier supplementaire modifie
+**Action** : Ajouter des logs console supplementaires dans le `fetchData` du `EquipmentOrderTracker` pour identifier precisement l'erreur sous-jacente (quel appel echoue et pourquoi).
 
-| Fichier | Changement |
+### Fichier modifie
+
+`src/components/contracts/EquipmentOrderTracker.tsx`
+
+- Dans le bloc `catch` de `fetchData`, logger l'erreur complete pour faciliter le diagnostic
+- Rendre le message de toast plus specifique pour distinguer les differentes causes
+
+## Resume des changements
+
+| Fichier | Action |
 |---|---|
-| `src/components/clients/UnifiedClientView.tsx` | Passer `clientName={client.name}` au composant `ClientActiveEquipment` |
+| `supabase/functions/generate-signed-contract-pdf/index.ts` | Remplacer pdfkit par pdf-lib, reecrire la generation PDF |
+| `src/components/contracts/EquipmentOrderTracker.tsx` | Ameliorer les logs d'erreur dans fetchData |
 
-## Patron suivi
+## Impact
 
-Le code suit le meme patron que `stockExportService.ts` : creation de workbook ExcelJS, style d'en-tete, auto-filtre, generation de buffer et telechargement via Blob URL.
+- Aucun changement cote client (`signedContractPdfService.tsx` reste identique)
+- Le PDF genere aura le meme contenu et la meme structure visuelle
+- La fonction sera compatible avec l'environnement Deno des Edge Functions
