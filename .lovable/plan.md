@@ -1,46 +1,44 @@
 
-# Fix: Caractere U+2011 non supporté par pdf-lib
+# Fix: Recuperation fiable de l'adresse IP du signataire
 
-## Cause racine
+## Probleme
 
-Les logs de l'edge function montrent cette erreur :
-```
-WinAnsi cannot encode "‑" (0x2011)
-```
+Dans `src/pages/client/PublicContractSignature.tsx`, l'adresse IP est recuperee cote client via `https://api.ipify.org?format=json`. Ce service externe peut echouer pour plusieurs raisons :
+- Bloqueur de publicites ou extension de securite du navigateur
+- Probleme reseau ou timeout
+- Service temporairement indisponible
 
-Le contenu des blocs de texte du contrat (`pdf_content_blocks`) contient des **tirets insecables** (U+2011 `‑`) dans plusieurs articles (article_2, article_3, article_5, article_6, article_10, article_11). La bibliotheque `pdf-lib` utilise l'encodage WinAnsi pour les polices standard (Helvetica), qui ne supporte pas ce caractere.
-
-Ce contrat a ete signe le 13 fevrier 2026. Le PDF n'a jamais ete genere et stocke (`signed_contract_pdf_url = NULL`), probablement parce que la generation a echoue silencieusement a ce moment-la aussi, ou que les blocs de contenu ont ete modifies apres la signature.
+Quand ca echoue, la valeur `"unknown"` est stockee en base.
 
 ## Solution
 
-Ajouter une fonction `sanitizeForWinAnsi()` dans l'edge function `generate-signed-contract-pdf/index.ts` qui remplace tous les caracteres non supportes par leurs equivalents ASCII avant de les passer aux fonctions de dessin PDF.
+Deplacer la recuperation de l'IP cote serveur, dans la fonction RPC `sign_contract_public` ou dans un edge function intermediaire. Le serveur a acces aux headers HTTP contenant l'IP reelle du client (`x-forwarded-for`, `x-real-ip`, etc.).
 
-## Fichier modifie
+### Approche retenue : Edge function proxy
 
-**`supabase/functions/generate-signed-contract-pdf/index.ts`**
+Creer une edge function `get-client-ip` qui retourne simplement l'IP du client a partir des headers de la requete. C'est plus fiable que d'appeler un service tiers depuis le navigateur.
 
-1. Ajouter une fonction `sanitizeForWinAnsi(text)` qui remplace :
-   - U+2011 (tiret insecable) par `-` (tiret normal)
-   - U+2013 (tiret demi-cadratin) par `-`
-   - U+2014 (tiret cadratin) par `--`
-   - U+2018/U+2019 (guillemets simples) par `'`
-   - U+201C/U+201D (guillemets doubles) par `"`
-   - U+2026 (points de suspension) par `...`
-   - U+00A0 (espace insecable) par ` `
-   - U+202F (espace fine insecable) par ` `
-   - U+00AB/U+00BB (guillemets francais) par `"` (ces derniers sont supportes par WinAnsi, mais au cas ou)
-   - Autres caracteres non-WinAnsi courants
+### Fichiers modifies
 
-2. Appeler `sanitizeForWinAnsi()` dans les fonctions `stripHtml()` (a la fin, avant le return) et `replacePlaceholders()` (a la fin, avant le return) pour nettoyer tout le texte avant qu'il ne soit passe a `pdf-lib`.
+1. **`supabase/functions/get-client-ip/index.ts`** (nouveau)
+   - Edge function simple qui lit l'IP depuis les headers `x-forwarded-for` ou `x-real-ip`
+   - Retourne l'IP en JSON
 
-## Impact
+2. **`src/pages/client/PublicContractSignature.tsx`**
+   - Remplacer l'appel a `api.ipify.org` par un appel a l'edge function `get-client-ip`
+   - Garder `api.ipify.org` comme fallback secondaire
+   - Conserver `"unknown"` comme dernier recours
 
-- Corrige l'erreur "WinAnsi cannot encode" pour ce contrat et tous les futurs contrats contenant des caracteres speciaux
-- Aucun changement visuel significatif dans le PDF (les tirets insecables deviennent des tirets normaux)
-- Aucun autre fichier modifie
-- L'erreur de build Dexie pre-existante n'est pas liee a ce changement
+### Detail technique
 
-## Note sur le build error Dexie
+```text
+Ordre de tentative :
+1. Edge function get-client-ip (headers serveur)
+2. api.ipify.org (service externe, fallback)
+3. "unknown" (dernier recours)
+```
 
-L'erreur TypeScript `dexie.d.ts` est un probleme pre-existant dans les types de la dependance `dexie` et n'est pas liee a ce correctif. Elle n'affecte pas le fonctionnement de l'application.
+### Impact
+- Aucun changement sur les contrats deja signes
+- Les futures signatures auront une IP fiable meme si le client a un ad-blocker
+- Aucun autre composant modifie
