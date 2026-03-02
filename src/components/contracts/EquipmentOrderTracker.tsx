@@ -68,10 +68,15 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
     try {
       setLoading(true);
       const [eqResult, suppResult] = await Promise.all([
-        supabase
-          .from(tableName)
-          .select('id, title, quantity, purchase_price, product_id, order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes')
-          .eq(fkColumn, sourceId)
+        (() => {
+          const selectColumns = sourceType === 'offer'
+            ? 'id, title, quantity, purchase_price, product_id, order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes'
+            : 'id, title, quantity, purchase_price, order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes';
+          return supabase
+            .from(tableName)
+            .select(selectColumns)
+            .eq(fkColumn, sourceId);
+        })()
           .order('created_at', { ascending: true }),
         companyId ? fetchSuppliers(companyId) : Promise.resolve([]),
       ]);
