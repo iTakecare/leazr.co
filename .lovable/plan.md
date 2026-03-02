@@ -1,63 +1,41 @@
 
-# Fix: PDF du contrat signe et erreur de chargement
+# Fix: Erreur "column contract_equipment.product_id does not exist"
 
-## Probleme 1 : "Failed to fetch" sur le PDF
+## Probleme
 
-**Cause racine** : L'edge function `generate-signed-contract-pdf` utilise `PDFKit` importe via `esm.sh`. PDFKit est une bibliotheque Node.js qui depend de modules natifs (`stream`, `zlib`, `fs`, `crypto`). Ces modules ne sont pas disponibles dans l'environnement Deno des Edge Functions Supabase, ce qui fait crasher la fonction au moment de l'import -- avant meme que le moindre log ne soit ecrit.
+Le composant `EquipmentOrderTracker.tsx` utilise une seule requete pour interroger soit `offer_equipment` soit `contract_equipment` selon le `sourceType`. La requete inclut le champ `product_id` (ligne 73), qui existe dans `offer_equipment` mais pas dans `contract_equipment`. Quand le composant est utilise pour un contrat, Supabase renvoie l'erreur.
 
-**Solution** : Remplacer `pdfkit` par `pdf-lib` dans l'edge function. `pdf-lib` est une bibliotheque 100% JavaScript qui fonctionne nativement dans Deno sans aucune dependance Node.js.
+## Solution
+
+Adapter la requete dans `fetchData` pour ne pas inclure `product_id` quand `sourceType === 'contract'`.
 
 ### Fichier modifie
 
-`supabase/functions/generate-signed-contract-pdf/index.ts`
+**`src/components/contracts/EquipmentOrderTracker.tsx`**
 
-- Remplacer l'import `pdfkit` par `pdf-lib` (via `https://esm.sh/pdf-lib@1.17.1`)
-- Reecrire la generation du PDF en utilisant l'API de `pdf-lib` :
-  - Creer le document avec `PDFDocument.create()`
-  - Utiliser les fonts embarquees Helvetica (standard PDF)
-  - Recreer les memes sections : header, tableau des equipements, resume financier, conditions, page de signature
-  - Inclure la signature client (image base64) via `doc.embedPng()`
-  - Inclure la signature du bailleur (fetch de l'URL et embed)
-- Conserver toute la logique metier existante (fetch contract, equipment, leaser, content blocks, placeholder replacement)
-- Conserver les deux modes `download` (retourne le PDF binaire) et `upload` (stocke dans le bucket)
+- Ligne 73 : construire dynamiquement la liste de colonnes selon `sourceType`
+  - Pour `offer` : inclure `product_id`
+  - Pour `contract` : exclure `product_id`
+- L'interface `EquipmentItem` garde `product_id` optionnel (deja le cas ligne 38)
+- La logique `startEditing` qui utilise `product_id` (ligne 135) fonctionne deja avec un check `if (!eq.supplier_id && eq.product_id)`, donc pas de changement necessaire
 
-### Approche technique
+### Changement concret
 
-```text
-pdf-lib API pattern:
-  const doc = await PDFDocument.create();
-  const page = doc.addPage(PageSizes.A4);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('...', { x, y, font, size });
-  page.drawRectangle({ x, y, width, height, color });
-  // Pour les images signatures :
-  const img = await doc.embedPng(base64Data);
-  page.drawImage(img, { x, y, width, height });
-  const pdfBytes = await doc.save();
+```typescript
+// Ligne 73 - avant :
+.select('id, title, quantity, purchase_price, product_id, order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes')
+
+// Apres :
+const selectColumns = sourceType === 'offer'
+  ? 'id, title, quantity, purchase_price, product_id, order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes'
+  : 'id, title, quantity, purchase_price, order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes';
+
+// puis utiliser selectColumns dans la requete
+.select(selectColumns)
 ```
-
-## Probleme 2 : "Erreur lors du chargement" (toast)
-
-Ce toast provient du composant `EquipmentOrderTracker.tsx` (ligne 87). Il s'affiche quand le chargement des donnees de commande echoue. D'apres les requetes reseau, la requete `contract_equipment` retourne bien des donnees (status 200), donc cette erreur est probablement intermittente ou liee a une condition de course.
-
-**Action** : Ajouter des logs console supplementaires dans le `fetchData` du `EquipmentOrderTracker` pour identifier precisement l'erreur sous-jacente (quel appel echoue et pourquoi).
-
-### Fichier modifie
-
-`src/components/contracts/EquipmentOrderTracker.tsx`
-
-- Dans le bloc `catch` de `fetchData`, logger l'erreur complete pour faciliter le diagnostic
-- Rendre le message de toast plus specifique pour distinguer les differentes causes
-
-## Resume des changements
-
-| Fichier | Action |
-|---|---|
-| `supabase/functions/generate-signed-contract-pdf/index.ts` | Remplacer pdfkit par pdf-lib, reecrire la generation PDF |
-| `src/components/contracts/EquipmentOrderTracker.tsx` | Ameliorer les logs d'erreur dans fetchData |
 
 ## Impact
 
-- Aucun changement cote client (`signedContractPdfService.tsx` reste identique)
-- Le PDF genere aura le meme contenu et la meme structure visuelle
-- La fonction sera compatible avec l'environnement Deno des Edge Functions
+- Corrige l'erreur toast "column contract_equipment.product_id does not exist"
+- Aucun impact sur le fonctionnement pour les offres
+- La fonctionnalite d'auto-remplissage fournisseur prefere (qui depend de `product_id`) reste disponible pour les offres
