@@ -1,34 +1,53 @@
 
-# Fix: "Failed to fetch" sur la generation du PDF signe
+# Fix: URL "undefined" dans le téléchargement du PDF signé
 
 ## Cause racine
 
-La fonction `generate-signed-contract-pdf` a `verify_jwt = true` dans `supabase/config.toml`. Cela signifie que le gateway Supabase verifie le JWT sur **toutes** les requetes, y compris la requete **OPTIONS** (preflight CORS) envoyee automatiquement par le navigateur.
+La requete reseau montre clairement le probleme :
+```
+POST https://undefined.supabase.co/functions/v1/generate-signed-contract-pdf
+apikey: undefined
+```
 
-Le probleme : la requete OPTIONS ne contient **jamais** de header `Authorization`. Supabase la rejette avec un 401, le navigateur interprete cela comme un echec CORS, et le `fetch()` cote client lance `TypeError: Failed to fetch`.
+Le service `signedContractPdfService.tsx` utilise `import.meta.env.VITE_SUPABASE_PROJECT_ID` et `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY` pour construire l'URL et les headers. Ces variables d'environnement ne sont pas disponibles dans l'environnement preview de Lovable, donc elles retournent `undefined`.
 
-Les autres contrats ne sont pas affectes car ils ont deja un `signed_contract_pdf_url` stocke en base — le client telecharge directement depuis le storage, sans appeler l'edge function. Le contrat `LOC-ITC-2026-02003` a `signed_contract_pdf_url = NULL`, donc il doit passer par l'edge function, et c'est la que le preflight echoue.
+Or, le fichier `client.ts` contient deja ces valeurs en dur :
+- `SUPABASE_URL = "https://cifbetjefyfocafanlhv.supabase.co"`
+- `SUPABASE_PUBLISHABLE_KEY = "eyJ..."`
 
 ## Solution
 
-Passer `verify_jwt = false` dans `config.toml` pour cette fonction. La validation d'authentification est deja implementee dans le code de la fonction (lignes 172-185 : extraction du bearer token, appel a `supabase.auth.getUser()`), donc la securite est preservee.
+Modifier `signedContractPdfService.tsx` pour importer et utiliser les constantes deja definies dans `client.ts` au lieu des variables d'environnement.
 
 ## Fichier modifie
 
-**`supabase/config.toml`**
+**`src/services/signedContractPdfService.tsx`**
 
-```text
-Avant :
-[functions.generate-signed-contract-pdf]
-verify_jwt = true
+1. Ajouter `SUPABASE_URL` et `SUPABASE_PUBLISHABLE_KEY` aux imports depuis `@/integrations/supabase/client`
 
-Apres :
-[functions.generate-signed-contract-pdf]
-verify_jwt = false
+2. Remplacer la construction de l'URL (lignes 17-18) :
+```typescript
+// Avant
+const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const url = `https://${projectId}.supabase.co/functions/v1/generate-signed-contract-pdf`;
+
+// Apres
+const url = `${SUPABASE_URL}/functions/v1/generate-signed-contract-pdf`;
 ```
+
+3. Remplacer l'apikey dans les headers (ligne 25) :
+```typescript
+// Avant
+'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+
+// Apres
+'apikey': SUPABASE_PUBLISHABLE_KEY,
+```
+
+4. Appliquer le meme correctif dans la fonction `generateAndUploadSignedContractPDF` (lignes ~97-105) qui utilise les memes variables d'environnement.
 
 ## Impact
 
-- Corrige le "Failed to fetch" pour ce contrat et tous les futurs contrats sans URL PDF pre-generee
-- Aucun impact sur la securite : l'authentification est validee dans le code de la fonction
-- Aucun changement dans le code de la fonction ni du client
+- Corrige le "Failed to fetch" en generant une URL valide (`https://cifbetjefyfocafanlhv.supabase.co/functions/v1/...`)
+- Fonctionne dans tous les environnements (preview Lovable, production)
+- Aucun autre fichier modifie
