@@ -536,16 +536,22 @@ serve(async (req) => {
         
         console.log(`[Mollie] Current subscription:`, currentSub);
         
-        // Cancel current subscription
-        const cancelResult = await mollieRequest(
-          `/customers/${body.customer_id}/subscriptions/${body.subscription_id}`,
-          "DELETE"
-        );
-        
-        if (!cancelResult.success && cancelResult.status !== 200) {
-          console.error("[Mollie] Failed to cancel subscription:", cancelResult.error);
-          result = { success: false, error: cancelResult.error || "Impossible d'annuler l'abonnement" };
-          break;
+        // Cancel current subscription (if still active)
+        const subStatus = (currentSub as any).status;
+        if (subStatus === "canceled" || subStatus === "completed") {
+          console.log(`[Mollie] Subscription already ${subStatus}, skipping cancel`);
+        } else {
+          const cancelResult = await mollieRequest(
+            `/customers/${body.customer_id}/subscriptions/${body.subscription_id}`,
+            "DELETE"
+          );
+          
+          // Accept success, 200, or 422 (already cancelled)
+          if (!cancelResult.success && cancelResult.status !== 200 && cancelResult.status !== 422) {
+            console.error("[Mollie] Failed to cancel subscription:", cancelResult.error);
+            result = { success: false, error: cancelResult.error || "Impossible d'annuler l'abonnement" };
+            break;
+          }
         }
         
         console.log(`[Mollie] Subscription cancelled, creating new one`);
