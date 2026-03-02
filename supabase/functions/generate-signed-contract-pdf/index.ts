@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import PDFDocument from "https://esm.sh/pdfkit@0.15.0";
+import { PDFDocument, StandardFonts, PageSizes, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const formatCurrency = (amount: number) => {
@@ -30,9 +30,6 @@ const formatDateFull = (dateString?: string) => {
   });
 };
 
-/**
- * Strip HTML tags to plain text
- */
 const stripHtml = (html: string): string => {
   if (!html) return '';
   return html
@@ -48,19 +45,16 @@ const stripHtml = (html: string): string => {
     .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-    .replace(/\*\*/g, '') // Remove bold markers
+    .replace(/\*\*/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]+/g, ' ')
     .trim();
 };
 
-/**
- * Replace placeholders in template text
- */
 const replacePlaceholders = (text: string, data: any): string => {
   if (!text) return '';
   const monthlyPayment = data.adjustedMonthlyPayment ?? data.monthly_payment ?? 0;
-  
+
   const clientFullAddress = [
     data.client_address, data.client_postal_code, data.client_city, data.client_country
   ].filter(Boolean).join(', ');
@@ -114,6 +108,59 @@ const replacePlaceholders = (text: string, data: any): string => {
   return result;
 };
 
+// Helper: parse hex color to rgb
+const hexToRgb = (hex: string) => {
+  const h = hex.replace('#', '');
+  return rgb(
+    parseInt(h.substring(0, 2), 16) / 255,
+    parseInt(h.substring(2, 4), 16) / 255,
+    parseInt(h.substring(4, 6), 16) / 255,
+  );
+};
+
+// Helper: wrap text into lines that fit a given width
+const wrapText = (text: string, font: any, fontSize: number, maxWidth: number): string[] => {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    if (testWidth > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
+};
+
+// Helper: draw multi-line text, returns new Y position
+const drawMultiLineText = (
+  page: any, text: string, x: number, y: number,
+  font: any, fontSize: number, color: any, maxWidth: number, lineHeight: number
+): number => {
+  const paragraphs = text.split('\n');
+  let currentY = y;
+
+  for (const para of paragraphs) {
+    if (!para.trim()) {
+      currentY -= lineHeight;
+      continue;
+    }
+    const lines = wrapText(para.trim(), font, fontSize, maxWidth);
+    for (const line of lines) {
+      if (currentY < 60) return currentY; // stop near bottom
+      page.drawText(line, { x, y: currentY, font, size: fontSize, color });
+      currentY -= lineHeight;
+    }
+  }
+  return currentY;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -139,7 +186,7 @@ serve(async (req) => {
 
     const body = await req.json();
     const contractId = body.contractId;
-    const action = body.action || 'download'; // 'download' or 'upload'
+    const action = body.action || 'download';
     if (!contractId) throw new Error('Missing contractId');
 
     console.log('[GENERATE-SIGNED-CONTRACT-PDF] Fetching contract:', contractId);
@@ -189,7 +236,7 @@ serve(async (req) => {
       }
     }
 
-    // Fetch pdf_content_blocks for contract template
+    // Fetch pdf_content_blocks
     const { data: contentBlocks } = await supabaseClient
       .from('pdf_content_blocks')
       .select('block_key, content')
@@ -212,7 +259,6 @@ serve(async (req) => {
       ? Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100
       : contract.monthly_payment;
 
-    // Build data object for placeholder replacement
     const pdfData = {
       company_name: customization?.company_name || contract.companies?.name || '',
       company_address: customization?.company_address || '',
@@ -246,330 +292,401 @@ serve(async (req) => {
     };
 
     const trackingNumber = contract.contract_number || contract.tracking_number || `CON-${contractId.slice(0, 8)}`;
-    const primaryColor = contract.companies?.primary_color || '#33638e';
+    const primaryColorHex = contract.companies?.primary_color || '#33638e';
+    const primaryColor = hexToRgb(primaryColorHex);
+    const darkColor = hexToRgb('#1e293b');
+    const grayColor = hexToRgb('#64748b');
+    const lightGrayColor = hexToRgb('#374151');
+    const bgColor = hexToRgb('#f8fafc');
 
-    console.log('[GENERATE-SIGNED-CONTRACT-PDF] Creating PDF document');
+    console.log('[GENERATE-SIGNED-CONTRACT-PDF] Creating PDF document with pdf-lib');
 
-    // Create PDF
-    const doc = new PDFDocument({
-      size: 'A4',
-      margins: { top: 40, bottom: 50, left: 40, right: 40 },
-      info: {
-        Title: `Contrat ${trackingNumber}`,
-        Author: pdfData.company_name,
-        Subject: `Contrat de location pour ${pdfData.client_name}`,
-      },
-      bufferPages: true,
-    });
+    // Create PDF document
+    const doc = await PDFDocument.create();
+    doc.setTitle(`Contrat ${trackingNumber}`);
+    doc.setAuthor(pdfData.company_name);
+    doc.setSubject(`Contrat de location pour ${pdfData.client_name}`);
 
-    const chunks: Uint8Array[] = [];
-    doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
-    const pdfPromise = new Promise<Uint8Array>((resolve, reject) => {
-      doc.on('end', () => {
-        const result = new Uint8Array(chunks.reduce((acc, c) => acc + c.length, 0));
-        let offset = 0;
-        for (const c of chunks) { result.set(c, offset); offset += c.length; }
-        resolve(result);
+    const helvetica = await doc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+    const PAGE_WIDTH = PageSizes.A4[0]; // 595.28
+    const PAGE_HEIGHT = PageSizes.A4[1]; // 841.89
+    const MARGIN = 40;
+    const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
+
+    // Helper: add a new page with header
+    const addPageWithHeader = () => {
+      const page = doc.addPage(PageSizes.A4);
+      // Company name
+      page.drawText(pdfData.company_name, {
+        x: MARGIN, y: PAGE_HEIGHT - MARGIN - 12, font: helveticaBold, size: 12, color: primaryColor,
       });
-      doc.on('error', reject);
-    });
-
-    const pageWidth = 515;
-
-    // Helper: draw header
-    const drawHeader = () => {
-      const startY = doc.y;
-      doc.fontSize(12).fillColor(primaryColor)
-        .text(pdfData.company_name, 40, 40, { width: 250 });
-      
-      doc.fontSize(7).fillColor('#64748b')
-        .text(pdfData.company_address || '', 350, 40, { width: 205, align: 'right' });
-      if (pdfData.company_vat_number) {
-        doc.text(`N° BCE : ${pdfData.company_vat_number}`, 350, doc.y, { width: 205, align: 'right' });
+      // Ref on right
+      const refText = `Réf: ${trackingNumber}`;
+      const refWidth = helveticaBold.widthOfTextAtSize(refText, 7);
+      page.drawText(refText, {
+        x: PAGE_WIDTH - MARGIN - refWidth, y: PAGE_HEIGHT - MARGIN - 12, font: helveticaBold, size: 7, color: grayColor,
+      });
+      // Company address
+      if (pdfData.company_address) {
+        const addrWidth = helvetica.widthOfTextAtSize(pdfData.company_address, 7);
+        page.drawText(pdfData.company_address, {
+          x: PAGE_WIDTH - MARGIN - addrWidth, y: PAGE_HEIGHT - MARGIN - 22, font: helvetica, size: 7, color: grayColor,
+        });
       }
-      doc.fontSize(7).font('Helvetica-Bold').fillColor('#64748b')
-        .text(`Réf: ${trackingNumber}`, 350, doc.y, { width: 205, align: 'right' });
-      doc.font('Helvetica');
-
+      if (pdfData.company_vat_number) {
+        const vatText = `N° BCE : ${pdfData.company_vat_number}`;
+        const vatWidth = helvetica.widthOfTextAtSize(vatText, 7);
+        page.drawText(vatText, {
+          x: PAGE_WIDTH - MARGIN - vatWidth, y: PAGE_HEIGHT - MARGIN - 32, font: helvetica, size: 7, color: grayColor,
+        });
+      }
       // Line under header
-      const lineY = Math.max(doc.y, 70) + 5;
-      doc.moveTo(40, lineY).lineTo(555, lineY).strokeColor(primaryColor).lineWidth(2).stroke();
-      doc.y = lineY + 10;
+      page.drawLine({
+        start: { x: MARGIN, y: PAGE_HEIGHT - MARGIN - 40 },
+        end: { x: PAGE_WIDTH - MARGIN, y: PAGE_HEIGHT - MARGIN - 40 },
+        thickness: 2, color: primaryColor,
+      });
+      return page;
     };
-
-    // Helper: draw footer
-    const drawFooter = (pageNum: number, totalPages: number) => {
-      doc.fontSize(7).fillColor('#64748b');
-      doc.text(pdfData.company_name, 40, doc.page.height - 40, { width: 250 });
-      doc.text(`Page ${pageNum}/${totalPages}`, 350, doc.page.height - 40, { width: 205, align: 'right' });
-    };
-
-    // Estimate total pages
-    const articleKeys = ['article_1','article_2','article_3','article_4','article_5','article_6','article_7','article_8',
-      'article_9','article_10','article_11','article_12','article_13','article_14','article_15','article_16','article_17'];
-    const activeArticles = articleKeys.filter(k => contractContent[k]);
-    const totalPages = 1 + Math.ceil(activeArticles.length / 4) + 1; // cover + articles + signature
 
     // ===== PAGE 1: Cover, Equipment, Financial Summary =====
-    drawHeader();
+    const page1 = addPageWithHeader();
+    let y = PAGE_HEIGHT - MARGIN - 60;
 
     // Title
-    doc.fontSize(14).font('Helvetica-Bold').fillColor(primaryColor)
-      .text(contractContent.title 
-        ? stripHtml(replacePlaceholders(contractContent.title, pdfData))
-        : 'CONTRAT DE LOCATION DE MATÉRIEL INFORMATIQUE',
-        { align: 'center' });
-    doc.font('Helvetica');
-    doc.moveDown();
+    const titleText = contractContent.title
+      ? stripHtml(replacePlaceholders(contractContent.title, pdfData))
+      : 'CONTRAT DE LOCATION DE MATÉRIEL INFORMATIQUE';
+    const titleWidth = helveticaBold.widthOfTextAtSize(titleText, 14);
+    page1.drawText(titleText, {
+      x: (PAGE_WIDTH - titleWidth) / 2, y, font: helveticaBold, size: 14, color: primaryColor,
+    });
+    y -= 25;
 
     // Parties section
     if (contractContent.parties) {
       const partiesText = stripHtml(replacePlaceholders(contractContent.parties, pdfData));
-      doc.fontSize(8).fillColor('#374151').text(partiesText, { lineGap: 2 });
-      doc.moveDown();
+      y = drawMultiLineText(page1, partiesText, MARGIN, y, helvetica, 8, lightGrayColor, CONTENT_WIDTH, 11);
+      y -= 10;
     }
 
-    // Equipment table
-    doc.fontSize(11).font('Helvetica-Bold').fillColor(primaryColor)
-      .text('Description des équipements');
-    doc.font('Helvetica');
-    doc.moveDown(0.5);
+    // Equipment table title
+    page1.drawText('Description des équipements', {
+      x: MARGIN, y, font: helveticaBold, size: 11, color: primaryColor,
+    });
+    y -= 20;
 
     // Table header
-    const tableY = doc.y;
-    doc.rect(40, tableY, pageWidth, 18).fill(primaryColor);
-    doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff');
-    doc.text('Description', 45, tableY + 4, { width: 300 });
-    doc.text('Qté', 350, tableY + 4, { width: 50, align: 'center' });
-    doc.text('Mensualité HT', 405, tableY + 4, { width: 150, align: 'right' });
-    doc.font('Helvetica');
-    doc.y = tableY + 20;
+    const tableHeaderHeight = 18;
+    page1.drawRectangle({
+      x: MARGIN, y: y - tableHeaderHeight, width: CONTENT_WIDTH, height: tableHeaderHeight,
+      color: primaryColor,
+    });
+    const white = rgb(1, 1, 1);
+    page1.drawText('Description', { x: MARGIN + 5, y: y - 13, font: helveticaBold, size: 8, color: white });
+    page1.drawText('Qté', { x: MARGIN + 310, y: y - 13, font: helveticaBold, size: 8, color: white });
+    const mensLabel = 'Mensualité HT';
+    const mensWidth = helveticaBold.widthOfTextAtSize(mensLabel, 8);
+    page1.drawText(mensLabel, { x: PAGE_WIDTH - MARGIN - mensWidth - 5, y: y - 13, font: helveticaBold, size: 8, color: white });
+    y -= tableHeaderHeight + 2;
 
     // Equipment rows
     const equipmentList = equipment || [];
     let totalMonthly = 0;
-    equipmentList.forEach((eq: any, idx: number) => {
-      const rowY = doc.y;
+    for (let idx = 0; idx < equipmentList.length; idx++) {
+      const eq = equipmentList[idx];
+      const rowHeight = 16;
       if (idx % 2 === 0) {
-        doc.rect(40, rowY - 2, pageWidth, 16).fill('#f8fafc');
+        page1.drawRectangle({ x: MARGIN, y: y - rowHeight, width: CONTENT_WIDTH, height: rowHeight, color: bgColor });
       }
-      doc.fontSize(8).fillColor('#1e293b');
-      doc.text(eq.title || 'Équipement', 45, rowY, { width: 300 });
-      doc.text(String(eq.quantity || 1), 350, rowY, { width: 50, align: 'center' });
-      doc.text(formatCurrency(eq.monthly_payment || 0), 405, rowY, { width: 150, align: 'right' });
+      page1.drawText(eq.title || 'Équipement', { x: MARGIN + 5, y: y - 11, font: helvetica, size: 8, color: darkColor });
+      page1.drawText(String(eq.quantity || 1), { x: MARGIN + 315, y: y - 11, font: helvetica, size: 8, color: darkColor });
+      const monthlyText = formatCurrency(eq.monthly_payment || 0);
+      const monthlyW = helvetica.widthOfTextAtSize(monthlyText, 8);
+      page1.drawText(monthlyText, { x: PAGE_WIDTH - MARGIN - monthlyW - 5, y: y - 11, font: helvetica, size: 8, color: darkColor });
       totalMonthly += (eq.monthly_payment || 0);
-      doc.y = rowY + 16;
-    });
+      y -= rowHeight;
+    }
 
     // Total row
-    const totalY = doc.y;
-    doc.rect(40, totalY, pageWidth, 20).fill(primaryColor);
-    doc.fontSize(9).font('Helvetica-Bold').fillColor('#ffffff');
-    doc.text(hasDownPayment ? 'Mensualité ajustée HT' : 'Total mensuel HT', 45, totalY + 5, { width: 350 });
-    doc.text(formatCurrency(hasDownPayment ? adjustedMonthlyPayment : contract.monthly_payment), 405, totalY + 5, { width: 150, align: 'right' });
-    doc.font('Helvetica');
-    doc.y = totalY + 25;
-    doc.moveDown();
+    const totalRowHeight = 20;
+    page1.drawRectangle({ x: MARGIN, y: y - totalRowHeight, width: CONTENT_WIDTH, height: totalRowHeight, color: primaryColor });
+    const totalLabel = hasDownPayment ? 'Mensualité ajustée HT' : 'Total mensuel HT';
+    page1.drawText(totalLabel, { x: MARGIN + 5, y: y - 14, font: helveticaBold, size: 9, color: white });
+    const totalValue = formatCurrency(hasDownPayment ? adjustedMonthlyPayment : contract.monthly_payment);
+    const totalValueW = helveticaBold.widthOfTextAtSize(totalValue, 9);
+    page1.drawText(totalValue, { x: PAGE_WIDTH - MARGIN - totalValueW - 5, y: y - 14, font: helveticaBold, size: 9, color: white });
+    y -= totalRowHeight + 15;
 
     // Financial summary box
-    doc.rect(40, doc.y, pageWidth, hasDownPayment ? 80 : 60).fill('#f8fafc');
-    doc.moveTo(40, doc.y).lineTo(43, doc.y).lineTo(43, doc.y + (hasDownPayment ? 80 : 60)).lineTo(40, doc.y + (hasDownPayment ? 80 : 60))
-      .fill(primaryColor);
-    
-    const boxY = doc.y + 8;
-    doc.fontSize(9).font('Helvetica-Bold').fillColor('#1e293b')
-      .text('Conditions du contrat', 50, boxY);
-    doc.font('Helvetica');
-    let detailY = boxY + 16;
-    doc.fontSize(8).fillColor('#64748b').text('Durée du contrat :', 50, detailY, { width: 200 });
-    doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b').text(`${pdfData.contract_duration} mois`, 350, detailY, { width: 200, align: 'right' });
-    doc.font('Helvetica');
-    detailY += 14;
+    const boxHeight = hasDownPayment ? 80 : 60;
+    page1.drawRectangle({ x: MARGIN, y: y - boxHeight, width: CONTENT_WIDTH, height: boxHeight, color: bgColor });
+    page1.drawRectangle({ x: MARGIN, y: y - boxHeight, width: 3, height: boxHeight, color: primaryColor });
+
+    let detailY = y - 14;
+    page1.drawText('Conditions du contrat', { x: MARGIN + 10, y: detailY, font: helveticaBold, size: 9, color: darkColor });
+    detailY -= 16;
+
+    page1.drawText('Durée du contrat :', { x: MARGIN + 10, y: detailY, font: helvetica, size: 8, color: grayColor });
+    const durText = `${pdfData.contract_duration} mois`;
+    const durW = helveticaBold.widthOfTextAtSize(durText, 8);
+    page1.drawText(durText, { x: PAGE_WIDTH - MARGIN - durW - 10, y: detailY, font: helveticaBold, size: 8, color: darkColor });
+    detailY -= 14;
 
     if (hasDownPayment) {
-      doc.fontSize(8).fillColor('#64748b').text('Acompte :', 50, detailY, { width: 200 });
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b').text(formatCurrency(downPayment), 350, detailY, { width: 200, align: 'right' });
-      doc.font('Helvetica');
-      detailY += 14;
-      doc.fontSize(8).fillColor('#64748b').text('Mensualité ajustée HT :', 50, detailY, { width: 200 });
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b').text(formatCurrency(adjustedMonthlyPayment), 350, detailY, { width: 200, align: 'right' });
-      doc.font('Helvetica');
+      page1.drawText('Acompte :', { x: MARGIN + 10, y: detailY, font: helvetica, size: 8, color: grayColor });
+      const dpText = formatCurrency(downPayment);
+      const dpW = helveticaBold.widthOfTextAtSize(dpText, 8);
+      page1.drawText(dpText, { x: PAGE_WIDTH - MARGIN - dpW - 10, y: detailY, font: helveticaBold, size: 8, color: darkColor });
+      detailY -= 14;
+      page1.drawText('Mensualité ajustée HT :', { x: MARGIN + 10, y: detailY, font: helvetica, size: 8, color: grayColor });
+      const adjText = formatCurrency(adjustedMonthlyPayment);
+      const adjW = helveticaBold.widthOfTextAtSize(adjText, 8);
+      page1.drawText(adjText, { x: PAGE_WIDTH - MARGIN - adjW - 10, y: detailY, font: helveticaBold, size: 8, color: darkColor });
+      detailY -= 14;
     } else {
-      doc.fontSize(8).fillColor('#64748b').text('Mensualité HT :', 50, detailY, { width: 200 });
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b').text(formatCurrency(contract.monthly_payment), 350, detailY, { width: 200, align: 'right' });
-      doc.font('Helvetica');
-    }
-    detailY += 14;
-    if (pdfData.file_fee > 0) {
-      doc.fontSize(8).fillColor('#64748b').text('Frais de dossier (unique) :', 50, detailY, { width: 200 });
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b').text(formatCurrency(pdfData.file_fee), 350, detailY, { width: 200, align: 'right' });
-      doc.font('Helvetica');
+      page1.drawText('Mensualité HT :', { x: MARGIN + 10, y: detailY, font: helvetica, size: 8, color: grayColor });
+      const mpText = formatCurrency(contract.monthly_payment);
+      const mpW = helveticaBold.widthOfTextAtSize(mpText, 8);
+      page1.drawText(mpText, { x: PAGE_WIDTH - MARGIN - mpW - 10, y: detailY, font: helveticaBold, size: 8, color: darkColor });
+      detailY -= 14;
     }
 
-    doc.y = doc.y + (hasDownPayment ? 85 : 65);
+    if (pdfData.file_fee > 0) {
+      page1.drawText('Frais de dossier (unique) :', { x: MARGIN + 10, y: detailY, font: helvetica, size: 8, color: grayColor });
+      const ffText = formatCurrency(pdfData.file_fee);
+      const ffW = helveticaBold.widthOfTextAtSize(ffText, 8);
+      page1.drawText(ffText, { x: PAGE_WIDTH - MARGIN - ffW - 10, y: detailY, font: helveticaBold, size: 8, color: darkColor });
+    }
+
+    y -= boxHeight + 10;
 
     // Client IBAN
     if (contract.client_iban) {
-      doc.moveDown(0.5);
-      doc.rect(40, doc.y, pageWidth, 40).fill('#f8fafc');
-      doc.moveTo(40, doc.y).lineTo(43, doc.y).lineTo(43, doc.y + 40).lineTo(40, doc.y + 40).fill(primaryColor);
-      const ibanY = doc.y + 8;
-      doc.fontSize(9).font('Helvetica-Bold').fillColor('#1e293b')
-        .text('Coordonnées bancaires du Locataire', 50, ibanY);
-      doc.font('Helvetica');
-      doc.fontSize(8).fillColor('#64748b').text('IBAN :', 50, ibanY + 16, { width: 200 });
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b').text(contract.client_iban, 350, ibanY + 16, { width: 200, align: 'right' });
-      doc.font('Helvetica');
-      doc.y += 45;
+      const ibanBoxH = 40;
+      page1.drawRectangle({ x: MARGIN, y: y - ibanBoxH, width: CONTENT_WIDTH, height: ibanBoxH, color: bgColor });
+      page1.drawRectangle({ x: MARGIN, y: y - ibanBoxH, width: 3, height: ibanBoxH, color: primaryColor });
+      page1.drawText('Coordonnées bancaires du Locataire', { x: MARGIN + 10, y: y - 14, font: helveticaBold, size: 9, color: darkColor });
+      page1.drawText('IBAN :', { x: MARGIN + 10, y: y - 28, font: helvetica, size: 8, color: grayColor });
+      const ibanW = helveticaBold.widthOfTextAtSize(contract.client_iban, 8);
+      page1.drawText(contract.client_iban, { x: PAGE_WIDTH - MARGIN - ibanW - 10, y: y - 28, font: helveticaBold, size: 8, color: darkColor });
+      y -= ibanBoxH + 10;
     }
 
     // Special provisions
     if (contract.special_provisions) {
-      doc.moveDown(0.5);
-      doc.fontSize(9).font('Helvetica-Bold').fillColor('#1e293b').text('Dispositions particulières');
-      doc.font('Helvetica');
-      doc.fontSize(8).fillColor('#374151').text(stripHtml(contract.special_provisions), { lineGap: 2 });
+      page1.drawText('Dispositions particulières', { x: MARGIN, y, font: helveticaBold, size: 9, color: darkColor });
+      y -= 14;
+      y = drawMultiLineText(page1, stripHtml(contract.special_provisions), MARGIN, y, helvetica, 8, lightGrayColor, CONTENT_WIDTH, 11);
     }
 
-    drawFooter(1, totalPages);
+    // Footer page 1
+    page1.drawText(pdfData.company_name, { x: MARGIN, y: 30, font: helvetica, size: 7, color: grayColor });
 
     // ===== ARTICLES PAGES =====
-    const articlesPerPage = 4;
-    let currentPage = 2;
+    const articleKeys = ['article_1','article_2','article_3','article_4','article_5','article_6','article_7','article_8',
+      'article_9','article_10','article_11','article_12','article_13','article_14','article_15','article_16','article_17'];
+    const activeArticles = articleKeys.filter(k => contractContent[k]);
 
-    for (let i = 0; i < activeArticles.length; i += articlesPerPage) {
-      doc.addPage();
-      drawHeader();
-      
-      if (i === 0) {
-        doc.fontSize(11).font('Helvetica-Bold').fillColor(primaryColor)
-          .text('Conditions Générales du Contrat');
-        doc.font('Helvetica');
-        doc.moveDown(0.5);
-      }
+    let currentPage: any = null;
+    let articleY = 0;
+    let isFirstArticlePage = true;
 
-      const pageArticles = activeArticles.slice(i, i + articlesPerPage);
-      for (const key of pageArticles) {
-        let articleText = contractContent[key];
-        if (!articleText) continue;
-        
-        const processedText = stripHtml(replacePlaceholders(articleText, pdfData));
-        const paragraphs = processedText.split('\n').filter((p: string) => p.trim());
-        
-        for (const para of paragraphs) {
-          const trimmed = para.trim();
-          // Detect article titles (e.g., "1. Objet")
-          if (trimmed.match(/^(\d+\.)\s+[A-ZÀ-Ü]/)) {
-            doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b').text(trimmed);
-            doc.font('Helvetica');
-          } else {
-            doc.fontSize(8).fillColor('#374151').text(trimmed, { lineGap: 1.5, align: 'justify' });
-          }
+    for (let i = 0; i < activeArticles.length; i++) {
+      // Start a new page when needed
+      if (!currentPage || articleY < 100) {
+        currentPage = addPageWithHeader();
+        articleY = PAGE_HEIGHT - MARGIN - 55;
+
+        if (isFirstArticlePage) {
+          currentPage.drawText('Conditions Générales du Contrat', {
+            x: MARGIN, y: articleY, font: helveticaBold, size: 11, color: primaryColor,
+          });
+          articleY -= 20;
+          isFirstArticlePage = false;
         }
-        doc.moveDown(0.5);
+
+        // Footer
+        currentPage.drawText(pdfData.company_name, { x: MARGIN, y: 30, font: helvetica, size: 7, color: grayColor });
       }
 
-      drawFooter(currentPage, totalPages);
-      currentPage++;
+      const key = activeArticles[i];
+      const articleText = contractContent[key];
+      if (!articleText) continue;
+
+      const processedText = stripHtml(replacePlaceholders(articleText, pdfData));
+      const paragraphs = processedText.split('\n').filter((p: string) => p.trim());
+
+      for (const para of paragraphs) {
+        const trimmed = para.trim();
+        if (!trimmed) continue;
+
+        // Detect article titles
+        if (trimmed.match(/^(\d+\.)\s+[A-ZÀ-Ü]/)) {
+          if (articleY < 80) {
+            currentPage = addPageWithHeader();
+            articleY = PAGE_HEIGHT - MARGIN - 55;
+            currentPage.drawText(pdfData.company_name, { x: MARGIN, y: 30, font: helvetica, size: 7, color: grayColor });
+          }
+          currentPage.drawText(trimmed, { x: MARGIN, y: articleY, font: helveticaBold, size: 10, color: darkColor });
+          articleY -= 14;
+        } else {
+          articleY = drawMultiLineText(currentPage, trimmed, MARGIN, articleY, helvetica, 8, lightGrayColor, CONTENT_WIDTH, 10);
+        }
+      }
+      articleY -= 8;
     }
 
     // ===== SIGNATURE PAGE =====
-    doc.addPage();
-    drawHeader();
+    const sigPage = addPageWithHeader();
+    let sigY = PAGE_HEIGHT - MARGIN - 55;
 
     // Annexes
     if (contractContent.annexes) {
-      doc.fontSize(8).fillColor('#374151')
-        .text(stripHtml(replacePlaceholders(contractContent.annexes, pdfData)), { lineGap: 2 });
-      doc.moveDown();
+      const annexText = stripHtml(replacePlaceholders(contractContent.annexes, pdfData));
+      sigY = drawMultiLineText(sigPage, annexText, MARGIN, sigY, helvetica, 8, lightGrayColor, CONTENT_WIDTH, 11);
+      sigY -= 15;
     }
 
-    // Signature section
-    doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#e2e8f0').lineWidth(1).stroke();
-    doc.moveDown();
+    // Separator line
+    sigPage.drawLine({
+      start: { x: MARGIN, y: sigY },
+      end: { x: PAGE_WIDTH - MARGIN, y: sigY },
+      thickness: 1, color: hexToRgb('#e2e8f0'),
+    });
+    sigY -= 20;
 
-    const sigY = doc.y + 10;
-    const colWidth = pageWidth / 2 - 20;
+    const colWidth = CONTENT_WIDTH / 2 - 20;
+    const leftX = MARGIN;
+    const rightX = MARGIN + colWidth + 40;
 
     // LEFT: Le Bailleur
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b')
-      .text('Le Bailleur', 40, sigY, { width: colWidth, align: 'center' });
-    doc.font('Helvetica');
-    doc.fontSize(9).fillColor('#374151')
-      .text(pdfData.company_name, 40, doc.y + 5, { width: colWidth, align: 'center' });
-    
+    const bailleurLabel = 'Le Bailleur';
+    const blW = helveticaBold.widthOfTextAtSize(bailleurLabel, 10);
+    sigPage.drawText(bailleurLabel, { x: leftX + (colWidth - blW) / 2, y: sigY, font: helveticaBold, size: 10, color: darkColor });
+    sigY -= 15;
+
+    const cnW = helvetica.widthOfTextAtSize(pdfData.company_name, 9);
+    sigPage.drawText(pdfData.company_name, { x: leftX + (colWidth - cnW) / 2, y: sigY, font: helvetica, size: 9, color: lightGrayColor });
+    sigY -= 12;
+
     if (contract.companies?.signature_representative_name) {
-      doc.fontSize(7).fillColor('#64748b')
-        .text(contract.companies.signature_representative_name, 40, doc.y + 3, { width: colWidth, align: 'center' });
+      const repName = contract.companies.signature_representative_name;
+      const rnW = helvetica.widthOfTextAtSize(repName, 7);
+      sigPage.drawText(repName, { x: leftX + (colWidth - rnW) / 2, y: sigY, font: helvetica, size: 7, color: grayColor });
+      sigY -= 10;
     }
     if (contract.companies?.signature_representative_title) {
-      doc.fontSize(6).fillColor('#94a3b8')
-        .text(contract.companies.signature_representative_title, 40, doc.y + 2, { width: colWidth, align: 'center' });
+      const repTitle = contract.companies.signature_representative_title;
+      const rtW = helvetica.widthOfTextAtSize(repTitle, 6);
+      sigPage.drawText(repTitle, { x: leftX + (colWidth - rtW) / 2, y: sigY, font: helvetica, size: 6, color: grayColor });
+      sigY -= 10;
     }
 
-    // Try to embed lessor signature
+    // Embed lessor signature image
     if (contract.companies?.signature_url) {
       try {
         const sigRes = await fetch(contract.companies.signature_url);
         if (sigRes.ok) {
           const sigBuf = await sigRes.arrayBuffer();
           const sigBytes = new Uint8Array(sigBuf);
-          doc.image(sigBytes, 90, doc.y + 5, { width: 150, height: 60 });
-          doc.y += 70;
+          let sigImg;
+          const sigUrl = contract.companies.signature_url.toLowerCase();
+          if (sigUrl.includes('.png') || sigUrl.includes('image/png')) {
+            sigImg = await doc.embedPng(sigBytes);
+          } else {
+            sigImg = await doc.embedJpg(sigBytes);
+          }
+          sigPage.drawImage(sigImg, { x: leftX + 30, y: sigY - 60, width: 150, height: 60 });
+          sigY -= 70;
         }
       } catch (e) {
         console.warn('[GENERATE-SIGNED-CONTRACT-PDF] Could not embed lessor signature:', e);
-        doc.moveTo(80, doc.y + 50).lineTo(80 + colWidth - 40, doc.y + 50).strokeColor('#64748b').lineWidth(1).stroke();
-        doc.y += 55;
+        sigPage.drawLine({
+          start: { x: leftX + 20, y: sigY - 40 },
+          end: { x: leftX + colWidth - 20, y: sigY - 40 },
+          thickness: 1, color: grayColor,
+        });
+        sigY -= 50;
       }
     } else {
-      doc.moveTo(80, doc.y + 50).lineTo(80 + colWidth - 40, doc.y + 50).strokeColor('#64748b').lineWidth(1).stroke();
-      doc.y += 55;
+      sigPage.drawLine({
+        start: { x: leftX + 20, y: sigY - 40 },
+        end: { x: leftX + colWidth - 20, y: sigY - 40 },
+        thickness: 1, color: grayColor,
+      });
+      sigY -= 50;
     }
 
-    // RIGHT: Le Locataire
-    const rightX = 40 + colWidth + 40;
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b')
-      .text('Le Locataire', rightX, sigY, { width: colWidth, align: 'center' });
-    doc.font('Helvetica');
-    doc.fontSize(9).fillColor('#374151')
-      .text(pdfData.signer_name || pdfData.client_name, rightX, sigY + 18, { width: colWidth, align: 'center' });
+    // RIGHT: Le Locataire (use the Y from before lessor sig for consistent alignment)
+    const locataireStartY = PAGE_HEIGHT - MARGIN - 55 - (contractContent.annexes ? 60 : 0) - 40;
+    const locLabel = 'Le Locataire';
+    const llW = helveticaBold.widthOfTextAtSize(locLabel, 10);
+    sigPage.drawText(locLabel, { x: rightX + (colWidth - llW) / 2, y: locataireStartY, font: helveticaBold, size: 10, color: darkColor });
 
-    // Try to embed client signature
+    const signerName = pdfData.signer_name || pdfData.client_name;
+    const snW = helvetica.widthOfTextAtSize(signerName, 9);
+    sigPage.drawText(signerName, { x: rightX + (colWidth - snW) / 2, y: locataireStartY - 15, font: helvetica, size: 9, color: lightGrayColor });
+
+    // Embed client signature
     const signatureData = contract.contract_signature_data || contract.signature_data;
     if (signatureData && signatureData.startsWith('data:')) {
       try {
-        doc.image(signatureData, rightX + 30, sigY + 35, { width: 150, height: 60 });
+        // Extract base64 data
+        const base64Part = signatureData.split(',')[1];
+        const sigBytes = Uint8Array.from(atob(base64Part), c => c.charCodeAt(0));
+        let clientSigImg;
+        if (signatureData.includes('image/png')) {
+          clientSigImg = await doc.embedPng(sigBytes);
+        } else {
+          clientSigImg = await doc.embedJpg(sigBytes);
+        }
+        sigPage.drawImage(clientSigImg, { x: rightX + 30, y: locataireStartY - 90, width: 150, height: 60 });
       } catch (e) {
         console.warn('[GENERATE-SIGNED-CONTRACT-PDF] Could not embed client signature:', e);
-        doc.moveTo(rightX + 20, sigY + 85).lineTo(rightX + colWidth - 20, sigY + 85)
-          .strokeColor('#64748b').lineWidth(1).stroke();
+        sigPage.drawLine({
+          start: { x: rightX + 20, y: locataireStartY - 70 },
+          end: { x: rightX + colWidth - 20, y: locataireStartY - 70 },
+          thickness: 1, color: grayColor,
+        });
       }
     } else {
-      doc.moveTo(rightX + 20, sigY + 85).lineTo(rightX + colWidth - 20, sigY + 85)
-        .strokeColor('#64748b').lineWidth(1).stroke();
+      sigPage.drawLine({
+        start: { x: rightX + 20, y: locataireStartY - 70 },
+        end: { x: rightX + colWidth - 20, y: locataireStartY - 70 },
+        thickness: 1, color: grayColor,
+      });
     }
 
     // Signature metadata
     if (signatureData) {
-      const metaY = Math.max(doc.y, sigY + 100) + 15;
-      doc.moveTo(40, metaY).lineTo(555, metaY).strokeColor('#e2e8f0').lineWidth(1).stroke();
-      doc.fontSize(7).fillColor('#64748b');
+      const metaY = Math.min(sigY, locataireStartY - 100) - 15;
+      sigPage.drawLine({
+        start: { x: MARGIN, y: metaY },
+        end: { x: PAGE_WIDTH - MARGIN, y: metaY },
+        thickness: 1, color: hexToRgb('#e2e8f0'),
+      });
       const signedAt = contract.contract_signed_at || contract.signed_at;
       const signerIp = contract.contract_signer_ip || contract.signer_ip;
       let metaText = `Contrat signé électroniquement le ${formatDateFull(signedAt)}`;
-      if (signerIp) metaText += ` • IP: ${signerIp}`;
-      doc.text(metaText, 40, metaY + 8, { width: pageWidth, align: 'center' });
-      doc.fontSize(6).fillColor('#92400e')
-        .text('Conformément au règlement eIDAS (UE) n° 910/2014', 40, doc.y + 5, { width: pageWidth, align: 'center' });
+      if (signerIp) metaText += ` · IP: ${signerIp}`;
+      const metaW = helvetica.widthOfTextAtSize(metaText, 7);
+      sigPage.drawText(metaText, { x: (PAGE_WIDTH - metaW) / 2, y: metaY - 12, font: helvetica, size: 7, color: grayColor });
+
+      const eidasText = 'Conformément au règlement eIDAS (UE) n° 910/2014';
+      const eidasW = helvetica.widthOfTextAtSize(eidasText, 6);
+      sigPage.drawText(eidasText, { x: (PAGE_WIDTH - eidasW) / 2, y: metaY - 22, font: helvetica, size: 6, color: hexToRgb('#92400e') });
     }
 
-    drawFooter(currentPage, totalPages);
+    // Footer
+    sigPage.drawText(pdfData.company_name, { x: MARGIN, y: 30, font: helvetica, size: 7, color: grayColor });
 
-    doc.end();
-    const pdfBuffer = await pdfPromise;
+    // Generate PDF bytes
+    const pdfBytes = await doc.save();
 
-    console.log(`[GENERATE-SIGNED-CONTRACT-PDF] PDF generated: ${pdfBuffer.length} bytes`);
+    console.log(`[GENERATE-SIGNED-CONTRACT-PDF] PDF generated: ${pdfBytes.length} bytes`);
 
     // If action is 'upload', store to signed-contracts bucket
     if (action === 'upload') {
@@ -582,7 +699,7 @@ serve(async (req) => {
       const fileName = `${trackingNumber}-signed.pdf`;
       const { error: uploadError } = await adminClient.storage
         .from('signed-contracts')
-        .upload(fileName, pdfBuffer, {
+        .upload(fileName, pdfBytes, {
           contentType: 'application/pdf',
           cacheControl: '0',
           upsert: true,
@@ -599,7 +716,6 @@ serve(async (req) => {
 
       const publicUrl = urlData?.publicUrl;
 
-      // Update contract record
       await adminClient
         .from('contracts')
         .update({ signed_contract_pdf_url: publicUrl })
@@ -614,7 +730,7 @@ serve(async (req) => {
     }
 
     // Return PDF binary
-    return new Response(pdfBuffer, {
+    return new Response(pdfBytes, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/pdf',

@@ -82,9 +82,19 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
         order_status: eq.order_status || 'to_order',
       })));
       setSuppliers(suppResult);
-    } catch (err) {
-      console.error('Error fetching equipment order data:', err);
-      toast.error("Erreur lors du chargement");
+    } catch (err: any) {
+      console.error('[EquipmentOrderTracker] Error fetching data:', {
+        error: err,
+        message: err?.message,
+        code: err?.code,
+        details: err?.details,
+        hint: err?.hint,
+        sourceType,
+        sourceId,
+        tableName,
+        companyId,
+      });
+      toast.error(`Erreur lors du chargement des équipements: ${err?.message || 'erreur inconnue'}`);
     } finally {
       setLoading(false);
     }
