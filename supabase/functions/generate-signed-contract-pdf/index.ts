@@ -30,9 +30,38 @@ const formatDateFull = (dateString?: string) => {
   });
 };
 
+// Sanitize text for WinAnsi encoding (pdf-lib standard fonts)
+const sanitizeForWinAnsi = (text: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/\u2011/g, '-')       // non-breaking hyphen
+    .replace(/\u2013/g, '-')       // en dash
+    .replace(/\u2014/g, '--')      // em dash
+    .replace(/\u2018/g, "'")       // left single quote
+    .replace(/\u2019/g, "'")       // right single quote
+    .replace(/\u201C/g, '"')       // left double quote
+    .replace(/\u201D/g, '"')       // right double quote
+    .replace(/\u2026/g, '...')     // ellipsis
+    .replace(/\u00A0/g, ' ')       // non-breaking space
+    .replace(/\u202F/g, ' ')       // narrow no-break space
+    .replace(/\u2009/g, ' ')       // thin space
+    .replace(/\u200B/g, '')        // zero-width space
+    .replace(/\u00AB/g, '"')       // left guillemet
+    .replace(/\u00BB/g, '"')       // right guillemet
+    .replace(/\u2022/g, '-')       // bullet
+    .replace(/\u2010/g, '-')       // hyphen
+    .replace(/\u2012/g, '-')       // figure dash
+    .replace(/\u2015/g, '--')      // horizontal bar
+    .replace(/\u2032/g, "'")       // prime
+    .replace(/\u2033/g, '"')       // double prime
+    .replace(/\u0152/g, 'OE')      // OE ligature
+    .replace(/\u0153/g, 'oe')      // oe ligature
+    .replace(/\uFEFF/g, '');       // BOM
+};
+
 const stripHtml = (html: string): string => {
   if (!html) return '';
-  return html
+  return sanitizeForWinAnsi(html
     .replace(/<h[1-6][^>]*>/gi, '').replace(/<\/h[1-6]>/gi, '\n')
     .replace(/<p[^>]*>/gi, '').replace(/<\/p>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n')
@@ -48,7 +77,7 @@ const stripHtml = (html: string): string => {
     .replace(/\*\*/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]+/g, ' ')
-    .trim();
+    .trim());
 };
 
 const replacePlaceholders = (text: string, data: any): string => {
@@ -105,7 +134,7 @@ const replacePlaceholders = (text: string, data: any): string => {
   for (const [key, value] of Object.entries(placeholders)) {
     result = result.split(key).join(value);
   }
-  return result;
+  return sanitizeForWinAnsi(result);
 };
 
 // Helper: parse hex color to rgb
