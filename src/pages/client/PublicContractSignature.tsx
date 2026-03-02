@@ -19,7 +19,7 @@ import {
   Shield,
   RefreshCw,
 } from "lucide-react";
-import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SignatureCanvas from "react-signature-canvas";
 import IBANInput from "@/components/contracts/IBANInput";
@@ -390,14 +390,27 @@ const PublicContractSignature: React.FC = () => {
     try {
       const signatureData = signatureRef.current?.toDataURL('image/png');
       
-      // Get client IP (best effort)
+      // Get client IP - try edge function first, then ipify fallback
       let signerIP = 'unknown';
       try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
-        signerIP = ipData.ip;
+        const edgeRes = await fetch(
+          `${SUPABASE_URL}/functions/v1/get-client-ip`,
+          { headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY } }
+        );
+        const edgeData = await edgeRes.json();
+        if (edgeData.ip && edgeData.ip !== 'unknown') {
+          signerIP = edgeData.ip;
+        } else {
+          throw new Error('Edge function returned unknown');
+        }
       } catch {
-        console.log('Could not fetch IP');
+        try {
+          const ipResponse = await fetch('https://api.ipify.org?format=json');
+          const ipData = await ipResponse.json();
+          signerIP = ipData.ip;
+        } catch {
+          console.log('Could not fetch IP from any source');
+        }
       }
 
       const { data, error } = await supabase.rpc('sign_contract_public', {

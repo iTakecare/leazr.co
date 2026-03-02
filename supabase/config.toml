@@ -221,3 +221,6 @@ verify_jwt = false
 
 [functions.generate-signed-contract-pdf]
 verify_jwt = false
+
+[functions.get-client-ip]
+verify_jwt = false
