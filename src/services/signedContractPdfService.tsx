@@ -1,4 +1,4 @@
-import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
+import { supabase, getFileUploadClient, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
 // Re-export the type for backward compatibility
 export type { SignedContractPDFData } from '@/components/pdf/templates/SignedContractPDFDocument';
@@ -14,15 +14,14 @@ export async function generateSignedContractPDF(contractId: string): Promise<Blo
     throw new Error('Non authentifié. Veuillez vous reconnecter.');
   }
 
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const url = `https://${projectId}.supabase.co/functions/v1/generate-signed-contract-pdf`;
+  const url = `${SUPABASE_URL}/functions/v1/generate-signed-contract-pdf`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ contractId, action: 'download' }),
   });
@@ -106,15 +105,14 @@ export async function generateAndUploadSignedContractPDF(contractId: string): Pr
     throw new Error('Non authentifié. Veuillez vous reconnecter.');
   }
 
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const url = `https://${projectId}.supabase.co/functions/v1/generate-signed-contract-pdf`;
+  const url = `${SUPABASE_URL}/functions/v1/generate-signed-contract-pdf`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ contractId, action: 'upload' }),
   });
