@@ -532,8 +532,9 @@ export interface MollieSubscriptionDetails {
 
 export interface MolliePayment {
   id: string;
-  status: "open" | "pending" | "paid" | "failed" | "expired" | "canceled";
+  status: "open" | "pending" | "paid" | "failed" | "expired" | "canceled" | "chargedback";
   amount: { value: string; currency: string };
+  amountChargedBack?: { value: string; currency: string };
   createdAt: string;
   paidAt?: string;
   description: string;

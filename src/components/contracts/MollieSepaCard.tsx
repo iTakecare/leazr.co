@@ -433,7 +433,16 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     }
   };
 
-  const getPaymentStatusBadge = (status: string) => {
+  const getPaymentStatusBadge = (status: string, payment?: MolliePayment) => {
+    // Check for chargeback via amountChargedBack (status may still be "paid")
+    if (payment?.amountChargedBack && parseFloat(payment.amountChargedBack.value) > 0) {
+      return (
+        <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-700">
+          <XCircle className="h-3 w-3" />
+          Rétrofacturé
+        </Badge>
+      );
+    }
     switch (status) {
       case "paid":
         return (
@@ -611,9 +620,9 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                         {parseFloat(payment.amount.value).toFixed(2)} €
                       </span>
                       <div className="flex items-center gap-2">
-                        {getPaymentStatusBadge(payment.status)}
+                        {getPaymentStatusBadge(payment.status, payment)}
                         {/* Invoice generation button for paid payments */}
-                        {payment.status === "paid" && !invoiceGeneratedForPayments.has(payment.id) && (
+                        {payment.status === "paid" && !payment.amountChargedBack && !invoiceGeneratedForPayments.has(payment.id) && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -631,7 +640,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                             )}
                           </Button>
                         )}
-                        {payment.status === "paid" && invoiceGeneratedForPayments.has(payment.id) && (
+                        {payment.status === "paid" && !payment.amountChargedBack && invoiceGeneratedForPayments.has(payment.id) && (
                           <Badge className="bg-emerald-600 hover:bg-emerald-600 gap-1 text-xs">
                             <CheckCircle2 className="h-3 w-3" />
                             Facturé
@@ -650,7 +659,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                           </Button>
                         )}
                         {/* Retry button for failed/chargedback payments */}
-                        {(payment.status === "failed" || payment.status === "expired" || payment.status === "canceled" || payment.status === "chargedback") && (
+                        {(payment.status === "failed" || payment.status === "expired" || payment.status === "canceled" || payment.status === "chargedback" || (payment.status === "paid" && payment.amountChargedBack && parseFloat(payment.amountChargedBack.value) > 0)) && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -732,7 +741,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Statut</span>
-                      {getPaymentStatusBadge(retryPayment.status)}
+                      {getPaymentStatusBadge(retryPayment.status, retryPayment)}
                     </div>
                   </div>
 
