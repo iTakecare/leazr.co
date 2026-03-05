@@ -1141,7 +1141,8 @@ export const generateSelfLeasingMonthlyInvoice = async (
   contractId: string, 
   companyId: string, 
   paymentDate: string, 
-  amountTvac: number
+  amountTvac: number,
+  insufficientFundsFee?: number
 ) => {
   try {
     const date = new Date(paymentDate);
@@ -1195,7 +1196,11 @@ export const generateSelfLeasingMonthlyInvoice = async (
     // Utiliser la mensualité du contrat (toujours HTVA) plutôt que le montant Mollie
     // car le montant Mollie peut être TVAC ou HTVA selon la configuration
     const vatRate = 21;
-    const amountHtva = contract.monthly_payment || Math.round((amountTvac / (1 + vatRate / 100)) * 100) / 100;
+    const baseAmountHtva = contract.monthly_payment || Math.round((amountTvac / (1 + vatRate / 100)) * 100) / 100;
+    
+    // Add insufficient funds fee if present
+    const feeHtva = insufficientFundsFee ? Math.round((insufficientFundsFee / (1 + vatRate / 100)) * 100) / 100 : 0;
+    const amountHtva = Math.round((baseAmountHtva + feeHtva) * 100) / 100;
     const vatAmount = Math.round((amountHtva * vatRate / 100) * 100) / 100;
     const amountTvacCalc = Math.round((amountHtva + vatAmount) * 100) / 100;
 
@@ -1203,10 +1208,21 @@ export const generateSelfLeasingMonthlyInvoice = async (
     const equipmentData = equipmentItems.map(item => ({
       title: `Contrat de location ${contract.tracking_number || ''} / ${item.title}`,
       quantity: item.quantity || 1,
-      selling_price_excl_vat: item.monthly_payment || (amountHtva / (equipmentItems.length || 1)),
+      selling_price_excl_vat: item.monthly_payment || (baseAmountHtva / (equipmentItems.length || 1)),
       serial_number: item.serial_number || null,
       vat_rate: vatRate,
     }));
+
+    // Ajouter la ligne de frais d'insuffisance de fonds si présente
+    if (insufficientFundsFee && feeHtva > 0) {
+      equipmentData.push({
+        title: "Frais pour insuffisance de fonds",
+        quantity: 1,
+        selling_price_excl_vat: feeHtva,
+        serial_number: null,
+        vat_rate: vatRate,
+      });
+    }
 
     // Créer la facture avec billing_data complet - amount = HTVA
     const { data: invoice, error: invoiceError } = await supabase

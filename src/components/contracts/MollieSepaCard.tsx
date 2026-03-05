@@ -303,11 +303,29 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const handleGenerateMonthlyInvoice = async (payment: MolliePayment) => {
     try {
       setGeneratingInvoiceForPayment(payment.id);
+
+      // Detect associated insufficient funds fee payment
+      let insufficientFundsFee: number | undefined;
+      if (recentPayments && recentPayments.length > 0) {
+        const paymentDate = new Date(payment.createdAt);
+        const feePayment = recentPayments.find(p => {
+          if (!p.description?.includes("Frais pour insuffisance de fonds")) return false;
+          const feeDate = new Date(p.createdAt);
+          const diffMs = Math.abs(feeDate.getTime() - paymentDate.getTime());
+          const diffDays = diffMs / (1000 * 60 * 60 * 24);
+          return diffDays <= 1; // Same day or next day
+        });
+        if (feePayment && feePayment.status === "paid") {
+          insufficientFundsFee = parseFloat(feePayment.amount.value);
+        }
+      }
+
       const result = await generateSelfLeasingMonthlyInvoice(
         contract.id,
         companyId,
         payment.createdAt,
-        parseFloat(payment.amount.value)
+        parseFloat(payment.amount.value),
+        insufficientFundsFee
       );
       if (result.alreadyExists) {
         toast.info("Une facture existe déjà pour ce mois");
