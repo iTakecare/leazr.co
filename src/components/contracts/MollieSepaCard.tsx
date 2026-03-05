@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   CreditCard, 
   Send, 
@@ -77,9 +78,16 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [subscriptionDetails, setSubscriptionDetails] = useState<MollieSubscriptionDetails | null>(null);
   const [recentPayments, setRecentPayments] = useState<MolliePayment[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const [retryingPaymentId, setRetryingPaymentId] = useState<string | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [generatingInvoiceForPayment, setGeneratingInvoiceForPayment] = useState<string | null>(null);
   const [invoiceGeneratedForPayments, setInvoiceGeneratedForPayments] = useState<Set<string>>(new Set());
+  
+  // Retry dialog state
+  const [retryDialogOpen, setRetryDialogOpen] = useState(false);
+  const [retryPayment, setRetryPayment] = useState<MolliePayment | null>(null);
+  const [addInsufficientFundsFee, setAddInsufficientFundsFee] = useState(false);
+  const [insufficientFundsFeeAmount, setInsufficientFundsFeeAmount] = useState(15);
+  const [retryInProgress, setRetryInProgress] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -227,37 +235,68 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     }
   }, [contract.mollie_customer_id, contract.mollie_subscription_id, contract.mollie_mandate_id]);
 
-  // Handle retry payment for failed/expired/canceled payments
-  const handleRetryPayment = async (payment: MolliePayment) => {
-    if (!contract.mollie_customer_id) {
+  // Open retry dialog for failed/expired/canceled/chargedback payments
+  const openRetryDialog = (payment: MolliePayment) => {
+    setRetryPayment(payment);
+    setAddInsufficientFundsFee(false);
+    setInsufficientFundsFeeAmount(15);
+    setRetryDialogOpen(true);
+  };
+
+  // Handle retry payment with optional insufficient funds fee
+  const handleRetryPaymentConfirm = async () => {
+    if (!contract.mollie_customer_id || !retryPayment) {
       toast.error("Aucun client Mollie configuré");
       return;
     }
 
     try {
-      setRetryingPaymentId(payment.id);
+      setRetryInProgress(true);
       
+      // 1. Retry the original payment
       const result = await createMolliePayment({
         customer_id: contract.mollie_customer_id,
         mandate_id: contract.mollie_mandate_id || undefined,
-        amount: parseFloat(payment.amount.value),
-        description: payment.description || `Loyer mensuel - Contrat ${contract.id.substring(0, 8)}`,
+        amount: parseFloat(retryPayment.amount.value),
+        description: retryPayment.description || `Loyer mensuel - Contrat ${contract.id.substring(0, 8)}`,
         contract_id: contract.id,
         company_id: companyId,
       });
 
-      if (result.success) {
-        toast.success("Prélèvement relancé avec succès");
-        // Refresh history
-        await fetchMollieDetails();
-      } else {
-        toast.error(result.error || "Erreur lors de la relance");
+      if (!result.success) {
+        toast.error(result.error || "Erreur lors de la relance du loyer");
+        return;
       }
+
+      // 2. If fee is enabled, create a separate payment for the fee
+      if (addInsufficientFundsFee && insufficientFundsFeeAmount > 0) {
+        const feeResult = await createMolliePayment({
+          customer_id: contract.mollie_customer_id,
+          mandate_id: contract.mollie_mandate_id || undefined,
+          amount: insufficientFundsFeeAmount,
+          description: `Frais pour insuffisance de fonds - Contrat ${contract.id.substring(0, 8)}`,
+          contract_id: contract.id,
+          company_id: companyId,
+        });
+
+        if (!feeResult.success) {
+          toast.warning(`Loyer relancé, mais les frais n'ont pas pu être prélevés : ${feeResult.error}`);
+        } else {
+          toast.success("Loyer relancé et frais d'insuffisance prélevés");
+        }
+      } else {
+        toast.success("Prélèvement relancé avec succès");
+      }
+
+      setRetryDialogOpen(false);
+      setRetryPayment(null);
+      // Refresh history
+      await fetchMollieDetails();
     } catch (error) {
       console.error("Retry payment error:", error);
       toast.error("Erreur lors de la relance du prélèvement");
     } finally {
-      setRetryingPaymentId(null);
+      setRetryInProgress(false);
     }
   };
 
@@ -419,6 +458,13 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           <Badge variant="destructive" className="gap-1">
             <XCircle className="h-3 w-3" />
             {status === "failed" ? "Échoué" : status === "expired" ? "Expiré" : "Annulé"}
+          </Badge>
+        );
+      case "chargedback":
+        return (
+          <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-700">
+            <XCircle className="h-3 w-3" />
+            Rétrofacturé
           </Badge>
         );
       default:
@@ -604,23 +650,16 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                             Facturer
                           </Button>
                         )}
-                        {/* Retry button for failed payments */}
-                        {(payment.status === "failed" || payment.status === "expired" || payment.status === "canceled") && (
+                        {/* Retry button for failed/chargedback payments */}
+                        {(payment.status === "failed" || payment.status === "expired" || payment.status === "canceled" || payment.status === "chargedback") && (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleRetryPayment(payment)}
-                            disabled={retryingPaymentId === payment.id}
+                            onClick={() => openRetryDialog(payment)}
                             className="h-6 px-2 text-xs"
                           >
-                            {retryingPaymentId === payment.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <>
-                                <RefreshCw className="h-3 w-3 mr-1" />
-                                Relancer
-                              </>
-                            )}
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Relancer
                           </Button>
                         )}
                       </div>
@@ -671,6 +710,96 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           <div className="text-sm text-muted-foreground">
             <p><strong>Client :</strong> {contract.client_name || `${formData.prenom} ${formData.nom}`}</p>
           </div>
+
+          {/* Dialog for retry with optional fees */}
+          <Dialog open={retryDialogOpen} onOpenChange={(open) => { if (!retryInProgress) setRetryDialogOpen(open); }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Relancer le prélèvement</DialogTitle>
+                <DialogDescription>
+                  Relancez le prélèvement échoué avec la possibilité d'ajouter des frais d'insuffisance de fonds.
+                </DialogDescription>
+              </DialogHeader>
+              {retryPayment && (
+                <div className="space-y-4 py-2">
+                  <div className="p-3 bg-muted rounded-md space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Montant du loyer</span>
+                      <span className="font-semibold">{parseFloat(retryPayment.amount.value).toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Date originale</span>
+                      <span>{formatDate(retryPayment.createdAt)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Statut</span>
+                      {getPaymentStatusBadge(retryPayment.status)}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="add-fee"
+                      checked={addInsufficientFundsFee}
+                      onCheckedChange={(checked) => setAddInsufficientFundsFee(checked === true)}
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="add-fee" className="font-medium cursor-pointer">
+                        Ajouter des frais d'insuffisance de fonds
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Un prélèvement séparé sera créé pour les frais
+                      </p>
+                    </div>
+                  </div>
+
+                  {addInsufficientFundsFee && (
+                    <div className="ml-7 space-y-2">
+                      <Label htmlFor="fee-amount">Montant des frais (€)</Label>
+                      <Input
+                        id="fee-amount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={insufficientFundsFeeAmount}
+                        onChange={(e) => setInsufficientFundsFeeAmount(parseFloat(e.target.value) || 0)}
+                        className="w-32"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Description : "Frais pour insuffisance de fonds"
+                      </p>
+                    </div>
+                  )}
+
+                  {addInsufficientFundsFee && (
+                    <Alert>
+                      <Euro className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Récapitulatif :</strong><br />
+                        • Loyer : {parseFloat(retryPayment.amount.value).toFixed(2)} € (prélèvement 1)<br />
+                        • Frais : {insufficientFundsFeeAmount.toFixed(2)} € (prélèvement 2)
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setRetryDialogOpen(false)} disabled={retryInProgress}>
+                  Annuler
+                </Button>
+                <Button onClick={handleRetryPaymentConfirm} disabled={retryInProgress}>
+                  {retryInProgress ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Relancer
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Dialog for editing payment day */}
           <Dialog open={editPaymentDayOpen} onOpenChange={setEditPaymentDayOpen}>
