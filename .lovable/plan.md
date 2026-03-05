@@ -1,36 +1,46 @@
 
 
-# Ajouter les frais d'insuffisance de fonds sur la facture mensuelle
+# Ajouter une option "Facturation avec TVA" au formulaire SEPA et permettre la modification du montant
 
-## Contexte
+## Probleme
 
-Quand un paiement est relancé avec des frais d'insuffisance de fonds, deux prélèvements Mollie séparés sont créés (loyer + frais). Mais quand on clique "Facturer" sur le paiement de loyer, la facture générée ne contient que le loyer sans les frais. L'utilisateur veut que les frais apparaissent comme une ligne supplémentaire sur la même facture.
+1. Le montant du prelevement SEPA est saisi manuellement lors de la configuration initiale, mais il n'y a pas d'option pour inclure automatiquement la TVA (21% pour la Belgique). L'utilisateur doit calculer le montant TVAC manuellement, ce qui mene a des erreurs (oubli de la TVA).
+
+2. Une fois le prelevement configure, il n'y a pas de moyen de modifier le montant de l'abonnement depuis l'interface.
 
 ## Solution
 
-### 1. Détecter les frais associés lors de la facturation
+### 1. Ajouter une checkbox "Facturation avec TVA" dans le formulaire de configuration SEPA
 
 **Fichier : `src/components/contracts/MollieSepaCard.tsx`**
 
-Quand on clique "Facturer" sur un paiement de loyer, chercher dans `recentPayments` s'il existe un paiement avec la description contenant "Frais pour insuffisance de fonds" créé à une date proche (même jour ou jour suivant). Si trouvé, passer ce montant de frais à la fonction de génération de facture.
+- Ajouter un state `includeVat` (boolean, defaut `false`)
+- Ajouter une checkbox sous le champ "Montant mensuel" : "Appliquer la TVA (21%)"
+- Quand cochee, le montant envoye a Mollie = `montant * 1.21` (arrondi a 2 decimales)
+- Le recapitulatif affiche clairement : montant HTVA, TVA, montant TVAC
+- Le `montant` saisi dans le formulaire reste le montant HTVA, la TVA est calculee automatiquement
+- Detection automatique : si l'IBAN commence par "BE", proposer/pre-cocher la TVA
 
-### 2. Modifier `generateSelfLeasingMonthlyInvoice`
-
-**Fichier : `src/services/invoiceService.ts`**
-
-Ajouter un paramètre optionnel `insufficientFundsFee?: number` à la fonction. Si présent :
-- Ajouter une ligne supplémentaire dans `equipment_data` avec le titre "Frais pour insuffisance de fonds" et le montant des frais
-- Ajouter le montant des frais au total HTVA de la facture
-- Recalculer TVA et total TTC en incluant les frais
-
-### 3. Modifier l'appel dans MollieSepaCard
+### 2. Ajouter un bouton "Modifier le montant" dans la vue configuree
 
 **Fichier : `src/components/contracts/MollieSepaCard.tsx`**
 
-Dans `handleGenerateMonthlyInvoice`, avant d'appeler `generateSelfLeasingMonthlyInvoice`, rechercher un paiement de frais associé dans la liste des paiements récents et passer le montant en paramètre.
+- A cote du montant affiche dans la section abonnement, ajouter un bouton crayon (comme pour le jour de prelevement)
+- Ouvrir un dialog avec :
+  - Le montant actuel pre-rempli
+  - La checkbox TVA
+  - Un recapitulatif du nouveau montant
+- Appeler `updateMollieSubscription` avec le nouveau montant (il faudra verifier que l'edge function supporte la mise a jour du montant)
 
-### Fichiers modifiés
+### 3. Verifier/adapter `updateMollieSubscription`
 
-1. **`src/services/invoiceService.ts`** : paramètre optionnel `insufficientFundsFee` + ligne de frais sur la facture
-2. **`src/components/contracts/MollieSepaCard.tsx`** : détection du paiement de frais associé et passage à la fonction de génération
+**Fichier : `src/utils/mollie.ts`**
+
+- Verifier que la fonction `updateMollieSubscription` accepte un parametre `amount` en plus de `new_start_date`
+- Si non, ajouter le parametre optionnel `new_amount` et le passer a l'edge function
+
+### Fichiers modifies
+
+1. **`src/components/contracts/MollieSepaCard.tsx`** : checkbox TVA dans le formulaire + dialog modification montant
+2. **`src/utils/mollie.ts`** : ajouter `new_amount` a `updateMollieSubscription` si necessaire
 
