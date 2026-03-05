@@ -1,37 +1,44 @@
 
 
-# Fix: Gestion des retrofacturations Mollie et frais d'insuffisance
+# Fix: Détection des paiements rétrofacturés Mollie
 
-## Probleme
+## Problème racine
 
-1. **Statut "chargedback" non gere** : Mollie a un statut `chargedback` (retrofacturation) qui n'existe pas dans le mapping de statuts du composant `MollieSepaCard`. Quand un paiement est retrofacture (code AM04 = insuffisance de fonds), il reste affiche comme "Paye" car le statut `chargedback` tombe dans le `default` du switch.
-
-2. **Pas de frais d'insuffisance** : Quand on relance un prelevement, il n'y a aucune option pour facturer des frais supplementaires.
+Dans l'API Mollie, un paiement rétrofacturé **conserve son statut "paid"**. L'information de rétrofacturation est stockée dans un champ séparé `amountChargedBack` sur l'objet paiement. Notre code ne regarde que `payment.status`, qui reste "paid" → badge vert "Payé" même si l'argent a été repris.
 
 ## Solution
 
-### 1. Ajouter le statut "chargedback" dans MollieSepaCard
+### 1. Mettre à jour l'interface `MolliePayment` (src/utils/mollie.ts)
 
-**Fichier : `src/components/contracts/MollieSepaCard.tsx`**
+Ajouter le champ optionnel `amountChargedBack` à l'interface :
 
-- Ajouter `chargedback` dans `getPaymentStatusBadge` avec un badge rouge "Retrofacture"
-- Ajouter `chargedback` dans la condition du bouton "Relancer" (a cote de `failed`, `expired`, `canceled`)
-- Empecher le bouton "Facturer" d'apparaitre pour les paiements `chargedback`
+```typescript
+export interface MolliePayment {
+  id: string;
+  status: "open" | "pending" | "paid" | "failed" | "expired" | "canceled";
+  amount: { value: string; currency: string };
+  amountChargedBack?: { value: string; currency: string }; // NEW
+  createdAt: string;
+  paidAt?: string;
+  description: string;
+  subscriptionId?: string;
+}
+```
 
-### 2. Ajouter un dialog de relance avec frais optionnels
+### 2. Modifier la logique d'affichage du badge (src/components/contracts/MollieSepaCard.tsx)
 
-**Fichier : `src/components/contracts/MollieSepaCard.tsx`**
+Modifier `getPaymentStatusBadge` pour accepter le paiement complet (pas juste le status string) et vérifier `amountChargedBack` :
 
-- Quand on clique "Relancer" sur un paiement echoue/retrofacture, ouvrir un dialog qui propose :
-  - Le montant du loyer a relancer (pre-rempli, non modifiable)
-  - Une option "Ajouter des frais d'insuffisance de fonds" (checkbox)
-  - Un champ montant configurable (par defaut 15 EUR)
-  - Le prelevement des frais sera un paiement separe avec la description "Frais pour insuffisance de fonds"
-- Les deux prelevements (loyer + frais) seront lances independamment via deux appels a `createMolliePayment`
+- Si `payment.amountChargedBack` existe et a une valeur > 0 → afficher badge rouge "Rétrofacturé" (même si status = "paid")
+- Sinon, utiliser le switch existant sur `payment.status`
 
-### Fichiers modifies
+### 3. Modifier le bouton "Relancer" et "Facturer"
 
-1. **`src/components/contracts/MollieSepaCard.tsx`** : ajout statut `chargedback`, dialog de relance avec frais
+- Permettre "Relancer" si le paiement a `amountChargedBack` (en plus de failed/expired/canceled)
+- Masquer "Facturer" si le paiement a `amountChargedBack`
 
-Aucune modification de l'Edge Function necessaire - `createMolliePayment` (action `create_payment`) existe deja et supporte un montant et une description libres.
+### Fichiers modifiés
+
+1. **`src/utils/mollie.ts`** : ajouter `amountChargedBack` à l'interface
+2. **`src/components/contracts/MollieSepaCard.tsx`** : modifier `getPaymentStatusBadge` et la logique des boutons pour détecter les chargebacks via `amountChargedBack`
 
