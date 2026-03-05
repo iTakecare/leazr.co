@@ -87,6 +87,15 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [addInsufficientFundsFee, setAddInsufficientFundsFee] = useState(false);
   const [insufficientFundsFeeAmount, setInsufficientFundsFeeAmount] = useState(15);
   const [retryInProgress, setRetryInProgress] = useState(false);
+
+  // VAT checkbox state
+  const [includeVat, setIncludeVat] = useState(false);
+
+  // Edit amount dialog state
+  const [editAmountOpen, setEditAmountOpen] = useState(false);
+  const [newAmount, setNewAmount] = useState("");
+  const [newAmountIncludeVat, setNewAmountIncludeVat] = useState(false);
+  const [updatingAmount, setUpdatingAmount] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -162,6 +171,48 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       toast.error("Erreur lors de la modification du jour de prélèvement");
     } finally {
       setUpdatingPaymentDay(false);
+    }
+  };
+
+  const handleUpdateAmount = async () => {
+    if (!contract.mollie_customer_id || !contract.mollie_subscription_id) {
+      toast.error("Aucun abonnement Mollie configuré");
+      return;
+    }
+
+    const baseAmount = parseFloat(newAmount);
+    if (isNaN(baseAmount) || baseAmount <= 0) {
+      toast.error("Veuillez saisir un montant valide");
+      return;
+    }
+
+    const finalAmount = newAmountIncludeVat 
+      ? Math.round(baseAmount * 1.21 * 100) / 100 
+      : baseAmount;
+
+    try {
+      setUpdatingAmount(true);
+
+      const result = await updateMollieSubscription({
+        customer_id: contract.mollie_customer_id,
+        subscription_id: contract.mollie_subscription_id,
+        new_amount: finalAmount.toFixed(2),
+        contract_id: contract.id,
+        company_id: companyId,
+      });
+
+      if (result.success) {
+        setEditAmountOpen(false);
+        toast.success(`Montant de l'abonnement modifié à ${finalAmount.toFixed(2)}€`);
+        await fetchMollieDetails();
+      } else {
+        toast.error(result.error || "Erreur lors de la modification du montant");
+      }
+    } catch (error) {
+      console.error("Error updating amount:", error);
+      toast.error("Erreur lors de la modification du montant");
+    } finally {
+      setUpdatingAmount(false);
     }
   };
 
@@ -367,6 +418,10 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const handleIbanChange = (value: string, isValid: boolean) => {
     setFormData(prev => ({ ...prev, iban: value }));
     setIbanValid(isValid);
+    // Auto-detect Belgian IBAN and pre-check VAT
+    if (value.toUpperCase().startsWith("BE") && isValid) {
+      setIncludeVat(true);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -393,13 +448,17 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     try {
       setSending(true);
 
+      const finalAmount = includeVat 
+        ? Math.round(formData.montant * 1.21 * 100) / 100 
+        : formData.montant;
+
       const result = await setupMollieSepaComplete({
         name: `${formData.prenom} ${formData.nom}`,
         email: formData.email.trim(),
         consumer_name: `${formData.prenom} ${formData.nom}`,
         iban: formData.iban,
         bic: formData.bic || undefined,
-        amount: formData.montant,
+        amount: finalAmount,
         times: formData.nombre_mois,
         description: formData.description,
         contract_id: contract.id,
@@ -599,9 +658,23 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                       <span className="font-medium">
                         📅 {formatDate(subscriptionDetails.nextPaymentDate)}
                       </span>
-                      <span className="font-semibold">
-                        {parseFloat(subscriptionDetails.amount?.value || displayAmount.toString()).toFixed(2)} €
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">
+                          {parseFloat(subscriptionDetails.amount?.value || displayAmount.toString()).toFixed(2)} €
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => {
+                            setNewAmount(parseFloat(subscriptionDetails.amount?.value || displayAmount.toString()).toFixed(2));
+                            setNewAmountIncludeVat(false);
+                            setEditAmountOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     {subscriptionDetails.timesRemaining && (
                       <p className="text-sm text-muted-foreground mt-1">
@@ -872,6 +945,75 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Dialog for editing subscription amount */}
+          <Dialog open={editAmountOpen} onOpenChange={(open) => { if (!updatingAmount) setEditAmountOpen(open); }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Modifier le montant de l'abonnement</DialogTitle>
+                <DialogDescription>
+                  Modifiez le montant du prélèvement mensuel. L'abonnement Mollie sera recréé avec le nouveau montant.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="new-amount">Nouveau montant HTVA (€)</Label>
+                  <Input
+                    id="new-amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newAmount}
+                    onChange={(e) => setNewAmount(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="new-amount-vat"
+                    checked={newAmountIncludeVat}
+                    onCheckedChange={(checked) => setNewAmountIncludeVat(checked === true)}
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="new-amount-vat" className="font-medium cursor-pointer">
+                      Appliquer la TVA (21%)
+                    </Label>
+                  </div>
+                </div>
+
+                {parseFloat(newAmount) > 0 && (
+                  <Alert>
+                    <Euro className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Récapitulatif :</strong><br />
+                      {newAmountIncludeVat ? (
+                        <>
+                          • Montant HTVA : {parseFloat(newAmount).toFixed(2)}€<br />
+                          • TVA (21%) : {(parseFloat(newAmount) * 0.21).toFixed(2)}€<br />
+                          • <strong>Montant prélevé : {(Math.round(parseFloat(newAmount) * 1.21 * 100) / 100).toFixed(2)}€</strong>
+                        </>
+                      ) : (
+                        <>• <strong>Montant prélevé : {parseFloat(newAmount).toFixed(2)}€</strong></>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditAmountOpen(false)} disabled={updatingAmount}>
+                  Annuler
+                </Button>
+                <Button onClick={handleUpdateAmount} disabled={updatingAmount || !newAmount || parseFloat(newAmount) <= 0}>
+                  {updatingAmount ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Euro className="h-4 w-4 mr-2" />
+                  )}
+                  Mettre à jour
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     );
@@ -993,6 +1135,23 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             </div>
           </div>
 
+          {/* VAT Checkbox */}
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="include-vat"
+              checked={includeVat}
+              onCheckedChange={(checked) => setIncludeVat(checked === true)}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="include-vat" className="font-medium cursor-pointer">
+                Appliquer la TVA (21%)
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Le montant prélevé sera calculé TVAC automatiquement
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Input
@@ -1009,7 +1168,16 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             <AlertDescription>
               <strong>Récapitulatif :</strong><br />
               • Client : {formData.prenom} {formData.nom}<br />
-              • Paiement : {formData.montant.toFixed(2)}€ × {formData.nombre_mois} mois = {(formData.montant * formData.nombre_mois).toFixed(2)}€
+              {includeVat ? (
+                <>
+                  • Montant HTVA : {formData.montant.toFixed(2)}€<br />
+                  • TVA (21%) : {(formData.montant * 0.21).toFixed(2)}€<br />
+                  • Montant TVAC : {(Math.round(formData.montant * 1.21 * 100) / 100).toFixed(2)}€<br />
+                  • Paiement : {(Math.round(formData.montant * 1.21 * 100) / 100).toFixed(2)}€ × {formData.nombre_mois} mois = {(Math.round(formData.montant * 1.21 * 100) / 100 * formData.nombre_mois).toFixed(2)}€
+                </>
+              ) : (
+                <>• Paiement : {formData.montant.toFixed(2)}€ × {formData.nombre_mois} mois = {(formData.montant * formData.nombre_mois).toFixed(2)}€</>
+              )}
             </AlertDescription>
           </Alert>
 

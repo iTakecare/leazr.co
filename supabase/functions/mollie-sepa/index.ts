@@ -12,6 +12,7 @@ interface MollieSepaRequest {
   action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates" | "setup_sepa_complete" | "update_subscription" | "get_subscription" | "list_payments";
   subscription_id?: string;
   new_start_date?: string;
+  new_amount?: string;
   customer_id?: string;
   mandate_id?: string;
   // Customer data
@@ -573,9 +574,14 @@ serve(async (req) => {
           console.log(`[Mollie] Using payment day ${paymentDay}, new start date: ${newStartDate}`);
         }
         
-        // Create new subscription with updated billing date
+        // Use new amount if provided, otherwise keep current
+        const subscriptionAmount = body.new_amount 
+          ? { value: body.new_amount, currency: currentSub.amount.currency }
+          : currentSub.amount;
+
+        // Create new subscription with updated billing date and/or amount
         const newSubResult = await mollieRequest(`/customers/${body.customer_id}/subscriptions`, "POST", {
-          amount: currentSub.amount,
+          amount: subscriptionAmount,
           interval: currentSub.interval,
           description: currentSub.description,
           startDate: newStartDate,
