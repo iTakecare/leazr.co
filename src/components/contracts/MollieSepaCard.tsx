@@ -78,7 +78,6 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [subscriptionDetails, setSubscriptionDetails] = useState<MollieSubscriptionDetails | null>(null);
   const [recentPayments, setRecentPayments] = useState<MolliePayment[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(false);
   const [generatingInvoiceForPayment, setGeneratingInvoiceForPayment] = useState<string | null>(null);
   const [invoiceGeneratedForPayments, setInvoiceGeneratedForPayments] = useState<Set<string>>(new Set());
   
