@@ -450,6 +450,7 @@ export interface MollieUpdateSubscriptionData {
   customer_id: string;
   subscription_id: string;
   new_start_date?: string;
+  new_amount?: string;
   times?: number;
   contract_id?: string;
   company_id?: string;
@@ -479,6 +480,7 @@ export async function updateMollieSubscription(
         customer_id: data.customer_id,
         subscription_id: data.subscription_id,
         new_start_date: data.new_start_date,
+        new_amount: data.new_amount,
         times: data.times,
         contract_id: data.contract_id,
         company_id: data.company_id,
