@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,8 @@ import {
   Clock,
   XCircle,
   Loader2,
-  FileText
+  FileText,
+  History
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +70,15 @@ interface SepaInfo {
   subscriptionId?: string | null;
   subscriptionStatus?: string | null;
   firstPaymentDate?: string | null;
+}
+
+interface SepaChange {
+  id: string;
+  change_type: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
+  changed_by: string | null;
 }
 
 export default function MollieSepaCard({ contract, companyId, onSuccess }: MollieSepaCardProps) {
@@ -121,6 +131,10 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [newConsumerName, setNewConsumerName] = useState("");
   const [updatingIban, setUpdatingIban] = useState(false);
 
+  // SEPA changes history state
+  const [sepaChanges, setSepaChanges] = useState<SepaChange[]>([]);
+  const [loadingSepaChanges, setLoadingSepaChanges] = useState(false);
+
   // Form state
   const [formData, setFormData] = useState({
     nom: "",
@@ -154,6 +168,46 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     };
     fetchPaymentDay();
   }, [companyId]);
+
+  // Helper: log a SEPA change to the database
+  const logSepaChange = useCallback(async (changeType: string, oldValue: string | null, newValue: string | null) => {
+    try {
+      await supabase.from('mollie_sepa_changes' as any).insert({
+        contract_id: contract.id,
+        company_id: companyId,
+        change_type: changeType,
+        old_value: oldValue,
+        new_value: newValue,
+      });
+      // Refresh history
+      fetchSepaChanges();
+    } catch (err) {
+      console.error('Error logging SEPA change:', err);
+    }
+  }, [contract.id, companyId]);
+
+  // Fetch SEPA changes history
+  const fetchSepaChanges = useCallback(async () => {
+    setLoadingSepaChanges(true);
+    try {
+      const { data } = await supabase
+        .from('mollie_sepa_changes' as any)
+        .select('*')
+        .eq('contract_id', contract.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setSepaChanges((data as any as SepaChange[]) || []);
+    } catch (err) {
+      console.error('Error fetching SEPA changes:', err);
+    } finally {
+      setLoadingSepaChanges(false);
+    }
+  }, [contract.id]);
+
+  // Load SEPA changes on mount
+  useEffect(() => {
+    fetchSepaChanges();
+  }, [fetchSepaChanges]);
 
   // Auto-suggest start date based on delivery date
   useEffect(() => {
@@ -216,6 +270,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
         setPaymentDay(newPaymentDay);
         setEditPaymentDayOpen(false);
         toast.success(`Jour de prélèvement modifié au ${newPaymentDay === 1 ? '1er' : newPaymentDay} du mois`);
+        await logSepaChange('payment_day', paymentDay.toString(), newPaymentDay.toString());
       } else {
         toast.error(result.error || "Erreur lors de la modification");
       }
@@ -255,6 +310,8 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       });
 
       if (result.success) {
+        const oldAmount = subscriptionDetails?.amount?.value || contract.monthly_payment?.toString() || '0';
+        await logSepaChange('amount', oldAmount, finalAmount.toFixed(2));
         setEditAmountOpen(false);
         toast.success(`Montant de l'abonnement modifié à ${finalAmount.toFixed(2)}€`);
         await fetchMollieDetails();
@@ -288,6 +345,8 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       });
 
       if (result.success) {
+        const oldDate = subscriptionDetails?.nextPaymentDate || '';
+        await logSepaChange('next_date', oldDate, newStartDate);
         setEditNextDateOpen(false);
         toast.success(`Date du prochain prélèvement modifiée au ${format(newNextDate, "d MMMM yyyy", { locale: fr })}`);
         await fetchMollieDetails();
@@ -331,6 +390,9 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       });
 
       if (result.success) {
+        const oldIbanDisplay = formData.iban ? `${formData.iban.substring(0, 4)}****${formData.iban.slice(-4)}` : 'N/A';
+        const newIbanDisplay = `${newIban.substring(0, 4)}****${newIban.slice(-4)}`;
+        await logSepaChange('iban', oldIbanDisplay, newIbanDisplay);
         setEditIbanOpen(false);
         if (result.subscriptionError) {
           toast.warning(`IBAN mis à jour, mais l'abonnement n'a pas pu être recréé : ${result.subscriptionError}`);
@@ -937,6 +999,55 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                     </div>
                   ))}
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* SEPA Changes History */}
+          {sepaChanges.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  Historique des modifications
+                </h4>
+                {loadingSepaChanges ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Chargement...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {sepaChanges.map((change) => {
+                      const changeConfig: Record<string, { label: string; icon: React.ReactNode }> = {
+                        amount: { label: 'Montant', icon: <Euro className="h-3 w-3" /> },
+                        payment_day: { label: 'Jour de prélèvement', icon: <Calendar className="h-3 w-3" /> },
+                        next_date: { label: 'Date prélèvement', icon: <Calendar className="h-3 w-3" /> },
+                        iban: { label: 'IBAN', icon: <Landmark className="h-3 w-3" /> },
+                      };
+                      const config = changeConfig[change.change_type] || { label: change.change_type, icon: null };
+                      return (
+                        <div key={change.id} className="flex items-start gap-2 p-2 bg-muted/30 rounded text-sm">
+                          <div className="mt-0.5 text-muted-foreground">{config.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline" className="text-xs">{config.label}</Badge>
+                              <span className="text-muted-foreground text-xs">
+                                {new Date(change.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
+                            <p className="text-xs mt-1">
+                              <span className="text-muted-foreground">{change.old_value || '—'}</span>
+                              <span className="mx-1">→</span>
+                              <span className="font-medium">{change.new_value || '—'}</span>
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </>
           )}

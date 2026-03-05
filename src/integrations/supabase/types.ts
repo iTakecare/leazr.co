@@ -4645,6 +4645,54 @@ export type Database = {
           },
         ]
       }
+      mollie_sepa_changes: {
+        Row: {
+          change_type: string
+          changed_by: string | null
+          company_id: string | null
+          contract_id: string
+          created_at: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          change_type: string
+          changed_by?: string | null
+          company_id?: string | null
+          contract_id: string
+          created_at?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string | null
+          company_id?: string | null
+          contract_id?: string
+          created_at?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mollie_sepa_changes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mollie_sepa_changes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       netlify_configurations: {
         Row: {
           auto_deploy: boolean | null
