@@ -1,33 +1,44 @@
 
 
-# Ajouter un date picker pour la date de premier prélèvement
+# Modifier l'IBAN d'un mandat SEPA existant
 
 ## Contexte
 
-Actuellement, la date de début de l'abonnement Mollie est calculée automatiquement : `paymentDay` du mois prochain. L'utilisateur veut pouvoir choisir une date libre, avec une suggestion automatique de commencer ce mois-ci si la livraison est avant le 15.
+Quand un client change de banque, il faut pouvoir mettre a jour l'IBAN du mandat SEPA. L'API Mollie ne permet pas de modifier un mandat existant — il faut revoquer l'ancien et en creer un nouveau avec le nouvel IBAN, puis reconfigurer l'abonnement sur le nouveau mandat.
 
-L'infrastructure est déjà prête : `MollieSepaCompleteData.start_date` existe et est passé à l'edge function, qui l'utilise si fourni. Il suffit d'ajouter l'UI.
+## Solution
 
-## Modifications
+### 1. Edge Function — nouvelle action `update_mandate_iban`
 
-### 1. Formulaire de setup initial (`MollieSepaCard.tsx`)
+**Fichier : `supabase/functions/mollie-sepa/index.ts`**
 
-- Ajouter un state `customStartDate: Date | undefined`
-- Ajouter un **date picker** (Popover + Calendar de shadcn) sous le champ "Nombre de mois" avec le label "Date du premier prélèvement"
-- **Suggestion automatique** : au mount, si `contract.delivery_date` existe et est avant le 15 du mois, pré-remplir `customStartDate` au `paymentDay` du mois en cours. Sinon, laisser au `paymentDay` du mois prochain (comportement par défaut actuel)
-- Passer `start_date: customStartDate?.toISOString().split('T')[0]` à `setupMollieSepaComplete`
+Ajouter une action `update_mandate_iban` qui :
+1. Revoque l'ancien mandat (DELETE `/customers/{id}/mandates/{id}`)
+2. Cree un nouveau mandat direct avec le nouvel IBAN
+3. Annule l'abonnement actif (si existant)
+4. Recree l'abonnement avec les memes parametres (montant, interval, times, description) lie au nouveau mandat
+5. Met a jour le contrat en DB (`mollie_mandate_id`, `mollie_mandate_status`, `mollie_subscription_id`)
 
-### 2. Section abonnement actif — modifier la date de prochain prélèvement
+### 2. Utilitaire client
 
-- Ajouter un bouton crayon à côté de "Prochain prélèvement" (comme pour le montant et le jour)
-- Ouvrir un dialog avec un date picker pour choisir la nouvelle date
-- Appeler `updateMollieSubscription` avec `new_start_date` (déjà supporté par l'edge function)
+**Fichier : `src/utils/mollie.ts`**
 
-### 3. Edge function (`mollie-sepa/index.ts`)
+Ajouter une fonction `updateMollieMandateIban` qui appelle l'edge function avec l'action `update_mandate_iban`.
 
-- Aucune modification nécessaire : `start_date` et `new_start_date` sont déjà gérés
+### 3. UI — bouton et dialog dans MollieSepaCard
 
-### Fichiers modifiés
+**Fichier : `src/components/contracts/MollieSepaCard.tsx`**
 
-1. **`src/components/contracts/MollieSepaCard.tsx`** : date picker dans le formulaire de setup + dialog de modification de date sur abonnement actif
+Dans la section ou le mandat est affiche (apres configuration), ajouter un bouton crayon a cote du mandat. Au clic, ouvrir un dialog contenant :
+- Le composant `IBANInput` existant (avec validation)
+- Un champ BIC optionnel
+- Un champ nom du titulaire (pre-rempli avec le nom client)
+- Un recapitulatif de l'impact (l'abonnement sera recree)
+- Bouton de confirmation
+
+### Fichiers modifies
+
+1. **`supabase/functions/mollie-sepa/index.ts`** — action `update_mandate_iban`
+2. **`src/utils/mollie.ts`** — fonction `updateMollieMandateIban`
+3. **`src/components/contracts/MollieSepaCard.tsx`** — dialog de modification IBAN
 
