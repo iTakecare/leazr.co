@@ -1,44 +1,58 @@
 
 
-# Modifier l'IBAN d'un mandat SEPA existant
+# Historique des modifications SEPA par contrat
 
-## Contexte
+## Objectif
 
-Quand un client change de banque, il faut pouvoir mettre a jour l'IBAN du mandat SEPA. L'API Mollie ne permet pas de modifier un mandat existant — il faut revoquer l'ancien et en creer un nouveau avec le nouvel IBAN, puis reconfigurer l'abonnement sur le nouveau mandat.
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-## Solution
+## 1. Nouvelle table `mollie_sepa_changes`
 
-### 1. Edge Function — nouvelle action `update_mandate_iban`
+Migration SQL :
 
-**Fichier : `supabase/functions/mollie-sepa/index.ts`**
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-Ajouter une action `update_mandate_iban` qui :
-1. Revoque l'ancien mandat (DELETE `/customers/{id}/mandates/{id}`)
-2. Cree un nouveau mandat direct avec le nouvel IBAN
-3. Annule l'abonnement actif (si existant)
-4. Recree l'abonnement avec les memes parametres (montant, interval, times, description) lie au nouveau mandat
-5. Met a jour le contrat en DB (`mollie_mandate_id`, `mollie_mandate_status`, `mollie_subscription_id`)
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-### 2. Utilitaire client
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 
-**Fichier : `src/utils/mollie.ts`**
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+```
 
-Ajouter une fonction `updateMollieMandateIban` qui appelle l'edge function avec l'action `update_mandate_iban`.
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-### 3. UI — bouton et dialog dans MollieSepaCard
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
 
-**Fichier : `src/components/contracts/MollieSepaCard.tsx`**
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
 
-Dans la section ou le mandat est affiche (apres configuration), ajouter un bouton crayon a cote du mandat. Au clic, ouvrir un dialog contenant :
-- Le composant `IBANInput` existant (avec validation)
-- Un champ BIC optionnel
-- Un champ nom du titulaire (pre-rempli avec le nom client)
-- Un recapitulatif de l'impact (l'abonnement sera recree)
-- Bouton de confirmation
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
 
-### Fichiers modifies
+## Fichiers modifies
 
-1. **`supabase/functions/mollie-sepa/index.ts`** — action `update_mandate_iban`
-2. **`src/utils/mollie.ts`** — fonction `updateMollieMandateIban`
-3. **`src/components/contracts/MollieSepaCard.tsx`** — dialog de modification IBAN
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
