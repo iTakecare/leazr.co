@@ -9,6 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { 
   CreditCard, 
   Send, 
@@ -46,6 +51,7 @@ interface MollieSepaCardProps {
     monthly_payment: number | null;
     contract_duration?: number | null;
     lease_duration?: number | null;
+    delivery_date?: string | null;
     // Mollie SEPA fields
     mollie_customer_id?: string | null;
     mollie_mandate_id?: string | null;
@@ -97,6 +103,15 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [newAmountIncludeVat, setNewAmountIncludeVat] = useState(false);
   const [updatingAmount, setUpdatingAmount] = useState(false);
   
+  // Custom start date state
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
+  const [startDatePopoverOpen, setStartDatePopoverOpen] = useState(false);
+
+  // Edit next payment date dialog state (active subscription)
+  const [editNextDateOpen, setEditNextDateOpen] = useState(false);
+  const [newNextDate, setNewNextDate] = useState<Date | undefined>(undefined);
+  const [updatingNextDate, setUpdatingNextDate] = useState(false);
+
   // Form state
   const [formData, setFormData] = useState({
     nom: "",
@@ -130,6 +145,35 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     };
     fetchPaymentDay();
   }, [companyId]);
+
+  // Auto-suggest start date based on delivery date
+  useEffect(() => {
+    if (paymentDay > 0) {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      if (contract.delivery_date) {
+        const deliveryDate = new Date(contract.delivery_date);
+        const deliveryDay = deliveryDate.getDate();
+        // If delivery is before 15th of the month, suggest this month's payment day
+        if (deliveryDay < 15) {
+          const thisMonthDate = new Date(currentYear, currentMonth, paymentDay);
+          // Only suggest this month if the date is still in the future
+          if (thisMonthDate > now) {
+            setCustomStartDate(thisMonthDate);
+          } else {
+            setCustomStartDate(new Date(currentYear, currentMonth + 1, paymentDay));
+          }
+        } else {
+          setCustomStartDate(new Date(currentYear, currentMonth + 1, paymentDay));
+        }
+      } else {
+        // Default: next month
+        setCustomStartDate(new Date(currentYear, currentMonth + 1, paymentDay));
+      }
+    }
+  }, [paymentDay, contract.delivery_date]);
 
   const handleUpdatePaymentDay = async () => {
     if (!contract.mollie_customer_id || !contract.mollie_subscription_id) {
@@ -213,6 +257,39 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       toast.error("Erreur lors de la modification du montant");
     } finally {
       setUpdatingAmount(false);
+    }
+  };
+
+  const handleUpdateNextDate = async () => {
+    if (!contract.mollie_customer_id || !contract.mollie_subscription_id || !newNextDate) {
+      toast.error("Données manquantes");
+      return;
+    }
+
+    try {
+      setUpdatingNextDate(true);
+      const newStartDate = newNextDate.toISOString().split("T")[0];
+
+      const result = await updateMollieSubscription({
+        customer_id: contract.mollie_customer_id,
+        subscription_id: contract.mollie_subscription_id,
+        new_start_date: newStartDate,
+        contract_id: contract.id,
+        company_id: companyId,
+      });
+
+      if (result.success) {
+        setEditNextDateOpen(false);
+        toast.success(`Date du prochain prélèvement modifiée au ${format(newNextDate, "d MMMM yyyy", { locale: fr })}`);
+        await fetchMollieDetails();
+      } else {
+        toast.error(result.error || "Erreur lors de la modification");
+      }
+    } catch (error) {
+      console.error("Error updating next date:", error);
+      toast.error("Erreur lors de la modification de la date");
+    } finally {
+      setUpdatingNextDate(false);
     }
   };
 
@@ -460,6 +537,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
         bic: formData.bic || undefined,
         amount: finalAmount,
         times: formData.nombre_mois,
+        start_date: customStartDate ? customStartDate.toISOString().split('T')[0] : undefined,
         description: formData.description,
         contract_id: contract.id,
         company_id: companyId,
@@ -655,9 +733,22 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                 ) : subscriptionDetails?.nextPaymentDate ? (
                   <div className="p-3 bg-muted/50 rounded-md">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        📅 {formatDate(subscriptionDetails.nextPaymentDate)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          📅 {formatDate(subscriptionDetails.nextPaymentDate)}
+                        </span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6"
+                          onClick={() => {
+                            setNewNextDate(new Date(subscriptionDetails.nextPaymentDate!));
+                            setEditNextDateOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">
                           {parseFloat(subscriptionDetails.amount?.value || displayAmount.toString()).toFixed(2)} €
@@ -1014,6 +1105,46 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Dialog for editing next payment date */}
+          <Dialog open={editNextDateOpen} onOpenChange={(open) => { if (!updatingNextDate) setEditNextDateOpen(open); }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Modifier la date du prochain prélèvement</DialogTitle>
+                <DialogDescription>
+                  Choisissez la nouvelle date pour le prochain prélèvement. L'abonnement Mollie sera recréé.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4 flex justify-center">
+                <CalendarComponent
+                  mode="single"
+                  selected={newNextDate}
+                  onSelect={(date) => date && setNewNextDate(date)}
+                  disabled={(date) => date < new Date()}
+                  locale={fr}
+                  className="rounded-md border pointer-events-auto"
+                />
+              </div>
+              {newNextDate && (
+                <p className="text-sm text-center text-muted-foreground">
+                  Prochain prélèvement le <strong>{format(newNextDate, "d MMMM yyyy", { locale: fr })}</strong>
+                </p>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditNextDateOpen(false)} disabled={updatingNextDate}>
+                  Annuler
+                </Button>
+                <Button onClick={handleUpdateNextDate} disabled={updatingNextDate || !newNextDate}>
+                  {updatingNextDate ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Calendar className="h-4 w-4 mr-2" />
+                  )}
+                  Mettre à jour
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     );
@@ -1135,6 +1266,44 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             </div>
           </div>
 
+          {/* Date picker for first payment date */}
+          <div className="space-y-2">
+            <Label>Date du premier prélèvement</Label>
+            <Popover open={startDatePopoverOpen} onOpenChange={setStartDatePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !customStartDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {customStartDate ? format(customStartDate, "PPP", { locale: fr }) : "Sélectionner une date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={customStartDate}
+                  onSelect={(date) => {
+                    setCustomStartDate(date);
+                    setStartDatePopoverOpen(false);
+                  }}
+                  disabled={(date) => date < new Date()}
+                  initialFocus
+                  locale={fr}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            {contract.delivery_date && (
+              <p className="text-xs text-muted-foreground">
+                💡 Suggéré automatiquement en fonction de la date de livraison ({format(new Date(contract.delivery_date), "d MMMM yyyy", { locale: fr })})
+              </p>
+            )}
+          </div>
+
           {/* VAT Checkbox */}
           <div className="flex items-start space-x-3">
             <Checkbox
@@ -1177,6 +1346,9 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                 </>
               ) : (
                 <>• Paiement : {formData.montant.toFixed(2)}€ × {formData.nombre_mois} mois = {(formData.montant * formData.nombre_mois).toFixed(2)}€</>
+              )}
+              {customStartDate && (
+                <><br />• Premier prélèvement : {format(customStartDate, "d MMMM yyyy", { locale: fr })}</>
               )}
             </AlertDescription>
           </Alert>
