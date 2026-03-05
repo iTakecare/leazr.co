@@ -1589,26 +1589,62 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           </div>
 
           {/* Summary */}
-          <Alert>
-            <Euro className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Récapitulatif :</strong><br />
-              • Client : {formData.prenom} {formData.nom}<br />
-              {includeVat ? (
+          <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
+            <h4 className="font-semibold text-sm flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Récapitulatif avant validation
+            </h4>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <span className="text-muted-foreground">Client</span>
+              <span className="font-medium">{formData.prenom} {formData.nom}</span>
+
+              <span className="text-muted-foreground">Email</span>
+              <span className="font-medium">{formData.email}</span>
+
+              <span className="text-muted-foreground">IBAN</span>
+              <span className="font-mono font-medium">{formData.iban ? `${formData.iban.substring(0, 4)}····${formData.iban.slice(-4)}` : '—'}</span>
+
+              <Separator className="col-span-2 my-1" />
+
+              <span className="text-muted-foreground">Montant HTVA</span>
+              <span className="font-medium">{formData.montant.toFixed(2)} €</span>
+
+              {includeVat && (
                 <>
-                  • Montant HTVA : {formData.montant.toFixed(2)}€<br />
-                  • TVA (21%) : {(formData.montant * 0.21).toFixed(2)}€<br />
-                  • Montant TVAC : {(Math.round(formData.montant * 1.21 * 100) / 100).toFixed(2)}€<br />
-                  • Paiement : {(Math.round(formData.montant * 1.21 * 100) / 100).toFixed(2)}€ × {formData.nombre_mois} mois = {(Math.round(formData.montant * 1.21 * 100) / 100 * formData.nombre_mois).toFixed(2)}€
+                  <span className="text-muted-foreground">TVA (21%)</span>
+                  <span className="font-medium">{(formData.montant * 0.21).toFixed(2)} €</span>
+
+                  <span className="text-muted-foreground">Montant TVAC</span>
+                  <span className="font-semibold text-foreground">{(Math.round(formData.montant * 1.21 * 100) / 100).toFixed(2)} €</span>
                 </>
-              ) : (
-                <>• Paiement : {formData.montant.toFixed(2)}€ × {formData.nombre_mois} mois = {(formData.montant * formData.nombre_mois).toFixed(2)}€</>
               )}
+
+              <Separator className="col-span-2 my-1" />
+
+              <span className="text-muted-foreground">Durée</span>
+              <span className="font-medium">{formData.nombre_mois} mois</span>
+
+              <span className="text-muted-foreground">Jour de prélèvement</span>
+              <span className="font-medium">{paymentDay === 1 ? '1er' : paymentDay} du mois</span>
+
               {customStartDate && (
-                <><br />• Premier prélèvement : {format(customStartDate, "d MMMM yyyy", { locale: fr })}</>
+                <>
+                  <span className="text-muted-foreground">1er prélèvement</span>
+                  <span className="font-medium">{format(customStartDate, "d MMMM yyyy", { locale: fr })}</span>
+                </>
               )}
-            </AlertDescription>
-          </Alert>
+
+              <Separator className="col-span-2 my-1" />
+
+              <span className="text-muted-foreground">Total estimé</span>
+              <span className="font-semibold text-foreground">
+                {includeVat
+                  ? (Math.round(formData.montant * 1.21 * 100) / 100 * formData.nombre_mois).toFixed(2)
+                  : (formData.montant * formData.nombre_mois).toFixed(2)
+                } €
+              </span>
+            </div>
+          </div>
 
           <Alert variant="default">
             <AlertCircle className="h-4 w-4" />
