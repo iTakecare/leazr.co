@@ -37,6 +37,7 @@ import {
   getMollieSubscription, 
   getMolliePayments,
   createMolliePayment,
+  updateMollieMandateIban,
   MollieSubscriptionDetails,
   MolliePayment
 } from "@/utils/mollie";
@@ -111,6 +112,14 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [editNextDateOpen, setEditNextDateOpen] = useState(false);
   const [newNextDate, setNewNextDate] = useState<Date | undefined>(undefined);
   const [updatingNextDate, setUpdatingNextDate] = useState(false);
+
+  // Edit IBAN dialog state
+  const [editIbanOpen, setEditIbanOpen] = useState(false);
+  const [newIban, setNewIban] = useState("");
+  const [newIbanValid, setNewIbanValid] = useState(false);
+  const [newBic, setNewBic] = useState("");
+  const [newConsumerName, setNewConsumerName] = useState("");
+  const [updatingIban, setUpdatingIban] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -290,6 +299,62 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       toast.error("Erreur lors de la modification de la date");
     } finally {
       setUpdatingNextDate(false);
+    }
+  };
+
+  const handleUpdateIban = async () => {
+    if (!contract.mollie_customer_id || !contract.mollie_mandate_id) {
+      toast.error("Aucun mandat Mollie configuré");
+      return;
+    }
+    if (!newIban || !newIbanValid) {
+      toast.error("Veuillez saisir un IBAN valide");
+      return;
+    }
+    if (!newConsumerName.trim()) {
+      toast.error("Veuillez saisir le nom du titulaire");
+      return;
+    }
+
+    try {
+      setUpdatingIban(true);
+
+      const result = await updateMollieMandateIban({
+        customer_id: contract.mollie_customer_id,
+        mandate_id: contract.mollie_mandate_id,
+        subscription_id: contract.mollie_subscription_id || undefined,
+        consumer_name: newConsumerName.trim(),
+        iban: newIban,
+        bic: newBic || undefined,
+        contract_id: contract.id,
+        company_id: companyId,
+      });
+
+      if (result.success) {
+        setEditIbanOpen(false);
+        if (result.subscriptionError) {
+          toast.warning(`IBAN mis à jour, mais l'abonnement n'a pas pu être recréé : ${result.subscriptionError}`);
+        } else {
+          toast.success("IBAN du mandat SEPA mis à jour avec succès");
+        }
+        // Update local sepaInfo
+        if (result.newMandateId) {
+          setSepaInfo(prev => prev ? {
+            ...prev,
+            mandateId: result.newMandateId!,
+            mandateStatus: result.newMandateStatus || "valid",
+            subscriptionId: result.newSubscriptionId || prev.subscriptionId,
+          } : prev);
+        }
+        await fetchMollieDetails();
+      } else {
+        toast.error(result.error || "Erreur lors de la mise à jour de l'IBAN");
+      }
+    } catch (error) {
+      console.error("Error updating IBAN:", error);
+      toast.error("Erreur lors de la mise à jour de l'IBAN");
+    } finally {
+      setUpdatingIban(false);
     }
   };
 
@@ -711,7 +776,23 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             {formData.iban && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">IBAN</span>
-                <span className="font-mono text-sm">{formData.iban.substring(0, 4)}****{formData.iban.slice(-4)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm">{formData.iban.substring(0, 4)}****{formData.iban.slice(-4)}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6"
+                    onClick={() => {
+                      setNewIban("");
+                      setNewIbanValid(false);
+                      setNewBic("");
+                      setNewConsumerName(contract.client_name || `${formData.prenom} ${formData.nom}`);
+                      setEditIbanOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -1141,6 +1222,71 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                     <Calendar className="h-4 w-4 mr-2" />
                   )}
                   Mettre à jour
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog for editing IBAN */}
+          <Dialog open={editIbanOpen} onOpenChange={(open) => { if (!updatingIban) setEditIbanOpen(open); }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Modifier l'IBAN du mandat SEPA</DialogTitle>
+                <DialogDescription>
+                  L'ancien mandat sera révoqué et un nouveau sera créé avec le nouvel IBAN. 
+                  {(sepaInfo.subscriptionId || contract.mollie_subscription_id) && (
+                    " L'abonnement actif sera automatiquement recréé avec les mêmes paramètres."
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="consumer-name">Nom du titulaire du compte</Label>
+                  <Input
+                    id="consumer-name"
+                    value={newConsumerName}
+                    onChange={(e) => setNewConsumerName(e.target.value)}
+                    placeholder="Nom et prénom du titulaire"
+                  />
+                </div>
+
+                <IBANInput
+                  value={newIban}
+                  onChange={(value, isValid) => {
+                    setNewIban(value);
+                    setNewIbanValid(isValid);
+                  }}
+                  label="Nouvel IBAN"
+                  required
+                  showBIC
+                  bicValue={newBic}
+                  onBICChange={setNewBic}
+                />
+
+                {(sepaInfo.subscriptionId || contract.mollie_subscription_id) && (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Impact :</strong> L'abonnement de prélèvement sera annulé puis recréé automatiquement 
+                      avec les mêmes paramètres (montant, intervalle, nombre de mois) lié au nouveau mandat.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditIbanOpen(false)} disabled={updatingIban}>
+                  Annuler
+                </Button>
+                <Button 
+                  onClick={handleUpdateIban} 
+                  disabled={updatingIban || !newIbanValid || !newConsumerName.trim()}
+                >
+                  {updatingIban ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Landmark className="h-4 w-4 mr-2" />
+                  )}
+                  Mettre à jour l'IBAN
                 </Button>
               </DialogFooter>
             </DialogContent>

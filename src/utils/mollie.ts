@@ -518,6 +518,85 @@ export async function updateMollieSubscription(
   }
 }
 
+// ============ Update Mandate IBAN ============
+
+export interface MollieUpdateMandateIbanData {
+  customer_id: string;
+  mandate_id: string;
+  subscription_id?: string;
+  consumer_name: string;
+  iban: string;
+  bic?: string;
+  contract_id?: string;
+  company_id?: string;
+}
+
+export interface MollieUpdateMandateIbanResponse {
+  success: boolean;
+  oldMandateId?: string;
+  newMandateId?: string;
+  newMandateStatus?: string;
+  newSubscriptionId?: string | null;
+  newSubscriptionStatus?: string | null;
+  subscriptionError?: string | null;
+  error?: string;
+}
+
+/**
+ * Update the IBAN on a SEPA mandate by revoking the old one and creating a new one.
+ * If a subscription exists, it will be cancelled and recreated with the same parameters.
+ */
+export async function updateMollieMandateIban(
+  data: MollieUpdateMandateIbanData
+): Promise<MollieUpdateMandateIbanResponse> {
+  try {
+    const { data: result, error } = await supabase.functions.invoke("mollie-sepa", {
+      body: {
+        action: "update_mandate_iban",
+        customer_id: data.customer_id,
+        mandate_id: data.mandate_id,
+        subscription_id: data.subscription_id,
+        consumer_name: data.consumer_name,
+        iban: data.iban,
+        bic: data.bic,
+        contract_id: data.contract_id,
+        company_id: data.company_id,
+      },
+    });
+
+    if (error) {
+      console.error("[Mollie] Update mandate IBAN error:", error);
+      return { success: false, error: error.message };
+    }
+
+    if (!result.success) {
+      return { success: false, error: result.error || "Erreur mise à jour IBAN" };
+    }
+
+    const responseData = result.data as {
+      old_mandate_id: string;
+      new_mandate_id: string;
+      new_mandate_status: string;
+      new_subscription_id: string | null;
+      new_subscription_status: string | null;
+      subscription_error: string | null;
+    };
+
+    return {
+      success: true,
+      oldMandateId: responseData.old_mandate_id,
+      newMandateId: responseData.new_mandate_id,
+      newMandateStatus: responseData.new_mandate_status,
+      newSubscriptionId: responseData.new_subscription_id,
+      newSubscriptionStatus: responseData.new_subscription_status,
+      subscriptionError: responseData.subscription_error,
+    };
+  } catch (error) {
+    console.error("[Mollie] Update mandate IBAN exception:", error);
+    return { success: false, error: "Erreur lors de la mise à jour de l'IBAN du mandat" };
+  }
+}
+
 // ============ NEW: Subscription & Payment Details ============
 
 export interface MollieSubscriptionDetails {
