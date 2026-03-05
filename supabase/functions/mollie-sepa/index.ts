@@ -9,7 +9,7 @@ const corsHeaders = {
 const MOLLIE_API_URL = "https://api.mollie.com/v2";
 
 interface MollieSepaRequest {
-  action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates" | "setup_sepa_complete" | "update_subscription" | "get_subscription" | "list_payments";
+  action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates" | "setup_sepa_complete" | "update_subscription" | "get_subscription" | "list_payments" | "update_mandate_iban";
   subscription_id?: string;
   new_start_date?: string;
   new_amount?: string;
@@ -624,6 +624,166 @@ serve(async (req) => {
             new_subscription_status: newSub.status,
             new_start_date: newStartDate,
             next_payment_date: newSub.nextPaymentDate,
+          },
+        };
+        break;
+      }
+
+      case "update_mandate_iban": {
+        // Update IBAN on an existing mandate by:
+        // 1. Revoking old mandate
+        // 2. Creating new mandate with new IBAN
+        // 3. Canceling and recreating subscription with same params
+        
+        if (!body.customer_id || !body.mandate_id) {
+          return new Response(
+            JSON.stringify({ success: false, error: "customer_id et mandate_id requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (!body.consumer_name || !body.iban) {
+          return new Response(
+            JSON.stringify({ success: false, error: "consumer_name et iban requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log(`[Mollie] Updating mandate IBAN for customer ${body.customer_id}, old mandate ${body.mandate_id}`);
+
+        // Step 1: Revoke old mandate
+        const revokeResult = await mollieRequest(
+          `/customers/${body.customer_id}/mandates/${body.mandate_id}`,
+          "DELETE"
+        );
+        // 200 or 204 = success, 422 = already revoked
+        if (!revokeResult.success && revokeResult.status !== 200 && revokeResult.status !== 422) {
+          console.error("[Mollie] Failed to revoke mandate:", revokeResult.error);
+          result = { success: false, error: revokeResult.error || "Impossible de révoquer l'ancien mandat" };
+          break;
+        }
+        console.log(`[Mollie] Old mandate revoked`);
+
+        // Step 2: Create new mandate with new IBAN
+        const newMandatePayload: Record<string, unknown> = {
+          method: "directdebit",
+          consumerName: body.consumer_name,
+          consumerAccount: body.iban.replace(/\s/g, "").toUpperCase(),
+        };
+        if (body.bic) {
+          newMandatePayload.consumerBic = body.bic.replace(/\s/g, "").toUpperCase();
+        }
+
+        const newMandateResult = await mollieRequest(
+          `/customers/${body.customer_id}/mandates`,
+          "POST",
+          newMandatePayload
+        );
+
+        if (!newMandateResult.success || !newMandateResult.data) {
+          console.error("[Mollie] Failed to create new mandate:", newMandateResult.error);
+          result = { success: false, error: newMandateResult.error || "Erreur création nouveau mandat" };
+          break;
+        }
+
+        const newMandate = newMandateResult.data as { id: string; status: string };
+        console.log(`[Mollie] New mandate created: ${newMandate.id} (${newMandate.status})`);
+
+        // Step 3: If subscription exists, cancel and recreate
+        let newSubscriptionData: { id: string; status: string; nextPaymentDate?: string } | null = null;
+        let subError: string | null = null;
+
+        if (body.subscription_id) {
+          // Get current subscription details first
+          const currentSubResult = await mollieRequest(
+            `/customers/${body.customer_id}/subscriptions/${body.subscription_id}`
+          );
+
+          if (currentSubResult.success && currentSubResult.data) {
+            const currentSub = currentSubResult.data as {
+              amount: { value: string; currency: string };
+              interval: string;
+              description: string;
+              times?: number;
+              metadata?: Record<string, unknown>;
+              nextPaymentDate?: string;
+              status?: string;
+            };
+
+            // Cancel current subscription (if active)
+            if (currentSub.status !== "canceled" && currentSub.status !== "completed") {
+              const cancelSubResult = await mollieRequest(
+                `/customers/${body.customer_id}/subscriptions/${body.subscription_id}`,
+                "DELETE"
+              );
+              if (!cancelSubResult.success && cancelSubResult.status !== 200 && cancelSubResult.status !== 422) {
+                console.warn("[Mollie] Failed to cancel subscription:", cancelSubResult.error);
+              }
+            }
+
+            // Recreate subscription with same params, linked to new mandate
+            if (newMandate.status === "valid" || newMandate.status === "pending") {
+              const recreateResult = await mollieRequest(
+                `/customers/${body.customer_id}/subscriptions`,
+                "POST",
+                {
+                  amount: currentSub.amount,
+                  interval: currentSub.interval,
+                  description: currentSub.description,
+                  startDate: currentSub.nextPaymentDate,
+                  times: currentSub.times,
+                  mandateId: newMandate.id,
+                  webhookUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mollie-webhook`,
+                  metadata: currentSub.metadata || {
+                    contract_id: body.contract_id,
+                    company_id: body.company_id,
+                  },
+                }
+              );
+
+              if (recreateResult.success && recreateResult.data) {
+                newSubscriptionData = recreateResult.data as { id: string; status: string; nextPaymentDate?: string };
+                console.log(`[Mollie] New subscription created: ${newSubscriptionData.id}`);
+              } else {
+                subError = recreateResult.error || "Erreur recréation abonnement";
+                console.error("[Mollie] Failed to recreate subscription:", subError);
+              }
+            } else {
+              subError = `Nouveau mandat non valide (${newMandate.status}), abonnement non recréé`;
+            }
+          } else {
+            subError = "Impossible de récupérer les détails de l'abonnement actuel";
+          }
+        }
+
+        // Step 4: Update contract in DB
+        if (body.contract_id) {
+          const updateData: Record<string, unknown> = {
+            mollie_mandate_id: newMandate.id,
+            mollie_mandate_status: newMandate.status,
+          };
+          if (newSubscriptionData) {
+            updateData.mollie_subscription_id = newSubscriptionData.id;
+          }
+
+          const { error: updateError } = await supabase
+            .from("contracts")
+            .update(updateData)
+            .eq("id", body.contract_id);
+
+          if (updateError) {
+            console.error("[Mollie] Failed to update contract:", updateError);
+          }
+        }
+
+        result = {
+          success: true,
+          data: {
+            old_mandate_id: body.mandate_id,
+            new_mandate_id: newMandate.id,
+            new_mandate_status: newMandate.status,
+            new_subscription_id: newSubscriptionData?.id || null,
+            new_subscription_status: newSubscriptionData?.status || null,
+            subscription_error: subError,
           },
         };
         break;
