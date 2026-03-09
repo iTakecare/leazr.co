@@ -99,7 +99,29 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       console.warn("⚠️ Erreur lors de la récupération des documents récents:", docsError);
     }
     
-    // Enrichir chaque offre avec l'info has_recent_documents
+    // Récupérer les derniers workflow logs pour calculer la dernière activité
+    const offerIds = data.map(o => o.id);
+    const { data: workflowLogs, error: logsError } = await supabase
+      .from('offer_workflow_logs')
+      .select('offer_id, created_at')
+      .in('offer_id', offerIds)
+      .order('created_at', { ascending: false });
+    
+    if (logsError) {
+      console.warn("⚠️ Erreur lors de la récupération des workflow logs:", logsError);
+    }
+    
+    // Calculer le dernier log par offre
+    const latestLogByOffer = new Map<string, string>();
+    if (workflowLogs) {
+      for (const log of workflowLogs) {
+        if (!latestLogByOffer.has(log.offer_id)) {
+          latestLogByOffer.set(log.offer_id, log.created_at);
+        }
+      }
+    }
+    
+    // Enrichir chaque offre avec l'info has_recent_documents et last_activity_at
     // Un document est "non vu" s'il a été uploadé APRÈS la dernière consultation
     return data.map(offer => {
       const lastViewed = offer.documents_last_viewed_at;
@@ -108,9 +130,17 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
         (!lastViewed || new Date(doc.uploaded_at) > new Date(lastViewed))
       ) || false;
       
+      // last_activity_at = max(updated_at, dernier workflow log)
+      const updatedAtTime = new Date(offer.updated_at || offer.created_at).getTime();
+      const lastLogTime = latestLogByOffer.has(offer.id) 
+        ? new Date(latestLogByOffer.get(offer.id)!).getTime() 
+        : 0;
+      const lastActivityAt = new Date(Math.max(updatedAtTime, lastLogTime)).toISOString();
+      
       return {
         ...offer,
-        has_recent_documents: hasUnviewedDocs
+        has_recent_documents: hasUnviewedDocs,
+        last_activity_at: lastActivityAt
       };
     });
   } catch (error) {
