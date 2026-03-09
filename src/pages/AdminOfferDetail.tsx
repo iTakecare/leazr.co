@@ -90,6 +90,9 @@ const [notesLoading, setNotesLoading] = useState(false);
   const [noFollowUpModalOpen, setNoFollowUpModalOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [googleReviewModalOpen, setGoogleReviewModalOpen] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+
+  const { create: createTask } = useTaskMutations();
 
   // Hook pour gérer les documents et upload links
   const { uploadLinks, generateUploadLink } = useOfferDocuments(id);
