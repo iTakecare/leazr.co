@@ -438,6 +438,16 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 )}
                 {!isAmbassador() && (
                   <SortableTableHead
+                    column="leaser_request_number"
+                    label="Réf. leaseur"
+                    currentSort={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="text-[10px] w-[100px] hidden lg:table-cell"
+                  />
+                )}
+                {!isAmbassador() && (
+                  <SortableTableHead
                     column="purchase_amount"
                     label="Mt. achat"
                     currentSort={sortColumn}
