@@ -62,7 +62,8 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onOpenUploadLink,
   onClassifyNoFollowUp,
   onStatusUpdated,
-  onSendGoogleReview
+  onSendGoogleReview,
+  onCreateTask
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
