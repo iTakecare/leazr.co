@@ -424,7 +424,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   currentSort={sortColumn}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="text-[10px] w-[70px] hidden xl:table-cell"
+                  className="text-[9px] w-[60px] hidden xl:table-cell"
                 />
                 {!isAmbassador() && (
                   <SortableTableHead
