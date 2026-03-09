@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Calendar as CalendarIcon, User, Building2, Euro, FileText, Receipt, Pencil } from "lucide-react";
+import { ChevronLeft, Calendar as CalendarIcon, User, Building2, Euro, FileText, Receipt, Pencil, Mail, MailCheck, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ContractReferenceEditor } from "./ContractReferenceEditor";
 import { formatCurrency, formatDate } from "@/lib/utils";
