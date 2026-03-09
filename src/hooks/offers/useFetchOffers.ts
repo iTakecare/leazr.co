@@ -20,6 +20,7 @@ export interface Offer extends OfferData {
   leaser_score?: string | null;
   has_recent_documents?: boolean;
   is_purchase?: boolean;
+  last_activity_at?: string;
   offer_custom_packs?: Array<{
     id: string;
     pack_name: string;
