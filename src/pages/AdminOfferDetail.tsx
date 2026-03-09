@@ -46,6 +46,8 @@ import { OfferFinancialFeesEditor } from "@/components/offer/OfferFinancialFeesE
 import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
 import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
 import SendGoogleReviewModal from "@/components/offers/detail/SendGoogleReviewModal";
+import TaskDialog from "@/components/tasks/TaskDialog";
+import { useTaskMutations } from "@/hooks/useTasks";
 import { createRoot } from 'react-dom/client';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { MobileOfferDetailPage } from "@/components/mobile/pages";
