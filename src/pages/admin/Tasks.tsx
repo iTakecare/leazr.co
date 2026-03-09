@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, List, Columns3, CalendarDays, Bell, CheckCheck, FileText } from "lucide-react";
 import { type TaskFilters as TaskFiltersType, type Task, type TaskTemplate } from "@/services/taskService";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
