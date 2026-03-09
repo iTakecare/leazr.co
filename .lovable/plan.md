@@ -1,58 +1,51 @@
 
 
-# Historique des modifications SEPA par contrat
+# Ajout de tâche/rappel directement depuis un dossier (demande ou client)
 
 ## Objectif
+Permettre de créer une tâche (rappel, relance, etc.) directement depuis la page détail d'une **demande** (AdminOfferDetail) ou d'un **client** (ClientDetail), avec pré-remplissage automatique du client et/ou de la demande liée.
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+## Approche
 
-## 1. Nouvelle table `mollie_sepa_changes`
+### 1. Rendre `TaskDialog` utilisable en mode pré-rempli
 
-Migration SQL :
+Ajouter des props optionnelles à `TaskDialog` pour pré-remplir les champs :
+- `defaultClientId?: string`
+- `defaultClientName?: string`
+- `defaultOfferId?: string`
+- `defaultTitle?: string`
 
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+Quand ces props sont fournies et qu'il n'y a pas de `task` (mode création), les champs seront initialisés avec ces valeurs.
 
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
+**Fichier** : `src/components/tasks/TaskDialog.tsx`
 
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
+### 2. Ajouter un bouton "Créer une tâche" dans `CompactActionsSidebar`
 
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-```
+Ajouter un bouton avec icône `ClipboardList` dans la sidebar d'actions de la demande, qui ouvre le `TaskDialog` pré-rempli avec :
+- `related_client_id` = client de l'offre
+- `related_offer_id` = ID de l'offre
+- `title` pré-rempli avec "Relance - [nom client]"
 
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
+Nécessite ajouter une prop `onCreateTask` à `CompactActionsSidebar`, et gérer le state + dialog dans `AdminOfferDetail.tsx`.
 
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
+**Fichiers** :
+- `src/components/offers/detail/CompactActionsSidebar.tsx` — ajouter bouton
+- `src/pages/AdminOfferDetail.tsx` — ajouter state, handler, et `TaskDialog`
 
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+### 3. Ajouter un bouton "Créer une tâche" dans `ClientDetail`
 
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+Ajouter un bouton dans l'en-tête de la page client qui ouvre le `TaskDialog` pré-rempli avec :
+- `related_client_id` = ID du client
+- `title` pré-rempli avec "Rappel - [nom client]"
 
-## Fichiers modifies
+**Fichier** : `src/pages/ClientDetail.tsx` — ajouter state, handler, `TaskDialog`, et le hook `useTaskMutations`
 
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+### 4. Fichiers impactés (résumé)
+
+| Fichier | Modification |
+|---|---|
+| `TaskDialog.tsx` | Props optionnelles de pré-remplissage |
+| `CompactActionsSidebar.tsx` | Bouton "Créer une tâche" |
+| `AdminOfferDetail.tsx` | State + TaskDialog + handler |
+| `ClientDetail.tsx` | Bouton + State + TaskDialog + handler |
 
