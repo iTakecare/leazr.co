@@ -5419,6 +5419,7 @@ export type Database = {
           internal_score: string | null
           is_purchase: boolean | null
           leaser_id: string | null
+          leaser_request_number: string | null
           leaser_score: string | null
           margin: number | null
           margin_difference: number | null
@@ -5477,6 +5478,7 @@ export type Database = {
           internal_score?: string | null
           is_purchase?: boolean | null
           leaser_id?: string | null
+          leaser_request_number?: string | null
           leaser_score?: string | null
           margin?: number | null
           margin_difference?: number | null
@@ -5535,6 +5537,7 @@ export type Database = {
           internal_score?: string | null
           is_purchase?: boolean | null
           leaser_id?: string | null
+          leaser_request_number?: string | null
           leaser_score?: string | null
           margin?: number | null
           margin_difference?: number | null
@@ -8947,6 +8950,7 @@ export type Database = {
           internal_score: string | null
           is_purchase: boolean | null
           leaser_id: string | null
+          leaser_request_number: string | null
           leaser_score: string | null
           margin: number | null
           margin_difference: number | null

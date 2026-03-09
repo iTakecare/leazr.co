@@ -36,6 +36,7 @@ export interface OfferData {
   dossier_number?: string; // Numéro de dossier
   source?: string; // Canal d'acquisition (recommandation, Google, client existant, etc.)
   leaser_id?: string; // ID du bailleur sélectionné
+  leaser_request_number?: string; // Numéro de demande du leaseur
   duration?: number; // Durée du financement en mois
   business_sector?: string; // Secteur d'activité de l'offre
   file_fee?: number; // Frais de dossier

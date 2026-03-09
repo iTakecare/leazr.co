@@ -1,0 +1,1 @@
+ALTER TABLE public.offers ADD COLUMN leaser_request_number text;

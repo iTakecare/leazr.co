@@ -16,16 +16,19 @@ import { updateOffer } from "@/services/offers/offerDetail";
 interface OfferReferenceEditorProps {
   offerId: string;
   currentReference: string | null;
+  currentLeaserReference?: string | null;
   onUpdate?: () => void;
 }
 
 export const OfferReferenceEditor = ({
   offerId,
   currentReference,
+  currentLeaserReference,
   onUpdate,
 }: OfferReferenceEditorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [reference, setReference] = useState(currentReference || "");
+  const [leaserReference, setLeaserReference] = useState(currentLeaserReference || "");
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -36,18 +39,21 @@ export const OfferReferenceEditor = ({
 
     setIsSaving(true);
     try {
-      const result = await updateOffer(offerId, { dossier_number: reference.trim() });
+      const result = await updateOffer(offerId, { 
+        dossier_number: reference.trim(),
+        leaser_request_number: leaserReference.trim() || null,
+      });
       
       if (result) {
-        toast.success("Référence mise à jour avec succès");
+        toast.success("Références mises à jour avec succès");
         setIsOpen(false);
         onUpdate?.();
       } else {
-        toast.error("Erreur lors de la mise à jour de la référence");
+        toast.error("Erreur lors de la mise à jour des références");
       }
     } catch (error) {
-      console.error("Error updating reference:", error);
-      toast.error("Erreur lors de la mise à jour de la référence");
+      console.error("Error updating references:", error);
+      toast.error("Erreur lors de la mise à jour des références");
     } finally {
       setIsSaving(false);
     }
@@ -60,7 +66,7 @@ export const OfferReferenceEditor = ({
         size="sm"
         onClick={() => setIsOpen(true)}
         className="h-8 gap-1.5 hover:bg-accent"
-        title="Modifier la référence"
+        title="Modifier les références"
       >
         <Pencil className="h-3.5 w-3.5" />
         <span className="text-xs">Éditer</span>
@@ -69,24 +75,38 @@ export const OfferReferenceEditor = ({
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Modifier le numéro de référence</DialogTitle>
+            <DialogTitle>Modifier les références</DialogTitle>
             <DialogDescription>
-              Saisissez le numéro de référence du partenaire financier pour cette offre.
+              Gérez le numéro de dossier interne et le numéro de demande du partenaire financier.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label htmlFor="reference" className="text-sm font-medium">
-                Numéro de référence
+                Numéro de dossier (interne)
               </label>
               <Input
                 id="reference"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
-                placeholder="Ex: DOSS-2025-001"
+                placeholder="Ex: ITC-2025-OFF-001"
                 autoFocus
               />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="leaserReference" className="text-sm font-medium">
+                Numéro de demande leaseur
+              </label>
+              <Input
+                id="leaserReference"
+                value={leaserReference}
+                onChange={(e) => setLeaserReference(e.target.value)}
+                placeholder="Ex: BNP-REQ-2025-123"
+              />
+              <p className="text-xs text-muted-foreground">
+                Référence attribuée par le partenaire financier (optionnel)
+              </p>
             </div>
           </div>
 
