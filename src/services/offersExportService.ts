@@ -28,7 +28,6 @@ const getStatusLabel = (status: string | undefined): string => {
 };
 
 const formatEquipmentForExcel = (offer: any): string => {
-  // Priorité 1: offer_equipment (depuis useFetchOffers)
   if (offer.offer_equipment && Array.isArray(offer.offer_equipment)) {
     return offer.offer_equipment
       .map((eq: any) => `${eq.title || eq.product_name || 'Équipement'} x${eq.quantity || 1}`)
@@ -54,75 +53,6 @@ const formatEquipmentForExcel = (offer: any): string => {
   return '-';
 };
 
-// Calcul du prix d'achat total depuis offer_equipment
-const calculatePurchasePriceFromEquipment = (offer: any): number => {
-  if (offer.offer_equipment && Array.isArray(offer.offer_equipment)) {
-    return offer.offer_equipment.reduce((sum: number, eq: any) => {
-      const qty = eq.quantity || 1;
-      return sum + ((eq.purchase_price || 0) * qty);
-    }, 0);
-  }
-  
-  if (offer.offer_equipment_view && Array.isArray(offer.offer_equipment_view)) {
-    return offer.offer_equipment_view.reduce((sum: number, eq: any) => {
-      const qty = eq.quantity || 1;
-      return sum + ((eq.purchase_price || 0) * qty);
-    }, 0);
-  }
-  
-  return offer.total_purchase_price || 0;
-};
-
-// Calcul du CA potentiel (prix de vente) depuis offer_equipment
-const calculateSellingPriceFromEquipment = (offer: any): number => {
-  if (offer.offer_equipment && Array.isArray(offer.offer_equipment)) {
-    return offer.offer_equipment.reduce((sum: number, eq: any) => {
-      const qty = eq.quantity || 1;
-      // margin est un pourcentage
-      const sellingPrice = eq.selling_price || 
-        ((eq.purchase_price || 0) * (1 + (eq.margin || 0) / 100));
-      return sum + (sellingPrice * qty);
-    }, 0);
-  }
-  
-  if (offer.offer_equipment_view && Array.isArray(offer.offer_equipment_view)) {
-    return offer.offer_equipment_view.reduce((sum: number, eq: any) => {
-      const qty = eq.quantity || 1;
-      const sellingPrice = eq.selling_price || 
-        ((eq.purchase_price || 0) * (1 + (eq.margin || 0) / 100));
-      return sum + (sellingPrice * qty);
-    }, 0);
-  }
-  
-  return 0;
-};
-
-// CA potentiel - aligné avec la logique du dashboard RPC
-const calculateFinancedAmountForExcel = (offer: any): number => {
-  // Priorité 1: Somme des prix de vente depuis les équipements
-  const sellingPriceFromEquipment = calculateSellingPriceFromEquipment(offer);
-  if (sellingPriceFromEquipment > 0) {
-    return sellingPriceFromEquipment;
-  }
-  // Fallback: financed_amount ou amount stocké en base
-  return offer.financed_amount || offer.amount || 0;
-};
-
-// Calcul du pourcentage de marge pour l'export Excel
-const calculateMarginPercentageForExcel = (offer: any): number => {
-  const financedAmount = calculateFinancedAmountForExcel(offer);
-  const purchasePrice = calculatePurchasePriceFromEquipment(offer);
-  if (purchasePrice <= 0) return 0;
-  return ((financedAmount - purchasePrice) / purchasePrice) * 100;
-};
-
-// Marge potentielle = CA potentiel - Prix d'achat
-const calculateMarginAmountForExcel = (offer: any): number => {
-  const financedAmount = calculateFinancedAmountForExcel(offer);
-  const purchasePrice = calculatePurchasePriceFromEquipment(offer);
-  return financedAmount - purchasePrice;
-};
-
 export const exportOffersToExcel = async (offers: any[], filename = 'demandes') => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'iTakecare';
@@ -130,7 +60,6 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
   
   const worksheet = workbook.addWorksheet('Demandes');
 
-  // Define columns with headers and widths
   worksheet.columns = [
     { header: 'N° Dossier', key: 'dossier_number', width: 15 },
     { header: 'Date', key: 'date', width: 12 },
@@ -148,7 +77,6 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
     { header: 'Statut', key: 'statut', width: 15 },
   ];
 
-  // Style header row
   const headerRow = worksheet.getRow(1);
   headerRow.font = { bold: true };
   headerRow.fill = {
@@ -157,8 +85,12 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
     fgColor: { argb: 'FFE0E0E0' }
   };
 
-  // Add data rows
   offers.forEach(offer => {
+    const purchasePrice = offer.total_purchase_price || 0;
+    const financedAmount = offer.financed_amount || offer.amount || 0;
+    const marginPercent = offer.margin_percentage || 0;
+    const marginAmount = financedAmount - purchasePrice;
+
     const row = worksheet.addRow({
       dossier_number: offer.dossier_number || '-',
       date: offer.created_at ? format(new Date(offer.created_at), 'dd/MM/yyyy', { locale: fr }) : '-',
@@ -168,16 +100,15 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
       equipment: formatEquipmentForExcel(offer),
       source: offer.source || '-',
       bailleur: offer.leaser_name || '-',
-      montant_achat: calculatePurchasePriceFromEquipment(offer),
-      ca_potentiel: calculateFinancedAmountForExcel(offer),
-      marge_percent: calculateMarginPercentageForExcel(offer).toFixed(2),
-      marge_euros: calculateMarginAmountForExcel(offer),
+      montant_achat: purchasePrice,
+      ca_potentiel: financedAmount,
+      marge_percent: marginPercent.toFixed(2),
+      marge_euros: marginAmount,
       mensualite: offer.monthly_payment || 0,
       statut: getStatusLabel(offer.workflow_status),
     });
 
-    // Apply currency format to monetary columns
-    const currencyColumns = [9, 10, 12, 13]; // montant_achat, ca_potentiel, marge_euros, mensualite
+    const currencyColumns = [9, 10, 12, 13];
     currencyColumns.forEach(colIndex => {
       const cell = row.getCell(colIndex);
       if (typeof cell.value === 'number') {
@@ -186,7 +117,6 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
     });
   });
 
-  // Generate and download file
   const dateStr = format(new Date(), 'yyyy-MM-dd');
   const buffer = await workbook.xlsx.writeBuffer();
   
