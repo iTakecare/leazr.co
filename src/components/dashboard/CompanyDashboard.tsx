@@ -76,9 +76,11 @@ const CompanyDashboard = () => {
   const totalCreditNotes = monthlyData.reduce((sum, m) => sum + m.creditNotes, 0);
 
   const margeBase = monthlyData.reduce((sum, month) => sum + month.marge, 0);
+  const rawCa = monthlyData.reduce((sum, month) => sum + month.ca, 0);
+  const rawCaLeasing = monthlyData.reduce((sum, month) => sum + month.caLeasing, 0);
   const totals = {
-    ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
-    caLeasing: monthlyData.reduce((sum, month) => sum + month.caLeasing, 0),
+    ca: includeCreditNotes ? rawCa - totalCreditNotes : rawCa,
+    caLeasing: includeCreditNotes ? rawCaLeasing - totalCreditNotes : rawCaLeasing,
     selfLeasing: monthlyData.reduce((sum, month) => sum + month.selfLeasing, 0),
     directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
     achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
@@ -312,8 +314,8 @@ const CompanyDashboard = () => {
                             className={`hover:bg-primary/5 ${index % 2 === 0 ? "bg-background" : "bg-muted/30"}`}
                           >
                             <TableCell className="font-normal">{month.month}</TableCell>
-                            <TableCell className="text-right font-normal">{formatCurrency(month.ca)}</TableCell>
-                            <TableCell className="text-right font-normal text-blue-700">{formatCurrency(month.caLeasing)}</TableCell>
+                            <TableCell className="text-right font-normal">{formatCurrency(includeCreditNotes ? month.ca - month.creditNotes : month.ca)}</TableCell>
+                            <TableCell className="text-right font-normal text-blue-700">{formatCurrency(includeCreditNotes ? month.caLeasing - month.creditNotes : month.caLeasing)}</TableCell>
                             <TableCell className="text-right font-normal text-indigo-700">{formatCurrency(month.selfLeasing)}</TableCell>
                             <TableCell className="text-right font-normal text-slate-500">
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
@@ -323,9 +325,11 @@ const CompanyDashboard = () => {
                               {formatCurrency(includeCreditNotes ? month.marge : month.marge + month.creditNotes)}
                             </TableCell>
                             <TableCell className="text-right font-medium text-emerald-700">
-                              {month.ca > 0 
-                                ? (((includeCreditNotes ? month.marge : month.marge + month.creditNotes) / month.ca) * 100).toFixed(1)
-                                : '0.0'}%
+                              {(() => {
+                                const adjustedCa = includeCreditNotes ? month.ca - month.creditNotes : month.ca;
+                                const adjustedMarge = includeCreditNotes ? month.marge : month.marge + month.creditNotes;
+                                return adjustedCa > 0 ? ((adjustedMarge / adjustedCa) * 100).toFixed(1) : '0.0';
+                              })()}%
                             </TableCell>
                           </TableRow>
                         ))
