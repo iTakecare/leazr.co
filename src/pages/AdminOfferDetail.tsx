@@ -1116,6 +1116,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   onClassifyNoFollowUp={() => setNoFollowUpModalOpen(true)}
                   onStatusUpdated={fetchOfferDetails}
                   onSendGoogleReview={() => setGoogleReviewModalOpen(true)}
+                  onCreateTask={() => setTaskDialogOpen(true)}
                 />
                 
                 {/* Configuration de l'offre */}
