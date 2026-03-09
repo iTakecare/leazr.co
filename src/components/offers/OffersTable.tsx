@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getBusinessSectorLabel } from "@/constants/businessSectors";
 import {
@@ -61,7 +61,7 @@ import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/u
 import { useOffersReminders, ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 
-type OfferSortColumn = 'dossier_number' | 'date' | 'client' | 'company' | 'type' | 'equipment' | 'source' | 'leaser' | 'purchase_amount' | 'financed_amount' | 'margin_amount' | 'margin_percent' | 'commission' | 'monthly_payment' | 'status' | 'reminder';
+type OfferSortColumn = 'dossier_number' | 'date' | 'last_activity' | 'client' | 'company' | 'type' | 'equipment' | 'source' | 'leaser' | 'purchase_amount' | 'financed_amount' | 'margin_amount' | 'margin_percent' | 'commission' | 'monthly_payment' | 'status' | 'reminder';
 
 // Fonction pour extraire le nom et l'entreprise depuis client_name
 const parseClientName = (clientName: string, clientsData?: any) => {
@@ -292,6 +292,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
         case 'date':
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
+        case 'last_activity':
+          comparison = new Date(a.last_activity_at || a.created_at).getTime() - new Date(b.last_activity_at || b.created_at).getTime();
+          break;
         case 'client':
           comparison = (a.clientDisplayName || '').localeCompare(b.clientDisplayName || '', 'fr');
           break;
@@ -374,6 +377,14 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   direction={sortDirection}
                   onSort={handleSort}
                   className="text-[10px] w-[75px] hidden lg:table-cell"
+                />
+                <SortableTableHead
+                  column="last_activity"
+                  label="Activité"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="text-[10px] w-[85px] hidden lg:table-cell"
                 />
                 <SortableTableHead
                   column="client"
@@ -516,6 +527,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                   {/* Date de l'offre */}
                   <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
+                  
+                  {/* Dernière activité */}
+                  <TableCell className="text-[11px] py-2 hidden lg:table-cell text-muted-foreground">
+                    {offer.last_activity_at 
+                      ? formatDistanceToNow(new Date(offer.last_activity_at), { addSuffix: true, locale: fr })
+                      : '-'}
+                  </TableCell>
                   
                   {/* Client */}
                   <TableCell className="text-[11px] w-[60px] py-2">
