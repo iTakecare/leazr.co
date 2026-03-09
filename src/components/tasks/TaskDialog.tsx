@@ -104,18 +104,20 @@ const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defau
       setRecurrenceType(task.recurrence_type || 'none');
       setRecurrenceEndDate(task.recurrence_end_date ? task.recurrence_end_date.split('T')[0] : '');
     } else {
-      setTitle('');
+      setTitle(defaultTitle || '');
       setDescription('');
       setPriority('medium');
       setAssignedTo('');
       setDueDate('');
-      setRelatedClientId('');
+      setRelatedClientId(defaultClientId || '');
       setRelatedContractId('');
-      setRelatedOfferId('');
+      setRelatedOfferId(defaultOfferId || '');
       setRecurrenceType('none');
       setRecurrenceEndDate('');
-      setContracts([]);
-      setOffers([]);
+      if (!defaultClientId) {
+        setContracts([]);
+        setOffers([]);
+      }
     }
   }, [task, open]);
 
