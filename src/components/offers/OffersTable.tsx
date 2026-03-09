@@ -529,13 +529,28 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
                   
                   {/* Dernière activité */}
-                   <TableCell className="text-[9px] py-2 hidden lg:table-cell text-muted-foreground whitespace-nowrap !text-left">
+                   <TableCell className="text-[9px] py-2 hidden lg:table-cell whitespace-nowrap !text-left">
                      <div className="flex items-center justify-start gap-1.5">
                        {offer.last_activity_at 
-                         ? formatDistanceToNow(new Date(offer.last_activity_at), { addSuffix: true, locale: fr }).replace("environ ", "")
-                         : '-'}
-                    </div>
-                  </TableCell>
+                          ? (() => {
+                              const activityTime = new Date(offer.last_activity_at).getTime();
+                              const now = Date.now();
+                              // Gradient: vert si < 1h, rouge si > 7 jours
+                              const ageMs = now - activityTime;
+                              const minAge = 0; // tout juste
+                              const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 jours
+                              const ratio = Math.min(1, Math.max(0, ageMs / maxAge)); // 0=récent, 1=ancien
+                              // HSL: 120 (vert) → 0 (rouge)
+                              const hue = Math.round(120 * (1 - ratio));
+                              return (
+                                <span style={{ color: `hsl(${hue}, 70%, 40%)`, fontWeight: ratio < 0.15 ? 600 : 400 }}>
+                                  {formatDistanceToNow(new Date(offer.last_activity_at), { addSuffix: true, locale: fr }).replace("environ ", "")}
+                                </span>
+                              );
+                            })()
+                          : '-'}
+                     </div>
+                   </TableCell>
                   
                   {/* Client */}
                   <TableCell className="text-[11px] w-[60px] py-2">
