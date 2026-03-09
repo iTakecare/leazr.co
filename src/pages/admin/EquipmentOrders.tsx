@@ -26,6 +26,7 @@ import {
   syncUnitPricesToParent,
 } from "@/services/equipmentOrderService";
 import { receiveToStock } from "@/services/stockService";
+import { exportEquipmentOrdersToExcel } from "@/services/equipmentOrderExportService";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
 
