@@ -384,7 +384,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   currentSort={sortColumn}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="text-[10px] w-[85px] hidden lg:table-cell"
+                  className="text-[9px] w-[95px] hidden lg:table-cell"
                 />
                 <SortableTableHead
                   column="client"
@@ -408,7 +408,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   currentSort={sortColumn}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="w-[100px] text-[10px] hidden xl:table-cell"
+                  className="w-[75px] text-[9px] hidden xl:table-cell"
                 />
                 <SortableTableHead
                   column="equipment"
@@ -424,7 +424,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   currentSort={sortColumn}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="text-[10px] w-[70px] hidden xl:table-cell"
+                  className="text-[9px] w-[60px] hidden xl:table-cell"
                 />
                 {!isAmbassador() && (
                   <SortableTableHead
@@ -529,7 +529,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
                   
                   {/* Dernière activité */}
-                  <TableCell className="text-[11px] py-2 hidden lg:table-cell text-muted-foreground">
+                  <TableCell className="text-[9px] py-2 hidden lg:table-cell text-muted-foreground whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
                       {offer.last_activity_at && (new Date().getTime() - new Date(offer.last_activity_at).getTime()) < 24 * 60 * 60 * 1000 && (
                         <span className="relative flex h-2 w-2 shrink-0">
@@ -565,7 +565,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Type */}
-                  <TableCell className="w-[100px] text-[11px] py-2 hidden xl:table-cell">
+                  <TableCell className="w-[75px] text-[9px] py-2 hidden xl:table-cell">
                     <OfferTypeTag 
                       type={offer.type} 
                       source={offer.source} 
@@ -595,7 +595,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Source */}
-                  <TableCell className="text-[11px] py-2 hidden xl:table-cell">
+                  <TableCell className="text-[9px] py-2 hidden xl:table-cell">
                     {offer.source ? (
                       <OfferTypeTag 
                         type="" 
