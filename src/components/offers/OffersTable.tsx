@@ -529,7 +529,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
                   
                   {/* Dernière activité */}
-                   <TableCell className="text-[9px] py-2 hidden lg:table-cell text-muted-foreground whitespace-nowrap text-left">
+                   <TableCell className="text-[9px] py-2 hidden lg:table-cell text-muted-foreground whitespace-nowrap !text-left">
                      <div className="flex items-center gap-1.5">
                        {offer.last_activity_at && (new Date().getTime() - new Date(offer.last_activity_at).getTime()) < 24 * 60 * 60 * 1000 && (
                          <span className="relative flex h-2 w-2 shrink-0">
