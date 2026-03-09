@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Plus, Grid, List, Filter, Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Plus, Filter, Download } from "lucide-react";
 import { ExcelExportDialog } from "@/components/offers/ExcelExportDialog";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import PageTransition from "@/components/layout/PageTransition";
-import OffersKanban from "@/components/offers/OffersKanban";
 import OffersTable from "@/components/offers/OffersTable";
 import OffersHeader from "@/components/offers/OffersHeader";
 import OffersSearch from "@/components/offers/OffersSearch";
@@ -15,8 +13,7 @@ import OffersLoading from "@/components/offers/OffersLoading";
 import OffersError from "@/components/offers/OffersError";
 import OffersKPIStats from "@/components/offers/OffersKPIStats";
 import { ExcelImportDialog } from "@/components/excel/ExcelImportDialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
@@ -50,8 +47,6 @@ const Offers = () => {
     handleResendOffer,
     handleGenerateOffer
   } = useOffers();
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
-  const location = useLocation();
   const navigate = useNavigate();
   const {
     navigateToAdmin
@@ -66,34 +61,6 @@ const Offers = () => {
     reminders,
     invalidateReminders
   } = useFetchOfferReminders(offerIds);
-
-  // Forcer la vue liste pour les broker users
-  useEffect(() => {
-    if (isBrokerUser()) {
-      setViewMode('list');
-    }
-  }, [isBrokerUser]);
-
-  // Référence pour le défilement horizontal
-  const scrollContainer = React.useRef<HTMLDivElement>(null);
-
-  // Fonctions pour faire défiler le kanban horizontalement
-  const scrollLeft = () => {
-    if (scrollContainer.current) {
-      scrollContainer.current.scrollBy({
-        left: -300,
-        behavior: 'smooth'
-      });
-    }
-  };
-  const scrollRight = () => {
-    if (scrollContainer.current) {
-      scrollContainer.current.scrollBy({
-        left: 300,
-        behavior: 'smooth'
-      });
-    }
-  };
 
   // Mobile rendering
   if (isMobile) {
