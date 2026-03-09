@@ -527,6 +527,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   {/* Date de l'offre */}
                   <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
                   
+                  {/* Dernière activité */}
+                  <TableCell className="text-[11px] py-2 hidden lg:table-cell text-muted-foreground">
+                    {offer.last_activity_at 
+                      ? formatDistanceToNow(new Date(offer.last_activity_at), { addSuffix: true, locale: fr })
+                      : '-'}
+                  </TableCell>
+                  
                   {/* Client */}
                   <TableCell className="text-[11px] w-[60px] py-2">
                     <Tooltip>
