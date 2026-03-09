@@ -76,9 +76,11 @@ const CompanyDashboard = () => {
   const totalCreditNotes = monthlyData.reduce((sum, m) => sum + m.creditNotes, 0);
 
   const margeBase = monthlyData.reduce((sum, month) => sum + month.marge, 0);
+  const rawCa = monthlyData.reduce((sum, month) => sum + month.ca, 0);
+  const rawCaLeasing = monthlyData.reduce((sum, month) => sum + month.caLeasing, 0);
   const totals = {
-    ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
-    caLeasing: monthlyData.reduce((sum, month) => sum + month.caLeasing, 0),
+    ca: includeCreditNotes ? rawCa - totalCreditNotes : rawCa,
+    caLeasing: includeCreditNotes ? rawCaLeasing - totalCreditNotes : rawCaLeasing,
     selfLeasing: monthlyData.reduce((sum, month) => sum + month.selfLeasing, 0),
     directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
     achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
