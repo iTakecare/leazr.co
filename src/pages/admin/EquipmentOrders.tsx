@@ -9,7 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X, Package, CheckCircle2 } from "lucide-react";
+import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X, Package, CheckCircle2, Download } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -26,6 +26,7 @@ import {
   syncUnitPricesToParent,
 } from "@/services/equipmentOrderService";
 import { receiveToStock } from "@/services/stockService";
+import { exportEquipmentOrdersToExcel } from "@/services/equipmentOrderExportService";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
 
@@ -571,9 +572,19 @@ const EquipmentOrders: React.FC = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <Truck className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Commandes fournisseurs</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Truck className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold">Commandes fournisseurs</h1>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => exportEquipmentOrdersToExcel(items, suppliers)}
+          disabled={items.length === 0}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Exporter Excel
+        </Button>
       </div>
 
       {/* Summary cards */}
