@@ -45,6 +45,7 @@ interface CompactActionsSidebarProps {
   onClassifyNoFollowUp?: () => void;
   onStatusUpdated?: () => void;
   onSendGoogleReview?: () => void;
+  onCreateTask?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
