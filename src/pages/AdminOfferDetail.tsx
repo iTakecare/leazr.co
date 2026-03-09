@@ -1283,6 +1283,22 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           onOpenChange={setGoogleReviewModalOpen}
           offer={offer}
         />
+
+        {/* Dialog de création de tâche */}
+        <TaskDialog
+          open={taskDialogOpen}
+          onOpenChange={setTaskDialogOpen}
+          task={null}
+          onSubmit={(data) => {
+            createTask.mutate(data, {
+              onSuccess: () => setTaskDialogOpen(false),
+            });
+          }}
+          defaultClientId={offer.client_id}
+          defaultClientName={offer.client_name}
+          defaultOfferId={offer.id}
+          defaultTitle={`Relance - ${offer.client_name || ''}`}
+        />
       </Container>
     </PageTransition>
   );
