@@ -1,58 +1,36 @@
 
 
-# Historique des modifications SEPA par contrat
+# Email de bienvenue automatique 1 semaine après livraison
 
-## Objectif
+## Contexte
+Les contrats ont un champ `delivery_date` (date) et `delivery_status` (text). Quand un contrat est livré, on veut envoyer automatiquement un email de bienvenue/suivi 7 jours après, avec invitation à laisser un avis Trustpilot et Google My Business. Il n'existe pas encore de champ pour traquer si cet email a été envoyé.
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+## Plan
 
-## 1. Nouvelle table `mollie_sepa_changes`
+### 1. Migration DB — Ajouter un champ de suivi
+Ajouter `welcome_followup_sent_at` (timestamptz, nullable) à la table `contracts` pour éviter les envois en double.
 
-Migration SQL :
+### 2. Edge Function `send-welcome-followup-email`
+Fonction CRON-compatible (appelée périodiquement) qui :
+- Cherche les contrats où `delivery_date <= now() - 7 jours` ET `welcome_followup_sent_at IS NULL` ET `delivery_status` in ('livre', 'delivered') OU `status` = 'active'
+- Pour chaque contrat trouvé, envoie un email via Resend au `client_email` avec :
+  - Message de bienvenue / prise de nouvelles
+  - Bouton Trustpilot (lien configurable)
+  - Bouton Google My Business (lien existant `GOOGLE_REVIEW_URL`)
+  - Template HTML professionnel cohérent avec les emails existants
+- Met à jour `welcome_followup_sent_at` pour ne pas renvoyer
 
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+### 3. Configuration CRON
+Créer un cron job (`pg_cron` + `pg_net`) qui appelle la fonction quotidiennement pour détecter les contrats éligibles.
 
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
+### 4. Config.toml
+Ajouter `[functions.send-welcome-followup-email]` avec `verify_jwt = false` (appelé par cron).
 
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-```
-
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
-
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
-
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
-
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
-
-## Fichiers modifies
-
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+### Fichiers impactés
+| Fichier | Action |
+|---|---|
+| Migration SQL | Ajouter colonne `welcome_followup_sent_at` |
+| `supabase/functions/send-welcome-followup-email/index.ts` | Nouvelle edge function |
+| `supabase/config.toml` | Ajouter config fonction |
+| SQL cron | Planifier l'appel quotidien |
 
