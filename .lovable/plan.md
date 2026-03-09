@@ -1,58 +1,42 @@
 
 
-# Historique des modifications SEPA par contrat
+# Fix: Inclure les uploads de documents dans le calcul de la dernière activité
 
-## Objectif
+## Diagnostic
+Le calcul de `last_activity_at` dans `getOffers.ts` (ligne 133-138) ne prend en compte que `updated_at` et les `offer_workflow_logs`. Les uploads de documents (`offer_documents.uploaded_at`) sont ignorés, alors qu'ils représentent une activité réelle du client.
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+Les documents récents sont déjà récupérés (ligne 91-96) mais uniquement utilisés pour `has_recent_documents`, pas pour `last_activity_at`.
 
-## 1. Nouvelle table `mollie_sepa_changes`
+## Solution
+Dans `src/services/offers/getOffers.ts`, modifier le calcul de `last_activity_at` (lignes 133-138) pour inclure aussi le timestamp du dernier document uploadé pour chaque offre.
 
-Migration SQL :
+1. Après la boucle des workflow logs (ligne 122), ajouter une `Map` similaire pour les documents récents -- mais en récupérant **tous** les documents (pas seulement les 24h) pour le calcul d'activité. Alternativement, utiliser les `recentDocuments` déjà récupérés comme approximation, puis aussi récupérer le dernier document par offre.
 
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+2. Récupérer les derniers documents par offre (requête supplémentaire) :
+```typescript
+const { data: latestDocs } = await supabase
+  .from('offer_documents')
+  .select('offer_id, uploaded_at')
+  .in('offer_id', offerIds)
+  .order('uploaded_at', { ascending: false });
 
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
+const latestDocByOffer = new Map<string, string>();
+if (latestDocs) {
+  for (const doc of latestDocs) {
+    if (!latestDocByOffer.has(doc.offer_id)) {
+      latestDocByOffer.set(doc.offer_id, doc.uploaded_at);
+    }
+  }
+}
 ```
 
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
+3. Modifier le calcul ligne 133-138 :
+```typescript
+const lastDocTime = latestDocByOffer.has(offer.id)
+  ? new Date(latestDocByOffer.get(offer.id)!).getTime()
+  : 0;
+const lastActivityAt = new Date(Math.max(updatedAtTime, lastLogTime, lastDocTime)).toISOString();
+```
 
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
-
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
-
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
-
-## Fichiers modifies
-
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+Seul fichier modifié : `src/services/offers/getOffers.ts`.
 
