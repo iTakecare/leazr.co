@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, List, Columns3, CalendarDays, Bell, CheckCheck, FileText } from "lucide-react";
 import { type TaskFilters as TaskFiltersType, type Task, type TaskTemplate } from "@/services/taskService";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
@@ -22,10 +23,15 @@ const Tasks = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'done'>('active');
 
   const { data: tasks = [], isLoading } = useTasks(filters);
   const { create, update, remove } = useTaskMutations();
   const { notifications, unreadCount, markRead, markAllRead } = useTaskNotifications();
+
+  const activeTasks = tasks.filter(t => t.status !== 'done');
+  const doneTasks = tasks.filter(t => t.status === 'done');
+  const filteredTasks = activeTab === 'done' ? doneTasks : activeTasks;
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
@@ -139,13 +145,35 @@ const Tasks = () => {
         </div>
       </div>
 
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'done')}>
+        <TabsList>
+          <TabsTrigger value="active">
+            En cours
+            {activeTasks.length > 0 && (
+              <Badge variant="secondary" className="ml-2 h-5 min-w-5 flex items-center justify-center p-0 text-[10px]">
+                {activeTasks.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="done">
+            Terminées
+            {doneTasks.length > 0 && (
+              <Badge variant="secondary" className="ml-2 h-5 min-w-5 flex items-center justify-center p-0 text-[10px]">
+                {doneTasks.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Filters */}
       <TaskFilters filters={filters} onFiltersChange={setFilters} />
 
       {/* Content */}
       {view === 'list' ? (
         <TaskList
-          tasks={tasks}
+          tasks={filteredTasks}
           isLoading={isLoading}
           onEdit={handleEdit}
           onDelete={(id) => remove.mutate(id)}
@@ -153,7 +181,7 @@ const Tasks = () => {
         />
       ) : view === 'kanban' ? (
         <TaskKanban
-          tasks={tasks}
+          tasks={filteredTasks}
           isLoading={isLoading}
           onEdit={handleEdit}
           onDelete={(id) => remove.mutate(id)}
@@ -161,7 +189,7 @@ const Tasks = () => {
         />
       ) : (
         <TaskCalendar
-          tasks={tasks}
+          tasks={filteredTasks}
           isLoading={isLoading}
           onEdit={handleEdit}
         />
