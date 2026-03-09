@@ -14,7 +14,8 @@ import {
   Eye,
   Upload,
   UserX,
-  Star
+  Star,
+  ClipboardList
 } from "lucide-react";
 import ReactivateOfferButton from "./ReactivateOfferButton";
 import {
