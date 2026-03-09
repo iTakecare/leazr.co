@@ -65,9 +65,13 @@ interface TaskDialogProps {
   onOpenChange: (open: boolean) => void;
   task: Task | null;
   onSubmit: (data: Omit<CreateTaskInput, 'company_id' | 'created_by'>) => void;
+  defaultClientId?: string;
+  defaultClientName?: string;
+  defaultOfferId?: string;
+  defaultTitle?: string;
 }
 
-const TaskDialog = ({ open, onOpenChange, task, onSubmit }: TaskDialogProps) => {
+const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defaultClientName, defaultOfferId, defaultTitle }: TaskDialogProps) => {
   const { data: profiles = [] } = useCompanyProfiles();
   const { companyId } = useMultiTenant();
 
