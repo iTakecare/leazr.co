@@ -121,6 +121,22 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       }
     }
     
+    // Récupérer le dernier document uploadé par offre (pour le calcul d'activité)
+    const { data: latestDocs } = await supabase
+      .from('offer_documents')
+      .select('offer_id, uploaded_at')
+      .in('offer_id', offerIds)
+      .order('uploaded_at', { ascending: false });
+    
+    const latestDocByOffer = new Map<string, string>();
+    if (latestDocs) {
+      for (const doc of latestDocs) {
+        if (!latestDocByOffer.has(doc.offer_id)) {
+          latestDocByOffer.set(doc.offer_id, doc.uploaded_at);
+        }
+      }
+    }
+    
     // Enrichir chaque offre avec l'info has_recent_documents et last_activity_at
     // Un document est "non vu" s'il a été uploadé APRÈS la dernière consultation
     return data.map(offer => {
