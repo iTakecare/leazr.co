@@ -314,8 +314,8 @@ const CompanyDashboard = () => {
                             className={`hover:bg-primary/5 ${index % 2 === 0 ? "bg-background" : "bg-muted/30"}`}
                           >
                             <TableCell className="font-normal">{month.month}</TableCell>
-                            <TableCell className="text-right font-normal">{formatCurrency(month.ca)}</TableCell>
-                            <TableCell className="text-right font-normal text-blue-700">{formatCurrency(month.caLeasing)}</TableCell>
+                            <TableCell className="text-right font-normal">{formatCurrency(includeCreditNotes ? month.ca - month.creditNotes : month.ca)}</TableCell>
+                            <TableCell className="text-right font-normal text-blue-700">{formatCurrency(includeCreditNotes ? month.caLeasing - month.creditNotes : month.caLeasing)}</TableCell>
                             <TableCell className="text-right font-normal text-indigo-700">{formatCurrency(month.selfLeasing)}</TableCell>
                             <TableCell className="text-right font-normal text-slate-500">
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
