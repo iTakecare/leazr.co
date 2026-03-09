@@ -313,6 +313,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
         case 'leaser':
           comparison = (a.leaser_name || '').localeCompare(b.leaser_name || '', 'fr');
           break;
+        case 'leaser_request_number':
+          comparison = (a.leaser_request_number || '').localeCompare(b.leaser_request_number || '', 'fr', { numeric: true });
+          break;
         case 'purchase_amount':
           comparison = (a.total_purchase_price || 0) - (b.total_purchase_price || 0);
           break;
