@@ -1,49 +1,58 @@
 
 
-# Correction Self-Leasing : utiliser les montants réels Mollie au lieu des montants théoriques du contrat
+# Historique des modifications SEPA par contrat
 
-## Problème identifié
+## Objectif
 
-Le dashboard utilise `contracts.monthly_payment` (HTVA) pour le CA Self-Leasing théorique. Or, les montants réellement prélevés via Mollie diffèrent pour certains contrats :
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-| Client | contract.monthly_payment (HTVA) | Montant réel Mollie | Écart |
-|---|---|---|---|
-| Patrick Grasseels | 131,85 € | 131,85 € | - |
-| Frederic Veillard | 55,95 € | 55,95 € | - |
-| Jennifer Meremans | **66,72 €** | **~63,92 €** | **~2,80 €** |
-| Naci-Prosper | 177,78 € | 177,78 € | - |
-| Bernard Lux | 33,95 € | 33,95 € | - |
+## 1. Nouvelle table `mollie_sepa_changes`
 
-**Dashboard actuel** : 466,2 € — **Mollie réel HTVA** : 463,4 €
-
-L'écart vient de Jennifer Meremans dont le contrat a un `monthly_payment` de 66,72 € HTVA alors que Mollie prélève un montant correspondant à ~63,92 € HTVA.
-
-## Solution proposée
-
-Deux corrections :
-
-### 1. Corriger le montant du contrat de Jennifer Meremans
-Mettre à jour `contracts.monthly_payment` pour refléter le montant HTVA réel prélevé par Mollie (63,92 €). C'est la source de vérité.
-
-### 2. Modifier la fonction SQL pour prendre en compte les changements Mollie
-Dans `self_leasing_contracts`, utiliser le dernier montant modifié via `mollie_sepa_changes` (type `amount`) converti en HTVA (/1.21) au lieu du `contracts.monthly_payment` statique. Cela garantit que si un montant d'abonnement Mollie est modifié (comme Bernard Lux 33,95→41,08 TTC), le dashboard utilise automatiquement le bon HTVA.
+Migration SQL :
 
 ```sql
--- Dans self_leasing_contracts CTE :
-COALESCE(
-  (SELECT msc.new_value::numeric / 1.21
-   FROM mollie_sepa_changes msc 
-   WHERE msc.contract_id = c.id AND msc.change_type = 'amount'
-   ORDER BY msc.created_at DESC LIMIT 1),
-  c.monthly_payment
-) as monthly_payment
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 ```
 
-### Résultat attendu mars 2026
-131,85 + 55,95 + 63,92 + 177,78 + 33,95 = **463,45 €** ≈ 463,4 €
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-## Fichiers modifiés
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
 
-1. **Data update** — Correction du `monthly_payment` de Jennifer Meremans
-2. **Migration SQL** — `CREATE OR REPLACE FUNCTION get_monthly_financial_data` avec prise en compte des montants Mollie modifiés
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
