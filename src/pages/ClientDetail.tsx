@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getClientById } from "@/services/clientService";
 import { Client } from "@/types/client";
-import { ChevronLeft, AlertCircle, Loader2, UserPlus, Edit2, X } from "lucide-react";
+import { ChevronLeft, AlertCircle, Loader2, UserPlus, Edit2, X, ClipboardList } from "lucide-react";
 import UnifiedClientView from "@/components/clients/UnifiedClientView";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
