@@ -292,6 +292,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
         case 'date':
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
+        case 'last_activity':
+          comparison = new Date(a.last_activity_at || a.created_at).getTime() - new Date(b.last_activity_at || b.created_at).getTime();
+          break;
         case 'client':
           comparison = (a.clientDisplayName || '').localeCompare(b.clientDisplayName || '', 'fr');
           break;
