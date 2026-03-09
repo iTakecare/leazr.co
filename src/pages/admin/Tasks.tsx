@@ -23,10 +23,15 @@ const Tasks = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'done'>('active');
 
   const { data: tasks = [], isLoading } = useTasks(filters);
   const { create, update, remove } = useTaskMutations();
   const { notifications, unreadCount, markRead, markAllRead } = useTaskNotifications();
+
+  const activeTasks = tasks.filter(t => t.status !== 'done');
+  const doneTasks = tasks.filter(t => t.status === 'done');
+  const filteredTasks = activeTab === 'done' ? doneTasks : activeTasks;
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
