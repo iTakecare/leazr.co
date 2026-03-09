@@ -181,6 +181,13 @@ export default function ClientDetail() {
             Retour à la liste
           </Button>
         )}
+        <Button 
+          variant="outline" 
+          onClick={() => setTaskDialogOpen(true)}
+        >
+          <ClipboardList className="mr-1 h-4 w-4" />
+          Créer une tâche
+        </Button>
       </div>
 
       <Card className="mb-6">
