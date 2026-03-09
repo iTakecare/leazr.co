@@ -340,17 +340,81 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
           </div>
         </div>
 
-        {contract.tracking_number && (
-          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-800">📦 Suivi:</span>
-              <span className="font-semibold text-blue-900">{contract.tracking_number}</span>
-              {contract.delivery_carrier && (
-                <span className="text-sm text-blue-700">({contract.delivery_carrier})</span>
-              )}
+        {/* Tracking + Follow-up email status */}
+        <div className="mt-4 flex flex-wrap gap-3">
+          {contract.tracking_number && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-blue-800">📦 Suivi:</span>
+                <span className="font-semibold text-blue-900">{contract.tracking_number}</span>
+                {contract.delivery_carrier && (
+                  <span className="text-sm text-blue-700">({contract.delivery_carrier})</span>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Email de suivi post-livraison */}
+          {(() => {
+            if (contract.welcome_followup_sent_at) {
+              return (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <MailCheck className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-800">Email de suivi envoyé</span>
+                    <span className="text-sm text-green-700">
+                      le {format(new Date(contract.welcome_followup_sent_at), "dd/MM/yyyy", { locale: fr })}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+            
+            const isDelivered = ['delivered', 'active'].includes(contract.status);
+            if (isDelivered && contract.delivery_date) {
+              const deliveryDate = new Date(contract.delivery_date);
+              const scheduledDate = new Date(deliveryDate);
+              scheduledDate.setDate(scheduledDate.getDate() + 7);
+              const now = new Date();
+              
+              if (scheduledDate > now) {
+                return (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-orange-600" />
+                      <span className="text-sm font-medium text-orange-800">Email de suivi planifié</span>
+                      <span className="text-sm text-orange-700">
+                        prévu le {format(scheduledDate, "dd/MM/yyyy", { locale: fr })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-orange-600" />
+                    <span className="text-sm font-medium text-orange-800">Email de suivi en attente d'envoi</span>
+                  </div>
+                </div>
+              );
+            }
+            
+            if (!isDelivered) {
+              return (
+                <div className="bg-muted/50 border rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Email de suivi — en attente de livraison</span>
+                  </div>
+                </div>
+              );
+            }
+            
+            return null;
+          })()}
+        </div>
       </div>
     </div>
   );

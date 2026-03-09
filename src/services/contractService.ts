@@ -67,6 +67,7 @@ export interface Contract {
   mollie_mandate_id?: string;
   mollie_mandate_status?: string;
   mollie_subscription_id?: string;
+  welcome_followup_sent_at?: string | null;
 }
 
 export interface ContractEquipment {

@@ -416,7 +416,21 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   )}
                 </TableCell>
                 <TableCell>
-                  {getStatusBadge(contract.status)}
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(contract.status)}
+                    {contract.welcome_followup_sent_at && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <MailCheck className="h-4 w-4 text-green-600" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Email de suivi envoyé le {format(new Date(contract.welcome_followup_sent_at), "dd/MM/yyyy", { locale: fr })}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
