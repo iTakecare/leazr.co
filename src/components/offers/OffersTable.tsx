@@ -408,7 +408,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   currentSort={sortColumn}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="w-[100px] text-[10px] hidden xl:table-cell"
+                  className="w-[75px] text-[9px] hidden xl:table-cell"
                 />
                 <SortableTableHead
                   column="equipment"
