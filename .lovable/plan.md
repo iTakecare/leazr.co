@@ -1,43 +1,58 @@
 
 
-# Correction du calcul Self-Leasing : prise en compte du mois de début
+# Historique des modifications SEPA par contrat
 
-## Problème
+## Objectif
 
-La fonction SQL `get_monthly_financial_data` compare `make_date(target_year, month, 1)` avec `start_date`. Pour Naci-Prosper (start_date = 2 mars), `2026-03-01 < 2026-03-02` → exclu de mars. C'est incorrect : un contrat démarrant le 2 mars doit compter pour mars.
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-## Contrats self-leasing actuels
+## 1. Nouvelle table `mollie_sepa_changes`
 
-| Client | Mensualité HTVA | Début | Attendu en mars |
-|---|---|---|---|
-| Patrick Grasseels | 131,85 € | 01/02 | Oui |
-| Frederic Veillard | 55,95 € | 01/02 | Oui |
-| Jennifer Meremans | 66,72 € | 01/03 | Oui |
-| Naci-Prosper Ndayishimiye | 177,78 € | 02/03 | Oui (actuellement exclu — bug) |
-| Bernard Lux | 33,95 € | 01/04 | Non |
-
-**CA Self-Leasing mars attendu** : 131,85 + 55,95 + 66,72 + 177,78 = **432,30 €**
-
-## Correction
-
-Migration SQL modifiant `get_monthly_financial_data` : remplacer les 2 occurrences de la comparaison de date dans le CTE `self_leasing_by_month` :
+Migration SQL :
 
 ```sql
--- Avant (bug)
-make_date(target_year, m.month_num, 1) >= slc.start_date
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
--- Après (comparaison mois/année uniquement)
-(target_year * 12 + m.month_num) >= 
-  (EXTRACT(YEAR FROM slc.start_date)::integer * 12 + EXTRACT(MONTH FROM slc.start_date)::integer)
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 ```
 
-Cela garantit que tout contrat démarrant dans un mois donné (quel que soit le jour) est inclus dans le CA de ce mois.
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-## Fichier modifié
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
 
-1. **Migration SQL** — `CREATE OR REPLACE FUNCTION get_monthly_financial_data` avec la correction des 2 comparaisons de date
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
 
-## Note sur le build error Dexie
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
 
-L'erreur TypeScript `dexie.d.ts` est un problème connu de compatibilité TypeScript 5.x avec Dexie, non lié à cette modification. Elle n'affecte pas le fonctionnement de l'application.
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
