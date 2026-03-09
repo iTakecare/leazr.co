@@ -35,6 +35,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
   const [existingInvoice, setExistingInvoice] = useState<any>(null);
   const [hasMissingSerials, setHasMissingSerials] = useState(false);
   const [resolvedLeaserName, setResolvedLeaserName] = useState<string | null>(null);
+  const [leaserRequestNumber, setLeaserRequestNumber] = useState<string | null>(null);
   const [contractStartDate, setContractStartDate] = useState<Date | undefined>(
     contract.contract_start_date ? new Date(contract.contract_start_date) : undefined
   );
@@ -57,6 +58,24 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
     };
     fetchLeaser();
   }, [contract.leaser_id]);
+
+  // Récupérer le numéro de demande leaseur depuis l'offre liée
+  useEffect(() => {
+    const fetchLeaserRequestNumber = async () => {
+      if (contract.offer_id) {
+        const { data } = await supabase
+          .from('offers')
+          .select('leaser_request_number')
+          .eq('id', contract.offer_id)
+          .maybeSingle();
+        
+        if (data?.leaser_request_number) {
+          setLeaserRequestNumber(data.leaser_request_number);
+        }
+      }
+    };
+    fetchLeaserRequestNumber();
+  }, [contract.offer_id]);
 
   // Unified effect: check Billit, existing invoice, serials — all in one pass
   useEffect(() => {
@@ -303,6 +322,11 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
               <span className="text-sm font-medium text-muted-foreground">Bailleur</span>
             </div>
             <p className="font-semibold">{resolvedLeaserName || contract.leaser_name}</p>
+            {leaserRequestNumber && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Réf. leaseur: <span className="font-mono">{leaserRequestNumber}</span>
+              </p>
+            )}
           </div>
 
           {/* Autres dossiers du client */}
