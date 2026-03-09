@@ -65,9 +65,13 @@ interface TaskDialogProps {
   onOpenChange: (open: boolean) => void;
   task: Task | null;
   onSubmit: (data: Omit<CreateTaskInput, 'company_id' | 'created_by'>) => void;
+  defaultClientId?: string;
+  defaultClientName?: string;
+  defaultOfferId?: string;
+  defaultTitle?: string;
 }
 
-const TaskDialog = ({ open, onOpenChange, task, onSubmit }: TaskDialogProps) => {
+const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defaultClientName, defaultOfferId, defaultTitle }: TaskDialogProps) => {
   const { data: profiles = [] } = useCompanyProfiles();
   const { companyId } = useMultiTenant();
 
@@ -100,20 +104,22 @@ const TaskDialog = ({ open, onOpenChange, task, onSubmit }: TaskDialogProps) => 
       setRecurrenceType(task.recurrence_type || 'none');
       setRecurrenceEndDate(task.recurrence_end_date ? task.recurrence_end_date.split('T')[0] : '');
     } else {
-      setTitle('');
+      setTitle(defaultTitle || '');
       setDescription('');
       setPriority('medium');
       setAssignedTo('');
       setDueDate('');
-      setRelatedClientId('');
+      setRelatedClientId(defaultClientId || '');
       setRelatedContractId('');
-      setRelatedOfferId('');
+      setRelatedOfferId(defaultOfferId || '');
       setRecurrenceType('none');
       setRecurrenceEndDate('');
-      setContracts([]);
-      setOffers([]);
+      if (!defaultClientId) {
+        setContracts([]);
+        setOffers([]);
+      }
     }
-  }, [task, open]);
+  }, [task, open, defaultTitle, defaultClientId, defaultOfferId]);
 
   // Load client dossiers when client changes
   useEffect(() => {

@@ -46,6 +46,8 @@ import { OfferFinancialFeesEditor } from "@/components/offer/OfferFinancialFeesE
 import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
 import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
 import SendGoogleReviewModal from "@/components/offers/detail/SendGoogleReviewModal";
+import TaskDialog from "@/components/tasks/TaskDialog";
+import { useTaskMutations } from "@/hooks/useTasks";
 import { createRoot } from 'react-dom/client';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { MobileOfferDetailPage } from "@/components/mobile/pages";
@@ -88,6 +90,9 @@ const [notesLoading, setNotesLoading] = useState(false);
   const [noFollowUpModalOpen, setNoFollowUpModalOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [googleReviewModalOpen, setGoogleReviewModalOpen] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+
+  const { create: createTask } = useTaskMutations();
 
   // Hook pour gérer les documents et upload links
   const { uploadLinks, generateUploadLink } = useOfferDocuments(id);
@@ -1111,6 +1116,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   onClassifyNoFollowUp={() => setNoFollowUpModalOpen(true)}
                   onStatusUpdated={fetchOfferDetails}
                   onSendGoogleReview={() => setGoogleReviewModalOpen(true)}
+                  onCreateTask={() => setTaskDialogOpen(true)}
                 />
                 
                 {/* Configuration de l'offre */}
@@ -1276,6 +1282,22 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           open={googleReviewModalOpen}
           onOpenChange={setGoogleReviewModalOpen}
           offer={offer}
+        />
+
+        {/* Dialog de création de tâche */}
+        <TaskDialog
+          open={taskDialogOpen}
+          onOpenChange={setTaskDialogOpen}
+          task={null}
+          onSubmit={(data) => {
+            createTask.mutate(data, {
+              onSuccess: () => setTaskDialogOpen(false),
+            });
+          }}
+          defaultClientId={offer.client_id}
+          defaultClientName={offer.client_name}
+          defaultOfferId={offer.id}
+          defaultTitle={`Relance - ${offer.client_name || ''}`}
         />
       </Container>
     </PageTransition>

@@ -14,7 +14,8 @@ import {
   Eye,
   Upload,
   UserX,
-  Star
+  Star,
+  ClipboardList
 } from "lucide-react";
 import ReactivateOfferButton from "./ReactivateOfferButton";
 import {
@@ -44,6 +45,7 @@ interface CompactActionsSidebarProps {
   onClassifyNoFollowUp?: () => void;
   onStatusUpdated?: () => void;
   onSendGoogleReview?: () => void;
+  onCreateTask?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -60,7 +62,8 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onOpenUploadLink,
   onClassifyNoFollowUp,
   onStatusUpdated,
-  onSendGoogleReview
+  onSendGoogleReview,
+  onCreateTask
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
@@ -313,6 +316,19 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             >
               <Star className="w-4 h-4 mr-2" />
               <span>Envoyer avis Google</span>
+            </Button>
+          )}
+          
+          {/* Bouton Créer une tâche */}
+          {onCreateTask && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full justify-start text-sm h-8" 
+              onClick={onCreateTask}
+            >
+              <ClipboardList className="w-4 h-4 mr-2" />
+              <span>Créer une tâche</span>
             </Button>
           )}
           

@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getClientById } from "@/services/clientService";
 import { Client } from "@/types/client";
-import { ChevronLeft, AlertCircle, Loader2, UserPlus, Edit2, X } from "lucide-react";
+import { ChevronLeft, AlertCircle, Loader2, UserPlus, Edit2, X, ClipboardList } from "lucide-react";
 import UnifiedClientView from "@/components/clients/UnifiedClientView";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AmbassadorSelector from "@/components/ui/AmbassadorSelector";
 import { getClientAmbassador, updateClientAmbassador } from "@/services/ambassador/ambassadorClients";
+import TaskDialog from "@/components/tasks/TaskDialog";
+import { useTaskMutations } from "@/hooks/useTasks";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +25,9 @@ export default function ClientDetail() {
   const [currentAmbassadorName, setCurrentAmbassadorName] = useState<string | null>(null);
   const [showAmbassadorSelector, setShowAmbassadorSelector] = useState(false);
   const [loadingAmbassador, setLoadingAmbassador] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+
+  const { create: createTask } = useTaskMutations();
 
   // Check if we should start in edit mode
   const shouldStartInEditMode = searchParams.get('edit') === 'true';
@@ -176,6 +181,13 @@ export default function ClientDetail() {
             Retour à la liste
           </Button>
         )}
+        <Button 
+          variant="outline" 
+          onClick={() => setTaskDialogOpen(true)}
+        >
+          <ClipboardList className="mr-1 h-4 w-4" />
+          Créer une tâche
+        </Button>
       </div>
 
       <Card className="mb-6">
@@ -251,6 +263,20 @@ export default function ClientDetail() {
           setShowAmbassadorSelector(false);
         }}
         selectedAmbassadorId={currentAmbassadorId || undefined}
+      />
+
+      <TaskDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        task={null}
+        onSubmit={(data) => {
+          createTask.mutate(data, {
+            onSuccess: () => setTaskDialogOpen(false),
+          });
+        }}
+        defaultClientId={id}
+        defaultClientName={client.name}
+        defaultTitle={`Rappel - ${client.name}`}
       />
     </div>
   );
