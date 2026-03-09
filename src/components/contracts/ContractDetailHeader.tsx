@@ -59,6 +59,24 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
     fetchLeaser();
   }, [contract.leaser_id]);
 
+  // Récupérer le numéro de demande leaseur depuis l'offre liée
+  useEffect(() => {
+    const fetchLeaserRequestNumber = async () => {
+      if (contract.offer_id) {
+        const { data } = await supabase
+          .from('offers')
+          .select('leaser_request_number')
+          .eq('id', contract.offer_id)
+          .maybeSingle();
+        
+        if (data?.leaser_request_number) {
+          setLeaserRequestNumber(data.leaser_request_number);
+        }
+      }
+    };
+    fetchLeaserRequestNumber();
+  }, [contract.offer_id]);
+
   // Unified effect: check Billit, existing invoice, serials — all in one pass
   useEffect(() => {
     const checkInvoiceEligibility = async () => {
