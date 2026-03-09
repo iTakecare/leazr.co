@@ -529,17 +529,17 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
                   
                   {/* Dernière activité */}
-                  <TableCell className="text-[9px] py-2 hidden lg:table-cell text-muted-foreground whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      {offer.last_activity_at && (new Date().getTime() - new Date(offer.last_activity_at).getTime()) < 24 * 60 * 60 * 1000 && (
-                        <span className="relative flex h-2 w-2 shrink-0">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                        </span>
-                      )}
-                      {offer.last_activity_at 
-                        ? formatDistanceToNow(new Date(offer.last_activity_at), { addSuffix: true, locale: fr })
-                        : '-'}
+                   <TableCell className="text-[9px] py-2 hidden lg:table-cell text-muted-foreground whitespace-nowrap text-left">
+                     <div className="flex items-center gap-1.5">
+                       {offer.last_activity_at && (new Date().getTime() - new Date(offer.last_activity_at).getTime()) < 24 * 60 * 60 * 1000 && (
+                         <span className="relative flex h-2 w-2 shrink-0">
+                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                           <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                         </span>
+                       )}
+                       {offer.last_activity_at 
+                         ? formatDistanceToNow(new Date(offer.last_activity_at), { addSuffix: true, locale: fr }).replace("environ ", "")
+                         : '-'}
                     </div>
                   </TableCell>
                   
