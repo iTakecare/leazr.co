@@ -531,14 +531,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   {/* Dernière activité */}
                    <TableCell className="text-[9px] py-2 hidden lg:table-cell text-muted-foreground whitespace-nowrap !text-left">
                      <div className="flex items-center justify-start gap-1.5">
-                        <span className="relative flex h-2 w-2 shrink-0">
-                          {offer.last_activity_at && (new Date().getTime() - new Date(offer.last_activity_at).getTime()) < 24 * 60 * 60 * 1000 ? (
-                            <>
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                            </>
-                          ) : null}
-                        </span>
                        {offer.last_activity_at 
                          ? formatDistanceToNow(new Date(offer.last_activity_at), { addSuffix: true, locale: fr }).replace("environ ", "")
                          : '-'}
