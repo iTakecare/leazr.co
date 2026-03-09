@@ -384,7 +384,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   currentSort={sortColumn}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="text-[9px] w-[95px] hidden lg:table-cell"
+                  className="text-[9px] w-[95px] hidden lg:table-cell text-left"
                 />
                 <SortableTableHead
                   column="client"
@@ -530,7 +530,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                   {/* Dernière activité */}
                    <TableCell className="text-[9px] py-2 hidden lg:table-cell text-muted-foreground whitespace-nowrap !text-left">
-                     <div className="flex items-center gap-1.5">
+                     <div className="flex items-center justify-start gap-1.5">
                        {offer.last_activity_at && (new Date().getTime() - new Date(offer.last_activity_at).getTime()) < 24 * 60 * 60 * 1000 && (
                          <span className="relative flex h-2 w-2 shrink-0">
                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
