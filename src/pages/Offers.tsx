@@ -130,22 +130,7 @@ const Offers = () => {
         
         <OffersKPIStats offers={offers} activeKPIFilter={activeKPIFilter} onKPIClick={setActiveKPIFilter} />
         
-        {loading ? <OffersLoading /> : loadingError ? <OffersError message={loadingError} onRetry={fetchOffers} /> : viewMode === 'kanban' ? <>
-            {/* Contrôles de navigation du Kanban */}
-            <div className="flex justify-between items-center mb-2">
-              <Button variant="outline" size="icon" onClick={scrollLeft} className="rounded-full">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              
-              <Button variant="outline" size="icon" onClick={scrollRight} className="rounded-full">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div ref={scrollContainer} className="overflow-hidden">
-              <OffersKanban offers={filteredOffers} onStatusChange={handleUpdateWorkflowStatus} isUpdatingStatus={isUpdatingStatus} onDeleteOffer={handleDeleteOffer} includeConverted={includeConverted} />
-            </div>
-          </> : <OffersTable offers={filteredOffers} onStatusChange={handleUpdateWorkflowStatus} onDeleteOffer={handleDeleteOffer} onResendOffer={handleResendOffer} onGenerateOffer={handleGenerateOffer} isUpdatingStatus={isUpdatingStatus} sentReminders={reminders} onReminderSent={invalidateReminders} />}
+        {loading ? <OffersLoading /> : loadingError ? <OffersError message={loadingError} onRetry={fetchOffers} /> : <OffersTable offers={filteredOffers} onStatusChange={handleUpdateWorkflowStatus} onDeleteOffer={handleDeleteOffer} onResendOffer={handleResendOffer} onGenerateOffer={handleGenerateOffer} isUpdatingStatus={isUpdatingStatus} sentReminders={reminders} onReminderSent={invalidateReminders} />}
       </div>
     </PageTransition>;
 };
