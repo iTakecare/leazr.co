@@ -121,6 +121,7 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
       equipment: formatEquipmentForExcel(offer),
       source: offer.source || '-',
       bailleur: offer.leaser_name || '-',
+      leaser_request_number: offer.leaser_request_number || '-',
       montant_achat: totalPurchasePrice,
       ca_potentiel: effectiveFinancedAmount,
       marge_percent: marginPercent.toFixed(2),
