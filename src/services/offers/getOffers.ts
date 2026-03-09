@@ -121,6 +121,22 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       }
     }
     
+    // Récupérer le dernier document uploadé par offre (pour le calcul d'activité)
+    const { data: latestDocs } = await supabase
+      .from('offer_documents')
+      .select('offer_id, uploaded_at')
+      .in('offer_id', offerIds)
+      .order('uploaded_at', { ascending: false });
+    
+    const latestDocByOffer = new Map<string, string>();
+    if (latestDocs) {
+      for (const doc of latestDocs) {
+        if (!latestDocByOffer.has(doc.offer_id)) {
+          latestDocByOffer.set(doc.offer_id, doc.uploaded_at);
+        }
+      }
+    }
+    
     // Enrichir chaque offre avec l'info has_recent_documents et last_activity_at
     // Un document est "non vu" s'il a été uploadé APRÈS la dernière consultation
     return data.map(offer => {
@@ -130,12 +146,15 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
         (!lastViewed || new Date(doc.uploaded_at) > new Date(lastViewed))
       ) || false;
       
-      // last_activity_at = max(updated_at, dernier workflow log)
+      // last_activity_at = max(updated_at, dernier workflow log, dernier document uploadé)
       const updatedAtTime = new Date(offer.updated_at || offer.created_at).getTime();
       const lastLogTime = latestLogByOffer.has(offer.id) 
         ? new Date(latestLogByOffer.get(offer.id)!).getTime() 
         : 0;
-      const lastActivityAt = new Date(Math.max(updatedAtTime, lastLogTime)).toISOString();
+      const lastDocTime = latestDocByOffer.has(offer.id)
+        ? new Date(latestDocByOffer.get(offer.id)!).getTime()
+        : 0;
+      const lastActivityAt = new Date(Math.max(updatedAtTime, lastLogTime, lastDocTime)).toISOString();
       
       return {
         ...offer,
