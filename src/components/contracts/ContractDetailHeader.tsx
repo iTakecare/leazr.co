@@ -322,6 +322,11 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
               <span className="text-sm font-medium text-muted-foreground">Bailleur</span>
             </div>
             <p className="font-semibold">{resolvedLeaserName || contract.leaser_name}</p>
+            {leaserRequestNumber && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Réf. leaseur: <span className="font-mono">{leaserRequestNumber}</span>
+              </p>
+            )}
           </div>
 
           {/* Autres dossiers du client */}
