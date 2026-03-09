@@ -25,6 +25,9 @@ export default function ClientDetail() {
   const [currentAmbassadorName, setCurrentAmbassadorName] = useState<string | null>(null);
   const [showAmbassadorSelector, setShowAmbassadorSelector] = useState(false);
   const [loadingAmbassador, setLoadingAmbassador] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+
+  const { create: createTask } = useTaskMutations();
 
   // Check if we should start in edit mode
   const shouldStartInEditMode = searchParams.get('edit') === 'true';
