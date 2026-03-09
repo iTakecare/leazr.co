@@ -572,9 +572,19 @@ const EquipmentOrders: React.FC = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <Truck className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Commandes fournisseurs</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Truck className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold">Commandes fournisseurs</h1>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => exportEquipmentOrdersToExcel(items, suppliers)}
+          disabled={items.length === 0}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Exporter Excel
+        </Button>
       </div>
 
       {/* Summary cards */}
