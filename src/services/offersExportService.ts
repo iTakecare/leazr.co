@@ -130,7 +130,7 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
       statut: getStatusLabel(offer.workflow_status),
     });
 
-    const currencyColumns = [9, 10, 12, 13];
+    const currencyColumns = [10, 11, 13, 14];
     currencyColumns.forEach(colIndex => {
       const cell = row.getCell(colIndex);
       if (typeof cell.value === 'number') {

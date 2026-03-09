@@ -634,6 +634,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     </TableCell>
                   )}
                   
+                  {/* Réf. leaseur - masqué pour les ambassadeurs */}
+                  {!isAmbassador() && (
+                    <TableCell className="text-[10px] py-2 hidden lg:table-cell font-mono">
+                      {offer.leaser_request_number || '-'}
+                    </TableCell>
+                  )}
+                  
                   {/* Montant d'achat - masqué pour les ambassadeurs */}
                   {!isAmbassador() && (
                     <TableCell className="text-right text-[11px] py-2 hidden xl:table-cell">
