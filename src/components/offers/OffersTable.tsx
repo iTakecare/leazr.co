@@ -595,7 +595,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Source */}
-                  <TableCell className="text-[11px] py-2 hidden xl:table-cell">
+                  <TableCell className="text-[9px] py-2 hidden xl:table-cell">
                     {offer.source ? (
                       <OfferTypeTag 
                         type="" 
