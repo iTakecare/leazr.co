@@ -55,7 +55,9 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
+  MailCheck,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
 
 type SortColumn = 'date' | 'client' | 'leaser' | 'monthly_payment' | 'start_date' | 'end_date' | 'status';
