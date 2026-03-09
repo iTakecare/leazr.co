@@ -129,7 +129,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   } | null>(null);
   
   // Sorting state
-  const [sortColumn, setSortColumn] = useState<OfferSortColumn>('date');
+  const [sortColumn, setSortColumn] = useState<OfferSortColumn>('last_activity');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
   const handleSort = (column: OfferSortColumn) => {
