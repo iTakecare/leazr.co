@@ -75,6 +75,7 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
     { header: 'Équipement', key: 'equipment', width: 40 },
     { header: 'Source', key: 'source', width: 12 },
     { header: 'Bailleur', key: 'bailleur', width: 15 },
+    { header: 'Réf. leaseur', key: 'leaser_request_number', width: 18 },
     { header: 'Montant achat (€)', key: 'montant_achat', width: 15 },
     { header: 'CA potentiel (€)', key: 'ca_potentiel', width: 15 },
     { header: 'Marge potentielle (%)', key: 'marge_percent', width: 18 },
@@ -120,6 +121,7 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
       equipment: formatEquipmentForExcel(offer),
       source: offer.source || '-',
       bailleur: offer.leaser_name || '-',
+      leaser_request_number: offer.leaser_request_number || '-',
       montant_achat: totalPurchasePrice,
       ca_potentiel: effectiveFinancedAmount,
       marge_percent: marginPercent.toFixed(2),
@@ -128,7 +130,7 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
       statut: getStatusLabel(offer.workflow_status),
     });
 
-    const currencyColumns = [9, 10, 12, 13];
+    const currencyColumns = [10, 11, 13, 14];
     currencyColumns.forEach(colIndex => {
       const cell = row.getCell(colIndex);
       if (typeof cell.value === 'number') {

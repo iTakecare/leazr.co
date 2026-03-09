@@ -61,7 +61,7 @@ import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/u
 import { useOffersReminders, ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 
-type OfferSortColumn = 'dossier_number' | 'date' | 'last_activity' | 'client' | 'company' | 'type' | 'equipment' | 'source' | 'leaser' | 'purchase_amount' | 'financed_amount' | 'margin_amount' | 'margin_percent' | 'commission' | 'monthly_payment' | 'status' | 'reminder';
+type OfferSortColumn = 'dossier_number' | 'date' | 'last_activity' | 'client' | 'company' | 'type' | 'equipment' | 'source' | 'leaser' | 'leaser_request_number' | 'purchase_amount' | 'financed_amount' | 'margin_amount' | 'margin_percent' | 'commission' | 'monthly_payment' | 'status' | 'reminder';
 
 // Fonction pour extraire le nom et l'entreprise depuis client_name
 const parseClientName = (clientName: string, clientsData?: any) => {
@@ -313,6 +313,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
         case 'leaser':
           comparison = (a.leaser_name || '').localeCompare(b.leaser_name || '', 'fr');
           break;
+        case 'leaser_request_number':
+          comparison = (a.leaser_request_number || '').localeCompare(b.leaser_request_number || '', 'fr', { numeric: true });
+          break;
         case 'purchase_amount':
           comparison = (a.total_purchase_price || 0) - (b.total_purchase_price || 0);
           break;
@@ -434,6 +437,16 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     direction={sortDirection}
                     onSort={handleSort}
                     className="text-[10px] w-[90px] hidden lg:table-cell"
+                  />
+                )}
+                {!isAmbassador() && (
+                  <SortableTableHead
+                    column="leaser_request_number"
+                    label="Réf. leaseur"
+                    currentSort={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="text-[10px] w-[100px] hidden lg:table-cell"
                   />
                 )}
                 {!isAmbassador() && (
@@ -621,6 +634,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   {!isAmbassador() && (
                     <TableCell className="text-[11px] py-2 hidden lg:table-cell">
                       {offer.leaser_name || '-'}
+                    </TableCell>
+                  )}
+                  
+                  {/* Réf. leaseur - masqué pour les ambassadeurs */}
+                  {!isAmbassador() && (
+                    <TableCell className="text-[10px] py-2 hidden lg:table-cell font-mono">
+                      {offer.leaser_request_number || '-'}
                     </TableCell>
                   )}
                   
