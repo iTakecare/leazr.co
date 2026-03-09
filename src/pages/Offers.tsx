@@ -91,16 +91,6 @@ const Offers = () => {
           <div className="flex items-center gap-2">
             <OffersSearch value={searchTerm} onChange={setSearchTerm} />
             
-            {/* Sélecteur de vue - masqué pour les broker users */}
-            {!isBrokerUser() && <div className="flex items-center border rounded-md overflow-hidden">
-                <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} className="rounded-none px-3">
-                  <List className="h-4 w-4" />
-                </Button>
-                <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('kanban')} className="rounded-none px-3">
-                  <Grid className="h-4 w-4" />
-                </Button>
-              </div>}
-            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon">
