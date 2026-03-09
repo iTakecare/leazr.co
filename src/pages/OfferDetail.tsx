@@ -252,9 +252,15 @@ const OfferDetail = () => {
               <OfferReferenceEditor 
                 offerId={offer.id}
                 currentReference={offer.dossier_number}
+                currentLeaserReference={offer.leaser_request_number}
                 onUpdate={fetchOffer}
               />
             </div>
+            {offer.leaser_request_number && (
+              <p className="text-xs text-muted-foreground mb-1">
+                Réf. leaseur: {offer.leaser_request_number}
+              </p>
+            )}
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Calendar className="h-4 w-4" />
               <span>Créée le {formatDate(offer.created_at)}</span>

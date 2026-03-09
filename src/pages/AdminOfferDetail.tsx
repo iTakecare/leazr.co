@@ -1003,12 +1003,18 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                     <OfferReferenceEditor
                       offerId={offer.id}
                       currentReference={offer.dossier_number}
+                      currentLeaserReference={offer.leaser_request_number}
                       onUpdate={fetchOfferDetails}
                     />
                     {offer.type && <OfferTypeTag type={offer.type} size="sm" />}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-sm text-muted-foreground">{offer.client_name}</p>
+                    {offer.leaser_request_number && (
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                        Réf. leaseur: {offer.leaser_request_number}
+                      </span>
+                    )}
                     
                     {/* Lien vers le contrat si existant */}
                     {offer.linkedContract && (
