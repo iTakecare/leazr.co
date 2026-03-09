@@ -146,12 +146,15 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
         (!lastViewed || new Date(doc.uploaded_at) > new Date(lastViewed))
       ) || false;
       
-      // last_activity_at = max(updated_at, dernier workflow log)
+      // last_activity_at = max(updated_at, dernier workflow log, dernier document uploadé)
       const updatedAtTime = new Date(offer.updated_at || offer.created_at).getTime();
       const lastLogTime = latestLogByOffer.has(offer.id) 
         ? new Date(latestLogByOffer.get(offer.id)!).getTime() 
         : 0;
-      const lastActivityAt = new Date(Math.max(updatedAtTime, lastLogTime)).toISOString();
+      const lastDocTime = latestDocByOffer.has(offer.id)
+        ? new Date(latestDocByOffer.get(offer.id)!).getTime()
+        : 0;
+      const lastActivityAt = new Date(Math.max(updatedAtTime, lastLogTime, lastDocTime)).toISOString();
       
       return {
         ...offer,
