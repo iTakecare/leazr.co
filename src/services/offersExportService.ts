@@ -75,6 +75,7 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
     { header: 'Équipement', key: 'equipment', width: 40 },
     { header: 'Source', key: 'source', width: 12 },
     { header: 'Bailleur', key: 'bailleur', width: 15 },
+    { header: 'Réf. leaseur', key: 'leaser_request_number', width: 18 },
     { header: 'Montant achat (€)', key: 'montant_achat', width: 15 },
     { header: 'CA potentiel (€)', key: 'ca_potentiel', width: 15 },
     { header: 'Marge potentielle (%)', key: 'marge_percent', width: 18 },
