@@ -264,6 +264,20 @@ export default function ClientDetail() {
         }}
         selectedAmbassadorId={currentAmbassadorId || undefined}
       />
+
+      <TaskDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        task={null}
+        onSubmit={(data) => {
+          createTask.mutate(data, {
+            onSuccess: () => setTaskDialogOpen(false),
+          });
+        }}
+        defaultClientId={id}
+        defaultClientName={client.name}
+        defaultTitle={`Rappel - ${client.name}`}
+      />
     </div>
   );
 }
