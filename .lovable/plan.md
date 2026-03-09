@@ -1,58 +1,33 @@
 
 
-# Historique des modifications SEPA par contrat
+# Fix: Déduire les notes de crédit du CA quand la case est cochée
 
-## Objectif
+## Diagnostic
+Dans `CompanyDashboard.tsx`, quand `includeCreditNotes` est activé :
+- **Marge** : correctement ajustée (ligne 323)
+- **CA total, CA Leasing** : jamais ajustés (lignes 315-316, 344-345)
+- **KPI cards en haut** : `totals.ca` jamais ajusté (ligne 211)
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+Les notes de crédit proviennent de factures leasing, donc elles doivent réduire le CA Leasing (et par conséquent le CA total).
 
-## 1. Nouvelle table `mollie_sepa_changes`
+## Solution — fichier unique : `src/components/dashboard/CompanyDashboard.tsx`
 
-Migration SQL :
-
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
+1. **Totals** (lignes 79-87) : quand `includeCreditNotes`, soustraire les credit notes du `ca` et du `caLeasing`
+```typescript
+const totals = {
+  ca: monthlyData.reduce((sum, m) => sum + m.ca, 0) - (includeCreditNotes ? totalCreditNotes : 0),
+  caLeasing: monthlyData.reduce((sum, m) => sum + m.caLeasing, 0) - (includeCreditNotes ? totalCreditNotes : 0),
+  // ... reste inchangé
+};
 ```
 
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
+2. **Lignes mensuelles** (lignes 315-316) : appliquer la déduction par mois
+```tsx
+<TableCell>{formatCurrency(includeCreditNotes ? month.ca - month.creditNotes : month.ca)}</TableCell>
+<TableCell>{formatCurrency(includeCreditNotes ? month.caLeasing - month.creditNotes : month.caLeasing)}</TableCell>
+```
 
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
+3. **Moyennes** : déjà calculées depuis `totals`, donc automatiquement corrigées.
 
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
-
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
-
-## Fichiers modifies
-
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+4. **KPI card CA Total** (ligne 211) : utilise déjà `totals.ca`, donc automatiquement corrigé.
 
