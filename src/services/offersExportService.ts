@@ -1,6 +1,12 @@
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { 
+  getEffectiveFinancedAmount, 
+  calculateEquipmentTotals, 
+  calculateOfferMargin, 
+  calculateOfferMarginAmount 
+} from '@/utils/marginCalculations';
 
 const getTypeLabel = (type: string | undefined): string => {
   switch (type) {
@@ -86,10 +92,24 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
   };
 
   offers.forEach(offer => {
-    const purchasePrice = offer.total_purchase_price || 0;
-    const financedAmount = offer.financed_amount || offer.amount || 0;
-    const marginPercent = offer.margin_percentage || 0;
-    const marginAmount = financedAmount - purchasePrice;
+    // Utiliser exactement la même logique que OffersTable (lignes 228-260)
+    const equipmentItems = offer.offer_equipment;
+    
+    const baseFinancedAmount = getEffectiveFinancedAmount(offer, equipmentItems);
+    const downPayment = offer.down_payment || 0;
+    const effectiveFinancedAmount = downPayment > 0 ? baseFinancedAmount - downPayment : baseFinancedAmount;
+    const coefficient = offer.coefficient || 0;
+
+    // Recalculer la mensualité si acompte présent
+    const adjustedMonthlyPayment = downPayment > 0 && coefficient > 0
+      ? (effectiveFinancedAmount * coefficient) / 100
+      : offer.monthly_payment || 0;
+
+    const totalsData = calculateEquipmentTotals(offer, equipmentItems);
+    const totalPurchasePrice = totalsData.totalPurchasePrice || offer.total_purchase_price || 0;
+
+    const marginInEuros = calculateOfferMarginAmount(offer, equipmentItems) || 0;
+    const marginPercent = calculateOfferMargin(offer, equipmentItems) || 0;
 
     const row = worksheet.addRow({
       dossier_number: offer.dossier_number || '-',
@@ -100,11 +120,11 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
       equipment: formatEquipmentForExcel(offer),
       source: offer.source || '-',
       bailleur: offer.leaser_name || '-',
-      montant_achat: purchasePrice,
-      ca_potentiel: financedAmount,
+      montant_achat: totalPurchasePrice,
+      ca_potentiel: effectiveFinancedAmount,
       marge_percent: marginPercent.toFixed(2),
-      marge_euros: marginAmount,
-      mensualite: offer.monthly_payment || 0,
+      marge_euros: marginInEuros,
+      mensualite: adjustedMonthlyPayment,
       statut: getStatusLabel(offer.workflow_status),
     });
 
