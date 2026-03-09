@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AmbassadorSelector from "@/components/ui/AmbassadorSelector";
 import { getClientAmbassador, updateClientAmbassador } from "@/services/ambassador/ambassadorClients";
+import TaskDialog from "@/components/tasks/TaskDialog";
+import { useTaskMutations } from "@/hooks/useTasks";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
