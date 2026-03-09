@@ -1,0 +1,1 @@
+ALTER TABLE public.contracts ADD COLUMN IF NOT EXISTS welcome_followup_sent_at timestamptz DEFAULT NULL;

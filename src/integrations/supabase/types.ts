@@ -2696,6 +2696,7 @@ export type Database = {
           tracking_number: string | null
           updated_at: string
           user_id: string
+          welcome_followup_sent_at: string | null
         }
         Insert: {
           billing_entity_id?: string | null
@@ -2754,6 +2755,7 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           user_id: string
+          welcome_followup_sent_at?: string | null
         }
         Update: {
           billing_entity_id?: string | null
@@ -2812,6 +2814,7 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           user_id?: string
+          welcome_followup_sent_at?: string | null
         }
         Relationships: [
           {
