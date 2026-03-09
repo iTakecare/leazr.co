@@ -35,6 +35,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
   const [existingInvoice, setExistingInvoice] = useState<any>(null);
   const [hasMissingSerials, setHasMissingSerials] = useState(false);
   const [resolvedLeaserName, setResolvedLeaserName] = useState<string | null>(null);
+  const [leaserRequestNumber, setLeaserRequestNumber] = useState<string | null>(null);
   const [contractStartDate, setContractStartDate] = useState<Date | undefined>(
     contract.contract_start_date ? new Date(contract.contract_start_date) : undefined
   );
