@@ -9,7 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X, Package, CheckCircle2 } from "lucide-react";
+import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X, Package, CheckCircle2, Download } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useNavigate, useLocation } from "react-router-dom";
