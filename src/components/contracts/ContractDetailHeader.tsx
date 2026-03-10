@@ -356,11 +356,11 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
             </div>
           )}
 
-          {/* Email de suivi post-livraison */}
+          {/* Email de suivi post-livraison — cliquable pour ouvrir la modale */}
           {(() => {
             if (contract.welcome_followup_sent_at) {
               return (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <button onClick={() => setShowEmailModal(true)} className="bg-green-50 border border-green-200 rounded-lg p-3 cursor-pointer hover:bg-green-100 transition-colors text-left">
                   <div className="flex items-center gap-2">
                     <MailCheck className="h-4 w-4 text-green-600" />
                     <span className="text-sm font-medium text-green-800">Email de suivi envoyé</span>
@@ -368,7 +368,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
                       le {format(new Date(contract.welcome_followup_sent_at), "dd/MM/yyyy", { locale: fr })}
                     </span>
                   </div>
-                </div>
+                </button>
               );
             }
             
@@ -381,7 +381,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
               
               if (scheduledDate > now) {
                 return (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <button onClick={() => setShowEmailModal(true)} className="bg-orange-50 border border-orange-200 rounded-lg p-3 cursor-pointer hover:bg-orange-100 transition-colors text-left">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-orange-600" />
                       <span className="text-sm font-medium text-orange-800">Email de suivi planifié</span>
@@ -389,28 +389,28 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
                         prévu le {format(scheduledDate, "dd/MM/yyyy", { locale: fr })}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 );
               }
               
               return (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <button onClick={() => setShowEmailModal(true)} className="bg-orange-50 border border-orange-200 rounded-lg p-3 cursor-pointer hover:bg-orange-100 transition-colors text-left">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-orange-600" />
                     <span className="text-sm font-medium text-orange-800">Email de suivi en attente d'envoi</span>
                   </div>
-                </div>
+                </button>
               );
             }
             
             if (!isDelivered) {
               return (
-                <div className="bg-muted/50 border rounded-lg p-3">
+                <button onClick={() => setShowEmailModal(true)} className="bg-muted/50 border rounded-lg p-3 cursor-pointer hover:bg-muted transition-colors text-left">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">Email de suivi — en attente de livraison</span>
                   </div>
-                </div>
+                </button>
               );
             }
             
