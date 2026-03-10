@@ -6,7 +6,8 @@ import {
   ClipboardList, 
   Plus, 
   FileText, 
-  User 
+  User,
+  Users 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,9 +49,9 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       isAction: true 
     },
     { 
-      icon: FileText, 
-      label: "Contrats", 
-      href: `${basePrefix}/admin/contracts` 
+      icon: Users, 
+      label: "CRM", 
+      href: `${basePrefix}/admin/crm` 
     },
     { 
       icon: User, 
