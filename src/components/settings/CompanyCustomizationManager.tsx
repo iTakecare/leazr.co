@@ -40,18 +40,35 @@ const CompanyCustomizationManager = () => {
     signature_representative_title?: string | null;
   }>({});
 
-  // Fetch lessor signature data
+  // Social & review URLs state
+  const [socialUrls, setSocialUrls] = useState({
+    trustpilot_url: "",
+    google_review_url: "",
+    facebook_url: "",
+    linkedin_url: "",
+    instagram_url: "",
+  });
+  const [savingSocial, setSavingSocial] = useState(false);
+
+  // Fetch lessor signature data + social URLs
   const fetchLessorSignatureData = async () => {
     if (!companyId) return;
     
     const { data } = await supabase
       .from('companies')
-      .select('signature_url, signature_representative_name, signature_representative_title')
+      .select('signature_url, signature_representative_name, signature_representative_title, trustpilot_url, google_review_url, facebook_url, linkedin_url, instagram_url')
       .eq('id', companyId)
       .single();
     
     if (data) {
       setLessorSignatureData(data);
+      setSocialUrls({
+        trustpilot_url: data.trustpilot_url || "",
+        google_review_url: data.google_review_url || "",
+        facebook_url: data.facebook_url || "",
+        linkedin_url: data.linkedin_url || "",
+        instagram_url: data.instagram_url || "",
+      });
     }
   };
 
