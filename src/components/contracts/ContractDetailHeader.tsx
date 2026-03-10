@@ -418,6 +418,12 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
           })()}
         </div>
       </div>
+
+      <FollowupEmailModal
+        open={showEmailModal}
+        onOpenChange={setShowEmailModal}
+        contract={contract}
+      />
     </div>
   );
 };

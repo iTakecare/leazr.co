@@ -147,13 +147,6 @@ const ContractDetail = () => {
                 onUpdate={refetch}
               />
 
-              {/* Section Suivi commandes fournisseurs */}
-              <EquipmentOrderTracker
-                sourceType="contract"
-                sourceId={contract.id}
-                onUpdate={refetch}
-              />
-
               {/* Section Suivi des achats */}
               <ContractPurchaseTracking 
                 contractId={contract.id}
