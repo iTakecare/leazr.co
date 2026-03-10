@@ -1631,9 +1631,13 @@ export type Database = {
           default_pdf_customizations: Json | null
           default_pdf_template_id: string | null
           devices_count: number | null
+          facebook_url: string | null
           favicon_url: string | null
+          google_review_url: string | null
           id: string
+          instagram_url: string | null
           is_active: boolean | null
+          linkedin_url: string | null
           logo_url: string | null
           modules_enabled: string[] | null
           name: string
@@ -1651,6 +1655,7 @@ export type Database = {
           template_design: Json | null
           trial_ends_at: string | null
           trial_starts_at: string | null
+          trustpilot_url: string | null
           updated_at: string
         }
         Insert: {
@@ -1666,9 +1671,13 @@ export type Database = {
           default_pdf_customizations?: Json | null
           default_pdf_template_id?: string | null
           devices_count?: number | null
+          facebook_url?: string | null
           favicon_url?: string | null
+          google_review_url?: string | null
           id?: string
+          instagram_url?: string | null
           is_active?: boolean | null
+          linkedin_url?: string | null
           logo_url?: string | null
           modules_enabled?: string[] | null
           name: string
@@ -1686,6 +1695,7 @@ export type Database = {
           template_design?: Json | null
           trial_ends_at?: string | null
           trial_starts_at?: string | null
+          trustpilot_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -1701,9 +1711,13 @@ export type Database = {
           default_pdf_customizations?: Json | null
           default_pdf_template_id?: string | null
           devices_count?: number | null
+          facebook_url?: string | null
           favicon_url?: string | null
+          google_review_url?: string | null
           id?: string
+          instagram_url?: string | null
           is_active?: boolean | null
+          linkedin_url?: string | null
           logo_url?: string | null
           modules_enabled?: string[] | null
           name?: string
@@ -1721,6 +1735,7 @@ export type Database = {
           template_design?: Json | null
           trial_ends_at?: string | null
           trial_starts_at?: string | null
+          trustpilot_url?: string | null
           updated_at?: string
         }
         Relationships: []
