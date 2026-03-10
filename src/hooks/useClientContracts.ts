@@ -9,6 +9,7 @@ export interface ContractEquipmentItem {
   id: string;
   title: string;
   quantity: number;
+  serial_number?: string | null;
 }
 
 export interface ClientContract {
