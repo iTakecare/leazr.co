@@ -49,9 +49,9 @@ const FollowupEmailModal: React.FC<FollowupEmailModalProps> = ({
     primaryColor: string;
   }>({ name: "Notre équipe", logoUrl: "", primaryColor: "#2563eb" });
 
-  // Editable URLs
-  const [trustpilotUrl, setTrustpilotUrl] = useState("https://www.trustpilot.com/review/itakecare.be");
-  const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/itakecare/review");
+  // Editable URLs (will be pre-filled from company settings)
+  const [trustpilotUrl, setTrustpilotUrl] = useState("");
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
