@@ -1,47 +1,58 @@
 
 
-# Corrections et redesign de la modale email de suivi
+# Historique des modifications SEPA par contrat
 
-## Problèmes identifiés
-1. **Email client non pré-rempli** : `contract.client_email` est utilisé à l'init du state mais le composant ne se met pas à jour quand le contract change (le state initial est fixé une seule fois). Il faut aussi fallback sur `contract.clients?.email`.
-2. **Durée depuis livraison incorrecte** : Le texte dit toujours "une semaine" en dur au lieu de calculer dynamiquement depuis `contract.delivery_date`.
-3. **Design email basique** : Pas de section réseaux sociaux, liens Trustpilot/Google hardcodés et non éditables.
+## Objectif
 
-## Plan
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-### Fichier : `src/components/contracts/FollowupEmailModal.tsx` — Réécriture complète
+## 1. Nouvelle table `mollie_sepa_changes`
 
-**A. Correction email client**
-- Ajouter un `useEffect` qui met à jour `to` quand `contract` change ou quand la modale s'ouvre : `contract.client_email || contract.clients?.email || ""`
+Migration SQL :
 
-**B. Calcul dynamique de la durée**
-- Calculer les semaines entre `contract.delivery_date` et maintenant
-- Logique : 1 semaine → "une semaine", 2 → "2 semaines", 3 → "3 semaines", 4 → "un mois", >4 → "quelques semaines"
-- Injecter dans le template HTML
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-**C. Champs éditables sous l'éditeur**
-Ajouter 5 champs Input sous le mail :
-- URL Trustpilot (défaut: `https://www.trustpilot.com/review/itakecare.be`)
-- URL Google Review (défaut: `https://g.page/r/itakecare/review`)
-- URL Facebook
-- URL LinkedIn  
-- URL Instagram
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-Ces URLs sont injectées dans le template HTML lors de la génération.
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 
-**D. Nouveau design email**
-Template HTML modernisé avec :
-- Header avec logo/nom company (existant, amélioré)
-- Corps du message avec durée dynamique
-- Boutons CTA Trustpilot + Google (existant, amélioré)
-- Section "Suivez-nous sur les réseaux sociaux" avec icônes Facebook, LinkedIn, Instagram (liens conditionnels — n'affiche que ceux renseignés)
-- Footer company avec copyright
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+```
 
-**E. Régénération du template**
-Quand les URLs changent, le template se régénère automatiquement (les URLs sont dans le state, le `useEffect` de génération dépend d'elles).
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-### Fichiers impactés
-| Fichier | Modification |
-|---|---|
-| `src/components/contracts/FollowupEmailModal.tsx` | Réécriture : email client, durée dynamique, champs URLs, nouveau design, réseaux sociaux |
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
+
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
