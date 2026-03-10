@@ -10,7 +10,7 @@ import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSe
 import ContractEquipmentSerialManager from "@/components/contracts/ContractEquipmentSerialManager";
 import ContractPurchaseTracking from "@/components/contracts/ContractPurchaseTracking";
 import ContractStockManager from "@/components/stock/ContractStockManager";
-import EquipmentOrderTracker from "@/components/contracts/EquipmentOrderTracker";
+
 import ContractDatesManager from "@/components/contracts/ContractDatesManager";
 import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
 import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
