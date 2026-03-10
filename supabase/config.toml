@@ -227,3 +227,6 @@ verify_jwt = false
 
 [functions.send-welcome-followup-email]
 verify_jwt = false
+
+[functions.send-manual-followup-email]
+verify_jwt = false

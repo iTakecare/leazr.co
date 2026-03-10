@@ -1,40 +1,58 @@
 
 
-# Plan : Modale email de suivi + Suppression EquipmentOrderTracker
+# Historique des modifications SEPA par contrat
 
-## 1. Modale d'édition et envoi manuel de l'email de suivi
+## Objectif
 
-**Fichier nouveau** : `src/components/contracts/FollowupEmailModal.tsx`
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-Créer une modale (Dialog) qui s'ouvre au clic sur les badges d'email de suivi dans `ContractDetailHeader.tsx`. La modale contient :
-- **Aperçu/édition HTML** : Le template HTML de l'email est généré côté client en reprenant la même logique que l'Edge Function (`send-welcome-followup-email`), avec le branding de la company (logo, couleur, nom). L'utilisateur peut éditer le contenu HTML via un éditeur (ReactQuill en mode HTML ou un textarea HTML brut).
-- **Destinataire** : Affichage de l'email du client (éditable si besoin).
-- **Sujet** : Pré-rempli avec "👋 Comment se passe votre nouvelle installation ?" (éditable).
-- **Bouton "Envoyer manuellement"** : Appelle une Edge Function (on réutilise `send-welcome-followup-email` en mode manuel avec un body `{ contractId, html, subject, to }`) ou on crée un appel direct à Resend via une nouvelle Edge Function simple `send-manual-followup-email`.
-- **Bouton "Aperçu"** : Affiche le rendu HTML dans un iframe intégré.
+## 1. Nouvelle table `mollie_sepa_changes`
 
-**Fichier modifié** : `src/components/contracts/ContractDetailHeader.tsx`
-- Rendre les 3 badges email (envoyé, planifié, en attente) cliquables avec `cursor-pointer`.
-- Au clic, ouvrir `FollowupEmailModal` en lui passant le contrat et les infos company.
+Migration SQL :
 
-**Fichier nouveau** : `supabase/functions/send-manual-followup-email/index.ts`
-- Edge Function qui accepte un `contractId`, `to`, `subject`, `html` en POST.
-- Vérifie l'authentification de l'utilisateur appelant.
-- Envoie via Resend avec le `reply_to` de l'utilisateur connecté.
-- Met à jour `welcome_followup_sent_at` sur le contrat.
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-## 2. Supprimer EquipmentOrderTracker de la page contrat
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-**Fichier modifié** : `src/pages/ContractDetail.tsx`
-- Supprimer l'import et le rendu de `EquipmentOrderTracker` (lignes ~148-153).
-- Le composant `ContractPurchaseTracking` gère déjà le fournisseur, le statut de commande, le prix réel, les dates, les notes, et le split en unités — il est plus complet. Les champs "Référence commande" et "Prix fournisseur" du `EquipmentOrderTracker` sont déjà couverts par le `ContractPurchaseTracking` (via `order_reference` dans les unités et `actual_purchase_price`).
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 
-### Fichiers impactés
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+```
 
-| Fichier | Action |
-|---|---|
-| `src/components/contracts/FollowupEmailModal.tsx` | Nouveau — Modale édition + envoi email |
-| `src/components/contracts/ContractDetailHeader.tsx` | Badges cliquables → ouvrent la modale |
-| `supabase/functions/send-manual-followup-email/index.ts` | Nouveau — Edge Function envoi manuel |
-| `src/pages/ContractDetail.tsx` | Retirer `EquipmentOrderTracker` |
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
+
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
+
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
