@@ -1,37 +1,58 @@
 
 
-# Auto-update CO2 and device metrics on new equipment
+# Historique des modifications SEPA par contrat
 
-## Approach
-Create a PostgreSQL trigger on `contract_equipment` that fires on INSERT. It will automatically increment `companies.co2_saved` and `companies.devices_count` for each new device added.
+## Objectif
 
-## How it works
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-1. **Trigger function** `update_company_metrics_on_equipment_insert()`:
-   - Gets `company_id` by joining `contract_equipment.contract_id` → `contracts.company_id`
-   - Categorizes the equipment by matching keywords in `title` (case-insensitive):
-     - "macbook", "thinkpad", "latitude", "elitebook", "laptop", "portable", "notebook" → laptop
-     - "imac", "optiplex", "prodesk", "desktop", "fixe", "mini pc", "mac mini" → desktop
-     - "iphone", "samsung galaxy s", "smartphone", "pixel" → smartphone
-     - "ipad", "galaxy tab", "surface go", "tablette", "tablet" → tablet
-   - If category matches a device type, looks up `co2_savings_kg` from `category_environmental_data` for that company + category
-   - Falls back to hardcoded values (170kg laptop/desktop, 45kg smartphone, 87kg tablet) if no environmental data found
-   - Updates `companies` set `devices_count = devices_count + quantity`, `co2_saved = co2_saved + (co2_per_unit * quantity / 1000)` (converting kg to tonnes since `co2_saved` is in tonnes)
-   - Ignores non-device items (accessories, software, licenses, cables, etc.)
+## 1. Nouvelle table `mollie_sepa_changes`
 
-2. **Trigger**: `AFTER INSERT ON contract_equipment FOR EACH ROW`
+Migration SQL :
 
-3. **Also handle DELETE**: Decrement metrics if equipment is removed (optional but recommended for accuracy)
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-## Database migration
-Single migration file creating:
-- `update_company_metrics_on_equipment_insert()` function (SECURITY DEFINER)
-- Trigger on `contract_equipment` AFTER INSERT
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-## Files impacted
-| File | Change |
-|---|---|
-| `supabase/migrations/[timestamp].sql` | New trigger function + trigger |
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 
-No frontend changes needed — it's entirely server-side.
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+```
+
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
+
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
+
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
