@@ -72,6 +72,7 @@ import ImportHistoricalData from "@/pages/admin/ImportHistoricalData";
 import EquipmentOrders from "@/pages/admin/EquipmentOrders";
 import StockManagement from "@/pages/admin/StockManagement";
 import Tasks from "@/pages/admin/Tasks";
+import CRMPage from "@/pages/CRMPage";
 
 // Admin settings pages
 import CompanyValuesSettings from "@/pages/admin/settings/CompanyValuesSettings";

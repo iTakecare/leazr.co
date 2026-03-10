@@ -49,9 +49,9 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       isAction: true 
     },
     { 
-      icon: FileText, 
-      label: "Contrats", 
-      href: `${basePrefix}/admin/contracts` 
+      icon: Users, 
+      label: "CRM", 
+      href: `${basePrefix}/admin/crm` 
     },
     { 
       icon: User, 
