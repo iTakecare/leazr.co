@@ -40,18 +40,35 @@ const CompanyCustomizationManager = () => {
     signature_representative_title?: string | null;
   }>({});
 
-  // Fetch lessor signature data
+  // Social & review URLs state
+  const [socialUrls, setSocialUrls] = useState({
+    trustpilot_url: "",
+    google_review_url: "",
+    facebook_url: "",
+    linkedin_url: "",
+    instagram_url: "",
+  });
+  const [savingSocial, setSavingSocial] = useState(false);
+
+  // Fetch lessor signature data + social URLs
   const fetchLessorSignatureData = async () => {
     if (!companyId) return;
     
     const { data } = await supabase
       .from('companies')
-      .select('signature_url, signature_representative_name, signature_representative_title')
+      .select('signature_url, signature_representative_name, signature_representative_title, trustpilot_url, google_review_url, facebook_url, linkedin_url, instagram_url')
       .eq('id', companyId)
       .single();
     
     if (data) {
       setLessorSignatureData(data);
+      setSocialUrls({
+        trustpilot_url: data.trustpilot_url || "",
+        google_review_url: data.google_review_url || "",
+        facebook_url: data.facebook_url || "",
+        linkedin_url: data.linkedin_url || "",
+        instagram_url: data.instagram_url || "",
+      });
     }
   };
 
@@ -615,6 +632,110 @@ const CompanyCustomizationManager = () => {
                     placeholder="+33 1 23 45 67 89"
                     className="mt-1"
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LinkIcon className="h-5 w-5" />
+                Réseaux sociaux & Avis clients
+              </CardTitle>
+              <CardDescription>
+                Ces URLs seront pré-remplies dans les emails de suivi post-livraison
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm font-medium text-muted-foreground">Plateformes d'avis</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Trustpilot</Label>
+                    <Input
+                      value={socialUrls.trustpilot_url}
+                      onChange={(e) => setSocialUrls(prev => ({ ...prev, trustpilot_url: e.target.value }))}
+                      placeholder="https://www.trustpilot.com/review/..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Google Review</Label>
+                    <Input
+                      value={socialUrls.google_review_url}
+                      onChange={(e) => setSocialUrls(prev => ({ ...prev, google_review_url: e.target.value }))}
+                      placeholder="https://g.page/r/..."
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-sm font-medium text-muted-foreground pt-2">Réseaux sociaux</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Facebook</Label>
+                    <Input
+                      value={socialUrls.facebook_url}
+                      onChange={(e) => setSocialUrls(prev => ({ ...prev, facebook_url: e.target.value }))}
+                      placeholder="https://facebook.com/..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>LinkedIn</Label>
+                    <Input
+                      value={socialUrls.linkedin_url}
+                      onChange={(e) => setSocialUrls(prev => ({ ...prev, linkedin_url: e.target.value }))}
+                      placeholder="https://linkedin.com/company/..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Instagram</Label>
+                    <Input
+                      value={socialUrls.instagram_url}
+                      onChange={(e) => setSocialUrls(prev => ({ ...prev, instagram_url: e.target.value }))}
+                      placeholder="https://instagram.com/..."
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    disabled={savingSocial || !companyId}
+                    onClick={async () => {
+                      if (!companyId) return;
+                      setSavingSocial(true);
+                      try {
+                        const { error } = await supabase
+                          .from('companies')
+                          .update({
+                            trustpilot_url: socialUrls.trustpilot_url || null,
+                            google_review_url: socialUrls.google_review_url || null,
+                            facebook_url: socialUrls.facebook_url || null,
+                            linkedin_url: socialUrls.linkedin_url || null,
+                            instagram_url: socialUrls.instagram_url || null,
+                          })
+                          .eq('id', companyId);
+                        if (error) throw error;
+                        toast({ title: "URLs sauvegardées", description: "Les liens réseaux sociaux et avis ont été mis à jour." });
+                      } catch {
+                        toast({ title: "Erreur", description: "Impossible de sauvegarder les URLs.", variant: "destructive" });
+                      } finally {
+                        setSavingSocial(false);
+                      }
+                    }}
+                    className="gap-2"
+                  >
+                    {savingSocial ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Sauvegarder
+                  </Button>
                 </div>
               </div>
             </CardContent>

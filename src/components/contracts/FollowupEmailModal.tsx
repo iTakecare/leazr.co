@@ -49,9 +49,9 @@ const FollowupEmailModal: React.FC<FollowupEmailModalProps> = ({
     primaryColor: string;
   }>({ name: "Notre équipe", logoUrl: "", primaryColor: "#2563eb" });
 
-  // Editable URLs
-  const [trustpilotUrl, setTrustpilotUrl] = useState("https://www.trustpilot.com/review/itakecare.be");
-  const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/itakecare/review");
+  // Editable URLs (will be pre-filled from company settings)
+  const [trustpilotUrl, setTrustpilotUrl] = useState("");
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
@@ -63,7 +63,7 @@ const FollowupEmailModal: React.FC<FollowupEmailModalProps> = ({
     setTo(email);
   }, [open, contract]);
 
-  // Fetch company branding
+  // Fetch company branding + social URLs
   useEffect(() => {
     if (!open) return;
     const fetchBranding = async () => {
@@ -76,11 +76,16 @@ const FollowupEmailModal: React.FC<FollowupEmailModalProps> = ({
       if (contractData?.company_id) {
         const { data: company } = await supabase
           .from("companies")
-          .select("name, logo_url, primary_color")
+          .select("name, logo_url, primary_color, trustpilot_url, google_review_url, facebook_url, linkedin_url, instagram_url")
           .eq("id", contractData.company_id)
           .single();
 
         if (company) {
+          setTrustpilotUrl(company.trustpilot_url || "");
+          setGoogleReviewUrl(company.google_review_url || "");
+          setFacebookUrl(company.facebook_url || "");
+          setLinkedinUrl(company.linkedin_url || "");
+          setInstagramUrl(company.instagram_url || "");
           setCompanyBranding({
             name: company.name || "Notre équipe",
             logoUrl: company.logo_url || "",
