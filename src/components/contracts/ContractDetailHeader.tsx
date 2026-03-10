@@ -41,6 +41,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
     contract.contract_start_date ? new Date(contract.contract_start_date) : undefined
   );
   const [isUpdatingDate, setIsUpdatingDate] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   // Récupérer le nom du leaser depuis la DB si leaser_id existe
   useEffect(() => {
