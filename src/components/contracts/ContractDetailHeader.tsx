@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import ClientOtherDeals from "@/components/shared/ClientOtherDeals";
+import FollowupEmailModal from "./FollowupEmailModal";
 
 interface ContractDetailHeaderProps {
   contract: Contract;
