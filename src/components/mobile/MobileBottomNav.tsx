@@ -6,7 +6,8 @@ import {
   ClipboardList, 
   Plus, 
   FileText, 
-  User 
+  User,
+  Users 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
