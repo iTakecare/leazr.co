@@ -19,6 +19,8 @@ import { CreditNotesList } from "@/components/invoicing/CreditNotesList";
 import { NewInvoiceDialog } from "@/components/invoicing/NewInvoiceDialog";
 import { InvoiceDateRangeFilter } from "@/components/invoicing/InvoiceDateRangeFilter";
 import { AccountingReportTab } from "@/components/invoicing/AccountingReportTab";
+import PurchaseInvoicesTab from "@/components/invoicing/PurchaseInvoicesTab";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 
 const InvoicingPage = () => {
   const navigate = useNavigate();
