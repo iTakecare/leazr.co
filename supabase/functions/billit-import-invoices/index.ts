@@ -284,18 +284,22 @@ serve(async (req) => {
     let importedCount = 0;
     let skippedCount = 0;
     let reconciledCount = 0;
+    let postReconciledCount = 0;
     const errors: string[] = [];
     const importedInvoices: any[] = [];
     // Track reconciled Leazr invoice IDs to avoid double-matching
     const reconciledLeazrIds = new Set<string>();
+    // Track Billit invoices that were skipped (already imported) for post-reconciliation
+    const skippedBillitInvoices: BillitInvoice[] = [];
 
     for (const billitInvoice of billitInvoices) {
       try {
         const externalId = billitInvoice.OrderID.toString();
         
-        // 1. Skip si déjà importée
+        // 1. Skip si déjà importée (but track for post-reconciliation)
         if (existingExternalIds.has(externalId)) {
           skippedCount++;
+          skippedBillitInvoices.push(billitInvoice);
           continue;
         }
 
