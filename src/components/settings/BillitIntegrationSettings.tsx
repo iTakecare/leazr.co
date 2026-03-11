@@ -11,6 +11,7 @@ import { setupBillitIntegration, disableBillitIntegration, getBillitIntegration,
 import { toast } from "sonner";
 import BillitInvoiceImportCard from "./BillitInvoiceImportCard";
 import BillitPurchaseInvoiceImportCard from "./BillitPurchaseInvoiceImportCard";
+import BillitCreditNoteImportCard from "./BillitCreditNoteImportCard";
 
 const BillitIntegrationSettings = () => {
   const { companyId } = useMultiTenant();
