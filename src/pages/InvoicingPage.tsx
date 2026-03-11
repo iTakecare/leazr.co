@@ -259,24 +259,28 @@ const InvoicingPage = () => {
 
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList>
-              <TabsTrigger value="invoices" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Factures
-                {invoices.length > 0 && (
-                  <Badge variant="secondary" className="ml-1">{invoiceCounts.all}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="credit-notes" className="flex items-center gap-2">
-                <Receipt className="h-4 w-4" />
-                Notes de crédit
-                {creditNotes.length > 0 && (
-                  <Badge variant="secondary" className="ml-1">{creditNotes.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="accounting-report" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Rapport comptable
-              </TabsTrigger>
+               <TabsTrigger value="invoices" className="flex items-center gap-2">
+                 <FileText className="h-4 w-4" />
+                 Factures vente
+                 {invoices.length > 0 && (
+                   <Badge variant="secondary" className="ml-1">{invoiceCounts.all}</Badge>
+                 )}
+               </TabsTrigger>
+               <TabsTrigger value="purchase-invoices" className="flex items-center gap-2">
+                 <ShoppingCart className="h-4 w-4" />
+                 Factures achat
+               </TabsTrigger>
+               <TabsTrigger value="credit-notes" className="flex items-center gap-2">
+                 <Receipt className="h-4 w-4" />
+                 Notes de crédit
+                 {creditNotes.length > 0 && (
+                   <Badge variant="secondary" className="ml-1">{creditNotes.length}</Badge>
+                 )}
+               </TabsTrigger>
+               <TabsTrigger value="accounting-report" className="flex items-center gap-2">
+                 <BarChart3 className="h-4 w-4" />
+                 Rapport comptable
+               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="invoices" className="mt-6">
