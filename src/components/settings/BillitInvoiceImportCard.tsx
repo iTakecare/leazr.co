@@ -158,6 +158,7 @@ const BillitInvoiceImportCard: React.FC<BillitInvoiceImportCardProps> = ({
                   {importResult.success && (
                     <div className="text-sm space-y-1">
                       <div>• {importResult.imported || 0} facture(s) importée(s)</div>
+                      <div>• {importResult.reconciled || 0} réconciliée(s) avec des factures existantes</div>
                       <div>• {importResult.skipped || 0} déjà existante(s)</div>
                       <div>• {importResult.unmatched_count || 0} à matcher avec des contrats</div>
                     </div>

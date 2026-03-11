@@ -1,98 +1,58 @@
 
 
-# Synchronisation complète Billit : factures de vente, notes de crédit et projets
+# Historique des modifications SEPA par contrat
 
-## Problème actuel
+## Objectif
 
-1. **Factures de vente** : l'import Billit ne cherche qu'à matcher avec des **contrats sans facture** (`invoice_generated = false`). Les factures de vente existantes dans Leazr (y compris projets au format `INV-xxxxxx`) ne sont pas détectées comme doublons potentiels — Billit les réimporte comme nouvelles.
-2. **Notes de crédit** : aucun import depuis Billit. L'API expose les credit notes via `OrderType=CreditNote` (direction `Income` pour ventes, `Expense` pour achats).
-3. **Factures projet** : les factures générées depuis des offres/projets (avec `offer_id`, sans `contract_id`) ne sont pas prises en compte dans le matching.
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-## Plan
+## 1. Nouvelle table `mollie_sepa_changes`
 
-### 1. Modifier l'Edge Function `billit-import-invoices` — matching intelligent avec factures existantes
+Migration SQL :
 
-Au lieu de ne chercher que les contrats sans facture, ajouter une étape de **réconciliation avec les factures existantes** dans Leazr :
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-- Récupérer toutes les factures Leazr existantes (pas seulement celles sans `external_invoice_id`)
-- Pour chaque facture Billit entrante :
-  1. Si `external_invoice_id` existe → skip (déjà importée, comme avant)
-  2. Sinon, chercher une facture Leazr existante matchant par **montant** (tolérance ±2%) et **nom client** similaire
-  3. Si match trouvé → lier la facture existante à Billit (`external_invoice_id`, `pdf_url`, statut Billit) au lieu de créer un doublon
-  4. Si pas de match → créer nouvelle facture (comportement actuel)
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-### 2. Créer une nouvelle Edge Function `billit-import-credit-notes`
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 
-- Appeler l'API Billit avec `OrderType=CreditNote&OrderDirection=Income` pour les NC de vente
-- Optionnellement `OrderDirection=Expense` pour les NC d'achat
-- Stocker dans la table `credit_notes` existante en matchant avec la facture liée via `AboutInvoiceNumber` (champ Billit qui référence la facture originale) ou par montant
-- Mettre à jour le statut de la facture liée (`credited` / `partial_credit`)
-
-### 3. UI — Bouton d'import NC dans la page facturation ou settings Billit
-
-- Ajouter un `BillitCreditNoteImportCard` dans les settings Billit
-- Afficher le résultat : NC importées, NC matchées avec factures existantes
-
-### 4. Améliorer le matching dialog pour les factures projet
-
-- Dans `BillitInvoiceMatchingDialog`, au lieu de ne proposer que des contrats, proposer aussi les **factures existantes orphelines** (celles avec `offer_id` mais sans `external_invoice_id`) pour la réconciliation
-
-## Fichiers impactés
-
-| Fichier | Action |
-|---|---|
-| `supabase/functions/billit-import-invoices/index.ts` | Modifier — ajouter réconciliation avec factures existantes par montant |
-| `supabase/functions/billit-import-credit-notes/index.ts` | Créer — import NC depuis Billit |
-| `src/components/settings/BillitCreditNoteImportCard.tsx` | Créer — carte UI import NC |
-| `src/components/settings/BillitIntegrationSettings.tsx` | Modifier — ajouter carte NC |
-| `src/components/settings/BillitInvoiceMatchingDialog.tsx` | Modifier — inclure factures projet dans le matching |
-| `supabase/config.toml` | Modifier — ajouter `billit-import-credit-notes` |
-
-## Flux
-
-```text
-Import factures vente (existant amélioré):
-  Billit Income Invoices
-    → Déjà importée (external_id) ? Skip
-    → Match avec facture Leazr existante (montant ±2%) ? → Lier (update external_id, statut)
-    → Sinon → Créer nouvelle + suggestions de matching contrats
-
-Import notes de crédit (nouveau):
-  Billit CreditNotes (Income)
-    → Match facture via AboutInvoiceNumber ou montant
-    → Créer credit_note + mettre à jour statut facture
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 ```
 
-## Détails techniques
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-**Matching factures existantes par montant** dans `billit-import-invoices` :
-```typescript
-// Récupérer TOUTES les factures Leazr sans external_invoice_id
-const { data: leazrInvoices } = await supabase
-  .from('invoices')
-  .select('id, invoice_number, amount, leaser_name')
-  .eq('company_id', companyId)
-  .is('external_invoice_id', null);
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
 
-// Pour chaque facture Billit, chercher un match existant
-const existingMatch = leazrInvoices.find(inv => {
-  const amountDiff = Math.abs(inv.amount - billitInvoice.TotalExcl) / billitInvoice.TotalExcl;
-  return amountDiff <= 0.02; // ±2%
-});
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
 
-if (existingMatch) {
-  // UPDATE au lieu de INSERT
-  await supabase.from('invoices').update({
-    external_invoice_id: externalId,
-    pdf_url: pdfUrl,
-    status: billitStatus,
-    // ...
-  }).eq('id', existingMatch.id);
-}
-```
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
 
-**Import credit notes** — structure Billit :
-- `OrderType: "CreditNote"`, `OrderDirection: "Income"`
-- `AboutInvoiceNumber` : référence vers la facture originale
-- Montants positifs dans le JSON
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 

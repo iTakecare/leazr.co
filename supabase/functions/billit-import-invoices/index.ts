@@ -47,6 +47,15 @@ interface ContractMatch {
   contract_number: string | null;
 }
 
+interface LeazrInvoice {
+  id: string;
+  invoice_number: string | null;
+  amount: number;
+  leaser_name: string | null;
+  offer_id: string | null;
+  contract_id: string | null;
+}
+
 // Calcul du score de matching basé sur la proximité des montants
 const calculateMatchScore = (invoiceAmount: number, contractSellingPrice: number): number => {
   if (!contractSellingPrice || contractSellingPrice === 0) return 0;
@@ -54,11 +63,24 @@ const calculateMatchScore = (invoiceAmount: number, contractSellingPrice: number
   const diff = Math.abs(invoiceAmount - contractSellingPrice);
   const percentDiff = (diff / invoiceAmount) * 100;
   
-  if (percentDiff <= 1) return 100;  // Match parfait (±1%)
-  if (percentDiff <= 3) return 80;   // Très bon match (±3%)
-  if (percentDiff <= 5) return 60;   // Bon match (±5%)
-  if (percentDiff <= 10) return 40;  // Match possible (±10%)
-  return 0;  // Pas de match
+  if (percentDiff <= 1) return 100;
+  if (percentDiff <= 3) return 80;
+  if (percentDiff <= 5) return 60;
+  if (percentDiff <= 10) return 40;
+  return 0;
+};
+
+// Normaliser un nom pour la comparaison
+const normalizeName = (name: string): string => {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+};
+
+// Vérifier si deux noms sont similaires
+const areNamesSimilar = (name1: string, name2: string): boolean => {
+  const n1 = normalizeName(name1);
+  const n2 = normalizeName(name2);
+  if (!n1 || !n2) return false;
+  return n1.includes(n2) || n2.includes(n1) || n1 === n2;
 };
 
 serve(async (req) => {
@@ -142,19 +164,17 @@ serve(async (req) => {
       companyId: credentials.companyId || 'NON_CONFIGURE'
     });
     
-    // Corriger l'URL de base si nécessaire (my.billit.be -> api.billit.be)
+    // Corriger l'URL de base si nécessaire
     let apiBaseUrl = credentials.baseUrl;
     if (apiBaseUrl.includes('my.billit.be')) {
       apiBaseUrl = apiBaseUrl.replace('my.billit.be', 'api.billit.be');
-      console.log("🔄 URL corrigée: my.billit.be → api.billit.be");
     }
     if (apiBaseUrl.includes('my.sandbox.billit.be')) {
       apiBaseUrl = apiBaseUrl.replace('my.sandbox.billit.be', 'api.sandbox.billit.be');
-      console.log("🔄 URL corrigée: my.sandbox.billit.be → api.sandbox.billit.be");
     }
     apiBaseUrl = apiBaseUrl.replace(/\/$/, '');
 
-    // ÉTAPE 1: D'abord vérifier l'authentification et récupérer les entreprises
+    // ÉTAPE 1: Vérifier l'authentification
     console.log("🔐 Vérification authentification Billit...");
     const authTestUrl = `${apiBaseUrl}/v1/account/accountInformation`;
     const authResponse = await fetch(authTestUrl, {
@@ -175,74 +195,43 @@ serve(async (req) => {
     const accountData = await authResponse.json();
     console.log("✅ Authentification réussie, compte:", accountData?.Email || 'N/A');
     
-    // Analyser les entreprises disponibles
     const companies = accountData?.Companies || [];
-    console.log(`📋 ${companies.length} entreprise(s) trouvée(s)`);
-    companies.forEach((c: any, i: number) => {
-      console.log(`  ${i + 1}. ${c.Name || c.CommercialName} - PartyID: ${c.PartyID || c.ID}`);
-    });
 
     // ÉTAPE 2: Récupérer les factures - stratégie adaptative
     const billitUrl = `${apiBaseUrl}/v1/orders?OrderDirection=Income&OrderType=Invoice`;
     console.log("📡 Appel API Billit:", billitUrl);
 
-    // Fonction helper pour faire l'appel API
     const fetchOrders = async (usePartyId: string | null) => {
       const headers: Record<string, string> = {
         'ApiKey': credentials.apiKey,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       };
-      
       if (usePartyId) {
         headers['ContextPartyID'] = usePartyId;
-        console.log("📌 Tentative avec ContextPartyID:", usePartyId);
-      } else {
-        console.log("📌 Tentative SANS ContextPartyID");
       }
-      
-      return await fetch(billitUrl, {
-        method: 'GET',
-        headers
-      });
+      return await fetch(billitUrl, { method: 'GET', headers });
     };
 
     let billitResponse: Response;
     let usedPartyId: string | null = null;
     
-    // Stratégie adaptative: essayer plusieurs approches
-    // 1. D'abord sans ContextPartyID (fonctionne souvent pour compte mono-entreprise)
-    console.log("🔄 Stratégie 1: Sans ContextPartyID...");
     billitResponse = await fetchOrders(null);
     
     if (!billitResponse.ok) {
-      const errorText1 = await billitResponse.text();
-      console.log("⚠️ Stratégie 1 échouée:", billitResponse.status, errorText1.substring(0, 100));
-      
-      // 2. Essayer avec le PartyID configuré si présent
       const configuredPartyId = credentials.companyId?.trim();
       if (configuredPartyId) {
-        console.log("🔄 Stratégie 2: Avec PartyID configuré:", configuredPartyId);
         billitResponse = await fetchOrders(configuredPartyId);
-        
-        if (billitResponse.ok) {
-          usedPartyId = configuredPartyId;
-        }
+        if (billitResponse.ok) usedPartyId = configuredPartyId;
       }
       
-      // 3. Si toujours en échec et qu'on a des entreprises, essayer chaque PartyID
       if (!billitResponse.ok && companies.length > 0) {
-        console.log("🔄 Stratégie 3: Essai de chaque PartyID disponible...");
-        
         for (const company of companies) {
           const partyId = company.PartyID || company.ID;
           if (partyId && partyId !== configuredPartyId) {
-            console.log(`  → Tentative avec ${company.Name || company.CommercialName}: ${partyId}`);
             billitResponse = await fetchOrders(partyId);
-            
             if (billitResponse.ok) {
               usedPartyId = partyId;
-              console.log(`✅ Succès avec PartyID: ${partyId} (${company.Name || company.CommercialName})`);
               break;
             }
           }
@@ -252,80 +241,64 @@ serve(async (req) => {
 
     if (!billitResponse.ok) {
       const errorText = await billitResponse.text();
-      console.error("❌ Erreur API Billit après toutes tentatives:", billitResponse.status, errorText);
-      
-      // Analyser l'erreur pour donner un message clair
-      if (errorText.includes('InvalidOrExpiredLicense')) {
-        throw new Error(`Erreur Billit: Licence invalide ou expirée. Veuillez vérifier votre abonnement Billit.`);
-      } else if (errorText.includes('ApiKeyNotValid')) {
-        throw new Error(`Erreur Billit: Clé API invalide. Vérifiez que la clé API est correcte.`);
-      } else if (errorText.includes('Unauthorized')) {
-        throw new Error(`Erreur Billit: Accès non autorisé. Vérifiez les permissions de la clé API.`);
-      }
-      
-      const partyIdOptions = companies.map((c: any) => `${c.Name || c.CommercialName}: ${c.PartyID || c.ID}`).join(', ');
-      throw new Error(`Erreur API Billit (${billitResponse.status}): ${errorText.substring(0, 200)}. PartyIDs disponibles: ${partyIdOptions}`);
-    }
-    
-    if (usedPartyId) {
-      console.log(`📌 PartyID utilisé avec succès: ${usedPartyId}`);
-    } else {
-      console.log(`📌 Accès réussi sans ContextPartyID`);
+      console.error("❌ Erreur API Billit:", billitResponse.status, errorText);
+      throw new Error(`Erreur API Billit (${billitResponse.status}): ${errorText.substring(0, 200)}`);
     }
 
     const billitData = await billitResponse.json();
     const billitInvoices: BillitInvoice[] = billitData.Items || billitData || [];
     console.log(`📋 ${billitInvoices.length} facture(s) récupérée(s) depuis Billit`);
 
-    // Récupérer les factures existantes pour éviter les doublons
-    const { data: existingInvoices, error: existingError } = await supabase
+    // Récupérer les factures avec external_invoice_id (déjà importées)
+    const { data: existingInvoices } = await supabase
       .from('invoices')
       .select('external_invoice_id')
       .eq('company_id', companyId)
       .not('external_invoice_id', 'is', null);
 
-    if (existingError) {
-      console.error("❌ Erreur récupération factures existantes:", existingError);
-    }
-
     const existingExternalIds = new Set(
-      (existingInvoices || []).map(inv => inv.external_invoice_id)
+      (existingInvoices || []).map((inv: any) => inv.external_invoice_id)
     );
     console.log(`📊 ${existingExternalIds.size} facture(s) déjà importée(s)`);
 
-    // Récupérer tous les contrats sans facture pour le matching
-    const { data: availableContracts, error: contractsError } = await supabase
+    // NOUVEAU: Récupérer les factures Leazr SANS external_invoice_id pour la réconciliation
+    const { data: leazrUnlinkedInvoices } = await supabase
+      .from('invoices')
+      .select('id, invoice_number, amount, leaser_name, offer_id, contract_id')
+      .eq('company_id', companyId)
+      .is('external_invoice_id', null);
+
+    const unlinkedInvoices: LeazrInvoice[] = leazrUnlinkedInvoices || [];
+    console.log(`🔍 ${unlinkedInvoices.length} facture(s) Leazr sans lien Billit (candidates à la réconciliation)`);
+
+    // Récupérer les contrats sans facture pour le matching classique
+    const { data: availableContracts } = await supabase
       .from('contracts')
       .select('id, client_name, estimated_selling_price, monthly_payment, created_at, contract_number')
       .eq('company_id', companyId)
       .eq('invoice_generated', false);
-
-    if (contractsError) {
-      console.error("⚠️ Erreur récupération contrats:", contractsError);
-    }
 
     const contracts: ContractMatch[] = availableContracts || [];
     console.log(`📋 ${contracts.length} contrat(s) disponible(s) pour le matching`);
 
     let importedCount = 0;
     let skippedCount = 0;
-    let updatedCount = 0;
+    let reconciledCount = 0;
     const errors: string[] = [];
     const importedInvoices: any[] = [];
+    // Track reconciled Leazr invoice IDs to avoid double-matching
+    const reconciledLeazrIds = new Set<string>();
 
-    // Traiter chaque facture Billit
     for (const billitInvoice of billitInvoices) {
       try {
         const externalId = billitInvoice.OrderID.toString();
         
-        // Vérifier si déjà importée
+        // 1. Skip si déjà importée
         if (existingExternalIds.has(externalId)) {
-          console.log(`⏭️ Facture ${externalId} déjà importée, skip`);
           skippedCount++;
           continue;
         }
 
-        // Déterminer le statut
         let status: string = 'draft';
         if (billitInvoice.Paid) {
           status = 'paid';
@@ -333,40 +306,89 @@ serve(async (req) => {
           status = 'sent';
         }
 
-        // Calculer les suggestions de matching
-        const matchSuggestions = contracts
-          .map(contract => ({
-            contract,
-            score: calculateMatchScore(billitInvoice.TotalExcl, contract.estimated_selling_price)
-          }))
-          .filter(m => m.score > 0)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 5);
-
-        // Construire l'URL du PDF si disponible
         let pdfUrl = null;
         if (billitInvoice.OrderPDF?.FileID) {
           pdfUrl = `${apiBaseUrl}/v1/files/${billitInvoice.OrderPDF.FileID}`;
         }
 
-        // Créer la facture en base
+        // 2. NOUVEAU: Chercher une facture Leazr existante matchant par montant (±2%) et nom client
+        const billitAmount = billitInvoice.TotalExcl;
+        const billitCustomerName = billitInvoice.CounterParty?.DisplayName || '';
+
+        const existingMatch = unlinkedInvoices.find(inv => {
+          if (reconciledLeazrIds.has(inv.id)) return false;
+          if (!inv.amount || billitAmount === 0) return false;
+          const amountDiff = Math.abs(inv.amount - billitAmount) / billitAmount;
+          if (amountDiff > 0.02) return false; // Tolérance ±2%
+          // Si le nom client est dispo, vérifier la similarité
+          if (billitCustomerName && inv.leaser_name) {
+            return areNamesSimilar(billitCustomerName, inv.leaser_name);
+          }
+          // Match par montant seul si pas de nom
+          return true;
+        });
+
+        if (existingMatch) {
+          // RÉCONCILIATION: lier la facture Leazr existante à Billit
+          console.log(`🔗 Réconciliation: facture Leazr ${existingMatch.invoice_number} ↔ Billit ${billitInvoice.OrderNumber} (montant: ${billitAmount})`);
+          
+          const { error: updateError } = await supabase
+            .from('invoices')
+            .update({
+              external_invoice_id: externalId,
+              pdf_url: pdfUrl,
+              status: status,
+              integration_type: 'billit',
+              billing_data: {
+                billit_data: billitInvoice,
+                import_source: 'billit_reconciliation',
+                billit_customer_name: billitCustomerName,
+                billit_customer_vat: billitInvoice.CounterParty?.VATNumber || null,
+                total_incl_vat: billitInvoice.TotalIncl,
+                vat_amount: billitInvoice.VATAmount,
+                reconciled_at: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingMatch.id);
+
+          if (updateError) {
+            console.error(`❌ Erreur réconciliation facture ${existingMatch.id}:`, updateError);
+            errors.push(`Réconciliation ${billitInvoice.OrderNumber}: ${updateError.message}`);
+          } else {
+            reconciledCount++;
+            reconciledLeazrIds.add(existingMatch.id);
+          }
+          continue;
+        }
+
+        // 3. Pas de match existant → créer une nouvelle facture (comportement original)
+        const matchSuggestions = contracts
+          .map(contract => ({
+            contract,
+            score: calculateMatchScore(billitAmount, contract.estimated_selling_price)
+          }))
+          .filter(m => m.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5);
+
         const invoiceData = {
           company_id: companyId,
           external_invoice_id: externalId,
           invoice_number: billitInvoice.OrderNumber,
-          amount: billitInvoice.TotalExcl,
+          amount: billitAmount,
           status,
           integration_type: 'billit',
           invoice_date: billitInvoice.OrderDate ? new Date(billitInvoice.OrderDate).toISOString() : new Date().toISOString(),
-          leaser_name: billitInvoice.CounterParty?.DisplayName || 'Client Billit',
-          contract_id: null, // Sera rempli lors du matching manuel
+          leaser_name: billitCustomerName || 'Client Billit',
+          contract_id: null,
           pdf_url: pdfUrl,
           sent_at: billitInvoice.IsSent ? new Date().toISOString() : null,
           paid_at: billitInvoice.Paid ? new Date().toISOString() : null,
           billing_data: {
             billit_data: billitInvoice,
             import_source: 'billit_import',
-            billit_customer_name: billitInvoice.CounterParty?.DisplayName || null,
+            billit_customer_name: billitCustomerName || null,
             billit_customer_vat: billitInvoice.CounterParty?.VATNumber || null,
             total_incl_vat: billitInvoice.TotalIncl,
             vat_amount: billitInvoice.VATAmount,
@@ -413,21 +435,20 @@ serve(async (req) => {
       }
     }
 
-    // Récupérer le compte des factures sans contrat
     const { count: unmatchedCount } = await supabase
       .from('invoices')
       .select('*', { count: 'exact', head: true })
       .eq('company_id', companyId)
       .is('contract_id', null);
 
-    console.log(`✅ Import terminé: ${importedCount} importée(s), ${skippedCount} déjà existante(s), ${errors.length} erreur(s)`);
+    console.log(`✅ Import terminé: ${importedCount} importée(s), ${reconciledCount} réconciliée(s), ${skippedCount} déjà existante(s), ${errors.length} erreur(s)`);
 
     return new Response(JSON.stringify({
       success: true,
-      message: `Import terminé: ${importedCount} facture(s) importée(s)`,
+      message: `Import terminé: ${importedCount} importée(s), ${reconciledCount} réconciliée(s)`,
       imported: importedCount,
+      reconciled: reconciledCount,
       skipped: skippedCount,
-      updated: updatedCount,
       total_billit: billitInvoices.length,
       unmatched_count: unmatchedCount || 0,
       imported_invoices: importedInvoices,

@@ -37,6 +37,7 @@ interface UnmatchedInvoice {
   leaser_name: string;
   billing_data: {
     billit_customer_name?: string;
+    billit_data?: any;
     match_suggestions?: {
       contract_id: string;
       contract_number: string | null;
@@ -44,6 +45,7 @@ interface UnmatchedInvoice {
       selling_price: number;
       score: number;
     }[];
+    [key: string]: any;
   };
 }
 
@@ -56,6 +58,14 @@ interface Contract {
   created_at: string;
 }
 
+interface OrphanInvoice {
+  id: string;
+  invoice_number: string | null;
+  amount: number;
+  leaser_name: string | null;
+  offer_id: string | null;
+}
+
 const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = ({
   open,
   onOpenChange,
@@ -66,7 +76,9 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
   const [saving, setSaving] = useState(false);
   const [invoices, setInvoices] = useState<UnmatchedInvoice[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [orphanInvoices, setOrphanInvoices] = useState<OrphanInvoice[]>([]);
   const [matches, setMatches] = useState<Record<string, string | null>>({});
+  const [matchType, setMatchType] = useState<Record<string, 'contract' | 'reconcile'>>({});
 
   useEffect(() => {
     if (open && companyId) {
@@ -77,12 +89,13 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
   const loadData = async () => {
     setLoading(true);
     try {
-      // Charger les factures sans contrat
+      // Charger les factures Billit sans contrat (importées depuis Billit, non matchées)
       const { data: invoicesData, error: invoicesError } = await supabase
         .from('invoices')
         .select('id, invoice_number, amount, invoice_date, leaser_name, billing_data')
         .eq('company_id', companyId)
         .is('contract_id', null)
+        .eq('integration_type', 'billit')
         .order('invoice_date', { ascending: false });
 
       if (invoicesError) throw invoicesError;
@@ -97,10 +110,23 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
 
       if (contractsError) throw contractsError;
 
+      // Charger les factures orphelines (projets avec offer_id, sans external_invoice_id)
+      // pour la réconciliation
+      const { data: orphanData, error: orphanError } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, amount, leaser_name, offer_id')
+        .eq('company_id', companyId)
+        .is('external_invoice_id', null)
+        .not('offer_id', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (orphanError) throw orphanError;
+
       setInvoices(invoicesData || []);
       setContracts(contractsData || []);
+      setOrphanInvoices(orphanData || []);
 
-      // Initialiser les matches avec les suggestions automatiques (meilleur score > 60)
+      // Initialiser les matches avec les suggestions automatiques
       const initialMatches: Record<string, string | null> = {};
       (invoicesData || []).forEach(invoice => {
         const suggestions = invoice.billing_data?.match_suggestions || [];
@@ -117,58 +143,91 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
     }
   };
 
-  const handleMatchChange = (invoiceId: string, contractId: string | null) => {
-    setMatches(prev => ({
-      ...prev,
-      [invoiceId]: contractId === "none" ? null : contractId
-    }));
+  const handleMatchChange = (invoiceId: string, value: string | null) => {
+    if (!value || value === "none") {
+      setMatches(prev => ({ ...prev, [invoiceId]: null }));
+      setMatchType(prev => { const next = { ...prev }; delete next[invoiceId]; return next; });
+      return;
+    }
+    // Check if value is a reconciliation target (orphan invoice ID)
+    const isReconcile = orphanInvoices.some(o => o.id === value);
+    setMatches(prev => ({ ...prev, [invoiceId]: value }));
+    setMatchType(prev => ({ ...prev, [invoiceId]: isReconcile ? 'reconcile' : 'contract' }));
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const matchesToSave = Object.entries(matches).filter(([_, contractId]) => contractId !== null);
+      const matchesToSave = Object.entries(matches).filter(([_, val]) => val !== null);
       
       let successCount = 0;
       let errorCount = 0;
 
-      for (const [invoiceId, contractId] of matchesToSave) {
-        // Mettre à jour la facture avec le contract_id
-        const { error: invoiceError } = await supabase
-          .from('invoices')
-          .update({ 
-            contract_id: contractId,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', invoiceId);
+      for (const [invoiceId, targetId] of matchesToSave) {
+        const type = matchType[invoiceId] || 'contract';
 
-        if (invoiceError) {
-          console.error(`Erreur update facture ${invoiceId}:`, invoiceError);
-          errorCount++;
-          continue;
-        }
+        if (type === 'reconcile') {
+          // Réconciliation: transférer les données Billit vers la facture orpheline existante
+          const billitInvoice = invoices.find(i => i.id === invoiceId);
+          if (!billitInvoice) { errorCount++; continue; }
 
-        // Marquer le contrat comme ayant une facture
-        const { error: contractError } = await supabase
-          .from('contracts')
-          .update({ 
-            invoice_generated: true,
-            invoice_id: invoiceId
-          })
-          .eq('id', contractId);
-
-        if (contractError) {
-          console.error(`Erreur update contrat ${contractId}:`, contractError);
-          // Rollback la facture
-          await supabase
+          // Copier external_invoice_id et billing_data vers la facture orpheline
+          const { error: reconcileError } = await supabase
             .from('invoices')
-            .update({ contract_id: null })
-            .eq('id', invoiceId);
-          errorCount++;
-          continue;
-        }
+            .update({
+              external_invoice_id: billitInvoice.billing_data?.billit_data?.OrderID?.toString(),
+              integration_type: 'billit',
+              billing_data: {
+                ...billitInvoice.billing_data,
+                import_source: 'billit_manual_reconciliation',
+                reconciled_at: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', targetId);
 
-        successCount++;
+          if (reconcileError) {
+            console.error(`Erreur réconciliation ${invoiceId}:`, reconcileError);
+            errorCount++;
+            continue;
+          }
+
+          // Supprimer la facture Billit dupliquée
+          await supabase.from('invoices').delete().eq('id', invoiceId);
+          successCount++;
+        } else {
+          // Matching classique: lier la facture Billit à un contrat
+          const { error: invoiceError } = await supabase
+            .from('invoices')
+            .update({ 
+              contract_id: targetId,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', invoiceId);
+
+          if (invoiceError) {
+            console.error(`Erreur update facture ${invoiceId}:`, invoiceError);
+            errorCount++;
+            continue;
+          }
+
+          const { error: contractError } = await supabase
+            .from('contracts')
+            .update({ 
+              invoice_generated: true,
+              invoice_id: invoiceId
+            })
+            .eq('id', targetId);
+
+          if (contractError) {
+            console.error(`Erreur update contrat ${targetId}:`, contractError);
+            await supabase.from('invoices').update({ contract_id: null }).eq('id', invoiceId);
+            errorCount++;
+            continue;
+          }
+
+          successCount++;
+        }
       }
 
       if (successCount > 0) {
@@ -301,26 +360,49 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">
-                                  <span className="text-muted-foreground">Aucun contrat</span>
+                                  <span className="text-muted-foreground">Aucune association</span>
                                 </SelectItem>
-                                {availableContracts.map(contract => {
-                                  const score = getMatchScore(invoice, contract.id);
-                                  return (
-                                    <SelectItem key={contract.id} value={contract.id}>
-                                      <div className="flex items-center gap-2">
-                                        <span>{contract.client_name}</span>
-                                        <span className="text-muted-foreground">
-                                          - {formatCurrency(contract.estimated_selling_price)}
-                                        </span>
-                                        {score > 0 && (
-                                          <Badge variant="outline" className="text-xs">
-                                            {score}%
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </SelectItem>
-                                  );
-                                })}
+                                {availableContracts.length > 0 && (
+                                  <>
+                                    <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Contrats</div>
+                                    {availableContracts.map(contract => {
+                                      const score = getMatchScore(invoice, contract.id);
+                                      return (
+                                        <SelectItem key={contract.id} value={contract.id}>
+                                          <div className="flex items-center gap-2">
+                                            <span>{contract.client_name}</span>
+                                            <span className="text-muted-foreground">
+                                              - {formatCurrency(contract.estimated_selling_price)}
+                                            </span>
+                                            {score > 0 && (
+                                              <Badge variant="outline" className="text-xs">
+                                                {score}%
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </>
+                                )}
+                                {orphanInvoices.length > 0 && (
+                                  <>
+                                    <div className="px-2 py-1 text-xs font-semibold text-muted-foreground border-t mt-1 pt-1">
+                                      Factures projet (réconciliation)
+                                    </div>
+                                    {orphanInvoices.map(orphan => (
+                                      <SelectItem key={orphan.id} value={orphan.id}>
+                                        <div className="flex items-center gap-2">
+                                          <span>{orphan.invoice_number || 'Sans numéro'}</span>
+                                          <span className="text-muted-foreground">
+                                            - {formatCurrency(orphan.amount)}
+                                          </span>
+                                          <Badge variant="secondary" className="text-xs">Projet</Badge>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </>
+                                )}
                               </SelectContent>
                             </Select>
                           </div>
