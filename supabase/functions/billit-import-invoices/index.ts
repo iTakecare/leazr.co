@@ -439,13 +439,72 @@ serve(async (req) => {
       }
     }
 
+    // ÉTAPE POST-IMPORT: Réconcilier les factures Billit déjà importées mais orphelines
+    // (avec external_invoice_id mais sans contract_id ni offer_id)
+    if (skippedBillitInvoices.length > 0 && unlinkedInvoices.length > 0) {
+      console.log(`🔄 Post-réconciliation: ${skippedBillitInvoices.length} factures Billit déjà importées, ${unlinkedInvoices.filter(i => !reconciledLeazrIds.has(i.id)).length} Leazr candidates restantes`);
+      
+      // Get orphan imported invoices (billit imports without contract/offer)
+      const { data: orphanImports } = await supabase
+        .from('invoices')
+        .select('id, external_invoice_id, amount, leaser_name, invoice_number')
+        .eq('company_id', companyId)
+        .eq('integration_type', 'billit')
+        .not('external_invoice_id', 'is', null)
+        .is('contract_id', null)
+        .is('offer_id', null);
+
+      if (orphanImports && orphanImports.length > 0) {
+        console.log(`🔍 ${orphanImports.length} facture(s) Billit orpheline(s) à réconcilier`);
+        
+        for (const orphan of orphanImports) {
+          if (!orphan.amount || orphan.amount === 0) continue;
+          
+          const matchingLeazr = unlinkedInvoices.find(inv => {
+            if (reconciledLeazrIds.has(inv.id)) return false;
+            if (!inv.amount || inv.amount === 0) return false;
+            const amountDiff = Math.abs(inv.amount - orphan.amount) / orphan.amount;
+            if (amountDiff > 0.02) return false;
+            if (orphan.leaser_name && inv.leaser_name) {
+              return areNamesSimilar(orphan.leaser_name, inv.leaser_name);
+            }
+            return false; // Require name match for post-reconciliation to avoid false positives
+          });
+
+          if (matchingLeazr) {
+            console.log(`🔗 Post-réconciliation: Leazr ${matchingLeazr.invoice_number} ↔ Billit orphan ${orphan.invoice_number} (montant: ${orphan.amount})`);
+            
+            // Transfer external_invoice_id to Leazr invoice
+            const { error: updateError } = await supabase
+              .from('invoices')
+              .update({
+                external_invoice_id: orphan.external_invoice_id,
+                integration_type: 'billit',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', matchingLeazr.id);
+
+            if (!updateError) {
+              // Delete the orphan Billit import
+              await supabase.from('invoices').delete().eq('id', orphan.id);
+              postReconciledCount++;
+              reconciledLeazrIds.add(matchingLeazr.id);
+            } else {
+              console.error(`❌ Erreur post-réconciliation:`, updateError);
+              errors.push(`Post-réconciliation ${orphan.invoice_number}: ${updateError.message}`);
+            }
+          }
+        }
+      }
+    }
+
     const { count: unmatchedCount } = await supabase
       .from('invoices')
       .select('*', { count: 'exact', head: true })
       .eq('company_id', companyId)
       .is('contract_id', null);
 
-    console.log(`✅ Import terminé: ${importedCount} importée(s), ${reconciledCount} réconciliée(s), ${skippedCount} déjà existante(s), ${errors.length} erreur(s)`);
+    console.log(`✅ Import terminé: ${importedCount} importée(s), ${reconciledCount} réconciliée(s), ${postReconciledCount} post-réconciliée(s), ${skippedCount} déjà existante(s), ${errors.length} erreur(s)`);
 
     return new Response(JSON.stringify({
       success: true,
