@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3 } from "lucide-react";
+import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,9 +19,12 @@ import { CreditNotesList } from "@/components/invoicing/CreditNotesList";
 import { NewInvoiceDialog } from "@/components/invoicing/NewInvoiceDialog";
 import { InvoiceDateRangeFilter } from "@/components/invoicing/InvoiceDateRangeFilter";
 import { AccountingReportTab } from "@/components/invoicing/AccountingReportTab";
+import PurchaseInvoicesTab from "@/components/invoicing/PurchaseInvoicesTab";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 
 const InvoicingPage = () => {
   const navigate = useNavigate();
+  const { companyId } = useMultiTenant();
   const [searchParams, setSearchParams] = useSearchParams();
   const { invoices, loading, fetchInvoices } = useInvoices();
   const { creditNotes, loading: creditNotesLoading, fetchCreditNotes } = useCreditNotes();
@@ -34,7 +37,7 @@ const InvoicingPage = () => {
   
   // Gérer l'onglet actif via URL
   const tabFromUrl = searchParams.get('tab');
-  const validTabs = ['invoices', 'credit-notes', 'accounting-report'];
+  const validTabs = ['invoices', 'purchase-invoices', 'credit-notes', 'accounting-report'];
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(tabFromUrl || '') ? tabFromUrl! : 'invoices'
   );
@@ -59,6 +62,8 @@ const InvoicingPage = () => {
       fetchCreditNotes();
     } else if (value === 'accounting-report') {
       setSearchParams({ tab: 'accounting-report' });
+    } else if (value === 'purchase-invoices') {
+      setSearchParams({ tab: 'purchase-invoices' });
     } else {
       setSearchParams({});
     }
@@ -257,24 +262,28 @@ const InvoicingPage = () => {
 
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList>
-              <TabsTrigger value="invoices" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Factures
-                {invoices.length > 0 && (
-                  <Badge variant="secondary" className="ml-1">{invoiceCounts.all}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="credit-notes" className="flex items-center gap-2">
-                <Receipt className="h-4 w-4" />
-                Notes de crédit
-                {creditNotes.length > 0 && (
-                  <Badge variant="secondary" className="ml-1">{creditNotes.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="accounting-report" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Rapport comptable
-              </TabsTrigger>
+               <TabsTrigger value="invoices" className="flex items-center gap-2">
+                 <FileText className="h-4 w-4" />
+                 Factures vente
+                 {invoices.length > 0 && (
+                   <Badge variant="secondary" className="ml-1">{invoiceCounts.all}</Badge>
+                 )}
+               </TabsTrigger>
+               <TabsTrigger value="purchase-invoices" className="flex items-center gap-2">
+                 <ShoppingCart className="h-4 w-4" />
+                 Factures achat
+               </TabsTrigger>
+               <TabsTrigger value="credit-notes" className="flex items-center gap-2">
+                 <Receipt className="h-4 w-4" />
+                 Notes de crédit
+                 {creditNotes.length > 0 && (
+                   <Badge variant="secondary" className="ml-1">{creditNotes.length}</Badge>
+                 )}
+               </TabsTrigger>
+               <TabsTrigger value="accounting-report" className="flex items-center gap-2">
+                 <BarChart3 className="h-4 w-4" />
+                 Rapport comptable
+               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="invoices" className="mt-6">
@@ -456,6 +465,10 @@ const InvoicingPage = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="purchase-invoices" className="mt-6">
+              <PurchaseInvoicesTab companyId={companyId} />
             </TabsContent>
 
             <TabsContent value="credit-notes" className="mt-6">
