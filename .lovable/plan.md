@@ -1,30 +1,58 @@
 
 
-# Plan : Corriger les 152 offres sans numero de dossier et les 57 offres avec mauvais coefficient
+# Historique des modifications SEPA par contrat
 
-## Probleme constate
+## Objectif
 
-1. **Numeros de dossier manquants** : 152 offres ont `dossier_number IS NULL`. La migration precedente ne ciblait que les types `web_request` / `custom_pack_request`, mais la majorite des offres sont de type `client_request`.
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-2. **Mauvais coefficient** : 57 offres ont un coefficient de 3.53 alors que leur montant finance reel (mensualite x 100 / coefficient) depasse 2500€, ce qui les place dans la tranche 3.24. Cela cause une marge affichee incorrecte (39.7% au lieu de 52.2%).
+## 1. Nouvelle table `mollie_sepa_changes`
 
-## Correction
+Migration SQL :
 
-### Migration SQL unique qui :
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-1. **Genere les numeros de dossier** pour les 152 offres sans `dossier_number` (tous types confondus, pas seulement `web_request`)
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-2. **Recalcule le coefficient** pour les offres dont le montant finance reel tombe dans une tranche differente de celle stockee :
-   - Pour chaque offre avec coefficient 3.53 : si `(monthly_payment * 100 / 3.24) > 2500` → mettre coefficient a 3.24
-   - Mettre a jour `amount` (montant finance) = `monthly_payment * 100 / nouveau_coefficient`
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 
-3. **Recalcule les marges des equipements** associes a ces offres corrigees :
-   - Pour chaque ligne d'equipement : `selling_price` = `monthly_payment * 100 / nouveau_coefficient` (redistribue proportionnellement)
-   - `margin` = `(selling_price - purchase_price) / purchase_price * 100`
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+```
 
-### Fichiers impactes
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-| Fichier | Action |
-|---|---|
-| Migration SQL | Creer — correction des 152 dossier_number + recalcul des 57 offres avec mauvais coefficient et leurs equipements |
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
+
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
