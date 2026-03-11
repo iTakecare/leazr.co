@@ -464,6 +464,10 @@ const InvoicingPage = () => {
               </Card>
             </TabsContent>
 
+            <TabsContent value="purchase-invoices" className="mt-6">
+              <PurchaseInvoicesTab companyId={companyId} />
+            </TabsContent>
+
             <TabsContent value="credit-notes" className="mt-6">
               <Card>
                 <CardHeader>
