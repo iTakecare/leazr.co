@@ -87,12 +87,13 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
   const loadData = async () => {
     setLoading(true);
     try {
-      // Charger les factures sans contrat
+      // Charger les factures Billit sans contrat (importées depuis Billit, non matchées)
       const { data: invoicesData, error: invoicesError } = await supabase
         .from('invoices')
         .select('id, invoice_number, amount, invoice_date, leaser_name, billing_data')
         .eq('company_id', companyId)
         .is('contract_id', null)
+        .eq('integration_type', 'billit')
         .order('invoice_date', { ascending: false });
 
       if (invoicesError) throw invoicesError;
@@ -107,10 +108,23 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
 
       if (contractsError) throw contractsError;
 
+      // Charger les factures orphelines (projets avec offer_id, sans external_invoice_id)
+      // pour la réconciliation
+      const { data: orphanData, error: orphanError } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, amount, leaser_name, offer_id')
+        .eq('company_id', companyId)
+        .is('external_invoice_id', null)
+        .not('offer_id', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (orphanError) throw orphanError;
+
       setInvoices(invoicesData || []);
       setContracts(contractsData || []);
+      setOrphanInvoices(orphanData || []);
 
-      // Initialiser les matches avec les suggestions automatiques (meilleur score > 60)
+      // Initialiser les matches avec les suggestions automatiques
       const initialMatches: Record<string, string | null> = {};
       (invoicesData || []).forEach(invoice => {
         const suggestions = invoice.billing_data?.match_suggestions || [];
