@@ -24,6 +24,7 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 
 const InvoicingPage = () => {
   const navigate = useNavigate();
+  const { companyId } = useMultiTenant();
   const [searchParams, setSearchParams] = useSearchParams();
   const { invoices, loading, fetchInvoices } = useInvoices();
   const { creditNotes, loading: creditNotesLoading, fetchCreditNotes } = useCreditNotes();
