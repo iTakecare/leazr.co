@@ -1,0 +1,1 @@
+DELETE FROM invoices WHERE invoice_type = 'purchase'
