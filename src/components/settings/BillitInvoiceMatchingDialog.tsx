@@ -141,11 +141,16 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
     }
   };
 
-  const handleMatchChange = (invoiceId: string, contractId: string | null) => {
-    setMatches(prev => ({
-      ...prev,
-      [invoiceId]: contractId === "none" ? null : contractId
-    }));
+  const handleMatchChange = (invoiceId: string, value: string | null) => {
+    if (!value || value === "none") {
+      setMatches(prev => ({ ...prev, [invoiceId]: null }));
+      setMatchType(prev => { const next = { ...prev }; delete next[invoiceId]; return next; });
+      return;
+    }
+    // Check if value is a reconciliation target (orphan invoice ID)
+    const isReconcile = orphanInvoices.some(o => o.id === value);
+    setMatches(prev => ({ ...prev, [invoiceId]: value }));
+    setMatchType(prev => ({ ...prev, [invoiceId]: isReconcile ? 'reconcile' : 'contract' }));
   };
 
   const handleSave = async () => {
