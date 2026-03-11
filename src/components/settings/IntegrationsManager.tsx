@@ -567,7 +567,7 @@ const IntegrationsManager = () => {
               <ZapierIntegrationCard />
             )}
             
-            {selectedIntegration && !['woocommerce', 'billit', 'companyweb', 'zapier'].includes(selectedIntegration) && (
+            {selectedIntegration && !['woocommerce', 'companyweb', 'zapier'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
