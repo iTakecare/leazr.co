@@ -256,7 +256,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         .from('contracts')
         .select(`
           id, monthly_payment, contract_start_date, contract_end_date, contract_duration,
-          contract_equipment(purchase_price, quantity)
+          contract_equipment(purchase_price, actual_purchase_price, quantity)
         `)
         .eq('company_id', companyId)
         .eq('is_self_leasing', true)
