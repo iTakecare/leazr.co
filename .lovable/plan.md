@@ -1,58 +1,58 @@
 
 
-# Historique des modifications SEPA par contrat
+# Corriger le fallback de date d'achat dans le dashboard
 
-## Objectif
+## Problème
+La CTE `equipment_purchases_by_month` dans `get_monthly_financial_data` utilise `COALESCE(ce.actual_purchase_date, inv.invoice_date)` comme date de référence pour les achats. Si aucune de ces deux dates n'existe (pas de date d'achat manuelle, pas encore de facture), l'achat n'apparaît pas dans le dashboard — c'est le cas pour mars.
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+## Solution
+Ajouter un troisième fallback : la date à laquelle le contrat est passé au statut `equipment_ordered` dans `contract_workflow_logs`. La chaîne de fallback devient :
 
-## 1. Nouvelle table `mollie_sepa_changes`
-
-Migration SQL :
-
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
+```text
+actual_purchase_date → order_date → date passage "equipment_ordered" → invoice_date
 ```
 
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
+## Changement technique
 
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
+**Migration SQL** — mise à jour de `get_monthly_financial_data` :
 
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+Modifier la CTE `equipment_purchases_by_month` pour joindre `contract_workflow_logs` et récupérer la date de passage à `equipment_ordered` comme fallback supplémentaire :
 
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+```sql
+equipment_purchases_by_month AS (
+  SELECT
+    EXTRACT(MONTH FROM COALESCE(
+      ce.actual_purchase_date,
+      ce.order_date,
+      (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl 
+       WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
+      inv.invoice_date
+    ))::integer as month,
+    SUM(COALESCE(ce.actual_purchase_price, ce.purchase_price) * COALESCE(ce.quantity, 1)) as total_purchases
+  FROM contract_equipment ce
+  JOIN contracts c ON c.id = ce.contract_id
+  LEFT JOIN invoices inv ON inv.contract_id = c.id
+  WHERE c.company_id = user_company_id
+    AND COALESCE(c.is_self_leasing, false) = false
+    AND COALESCE(ce.actual_purchase_price, ce.purchase_price) > 0
+    AND c.status IN ('signed', 'active', 'delivered', 'completed')
+    AND EXTRACT(YEAR FROM COALESCE(
+      ce.actual_purchase_date,
+      ce.order_date,
+      (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl 
+       WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
+      inv.invoice_date
+    )) = target_year
+  GROUP BY 1
+)
+```
 
-## Fichiers modifies
+Également mettre à jour le même fallback dans `useCompanyDashboard.ts` côté frontend pour cohérence.
 
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+## Fichiers impactés
+
+| Fichier | Modification |
+|---|---|
+| `supabase/migrations/[new].sql` | Recréer `get_monthly_financial_data` avec le nouveau fallback |
+| `src/hooks/useCompanyDashboard.ts` | Aligner la logique de date côté client |
 
