@@ -37,6 +37,7 @@ interface UnmatchedInvoice {
   leaser_name: string;
   billing_data: {
     billit_customer_name?: string;
+    billit_data?: any;
     match_suggestions?: {
       contract_id: string;
       contract_number: string | null;
@@ -44,6 +45,7 @@ interface UnmatchedInvoice {
       selling_price: number;
       score: number;
     }[];
+    [key: string]: any;
   };
 }
 
