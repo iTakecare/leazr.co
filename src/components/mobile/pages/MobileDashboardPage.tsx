@@ -175,9 +175,10 @@ const MobileDashboardPage: React.FC = () => {
       };
     }
 
-    const totalRevenue = monthlyData.reduce((sum: number, m: any) => sum + (m.revenue || 0), 0);
+    const totalRevenue = monthlyData.reduce((sum: number, m: any) => 
+      sum + (m.revenue || 0) + (m.direct_sales_revenue || 0) + (m.self_leasing_revenue || 0), 0);
     const totalPurchases = monthlyData.reduce((sum: number, m: any) => sum + (m.purchases || 0), 0);
-    const totalMargin = monthlyData.reduce((sum: number, m: any) => sum + (m.margin || 0), 0);
+    const totalMargin = totalRevenue - totalPurchases;
     const marginRate = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
 
     return {
