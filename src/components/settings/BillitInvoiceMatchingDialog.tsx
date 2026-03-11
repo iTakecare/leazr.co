@@ -56,6 +56,14 @@ interface Contract {
   created_at: string;
 }
 
+interface OrphanInvoice {
+  id: string;
+  invoice_number: string | null;
+  amount: number;
+  leaser_name: string | null;
+  offer_id: string | null;
+}
+
 const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = ({
   open,
   onOpenChange,
