@@ -379,6 +379,12 @@ serve(async (req) => {
     // Génération d'un ID unique pour la demande
     const requestId = crypto.randomUUID();
     const clientId = crypto.randomUUID();
+    
+    // Génération du numéro de dossier (même format que le frontend)
+    const year = new Date().getFullYear();
+    const timestamp = Date.now().toString().slice(-4);
+    const dossierNumber = `ITC-${year}-OFF-${timestamp}`;
+    console.log("Numéro de dossier généré:", dossierNumber);
 
     // Les informations client ont déjà été extraites plus haut (lignes 55-106)
     const equipmentDescription = equipmentList.join(', ');
