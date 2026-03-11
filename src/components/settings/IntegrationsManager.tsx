@@ -39,15 +39,6 @@ const integrations: Integration[] = [
     category: 'E-commerce'
   },
   
-  // Facturation
-  {
-    id: 'billit',
-    name: 'Billit',
-    description: 'Automatisez votre facturation et synchronisez vos données comptables',
-    logoUrl: 'https://www.billit.eu/media/zyrdvyth/billit_logo.png',
-    status: 'available',
-    category: 'Facturation'
-  },
   
   // ERP
   {
