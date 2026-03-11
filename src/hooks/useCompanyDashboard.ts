@@ -291,7 +291,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         
         // Achats répartis sur la durée du contrat (purchase / contract_duration)
         const totalEquipmentPurchase = (contract.contract_equipment || []).reduce(
-          (sum: number, e: any) => sum + ((e.purchase_price || 0) * (e.quantity || 1)), 0
+          (sum: number, e: any) => sum + ((e.actual_purchase_price || e.purchase_price || 0) * (e.quantity || 1)), 0
         );
         const contractDuration = contract.contract_duration || 36;
         const monthlyPurchase = totalEquipmentPurchase / contractDuration;
