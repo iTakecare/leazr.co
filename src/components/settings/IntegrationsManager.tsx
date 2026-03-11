@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database, ShoppingCart } from 'lucide-react';
-import BillitIntegrationSettings from './BillitIntegrationSettings';
 import CompanyWebIntegrationSettings from './CompanyWebIntegrationSettings';
 import WooCommerceConfigurationManager from './WooCommerceConfigurationManager';
 import ZapierIntegrationCard from './ZapierIntegrationCard';
@@ -40,15 +39,6 @@ const integrations: Integration[] = [
     category: 'E-commerce'
   },
   
-  // Facturation
-  {
-    id: 'billit',
-    name: 'Billit',
-    description: 'Automatisez votre facturation et synchronisez vos données comptables',
-    logoUrl: 'https://www.billit.eu/media/zyrdvyth/billit_logo.png',
-    status: 'available',
-    category: 'Facturation'
-  },
   
   // ERP
   {
@@ -569,10 +559,6 @@ const IntegrationsManager = () => {
               <WooCommerceConfigurationManager />
             )}
             
-            {selectedIntegration === 'billit' && (
-              <BillitIntegrationSettings />
-            )}
-            
             {selectedIntegration === 'companyweb' && (
               <CompanyWebIntegrationSettings />
             )}
@@ -581,7 +567,7 @@ const IntegrationsManager = () => {
               <ZapierIntegrationCard />
             )}
             
-            {selectedIntegration && !['woocommerce', 'billit', 'companyweb', 'zapier'].includes(selectedIntegration) && (
+            {selectedIntegration && !['woocommerce', 'companyweb', 'zapier'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>

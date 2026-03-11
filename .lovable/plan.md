@@ -1,48 +1,58 @@
 
 
-# Plan : Désactiver Billit et restaurer les factures de vente directe
+# Historique des modifications SEPA par contrat
 
-## Diagnostic
+## Objectif
 
-### Cause de la disparition
-La migration `20260311144401` contenait : `DELETE FROM invoices WHERE invoice_type = 'purchase'` — supprimant **toutes** les factures de vente directe, y compris les 17 factures générées localement depuis les offres d'achat (pas seulement celles de Billit).
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-### Etat actuel
-- **0 factures** avec `invoice_type = 'purchase'` en base
-- **17 offres** avec `is_purchase = true` et `workflow_status = 'invoicing'` (dont 2 en 2026) n'ont plus de facture associée
-- La carte "Ventes Directes" du dashboard et l'onglet "Factures achat" sont donc vides
+## 1. Nouvelle table `mollie_sepa_changes`
 
-## Corrections
+Migration SQL :
 
-### 1. Restaurer les 17 factures de vente directe supprimées
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-Ajouter un mécanisme de restauration qui appelle `generateInvoiceFromPurchaseOffer` pour chaque offre en statut `invoicing` avec `is_purchase = true` qui n'a pas de facture liée. Cela recréera les factures avec toutes les données nécessaires (client, équipements, totaux).
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-Concrètement : ajouter un bouton admin temporaire "Restaurer les factures manquantes" dans la page Facturation, ou un hook qui s'exécute automatiquement au chargement pour régénérer les factures manquantes.
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 
-### 2. Désactiver Billit partout
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+```
 
-| Fichier | Action |
-|---|---|
-| `src/components/settings/BillitIntegrationSettings.tsx` | Masquer le composant complet (return null ou retrait de l'import dans la page Settings) |
-| `src/components/settings/BillitInvoiceImportCard.tsx` | Plus importé/rendu |
-| `src/components/settings/BillitPurchaseInvoiceImportCard.tsx` | Plus importé/rendu |
-| `src/components/settings/BillitCreditNoteImportCard.tsx` | Plus importé/rendu |
-| `src/services/invoiceService.ts` (generateLocalInvoice) | Changer `integration_type: 'billit'` → `'local'` pour les nouvelles factures leasing |
-| `src/components/invoicing/PurchaseInvoicesTab.tsx` | Retirer la mention "importées depuis Billit" dans la description |
-| Page Settings | Retirer la section Billit |
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-### 3. Nettoyer les références Billit dans le dashboard
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
 
-Le dashboard et le listing des factures continueront à fonctionner normalement une fois les factures restaurées, car ils requêtent par `invoice_type` et non par `integration_type`.
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
 
-### Fichiers impactés
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
 
-| Fichier | Modification |
-|---|---|
-| Page Settings (import de BillitIntegrationSettings) | Retirer l'import et le rendu du composant |
-| `src/services/invoiceService.ts` | `integration_type: 'local'` au lieu de `'billit'` |
-| `src/components/invoicing/PurchaseInvoicesTab.tsx` | Retirer mention Billit |
-| `src/pages/InvoicingPage.tsx` | Ajouter bouton de restauration des factures manquantes |
-| Nouveau service ou hook | Fonction de restauration batch des factures purchase depuis les offres |
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
