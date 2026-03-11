@@ -204,20 +204,42 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       if (contractIds.length > 0) {
         const { data: equipment } = await supabase
           .from('contract_equipment')
-          .select('contract_id, purchase_price, actual_purchase_price, actual_purchase_date, quantity')
+          .select('contract_id, purchase_price, actual_purchase_price, actual_purchase_date, order_date, quantity')
           .in('contract_id', contractIds);
+
+        // Récupérer les dates de passage au statut "equipment_ordered" pour les contrats
+        const { data: workflowLogs } = await supabase
+          .from('contract_workflow_logs')
+          .select('contract_id, created_at')
+          .in('contract_id', contractIds)
+          .eq('new_status', 'equipment_ordered')
+          .order('created_at', { ascending: true });
+
+        // Map contract_id -> première date equipment_ordered
+        const equipmentOrderedDateMap = new Map<string, string>();
+        for (const log of workflowLogs || []) {
+          if (log.contract_id && !equipmentOrderedDateMap.has(log.contract_id)) {
+            equipmentOrderedDateMap.set(log.contract_id, log.created_at);
+          }
+        }
         
-        // Filtrer les équipements par année d'achat effective (actual_purchase_date ou invoice_date)
+        // Filtrer les équipements par année d'achat effective
+        // Chaîne de fallback: actual_purchase_date → order_date → date "equipment_ordered" → invoice_date
         for (const eq of equipment || []) {
-          // Déterminer la date d'achat effective
           const actualPurchaseDate = eq.actual_purchase_date 
             ? new Date(eq.actual_purchase_date) 
+            : null;
+          const orderDate = (eq as any).order_date
+            ? new Date((eq as any).order_date)
+            : null;
+          const equipmentOrderedDate = eq.contract_id && equipmentOrderedDateMap.has(eq.contract_id)
+            ? new Date(equipmentOrderedDateMap.get(eq.contract_id)!)
             : null;
           const invoiceDate = eq.contract_id && contractInvoiceDateMap.has(eq.contract_id)
             ? new Date(contractInvoiceDateMap.get(eq.contract_id)!)
             : null;
           
-          const effectivePurchaseDate = actualPurchaseDate || invoiceDate;
+          const effectivePurchaseDate = actualPurchaseDate || orderDate || equipmentOrderedDate || invoiceDate;
           
           // Ne compter que si la date d'achat effective est dans l'année sélectionnée
           if (effectivePurchaseDate && effectivePurchaseDate.getFullYear() === year) {
