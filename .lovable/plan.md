@@ -1,26 +1,58 @@
 
 
-# Plan : Restaurer les factures d'achat Billit
+# Historique des modifications SEPA par contrat
 
-## Cause du problème
+## Objectif
 
-La migration `20260311151906` a exécuté :
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+
+## 1. Nouvelle table `mollie_sepa_changes`
+
+Migration SQL :
+
 ```sql
-DELETE FROM invoices WHERE external_invoice_id IS NOT NULL AND contract_id IS NULL AND offer_id IS NULL;
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 ```
-Cette requête ciblait les factures importées "orphelines" (BOL.COM, Amazon, etc.), mais elle a aussi supprimé les **factures d'achat Billit** (`invoice_type = 'purchase'`) qui, par design, n'ont ni `contract_id` ni `offer_id`.
 
-## Solution
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-Les données supprimées ne sont pas récupérables depuis la base. Il faut **ré-importer les factures d'achat depuis Billit** via le bouton d'import existant dans les paramètres Billit.
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
 
-### Étape 1 : Sécuriser pour éviter que ça se reproduise
-Aucune modification de code n'est nécessaire car la migration destructrice a déjà été exécutée et ne se relancera pas.
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
 
-### Étape 2 : Ré-importer
-- Aller dans Paramètres > Billit > Import factures d'achat
-- Lancer l'import — l'Edge Function `billit-import-purchase-invoices` vérifie les `external_invoice_id` existants et ne créera pas de doublons, donc toutes les factures d'achat seront ré-importées
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
 
-### Pas de changement de code requis
-L'import Billit existant est fonctionnel et recréera les factures avec le bon `invoice_type = 'purchase'`.
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
