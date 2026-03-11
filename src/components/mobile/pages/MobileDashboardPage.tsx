@@ -203,7 +203,13 @@ const MobileDashboardPage: React.FC = () => {
   const pendingStats = getStatByStatus('pending');
   const directSalesStats = getStatByStatus('direct_sales');
   const refusedStats = getStatByStatus('refused');
-  const forecastStats = getStatByStatus('forecast');
+  // Forecast = realized + pending + direct_sales (same as desktop)
+  const forecastStats = {
+    count: (realizedStats?.count || 0) + (pendingStats?.count || 0) + (directSalesStats?.count || 0),
+    total_revenue: Number(realizedStats?.total_revenue || 0) + Number(pendingStats?.total_revenue || 0) + Number(directSalesStats?.total_revenue || 0),
+    total_purchases: Number(realizedStats?.total_purchases || 0) + Number(pendingStats?.total_purchases || 0) + Number(directSalesStats?.total_purchases || 0),
+    total_margin: Number(realizedStats?.total_margin || 0) + Number(pendingStats?.total_margin || 0) + Number(directSalesStats?.total_margin || 0),
+  };
 
   // Generate year options
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
