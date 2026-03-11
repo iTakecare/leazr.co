@@ -1,58 +1,40 @@
 
 
-# Historique des modifications SEPA par contrat
+# Plan : Correction de la marge et du numero de demande pour les packs
 
-## Objectif
+## Probleme 1 : Marge incorrecte a la creation
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
-
-## 1. Nouvelle table `mollie_sepa_changes`
-
-Migration SQL :
-
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
+**Cause racine** : Dans l'Edge Function `create-product-request`, l'estimation initiale du montant finance est incorrecte (ligne 351) :
+```
+// ACTUEL (FAUX) : totalMonthlyPayment × 3.53 = 423€ (au lieu de ~3400€)
+let estimatedFinancedAmount = totalMonthlyPayment * 3.53;
 ```
 
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
+Cela provoque un mauvais coefficient initial. L'iteration converge ensuite correctement (vers 3.24), MAIS les anciennes versions de l'Edge Function stockaient le mauvais coefficient (3.53), ce qui donne un montant finance de 3396€ au lieu de 3700€.
 
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
+Le coefficient 3.53 s'applique pour les montants 500-2500€, mais le montant reel finance est ~3700€ (tranche 2500-5000€, coefficient 3.24). L'apercu Vue d'ensemble utilise le coefficient stocke sur l'offre pour recalculer via Grenke → marge incorrecte (39.7% au lieu de 52.2%).
 
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+Quand on ouvre le calculateur (Modifier), celui-ci recharge les tranches du leaser et recalcule avec le BON coefficient → marge correcte.
 
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+**Correction** : Modifier l'Edge Function pour :
+- Corriger l'estimation initiale : `totalMonthlyPayment * (100 / 3.53)` au lieu de `* 3.53`
+- S'assurer que le coefficient final (apres convergence) est bien stocke sur l'offre ET utilise pour les prix de vente des equipements
+- Mettre a jour les `selling_price` et `margin` de chaque equipement avec le coefficient final
 
-## Fichiers modifies
+## Probleme 2 : Pas de numero de demande
 
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+**Cause racine** : L'Edge Function `create-product-request` ne genere pas de `dossier_number`. La generation existe dans `src/services/offers/index.ts` (ligne 150-155) mais uniquement pour les offres creees via le calculateur admin.
+
+**Correction** : Ajouter la generation de `dossier_number` dans l'Edge Function avec le meme format (`ITC-YYYY-OFF-XXXX`).
+
+## Probleme 3 : Corriger les offres existantes
+
+77 offres stockees avec coefficient 3.53 sont potentiellement incorrectes (si le montant finance reel tombe dans une tranche differente). Migration SQL pour recalculer.
+
+## Fichiers impactes
+
+| Fichier | Action |
+|---|---|
+| `supabase/functions/create-product-request/index.ts` | Corriger estimation initiale, ajouter generation dossier_number, recalculer selling_price/margin equipements avec coefficient final |
+| Migration SQL | Recalculer coefficient, financed_amount, margin pour les offres existantes sans dossier_number ; mettre a jour selling_price des equipements |
 
