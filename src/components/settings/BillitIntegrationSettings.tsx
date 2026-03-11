@@ -392,6 +392,12 @@ const BillitIntegrationSettings = () => {
         integrationEnabled={integration?.is_enabled || false}
       />
 
+      {/* Import des notes de crédit Billit */}
+      <BillitCreditNoteImportCard
+        companyId={companyId || ''}
+        integrationEnabled={integration?.is_enabled || false}
+      />
+
       {/* Guide d'intégration */}
       <Card>
         <CardHeader>

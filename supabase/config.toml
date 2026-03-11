@@ -117,6 +117,9 @@ verify_jwt = true
 [functions.billit-import-purchase-invoices]
 verify_jwt = true
 
+[functions.billit-import-credit-notes]
+verify_jwt = true
+
 [functions.check-subscription]
 verify_jwt = false
 
