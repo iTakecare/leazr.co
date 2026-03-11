@@ -348,12 +348,13 @@ serve(async (req) => {
     }
 
     // Calcul itératif pour trouver le bon coefficient
-    let estimatedFinancedAmount = totalMonthlyPayment * 3.53; // Estimation initiale
+    // Estimation initiale correcte : mensualité × 100 / coefficient_par_défaut
+    let estimatedFinancedAmount = (totalMonthlyPayment * 100) / 3.53;
     let coefficient = getCoefficientForAmount(estimatedFinancedAmount, leaserData.leaser_ranges);
-    let totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient; // Formule correcte
+    let totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient; // Formule Grenke
     
-    // Itération pour convergence (max 3 itérations)
-    for (let i = 0; i < 3; i++) {
+    // Itération pour convergence (max 5 itérations)
+    for (let i = 0; i < 5; i++) {
       const newCoefficient = getCoefficientForAmount(totalFinancedAmount, leaserData.leaser_ranges);
       if (Math.abs(newCoefficient - coefficient) < 0.001) {
         break; // Convergence atteinte
@@ -361,6 +362,8 @@ serve(async (req) => {
       coefficient = newCoefficient;
       totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
     }
+    
+    console.log(`✅ Coefficient final convergé: ${coefficient} pour montant financé: ${totalFinancedAmount.toFixed(2)}€`);
 
     const marginAmount = totalFinancedAmount - totalPurchaseAmount;
     const marginPercentage = totalPurchaseAmount > 0 ? (marginAmount / totalPurchaseAmount) * 100 : 0;
