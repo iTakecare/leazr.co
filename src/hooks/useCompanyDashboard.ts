@@ -256,7 +256,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         .from('contracts')
         .select(`
           id, monthly_payment, contract_start_date, contract_end_date, contract_duration,
-          contract_equipment(purchase_price, quantity)
+          contract_equipment(purchase_price, actual_purchase_price, quantity)
         `)
         .eq('company_id', companyId)
         .eq('is_self_leasing', true)
@@ -291,7 +291,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         
         // Achats répartis sur la durée du contrat (purchase / contract_duration)
         const totalEquipmentPurchase = (contract.contract_equipment || []).reduce(
-          (sum: number, e: any) => sum + ((e.purchase_price || 0) * (e.quantity || 1)), 0
+          (sum: number, e: any) => sum + ((e.actual_purchase_price || e.purchase_price || 0) * (e.quantity || 1)), 0
         );
         const contractDuration = contract.contract_duration || 36;
         const monthlyPurchase = totalEquipmentPurchase / contractDuration;
