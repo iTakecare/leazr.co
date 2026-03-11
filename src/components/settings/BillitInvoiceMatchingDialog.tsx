@@ -74,7 +74,9 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
   const [saving, setSaving] = useState(false);
   const [invoices, setInvoices] = useState<UnmatchedInvoice[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [orphanInvoices, setOrphanInvoices] = useState<OrphanInvoice[]>([]);
   const [matches, setMatches] = useState<Record<string, string | null>>({});
+  const [matchType, setMatchType] = useState<Record<string, 'contract' | 'reconcile'>>({});
 
   useEffect(() => {
     if (open && companyId) {
