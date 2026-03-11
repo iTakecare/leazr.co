@@ -348,12 +348,13 @@ serve(async (req) => {
     }
 
     // Calcul itératif pour trouver le bon coefficient
-    let estimatedFinancedAmount = totalMonthlyPayment * 3.53; // Estimation initiale
+    // Estimation initiale correcte : mensualité × 100 / coefficient_par_défaut
+    let estimatedFinancedAmount = (totalMonthlyPayment * 100) / 3.53;
     let coefficient = getCoefficientForAmount(estimatedFinancedAmount, leaserData.leaser_ranges);
-    let totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient; // Formule correcte
+    let totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient; // Formule Grenke
     
-    // Itération pour convergence (max 3 itérations)
-    for (let i = 0; i < 3; i++) {
+    // Itération pour convergence (max 5 itérations)
+    for (let i = 0; i < 5; i++) {
       const newCoefficient = getCoefficientForAmount(totalFinancedAmount, leaserData.leaser_ranges);
       if (Math.abs(newCoefficient - coefficient) < 0.001) {
         break; // Convergence atteinte
@@ -361,6 +362,8 @@ serve(async (req) => {
       coefficient = newCoefficient;
       totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
     }
+    
+    console.log(`✅ Coefficient final convergé: ${coefficient} pour montant financé: ${totalFinancedAmount.toFixed(2)}€`);
 
     const marginAmount = totalFinancedAmount - totalPurchaseAmount;
     const marginPercentage = totalPurchaseAmount > 0 ? (marginAmount / totalPurchaseAmount) * 100 : 0;
@@ -376,6 +379,12 @@ serve(async (req) => {
     // Génération d'un ID unique pour la demande
     const requestId = crypto.randomUUID();
     const clientId = crypto.randomUUID();
+    
+    // Génération du numéro de dossier (même format que le frontend)
+    const year = new Date().getFullYear();
+    const timestamp = Date.now().toString().slice(-4);
+    const dossierNumber = `ITC-${year}-OFF-${timestamp}`;
+    console.log("Numéro de dossier généré:", dossierNumber);
 
     // Les informations client ont déjà été extraites plus haut (lignes 55-106)
     const equipmentDescription = equipmentList.join(', ');
@@ -456,7 +465,8 @@ serve(async (req) => {
       remarks: 'Demande créée via API web avec Grenke (36 mois)',
       user_id: null,
       company_id: targetCompanyId,
-      leaser_id: leaserId
+      leaser_id: leaserId,
+      dossier_number: dossierNumber
     };
 
     console.log("Création de l'offre avec les données:", offerData);
@@ -559,7 +569,7 @@ serve(async (req) => {
         title: product.product_name || calc.productName,
         purchase_price: calc.purchasePrice,
         quantity: calc.quantity,
-        monthly_payment: calc.monthlyPrice,
+        monthly_payment: calc.monthlyPrice * calc.quantity, // TOTAL de la ligne (convention: monthly_payment = total)
         selling_price: finalSellingPrice,
         margin: finalMargin,
         coefficient: coefficient,
