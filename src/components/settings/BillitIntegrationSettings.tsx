@@ -10,6 +10,7 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { setupBillitIntegration, disableBillitIntegration, getBillitIntegration, testBillitIntegration } from "@/services/invoiceService";
 import { toast } from "sonner";
 import BillitInvoiceImportCard from "./BillitInvoiceImportCard";
+import BillitPurchaseInvoiceImportCard from "./BillitPurchaseInvoiceImportCard";
 
 const BillitIntegrationSettings = () => {
   const { companyId } = useMultiTenant();
