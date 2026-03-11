@@ -569,7 +569,7 @@ serve(async (req) => {
         title: product.product_name || calc.productName,
         purchase_price: calc.purchasePrice,
         quantity: calc.quantity,
-        monthly_payment: calc.monthlyPrice,
+        monthly_payment: calc.monthlyPrice * calc.quantity, // TOTAL de la ligne (convention: monthly_payment = total)
         selling_price: finalSellingPrice,
         margin: finalMargin,
         coefficient: coefficient,
