@@ -1,0 +1,1 @@
+DELETE FROM invoices WHERE external_invoice_id IS NOT NULL AND contract_id IS NULL AND offer_id IS NULL;
