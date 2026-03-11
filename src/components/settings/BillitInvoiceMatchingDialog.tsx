@@ -156,48 +156,76 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const matchesToSave = Object.entries(matches).filter(([_, contractId]) => contractId !== null);
+      const matchesToSave = Object.entries(matches).filter(([_, val]) => val !== null);
       
       let successCount = 0;
       let errorCount = 0;
 
-      for (const [invoiceId, contractId] of matchesToSave) {
-        // Mettre à jour la facture avec le contract_id
-        const { error: invoiceError } = await supabase
-          .from('invoices')
-          .update({ 
-            contract_id: contractId,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', invoiceId);
+      for (const [invoiceId, targetId] of matchesToSave) {
+        const type = matchType[invoiceId] || 'contract';
 
-        if (invoiceError) {
-          console.error(`Erreur update facture ${invoiceId}:`, invoiceError);
-          errorCount++;
-          continue;
-        }
+        if (type === 'reconcile') {
+          // Réconciliation: transférer les données Billit vers la facture orpheline existante
+          const billitInvoice = invoices.find(i => i.id === invoiceId);
+          if (!billitInvoice) { errorCount++; continue; }
 
-        // Marquer le contrat comme ayant une facture
-        const { error: contractError } = await supabase
-          .from('contracts')
-          .update({ 
-            invoice_generated: true,
-            invoice_id: invoiceId
-          })
-          .eq('id', contractId);
-
-        if (contractError) {
-          console.error(`Erreur update contrat ${contractId}:`, contractError);
-          // Rollback la facture
-          await supabase
+          // Copier external_invoice_id et billing_data vers la facture orpheline
+          const { error: reconcileError } = await supabase
             .from('invoices')
-            .update({ contract_id: null })
-            .eq('id', invoiceId);
-          errorCount++;
-          continue;
-        }
+            .update({
+              external_invoice_id: billitInvoice.billing_data?.billit_data?.OrderID?.toString(),
+              integration_type: 'billit',
+              billing_data: {
+                ...billitInvoice.billing_data,
+                import_source: 'billit_manual_reconciliation',
+                reconciled_at: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', targetId);
 
-        successCount++;
+          if (reconcileError) {
+            console.error(`Erreur réconciliation ${invoiceId}:`, reconcileError);
+            errorCount++;
+            continue;
+          }
+
+          // Supprimer la facture Billit dupliquée
+          await supabase.from('invoices').delete().eq('id', invoiceId);
+          successCount++;
+        } else {
+          // Matching classique: lier la facture Billit à un contrat
+          const { error: invoiceError } = await supabase
+            .from('invoices')
+            .update({ 
+              contract_id: targetId,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', invoiceId);
+
+          if (invoiceError) {
+            console.error(`Erreur update facture ${invoiceId}:`, invoiceError);
+            errorCount++;
+            continue;
+          }
+
+          const { error: contractError } = await supabase
+            .from('contracts')
+            .update({ 
+              invoice_generated: true,
+              invoice_id: invoiceId
+            })
+            .eq('id', targetId);
+
+          if (contractError) {
+            console.error(`Erreur update contrat ${targetId}:`, contractError);
+            await supabase.from('invoices').update({ contract_id: null }).eq('id', invoiceId);
+            errorCount++;
+            continue;
+          }
+
+          successCount++;
+        }
       }
 
       if (successCount > 0) {
