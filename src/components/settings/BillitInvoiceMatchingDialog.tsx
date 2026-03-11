@@ -360,26 +360,49 @@ const BillitInvoiceMatchingDialog: React.FC<BillitInvoiceMatchingDialogProps> = 
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">
-                                  <span className="text-muted-foreground">Aucun contrat</span>
+                                  <span className="text-muted-foreground">Aucune association</span>
                                 </SelectItem>
-                                {availableContracts.map(contract => {
-                                  const score = getMatchScore(invoice, contract.id);
-                                  return (
-                                    <SelectItem key={contract.id} value={contract.id}>
-                                      <div className="flex items-center gap-2">
-                                        <span>{contract.client_name}</span>
-                                        <span className="text-muted-foreground">
-                                          - {formatCurrency(contract.estimated_selling_price)}
-                                        </span>
-                                        {score > 0 && (
-                                          <Badge variant="outline" className="text-xs">
-                                            {score}%
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </SelectItem>
-                                  );
-                                })}
+                                {availableContracts.length > 0 && (
+                                  <>
+                                    <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Contrats</div>
+                                    {availableContracts.map(contract => {
+                                      const score = getMatchScore(invoice, contract.id);
+                                      return (
+                                        <SelectItem key={contract.id} value={contract.id}>
+                                          <div className="flex items-center gap-2">
+                                            <span>{contract.client_name}</span>
+                                            <span className="text-muted-foreground">
+                                              - {formatCurrency(contract.estimated_selling_price)}
+                                            </span>
+                                            {score > 0 && (
+                                              <Badge variant="outline" className="text-xs">
+                                                {score}%
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </>
+                                )}
+                                {orphanInvoices.length > 0 && (
+                                  <>
+                                    <div className="px-2 py-1 text-xs font-semibold text-muted-foreground border-t mt-1 pt-1">
+                                      Factures projet (réconciliation)
+                                    </div>
+                                    {orphanInvoices.map(orphan => (
+                                      <SelectItem key={orphan.id} value={orphan.id}>
+                                        <div className="flex items-center gap-2">
+                                          <span>{orphan.invoice_number || 'Sans numéro'}</span>
+                                          <span className="text-muted-foreground">
+                                            - {formatCurrency(orphan.amount)}
+                                          </span>
+                                          <Badge variant="secondary" className="text-xs">Projet</Badge>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </>
+                                )}
                               </SelectContent>
                             </Select>
                           </div>
