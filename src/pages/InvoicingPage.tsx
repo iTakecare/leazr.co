@@ -59,6 +59,8 @@ const InvoicingPage = () => {
       fetchCreditNotes();
     } else if (value === 'accounting-report') {
       setSearchParams({ tab: 'accounting-report' });
+    } else if (value === 'purchase-invoices') {
+      setSearchParams({ tab: 'purchase-invoices' });
     } else {
       setSearchParams({});
     }
