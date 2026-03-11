@@ -568,10 +568,6 @@ const IntegrationsManager = () => {
               <WooCommerceConfigurationManager />
             )}
             
-            {selectedIntegration === 'billit' && (
-              <BillitIntegrationSettings />
-            )}
-            
             {selectedIntegration === 'companyweb' && (
               <CompanyWebIntegrationSettings />
             )}

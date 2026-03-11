@@ -404,7 +404,7 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
         leaser_name: leaser.company_name || leaser.name,
         amount: totalSellingPrice,
         status: 'draft',
-        integration_type: 'billit',
+        integration_type: 'local',
         billing_data: {
           contract_data: contract,
           equipment_data: enrichedEquipment,
