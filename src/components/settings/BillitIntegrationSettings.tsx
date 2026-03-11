@@ -379,9 +379,15 @@ const BillitIntegrationSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Import des factures Billit */}
+      {/* Import des factures Billit (ventes) */}
       <BillitInvoiceImportCard 
         companyId={companyId || ''} 
+        integrationEnabled={integration?.is_enabled || false}
+      />
+
+      {/* Import des factures d'achat Billit */}
+      <BillitPurchaseInvoiceImportCard
+        companyId={companyId || ''}
         integrationEnabled={integration?.is_enabled || false}
       />
 

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3 } from "lucide-react";
+import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
