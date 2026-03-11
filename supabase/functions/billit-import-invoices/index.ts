@@ -508,9 +508,10 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      message: `Import terminé: ${importedCount} importée(s), ${reconciledCount} réconciliée(s)`,
+      message: `Import terminé: ${importedCount} importée(s), ${reconciledCount + postReconciledCount} réconciliée(s)`,
       imported: importedCount,
       reconciled: reconciledCount,
+      post_reconciled: postReconciledCount,
       skipped: skippedCount,
       total_billit: billitInvoices.length,
       unmatched_count: unmatchedCount || 0,
