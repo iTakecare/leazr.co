@@ -1,58 +1,28 @@
 
 
-# Historique des modifications SEPA par contrat
+# Utiliser le prix d'achat réel dans tous les calculs d'achats
 
-## Objectif
+## Probleme
+Trois endroits utilisent encore `purchase_price` au lieu de `COALESCE(actual_purchase_price, purchase_price)` :
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+1. **Frontend `useCompanyDashboard.ts`** (self-leasing) — ligne 259 : le `select` ne récupère pas `actual_purchase_price`, et ligne 294 utilise uniquement `e.purchase_price`
+2. **RPC no-args `get_monthly_financial_data`** (ligne 34) — utilise `ce.purchase_price * ce.quantity` sans fallback sur `actual_purchase_price`
 
-## 1. Nouvelle table `mollie_sepa_changes`
+La version `p_year` de la RPC (utilisée principalement) est déjà correcte.
 
-Migration SQL :
+## Corrections
 
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+### 1. `src/hooks/useCompanyDashboard.ts`
+- Ligne 259 : ajouter `actual_purchase_price` au select de `contract_equipment`
+- Ligne 294 : remplacer `e.purchase_price` par `(e.actual_purchase_price || e.purchase_price || 0)`
 
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
+### 2. Migration SQL — corriger le no-args overload
+- Remplacer `ce.purchase_price * ce.quantity` par `COALESCE(ce.actual_purchase_price, ce.purchase_price) * ce.quantity` dans la sous-requête `invoice_financials`
 
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
+## Fichiers impactés
 
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-```
-
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
-
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
-
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
-
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
-
-## Fichiers modifies
-
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+| Fichier | Modification |
+|---|---|
+| `src/hooks/useCompanyDashboard.ts` | Ajouter `actual_purchase_price` au select et l'utiliser en priorité pour le calcul self-leasing |
+| `supabase/migrations/[new].sql` | Recréer le no-args overload avec `COALESCE(actual_purchase_price, purchase_price)` |
 
