@@ -134,6 +134,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         'leaser_sent': 'leaser_review',
         'leaser_accepted': 'validated',
         'Scoring_review': 'leaser_review',
+        'score_leaser': 'leaser_review',
+        'accepted': 'leaser_review',
         // Offer/client statuses
         'offer_send': 'sent',
         'offer_sent': 'sent',
@@ -141,6 +143,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         'offer_accepted': 'validated',
         'offer_validation': 'validated',
         'validated': 'validated',
+        'contract_ready': 'validated',
+        'contrat_pret': 'validated',
         'financed': 'validated',
         'invoicing': 'invoicing',
         // Base statuses
