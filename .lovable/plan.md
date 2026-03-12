@@ -1,37 +1,58 @@
 
 
-# Plan : Corriger et exécuter la restauration des 17 factures de vente directe
+# Historique des modifications SEPA par contrat
 
-## Problème identifié
+## Objectif
 
-La restauration automatique ne fonctionne pas car le code référence une colonne `offer_reference` qui **n'existe pas** dans la table `offers` (le vrai nom est `offer_number`). La requête Supabase échoue silencieusement et aucune facture n'est créée.
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-**Preuve** : La base contient 17 offres d'achat en statut `invoicing` et 0 facture de type `purchase`. Les 105 factures existantes sont toutes de type `leasing`.
+## 1. Nouvelle table `mollie_sepa_changes`
 
-## Corrections à apporter
+Migration SQL :
 
-### 1. Corriger `src/utils/restorePurchaseInvoices.ts`
-- Remplacer `offer_reference` par `offer_number` dans le `select`
-- Remplacer les références à `offer.offer_reference` par `offer.offer_number` dans les logs
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-### 2. Corriger `src/services/invoiceService.ts`
-- Ligne 186 : remplacer `offer.offer_reference` par `offer.offer_number` dans le `billing_data.offer_data.reference`
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-### 3. Rendre la restauration plus robuste dans `InvoicingPage.tsx`
-- Ajouter un `console.log` pour tracer l'exécution
-- S'assurer que `fetchInvoices` est bien appelé après restauration
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 
-## Résultat attendu
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+```
 
-Quand l'utilisateur navigue vers la page Facturation :
-- Les 17 factures seront créées automatiquement en statut **brouillon**, sans numéro de facture
-- Chaque facture contiendra : le bon client, les bons équipements avec prix de vente, les totaux calculés, la date de création de l'offre comme date de facture
-- Elles apparaîtront dans la liste principale avec le badge "Vente directe" et seront filtrables via le sous-onglet "Ventes directes"
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-## Fichiers impactés
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
 
-| Fichier | Modification |
-|---|---|
-| `src/utils/restorePurchaseInvoices.ts` | `offer_reference` → `offer_number` |
-| `src/services/invoiceService.ts` | `offer.offer_reference` → `offer.offer_number` |
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
