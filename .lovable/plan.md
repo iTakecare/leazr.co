@@ -1,58 +1,41 @@
 
 
-# Historique des modifications SEPA par contrat
+# Plan : Carte "Relances" dans le détail d'offre (Offre L1/L2/L3 + Docs L1/L2/L3)
 
 ## Objectif
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+Ajouter une carte "Relances" dans la sidebar du détail d'offre, juste sous la carte "Statut", avec les mêmes badges et fonctionnalités de relance que dans le listing (ReminderIndicator + SendReminderModal).
 
-## 1. Nouvelle table `mollie_sepa_changes`
+## Fonctionnement
 
-Migration SQL :
+La carte affiche les badges colorés L1/L2/L3 pour les relances offre et/ou documents selon le statut de l'offre. Cliquer sur un badge ouvre le `SendReminderModal` (déjà existant) pré-sélectionné sur le niveau choisi.
 
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+- **Statuts offre** (`sent`, `offer_send`, `accepted`) : badges Offre L1, L2, L3 (palette bleue)
+- **Statuts documents** (`info_requested`, `internal_docs_requested`) : badges Docs L1, L2, L3 (palette violette)
+- Badges grisés/barrés si déjà envoyés, colorés et cliquables sinon
 
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
+## Modifications
 
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
+### 1. `src/pages/AdminOfferDetail.tsx`
+- Importer `useOfferAllReminders`, `useFetchOfferReminders`, `SendReminderModal`
+- Appeler `useFetchOfferReminders([offer.id])` pour récupérer les relances déjà envoyées
+- Appeler `useOfferAllReminders(offer, sentReminders)` pour calculer les niveaux disponibles
+- Ajouter state `showReminderModal` + passer `allReminders`, `sentReminders`, `onOpenReminder` en nouvelles props à `CompactActionsSidebar`
+- Rendre `SendReminderModal` dans le JSX
 
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-```
+### 2. `src/components/offers/detail/CompactActionsSidebar.tsx`
+- Ajouter props : `allReminders?: AllReminders`, `sentReminders?: any[]`, `onOpenReminder?: () => void`
+- Après la carte "Statut", insérer une carte "Relances" qui :
+  - Affiche tous les niveaux disponibles via `ReminderIndicator` (utilise `allReminders`)
+  - Au clic sur un badge → appelle `onOpenReminder()`
+  - Si aucun rappel disponible (statut ne correspond pas), la carte ne s'affiche pas
 
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
+### Fichiers impactés
 
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
+| Fichier | Modification |
+|---|---|
+| `src/pages/AdminOfferDetail.tsx` | Hooks reminders + state modal + rendu SendReminderModal |
+| `src/components/offers/detail/CompactActionsSidebar.tsx` | Nouvelle carte "Relances" avec ReminderIndicator |
 
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
-
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
-
-## Fichiers modifies
-
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+Aucun nouveau composant à créer, réutilisation de `ReminderIndicator` et `SendReminderModal` existants.
 
