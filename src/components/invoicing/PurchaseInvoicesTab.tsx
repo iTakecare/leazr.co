@@ -74,7 +74,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { label: string; className: string }> = {
       draft: { label: "Brouillon", className: "" },
-      sent: { label: "Reçue", className: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100" },
+      sent: { label: "Envoyée", className: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100" },
       paid: { label: "Payée", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" },
     };
     const c = config[status] || { label: status, className: "" };
