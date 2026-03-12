@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3, ShoppingCart } from "lucide-react";
+import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,7 +19,7 @@ import { CreditNotesList } from "@/components/invoicing/CreditNotesList";
 import { NewInvoiceDialog } from "@/components/invoicing/NewInvoiceDialog";
 import { InvoiceDateRangeFilter } from "@/components/invoicing/InvoiceDateRangeFilter";
 import { AccountingReportTab } from "@/components/invoicing/AccountingReportTab";
-import PurchaseInvoicesTab from "@/components/invoicing/PurchaseInvoicesTab";
+
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { getOrphanedPurchaseOffers, restorePurchaseInvoices } from "@/utils/restorePurchaseInvoices";
 import { toast } from "sonner";
@@ -39,37 +39,41 @@ const InvoicingPage = () => {
   
   // Gérer l'onglet actif via URL
   const tabFromUrl = searchParams.get('tab');
-  const validTabs = ['invoices', 'purchase-invoices', 'credit-notes', 'accounting-report'];
+  const validTabs = ['invoices', 'credit-notes', 'accounting-report'];
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(tabFromUrl || '') ? tabFromUrl! : 'invoices'
   );
   
   // Sous-filtre pour les statuts de factures
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>("all");
-  const [orphanedCount, setOrphanedCount] = useState(0);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [restoredCount, setRestoredCount] = useState<number | null>(null);
 
-  // Vérifier les factures manquantes au montage
+  // Auto-restauration des factures manquantes au montage
   useEffect(() => {
-    getOrphanedPurchaseOffers().then(offers => setOrphanedCount(offers.length));
-  }, []);
-
-  const handleRestoreInvoices = useCallback(async () => {
-    setIsRestoring(true);
-    try {
-      const result = await restorePurchaseInvoices();
-      toast.success(`${result.success}/${result.total} factures restaurées avec succès`);
-      if (result.errors.length > 0) {
-        toast.error(`${result.errors.length} erreur(s) lors de la restauration`);
+    const autoRestore = async () => {
+      const orphaned = await getOrphanedPurchaseOffers();
+      if (orphaned.length === 0) return;
+      
+      setIsRestoring(true);
+      try {
+        const result = await restorePurchaseInvoices();
+        setRestoredCount(result.success);
+        if (result.success > 0) {
+          toast.success(`${result.success} facture(s) de vente directe restaurée(s)`);
+          fetchInvoices();
+        }
+        if (result.errors.length > 0) {
+          toast.error(`${result.errors.length} erreur(s) lors de la restauration`);
+        }
+      } catch (err) {
+        toast.error("Erreur lors de la restauration des factures");
+      } finally {
+        setIsRestoring(false);
       }
-      setOrphanedCount(0);
-      fetchInvoices();
-    } catch (err) {
-      toast.error("Erreur lors de la restauration des factures");
-    } finally {
-      setIsRestoring(false);
-    }
-  }, [fetchInvoices]);
+    };
+    autoRestore();
+  }, []);
 
   // Synchroniser l'onglet avec l'URL
   useEffect(() => {
@@ -88,8 +92,6 @@ const InvoicingPage = () => {
       fetchCreditNotes();
     } else if (value === 'accounting-report') {
       setSearchParams({ tab: 'accounting-report' });
-    } else if (value === 'purchase-invoices') {
-      setSearchParams({ tab: 'purchase-invoices' });
     } else {
       setSearchParams({});
     }
@@ -131,13 +133,13 @@ const InvoicingPage = () => {
     const isCredited = (inv: typeof invoices[0]) => 
       inv.status === 'credited' || (inv as any).credited_amount > 0;
 
-    if (invoiceStatusFilter === "credited") {
+    if (invoiceStatusFilter === "direct-sales") {
+      filtered = filtered.filter(inv => inv.invoice_type === 'purchase' || inv.billing_data?.offer_data?.is_purchase);
+    } else if (invoiceStatusFilter === "credited") {
       filtered = filtered.filter(inv => isCredited(inv));
     } else if (invoiceStatusFilter === "all") {
-      // Exclure les factures créditées de "Toutes"
       filtered = filtered.filter(inv => !isCredited(inv));
     } else {
-      // Filtrer par statut spécifique et exclure les créditées
       filtered = filtered.filter(inv => 
         inv.status === invoiceStatusFilter && !isCredited(inv)
       );
@@ -157,6 +159,7 @@ const InvoicingPage = () => {
       sent: invoices.filter(inv => inv.status === 'sent' && !isCredited(inv)).length,
       paid: invoices.filter(inv => inv.status === 'paid' && !isCredited(inv)).length,
       credited: invoices.filter(inv => isCredited(inv)).length,
+      directSales: invoices.filter(inv => inv.invoice_type === 'purchase' || inv.billing_data?.offer_data?.is_purchase).length,
     };
   }, [invoices]);
 
@@ -295,10 +298,6 @@ const InvoicingPage = () => {
                    <Badge variant="secondary" className="ml-1">{invoiceCounts.all}</Badge>
                  )}
                </TabsTrigger>
-               <TabsTrigger value="purchase-invoices" className="flex items-center gap-2">
-                 <ShoppingCart className="h-4 w-4" />
-                 Ventes directes
-               </TabsTrigger>
                <TabsTrigger value="credit-notes" className="flex items-center gap-2">
                  <Receipt className="h-4 w-4" />
                  Notes de crédit
@@ -313,19 +312,12 @@ const InvoicingPage = () => {
             </TabsList>
 
             <TabsContent value="invoices" className="mt-6">
-              {orphanedCount > 0 && (
-                <div className="mb-4 p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950 dark:border-orange-800 flex items-center justify-between">
-                  <p className="text-sm text-orange-700 dark:text-orange-300">
-                    {orphanedCount} facture(s) de vente directe manquante(s) détectée(s).
+              {isRestoring && (
+                <div className="mb-4 p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary" />
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Restauration des factures de vente directe en cours...
                   </p>
-                  <Button 
-                    variant="warning" 
-                    size="sm" 
-                    onClick={handleRestoreInvoices}
-                    disabled={isRestoring}
-                  >
-                    {isRestoring ? "Restauration..." : "Restaurer les factures manquantes"}
-                  </Button>
                 </div>
               )}
               {/* Sous-onglets pour filtrer par statut */}
@@ -350,6 +342,10 @@ const InvoicingPage = () => {
                   <TabsTrigger value="credited" className="text-purple-600">
                     Créditées
                     {invoiceCounts.credited > 0 && <Badge className="ml-1 text-xs bg-purple-100 text-purple-700">{invoiceCounts.credited}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value="direct-sales" className="text-emerald-600">
+                    Ventes directes
+                    {invoiceCounts.directSales > 0 && <Badge variant="outline" className="ml-1 text-xs border-emerald-500 text-emerald-600">{invoiceCounts.directSales}</Badge>}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -508,24 +504,6 @@ const InvoicingPage = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="purchase-invoices" className="mt-6">
-              {orphanedCount > 0 && (
-                <div className="mb-4 p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950 dark:border-orange-800 flex items-center justify-between">
-                  <p className="text-sm text-orange-700 dark:text-orange-300">
-                    {orphanedCount} facture(s) de vente directe manquante(s) détectée(s).
-                  </p>
-                  <Button 
-                    variant="warning" 
-                    size="sm" 
-                    onClick={handleRestoreInvoices}
-                    disabled={isRestoring}
-                  >
-                    {isRestoring ? "Restauration..." : "Restaurer les factures manquantes"}
-                  </Button>
-                </div>
-              )}
-              <PurchaseInvoicesTab companyId={companyId} />
-            </TabsContent>
 
             <TabsContent value="credit-notes" className="mt-6">
               <Card>

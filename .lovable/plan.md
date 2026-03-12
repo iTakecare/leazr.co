@@ -1,25 +1,58 @@
 
 
-# Plan : Restaurer les factures et réorganiser les filtres
+# Historique des modifications SEPA par contrat
 
-## 1. Restaurer les 17 factures manquantes via migration
-Exécuter directement `restorePurchaseInvoices()` via une migration SQL ou un appel automatique au montage de la page (sans bouton), pour que les factures soient créées immédiatement avec toutes les données complètes (équipement, dates, montants, client).
+## Objectif
 
-En pratique : déclencher automatiquement la restauration au montage si `orphanedCount > 0`, sans attendre un clic utilisateur. Le bandeau orange deviendra un indicateur de progression puis disparaîtra.
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-## 2. Supprimer l'onglet séparé "Ventes directes"
-Retirer le `TabsTrigger` et `TabsContent` pour `purchase-invoices` dans `InvoicingPage.tsx`. Les factures de vente directe sont déjà affichées dans l'onglet principal "Factures vente" avec le badge "Vente directe".
+## 1. Nouvelle table `mollie_sepa_changes`
 
-## 3. Ajouter un filtre "Ventes directes" dans la barre de sous-onglets
-Ajouter un sous-onglet **"Ventes directes"** dans la ligne de filtres de statut (à côté de Toutes, Brouillons, Envoyées, Payées, Créditées). Ce filtre affichera uniquement les factures avec `invoice_type === 'purchase'`.
+Migration SQL :
 
-Modifications dans `filteredInvoices` :
-- Nouveau cas `invoiceStatusFilter === "direct-sales"` → filtrer sur `invoice_type === 'purchase'`
-- Ajouter le compteur correspondant dans `invoiceCounts`
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-## Fichiers impactés
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-| Fichier | Modification |
-|---|---|
-| `src/pages/InvoicingPage.tsx` | Suppression onglet "Ventes directes", ajout sous-filtre "Ventes directes", auto-restauration au montage |
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+```
+
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
+
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
+
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+
+## Fichiers modifies
+
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 
