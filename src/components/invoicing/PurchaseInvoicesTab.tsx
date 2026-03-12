@@ -131,9 +131,9 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
           ) : filtered.length === 0 ? (
             <div className="text-center py-8">
               <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Aucune facture d'achat</h3>
+              <h3 className="text-lg font-semibold mb-2">Aucune facture de vente directe</h3>
               <p className="text-muted-foreground">
-                Importez vos factures d'achat depuis les paramètres Billit.
+                Les factures de vente directe apparaîtront ici lorsqu'une offre d'achat sera validée.
               </p>
             </div>
           ) : (
