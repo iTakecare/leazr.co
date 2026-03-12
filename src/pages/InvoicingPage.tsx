@@ -457,7 +457,7 @@ const InvoicingPage = () => {
                               </TableCell>
                               <TableCell>
                                 <Badge variant={isPurchase ? "outline" : "secondary"} className={isPurchase ? "border-emerald-500 text-emerald-600" : ""}>
-                                  {isPurchase ? "Achat" : "Leasing"}
+                                  {isPurchase ? "Vente directe" : "Leasing"}
                                 </Badge>
                               </TableCell>
                               <TableCell>{clientName}</TableCell>
