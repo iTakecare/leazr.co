@@ -141,7 +141,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
-                  <TableHead>Fournisseur</TableHead>
+                  <TableHead>Client</TableHead>
                   <TableHead>Montant HTVA</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead>Commande liée</TableHead>
