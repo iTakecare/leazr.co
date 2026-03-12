@@ -15,9 +15,13 @@ import {
   Upload,
   UserX,
   Star,
-  ClipboardList
+  ClipboardList,
+  Bell
 } from "lucide-react";
 import ReactivateOfferButton from "./ReactivateOfferButton";
+import ReminderIndicator from "../ReminderIndicator";
+import { AllReminders } from "@/hooks/useOfferReminders";
+import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 import {
   AlertDialog,
   AlertDialogAction,
