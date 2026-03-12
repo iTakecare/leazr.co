@@ -119,7 +119,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
             Factures d'achat {filtered.length > 0 && `(${filtered.length})`}
           </CardTitle>
           <CardDescription>
-            Factures d'achat importées depuis Billit
+            Factures liées à vos ventes directes
           </CardDescription>
         </CardHeader>
         <CardContent>
