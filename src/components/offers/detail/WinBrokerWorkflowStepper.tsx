@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import { useWorkflowSteps } from "@/hooks/workflows/useWorkflowSteps";
