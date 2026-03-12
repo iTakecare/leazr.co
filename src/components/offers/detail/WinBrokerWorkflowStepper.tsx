@@ -493,6 +493,21 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                           </button>
                         )}
 
+                        {/* Document request button for Score B or waiting docs */}
+                        {step.enables_scoring && onAnalysisClick && step.scoring_type && 
+                         (score === 'B' || waitingDocs) && (
+                          <button 
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAnalysisClick(step.scoring_type as 'internal' | 'leaser');
+                            }}
+                          >
+                            <FilePen className="w-4 h-4" />
+                            <span>Demander des documents</span>
+                          </button>
+                        )}
+
                         {/* Next step button */}
                         {nextStep && (
                           <button 
