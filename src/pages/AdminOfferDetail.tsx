@@ -1131,6 +1131,9 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   onStatusUpdated={fetchOfferDetails}
                   onSendGoogleReview={() => setGoogleReviewModalOpen(true)}
                   onCreateTask={() => setTaskDialogOpen(true)}
+                  allReminders={allReminders}
+                  sentReminders={sentReminders}
+                  onOpenReminder={() => setReminderModalOpen(true)}
                 />
                 
                 {/* Configuration de l'offre */}
