@@ -133,13 +133,13 @@ const InvoicingPage = () => {
     const isCredited = (inv: typeof invoices[0]) => 
       inv.status === 'credited' || (inv as any).credited_amount > 0;
 
-    if (invoiceStatusFilter === "credited") {
+    if (invoiceStatusFilter === "direct-sales") {
+      filtered = filtered.filter(inv => inv.invoice_type === 'purchase' || inv.billing_data?.offer_data?.is_purchase);
+    } else if (invoiceStatusFilter === "credited") {
       filtered = filtered.filter(inv => isCredited(inv));
     } else if (invoiceStatusFilter === "all") {
-      // Exclure les factures créditées de "Toutes"
       filtered = filtered.filter(inv => !isCredited(inv));
     } else {
-      // Filtrer par statut spécifique et exclure les créditées
       filtered = filtered.filter(inv => 
         inv.status === invoiceStatusFilter && !isCredited(inv)
       );
