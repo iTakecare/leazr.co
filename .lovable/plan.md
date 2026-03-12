@@ -1,58 +1,36 @@
 
 
-# Historique des modifications SEPA par contrat
+# Plan : Carte "Envoi & Documents" dans le détail d'une demande
 
 ## Objectif
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+Ajouter une nouvelle carte dans la sidebar du détail d'offre, placée juste après la carte "Statut", regroupant les actions d'envoi d'offre et de gestion documentaire — les mêmes fonctionnalités que dans le menu déroulant du listing des demandes.
 
-## 1. Nouvelle table `mollie_sepa_changes`
+## Contenu de la carte
 
-Migration SQL :
+La carte "Envoi & Documents" contiendra 4 boutons :
 
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+| Action | Icône | Condition d'affichage | Logique |
+|---|---|---|---|
+| **Générer PDF** | `FileText` | Toujours | Appelle `onGeneratePDF` (déjà passé en prop) |
+| **Envoyer offre par mail** | `Mail` | Toujours | Appelle `onSendEmail` (déjà passé en prop) |
+| **Ouvrir le lien public** | `ExternalLink` | Toujours | Appelle `onOpenPublicLink` (déjà passé en prop) |
+| **Accéder à l'upload docs** | `Upload` | Score interne ou leaser = 'B' | Appelle `onOpenUploadLink` (déjà passé en prop) |
 
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
+Ces boutons seront **retirés** de la carte "Actions" existante pour éviter la duplication.
 
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
+## Modifications
 
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-```
+### `src/components/offers/detail/CompactActionsSidebar.tsx`
 
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
+1. Après la carte "Statut" (ligne 223), insérer une nouvelle `Card` "Envoi & Documents" avec les 4 boutons listés ci-dessus, mêmes styles (`size="sm"`, `variant="outline"`, `w-full justify-start text-sm h-8`)
+2. Retirer ces 4 boutons de la carte "Actions" (lignes 243-284) pour ne garder dans "Actions" que : Modifier, Supprimer, Classer sans suite, Avis Google, Créer tâche, Réactiver
 
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
+### Fichier impacté
 
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+| Fichier | Modification |
+|---|---|
+| `src/components/offers/detail/CompactActionsSidebar.tsx` | Nouvelle carte + réorganisation des boutons |
 
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
-
-## Fichiers modifies
-
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+Aucun changement de props nécessaire — toutes les callbacks sont déjà passées au composant.
 
