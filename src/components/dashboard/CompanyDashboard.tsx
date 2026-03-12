@@ -31,6 +31,8 @@ import { useCompanyDashboard } from "@/hooks/useCompanyDashboard";
 import { useCompanyBranding } from "@/context/CompanyBrandingContext";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import DashboardPDFExportModal from "./DashboardPDFExportModal";
+import type { PDFYearData } from "./DashboardPDFContent";
 
 const CompanyDashboard = () => {
   const currentYear = new Date().getFullYear();
@@ -38,6 +40,7 @@ const CompanyDashboard = () => {
   const [timeFilter, setTimeFilter] = useState('month');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [includeCreditNotes, setIncludeCreditNotes] = useState(false);
+  const [showPDFModal, setShowPDFModal] = useState(false);
   const { metrics, recentActivity, overdueInvoices, isLoading, refetch } = useCompanyDashboard(selectedYear);
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
@@ -196,7 +199,7 @@ const CompanyDashboard = () => {
               <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
               Rafraîchir
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowPDFModal(true)}>
               <Download className="w-4 h-4 mr-2" />
               Exporter PDF
             </Button>
@@ -580,6 +583,27 @@ const CompanyDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* PDF Export Modal */}
+      <DashboardPDFExportModal
+        open={showPDFModal}
+        onOpenChange={setShowPDFModal}
+        primaryYearData={{
+          year: selectedYear,
+          monthlyData,
+          totals,
+          moyennes,
+          contractStats: {
+            realized: realizedStats ? { status: 'realized', count: realizedStats.count || 0, total_revenue: Number(realizedStats.total_revenue || 0), total_purchases: Number(realizedStats.total_purchases || 0), total_margin: Number(realizedStats.total_margin || 0) } : undefined,
+            pending: pendingStats ? { status: 'pending', count: pendingStats.count || 0, total_revenue: Number(pendingStats.total_revenue || 0), total_purchases: Number(pendingStats.total_purchases || 0), total_margin: Number(pendingStats.total_margin || 0) } : undefined,
+            refused: refusedStats ? { status: 'refused', count: refusedStats.count || 0, total_revenue: Number(refusedStats.total_revenue || 0), total_purchases: Number(refusedStats.total_purchases || 0), total_margin: Number(refusedStats.total_margin || 0) } : undefined,
+            directSales: directSalesStats ? { status: 'direct_sales', count: directSalesStats.count || 0, total_revenue: Number(directSalesStats.total_revenue || 0), total_purchases: Number(directSalesStats.total_purchases || 0), total_margin: Number(directSalesStats.total_margin || 0) } : undefined,
+          },
+          overdueInvoices: overdueInvoices || { overdue_count: 0, overdue_amount: 0 },
+        }}
+        availableYears={availableYears}
+        selectedYear={selectedYear}
+      />
     </div>
   );
 };
