@@ -94,6 +94,7 @@ const [notesLoading, setNotesLoading] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [googleReviewModalOpen, setGoogleReviewModalOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
 
   const { create: createTask } = useTaskMutations();
 
