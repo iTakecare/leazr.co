@@ -31,6 +31,8 @@ import { useCompanyDashboard } from "@/hooks/useCompanyDashboard";
 import { useCompanyBranding } from "@/context/CompanyBrandingContext";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import DashboardPDFExportModal from "./DashboardPDFExportModal";
+import type { PDFYearData } from "./DashboardPDFContent";
 
 const CompanyDashboard = () => {
   const currentYear = new Date().getFullYear();
