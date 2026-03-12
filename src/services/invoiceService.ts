@@ -179,7 +179,7 @@ export const generateInvoiceFromPurchaseOffer = async (offerId: string, companyI
         amount: totalSellingPrice,
         status: 'draft',
         integration_type: 'local',
-        invoice_date: new Date().toISOString().split('T')[0],
+        invoice_date: offer.created_at ? new Date(offer.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         billing_data: {
           offer_data: {
             id: offer.id,

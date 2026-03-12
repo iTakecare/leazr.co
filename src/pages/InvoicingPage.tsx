@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,8 @@ import { InvoiceDateRangeFilter } from "@/components/invoicing/InvoiceDateRangeF
 import { AccountingReportTab } from "@/components/invoicing/AccountingReportTab";
 import PurchaseInvoicesTab from "@/components/invoicing/PurchaseInvoicesTab";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { getOrphanedPurchaseOffers, restorePurchaseInvoices } from "@/utils/restorePurchaseInvoices";
+import { toast } from "sonner";
 
 const InvoicingPage = () => {
   const navigate = useNavigate();
@@ -44,6 +46,30 @@ const InvoicingPage = () => {
   
   // Sous-filtre pour les statuts de factures
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>("all");
+  const [orphanedCount, setOrphanedCount] = useState(0);
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  // Vérifier les factures manquantes au montage
+  useEffect(() => {
+    getOrphanedPurchaseOffers().then(offers => setOrphanedCount(offers.length));
+  }, []);
+
+  const handleRestoreInvoices = useCallback(async () => {
+    setIsRestoring(true);
+    try {
+      const result = await restorePurchaseInvoices();
+      toast.success(`${result.success}/${result.total} factures restaurées avec succès`);
+      if (result.errors.length > 0) {
+        toast.error(`${result.errors.length} erreur(s) lors de la restauration`);
+      }
+      setOrphanedCount(0);
+      fetchInvoices();
+    } catch (err) {
+      toast.error("Erreur lors de la restauration des factures");
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [fetchInvoices]);
 
   // Synchroniser l'onglet avec l'URL
   useEffect(() => {
@@ -468,6 +494,21 @@ const InvoicingPage = () => {
             </TabsContent>
 
             <TabsContent value="purchase-invoices" className="mt-6">
+              {orphanedCount > 0 && (
+                <div className="mb-4 p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950 dark:border-orange-800 flex items-center justify-between">
+                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                    {orphanedCount} facture(s) de vente directe manquante(s) détectée(s).
+                  </p>
+                  <Button 
+                    variant="warning" 
+                    size="sm" 
+                    onClick={handleRestoreInvoices}
+                    disabled={isRestoring}
+                  >
+                    {isRestoring ? "Restauration..." : "Restaurer les factures manquantes"}
+                  </Button>
+                </div>
+              )}
               <PurchaseInvoicesTab companyId={companyId} />
             </TabsContent>
 
