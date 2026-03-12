@@ -494,6 +494,21 @@ const InvoicingPage = () => {
             </TabsContent>
 
             <TabsContent value="purchase-invoices" className="mt-6">
+              {orphanedCount > 0 && (
+                <div className="mb-4 p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950 dark:border-orange-800 flex items-center justify-between">
+                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                    {orphanedCount} facture(s) de vente directe manquante(s) détectée(s).
+                  </p>
+                  <Button 
+                    variant="warning" 
+                    size="sm" 
+                    onClick={handleRestoreInvoices}
+                    disabled={isRestoring}
+                  >
+                    {isRestoring ? "Restauration..." : "Restaurer les factures manquantes"}
+                  </Button>
+                </div>
+              )}
               <PurchaseInvoicesTab companyId={companyId} />
             </TabsContent>
 
