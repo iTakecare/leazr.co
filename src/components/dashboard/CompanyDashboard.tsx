@@ -199,7 +199,7 @@ const CompanyDashboard = () => {
               <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
               Rafraîchir
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowPDFModal(true)}>
               <Download className="w-4 h-4 mr-2" />
               Exporter PDF
             </Button>
