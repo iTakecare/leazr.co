@@ -50,6 +50,9 @@ interface CompactActionsSidebarProps {
   onStatusUpdated?: () => void;
   onSendGoogleReview?: () => void;
   onCreateTask?: () => void;
+  allReminders?: AllReminders | null;
+  sentReminders?: OfferReminderRecord[];
+  onOpenReminder?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
