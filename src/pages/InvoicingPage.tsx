@@ -298,10 +298,6 @@ const InvoicingPage = () => {
                    <Badge variant="secondary" className="ml-1">{invoiceCounts.all}</Badge>
                  )}
                </TabsTrigger>
-               <TabsTrigger value="purchase-invoices" className="flex items-center gap-2">
-                 <ShoppingCart className="h-4 w-4" />
-                 Ventes directes
-               </TabsTrigger>
                <TabsTrigger value="credit-notes" className="flex items-center gap-2">
                  <Receipt className="h-4 w-4" />
                  Notes de crédit
