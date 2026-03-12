@@ -312,19 +312,12 @@ const InvoicingPage = () => {
             </TabsList>
 
             <TabsContent value="invoices" className="mt-6">
-              {orphanedCount > 0 && (
-                <div className="mb-4 p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950 dark:border-orange-800 flex items-center justify-between">
-                  <p className="text-sm text-orange-700 dark:text-orange-300">
-                    {orphanedCount} facture(s) de vente directe manquante(s) détectée(s).
+              {isRestoring && (
+                <div className="mb-4 p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary" />
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Restauration des factures de vente directe en cours...
                   </p>
-                  <Button 
-                    variant="warning" 
-                    size="sm" 
-                    onClick={handleRestoreInvoices}
-                    disabled={isRestoring}
-                  >
-                    {isRestoring ? "Restauration..." : "Restaurer les factures manquantes"}
-                  </Button>
                 </div>
               )}
               {/* Sous-onglets pour filtrer par statut */}
