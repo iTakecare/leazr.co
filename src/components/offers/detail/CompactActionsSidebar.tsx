@@ -70,7 +70,10 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onClassifyNoFollowUp,
   onStatusUpdated,
   onSendGoogleReview,
-  onCreateTask
+  onCreateTask,
+  allReminders,
+  sentReminders,
+  onOpenReminder
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
