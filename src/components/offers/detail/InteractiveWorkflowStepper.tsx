@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Circle, Clock, ArrowRight, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import { useWorkflowSteps } from "@/hooks/workflows/useWorkflowSteps";
