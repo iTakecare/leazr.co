@@ -15,9 +15,13 @@ import {
   Upload,
   UserX,
   Star,
-  ClipboardList
+  ClipboardList,
+  Bell
 } from "lucide-react";
 import ReactivateOfferButton from "./ReactivateOfferButton";
+import ReminderIndicator from "../ReminderIndicator";
+import { AllReminders } from "@/hooks/useOfferReminders";
+import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +50,9 @@ interface CompactActionsSidebarProps {
   onStatusUpdated?: () => void;
   onSendGoogleReview?: () => void;
   onCreateTask?: () => void;
+  allReminders?: AllReminders | null;
+  sentReminders?: OfferReminderRecord[];
+  onOpenReminder?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -63,7 +70,10 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onClassifyNoFollowUp,
   onStatusUpdated,
   onSendGoogleReview,
-  onCreateTask
+  onCreateTask,
+  allReminders,
+  sentReminders,
+  onOpenReminder
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
@@ -221,6 +231,25 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Relances */}
+      {allReminders && allReminders.allLevels.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              Relances
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReminderIndicator
+              allReminders={allReminders}
+              onClick={onOpenReminder}
+              compact={false}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Envoi & Documents */}
       <Card>

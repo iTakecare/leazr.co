@@ -47,6 +47,9 @@ import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
 import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
 import SendGoogleReviewModal from "@/components/offers/detail/SendGoogleReviewModal";
 import TaskDialog from "@/components/tasks/TaskDialog";
+import { useOfferAllReminders } from "@/hooks/useOfferReminders";
+import { useFetchOfferReminders } from "@/hooks/useFetchOfferReminders";
+import SendReminderModal from "@/components/offers/SendReminderModal";
 import { useTaskMutations } from "@/hooks/useTasks";
 import { createRoot } from 'react-dom/client';
 import CommercialOffer from '@/components/offers/CommercialOffer';
@@ -91,8 +94,13 @@ const [notesLoading, setNotesLoading] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [googleReviewModalOpen, setGoogleReviewModalOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
 
   const { create: createTask } = useTaskMutations();
+
+  // Hooks pour les relances
+  const { reminders: sentReminders, invalidateReminders } = useFetchOfferReminders(id ? [id] : undefined);
+  const allReminders = useOfferAllReminders(offer || { id: '', workflow_status: '', created_at: '' }, sentReminders);
 
   // Hook pour gérer les documents et upload links
   const { uploadLinks, generateUploadLink } = useOfferDocuments(id);
@@ -1123,6 +1131,9 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   onStatusUpdated={fetchOfferDetails}
                   onSendGoogleReview={() => setGoogleReviewModalOpen(true)}
                   onCreateTask={() => setTaskDialogOpen(true)}
+                  allReminders={allReminders}
+                  sentReminders={sentReminders}
+                  onOpenReminder={() => setReminderModalOpen(true)}
                 />
                 
                 {/* Configuration de l'offre */}
@@ -1305,6 +1316,18 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           defaultOfferId={offer.id}
           defaultTitle={`Relance - ${offer.client_name || ''}`}
         />
+
+        {/* Modal de relance */}
+        {(allReminders.documentReminder || allReminders.offerReminder) && (
+          <SendReminderModal
+            open={reminderModalOpen}
+            onClose={() => setReminderModalOpen(false)}
+            offer={offer}
+            allReminders={allReminders}
+            sentReminders={sentReminders}
+            onSuccess={invalidateReminders}
+          />
+        )}
       </Container>
     </PageTransition>
   );
