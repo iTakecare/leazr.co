@@ -116,10 +116,10 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
-            Factures d'achat {filtered.length > 0 && `(${filtered.length})`}
+            Factures de vente directe {filtered.length > 0 && `(${filtered.length})`}
           </CardTitle>
           <CardDescription>
-            Factures liées à vos ventes directes
+            Factures émises pour vos ventes directes (hors leasing)
           </CardDescription>
         </CardHeader>
         <CardContent>
