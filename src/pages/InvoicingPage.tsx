@@ -21,7 +21,6 @@ import { InvoiceDateRangeFilter } from "@/components/invoicing/InvoiceDateRangeF
 import { AccountingReportTab } from "@/components/invoicing/AccountingReportTab";
 
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { getOrphanedPurchaseOffers, restorePurchaseInvoices } from "@/utils/restorePurchaseInvoices";
 import { toast } from "sonner";
 
 const InvoicingPage = () => {
@@ -46,34 +45,6 @@ const InvoicingPage = () => {
   
   // Sous-filtre pour les statuts de factures
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>("all");
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [restoredCount, setRestoredCount] = useState<number | null>(null);
-
-  // Auto-restauration des factures manquantes au montage
-  useEffect(() => {
-    const autoRestore = async () => {
-      const orphaned = await getOrphanedPurchaseOffers();
-      if (orphaned.length === 0) return;
-      
-      setIsRestoring(true);
-      try {
-        const result = await restorePurchaseInvoices();
-        setRestoredCount(result.success);
-        if (result.success > 0) {
-          toast.success(`${result.success} facture(s) de vente directe restaurée(s)`);
-          fetchInvoices();
-        }
-        if (result.errors.length > 0) {
-          toast.error(`${result.errors.length} erreur(s) lors de la restauration`);
-        }
-      } catch (err) {
-        toast.error("Erreur lors de la restauration des factures");
-      } finally {
-        setIsRestoring(false);
-      }
-    };
-    autoRestore();
-  }, []);
 
   // Synchroniser l'onglet avec l'URL
   useEffect(() => {
@@ -312,14 +283,6 @@ const InvoicingPage = () => {
             </TabsList>
 
             <TabsContent value="invoices" className="mt-6">
-              {isRestoring && (
-                <div className="mb-4 p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary" />
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    Restauration des factures de vente directe en cours...
-                  </p>
-                </div>
-              )}
               {/* Sous-onglets pour filtrer par statut */}
               <Tabs value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter} className="mb-4">
                 <TabsList className="bg-muted/60">
