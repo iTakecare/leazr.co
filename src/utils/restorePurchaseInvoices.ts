@@ -50,7 +50,7 @@ export const restorePurchaseInvoices = async (): Promise<RestoreResult> => {
       result.success++;
       console.log(`✅ Facture restaurée pour offre ${offer.offer_number || offer.id}`);
     } catch (err: any) {
-      const msg = `Erreur pour offre ${offer.offer_reference || offer.id}: ${err.message}`;
+      const msg = `Erreur pour offre ${offer.offer_number || offer.id}: ${err.message}`;
       console.error(`❌ ${msg}`);
       result.errors.push(msg);
     }

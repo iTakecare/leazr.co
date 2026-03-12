@@ -183,7 +183,7 @@ export const generateInvoiceFromPurchaseOffer = async (offerId: string, companyI
         billing_data: {
           offer_data: {
             id: offer.id,
-            reference: offer.offer_reference,
+            reference: offer.offer_number,
             created_at: offer.created_at,
             is_purchase: true
           },
