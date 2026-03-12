@@ -46,6 +46,30 @@ const InvoicingPage = () => {
   
   // Sous-filtre pour les statuts de factures
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>("all");
+  const [orphanedCount, setOrphanedCount] = useState(0);
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  // Vérifier les factures manquantes au montage
+  useEffect(() => {
+    getOrphanedPurchaseOffers().then(offers => setOrphanedCount(offers.length));
+  }, []);
+
+  const handleRestoreInvoices = useCallback(async () => {
+    setIsRestoring(true);
+    try {
+      const result = await restorePurchaseInvoices();
+      toast.success(`${result.success}/${result.total} factures restaurées avec succès`);
+      if (result.errors.length > 0) {
+        toast.error(`${result.errors.length} erreur(s) lors de la restauration`);
+      }
+      setOrphanedCount(0);
+      fetchInvoices();
+    } catch (err) {
+      toast.error("Erreur lors de la restauration des factures");
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [fetchInvoices]);
 
   // Synchroniser l'onglet avec l'URL
   useEffect(() => {
