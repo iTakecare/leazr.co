@@ -92,7 +92,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
             Brouillons {counts.draft > 0 && <Badge variant="outline" className="ml-1 text-xs">{counts.draft}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="sent">
-            Reçues {counts.sent > 0 && <Badge variant="outline" className="ml-1 text-xs">{counts.sent}</Badge>}
+            Envoyées {counts.sent > 0 && <Badge variant="outline" className="ml-1 text-xs">{counts.sent}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="paid">
             Payées {counts.paid > 0 && <Badge variant="outline" className="ml-1 text-xs">{counts.paid}</Badge>}
