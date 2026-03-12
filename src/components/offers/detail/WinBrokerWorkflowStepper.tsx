@@ -201,6 +201,24 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
     }
 
     if (targetStatus === 'validated' || targetStatus === 'offer_validation') {
+      // Vérifier la présence de la carte d'identité avant d'ouvrir la modale
+      try {
+        const { count } = await supabase
+          .from('offer_documents')
+          .select('*', { count: 'exact', head: true })
+          .eq('offer_id', offerId)
+          .in('document_type', ['id_card_front', 'id_card_back', 'id_card', 'identity_card']);
+        
+        if (!count || count === 0) {
+          const continueAnyway = window.confirm(
+            "⚠️ Aucune carte d'identité n'a été trouvée dans les documents de cette offre.\n\nVoulez-vous continuer malgré tout ?"
+          );
+          if (!continueAnyway) return;
+        }
+      } catch (err) {
+        console.error("Erreur vérification carte d'identité:", err);
+      }
+      
       setEmailModalReason("Validation de l'offre");
       setShowEmailModal(true);
       return;
