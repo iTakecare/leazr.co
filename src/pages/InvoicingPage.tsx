@@ -46,30 +46,34 @@ const InvoicingPage = () => {
   
   // Sous-filtre pour les statuts de factures
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>("all");
-  const [orphanedCount, setOrphanedCount] = useState(0);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [restoredCount, setRestoredCount] = useState<number | null>(null);
 
-  // Vérifier les factures manquantes au montage
+  // Auto-restauration des factures manquantes au montage
   useEffect(() => {
-    getOrphanedPurchaseOffers().then(offers => setOrphanedCount(offers.length));
-  }, []);
-
-  const handleRestoreInvoices = useCallback(async () => {
-    setIsRestoring(true);
-    try {
-      const result = await restorePurchaseInvoices();
-      toast.success(`${result.success}/${result.total} factures restaurées avec succès`);
-      if (result.errors.length > 0) {
-        toast.error(`${result.errors.length} erreur(s) lors de la restauration`);
+    const autoRestore = async () => {
+      const orphaned = await getOrphanedPurchaseOffers();
+      if (orphaned.length === 0) return;
+      
+      setIsRestoring(true);
+      try {
+        const result = await restorePurchaseInvoices();
+        setRestoredCount(result.success);
+        if (result.success > 0) {
+          toast.success(`${result.success} facture(s) de vente directe restaurée(s)`);
+          fetchInvoices();
+        }
+        if (result.errors.length > 0) {
+          toast.error(`${result.errors.length} erreur(s) lors de la restauration`);
+        }
+      } catch (err) {
+        toast.error("Erreur lors de la restauration des factures");
+      } finally {
+        setIsRestoring(false);
       }
-      setOrphanedCount(0);
-      fetchInvoices();
-    } catch (err) {
-      toast.error("Erreur lors de la restauration des factures");
-    } finally {
-      setIsRestoring(false);
-    }
-  }, [fetchInvoices]);
+    };
+    autoRestore();
+  }, []);
 
   // Synchroniser l'onglet avec l'URL
   useEffect(() => {
