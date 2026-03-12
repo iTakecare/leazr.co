@@ -232,6 +232,25 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
         </CardContent>
       </Card>
 
+      {/* Relances */}
+      {allReminders && allReminders.allLevels.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              Relances
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReminderIndicator
+              allReminders={allReminders}
+              onClick={onOpenReminder}
+              compact={false}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Envoi & Documents */}
       <Card>
         <CardHeader className="pb-3">
