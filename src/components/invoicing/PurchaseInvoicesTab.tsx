@@ -158,7 +158,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
                         {invoice.invoice_number || `PUR-${invoice.id.slice(0, 8)}`}
                       </TableCell>
                       <TableCell>
-                        {invoice.billing_data?.billit_supplier_name || invoice.leaser_name}
+                        {invoice.client_name || invoice.billing_data?.client_name || '-'}
                       </TableCell>
                       <TableCell>{formatCurrency(invoice.amount)}</TableCell>
                       <TableCell>{getStatusBadge(invoice.status)}</TableCell>
