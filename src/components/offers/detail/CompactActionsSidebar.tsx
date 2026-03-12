@@ -222,24 +222,12 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
         </CardContent>
       </Card>
 
-      {/* Actions rapides */}
+      {/* Envoi & Documents */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Actions</CardTitle>
+          <CardTitle className="text-base">Envoi & Documents</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {canEdit && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="w-full justify-start text-sm h-8" 
-              onClick={onEdit}
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              <span>Modifier</span>
-            </Button>
-          )}
-          
           <Button 
             variant="outline" 
             size="sm"
@@ -282,6 +270,26 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
               <span>Accéder à l'upload docs</span>
             </Button>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Actions rapides */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {canEdit && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full justify-start text-sm h-8" 
+              onClick={onEdit}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              <span>Modifier</span>
+            </Button>
+          )}
           
           <Button 
             variant="outline" 
@@ -293,12 +301,11 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             <span>Supprimer</span>
           </Button>
           
-          {/* Bouton Classer sans suite */}
           {canClassifyNoFollowUp && onClassifyNoFollowUp && (
             <Button 
               variant="outline" 
               size="sm"
-              className="w-full justify-start text-sm h-8 text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-300" 
+              className="w-full justify-start text-sm h-8 text-muted-foreground hover:text-foreground" 
               onClick={onClassifyNoFollowUp}
             >
               <UserX className="w-4 h-4 mr-2" />
@@ -306,7 +313,6 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             </Button>
           )}
           
-          {/* Bouton Envoyer avis Google */}
           {canSendGoogleReview && onSendGoogleReview && (
             <Button 
               variant="outline" 
@@ -319,7 +325,6 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             </Button>
           )}
           
-          {/* Bouton Créer une tâche */}
           {onCreateTask && (
             <Button 
               variant="outline" 
@@ -332,7 +337,6 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             </Button>
           )}
           
-          {/* Bouton Réactiver le dossier */}
           {onStatusUpdated && (
             <ReactivateOfferButton
               offerId={offer.id}
