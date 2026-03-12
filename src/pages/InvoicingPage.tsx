@@ -39,7 +39,7 @@ const InvoicingPage = () => {
   
   // Gérer l'onglet actif via URL
   const tabFromUrl = searchParams.get('tab');
-  const validTabs = ['invoices', 'purchase-invoices', 'credit-notes', 'accounting-report'];
+  const validTabs = ['invoices', 'credit-notes', 'accounting-report'];
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(tabFromUrl || '') ? tabFromUrl! : 'invoices'
   );
