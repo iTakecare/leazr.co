@@ -98,6 +98,10 @@ const [notesLoading, setNotesLoading] = useState(false);
 
   const { create: createTask } = useTaskMutations();
 
+  // Hooks pour les relances
+  const { reminders: sentReminders, invalidateReminders } = useFetchOfferReminders(id ? [id] : undefined);
+  const allReminders = useOfferAllReminders(offer || { id: '', workflow_status: '', created_at: '' }, sentReminders);
+
   // Hook pour gérer les documents et upload links
   const { uploadLinks, generateUploadLink } = useOfferDocuments(id);
 
