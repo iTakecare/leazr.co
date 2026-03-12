@@ -159,6 +159,7 @@ const InvoicingPage = () => {
       sent: invoices.filter(inv => inv.status === 'sent' && !isCredited(inv)).length,
       paid: invoices.filter(inv => inv.status === 'paid' && !isCredited(inv)).length,
       credited: invoices.filter(inv => isCredited(inv)).length,
+      directSales: invoices.filter(inv => inv.invoice_type === 'purchase' || inv.billing_data?.offer_data?.is_purchase).length,
     };
   }, [invoices]);
 
