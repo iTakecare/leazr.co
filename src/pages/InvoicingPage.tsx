@@ -343,6 +343,10 @@ const InvoicingPage = () => {
                     Créditées
                     {invoiceCounts.credited > 0 && <Badge className="ml-1 text-xs bg-purple-100 text-purple-700">{invoiceCounts.credited}</Badge>}
                   </TabsTrigger>
+                  <TabsTrigger value="direct-sales" className="text-emerald-600">
+                    Ventes directes
+                    {invoiceCounts.directSales > 0 && <Badge variant="outline" className="ml-1 text-xs border-emerald-500 text-emerald-600">{invoiceCounts.directSales}</Badge>}
+                  </TabsTrigger>
                 </TabsList>
               </Tabs>
 
