@@ -74,7 +74,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { label: string; className: string }> = {
       draft: { label: "Brouillon", className: "" },
-      sent: { label: "Reçue", className: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100" },
+      sent: { label: "Envoyée", className: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100" },
       paid: { label: "Payée", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" },
     };
     const c = config[status] || { label: status, className: "" };
@@ -92,7 +92,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
             Brouillons {counts.draft > 0 && <Badge variant="outline" className="ml-1 text-xs">{counts.draft}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="sent">
-            Reçues {counts.sent > 0 && <Badge variant="outline" className="ml-1 text-xs">{counts.sent}</Badge>}
+            Envoyées {counts.sent > 0 && <Badge variant="outline" className="ml-1 text-xs">{counts.sent}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="paid">
             Payées {counts.paid > 0 && <Badge variant="outline" className="ml-1 text-xs">{counts.paid}</Badge>}
@@ -104,7 +104,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher une facture d'achat..."
+            placeholder="Rechercher une facture de vente directe..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -116,10 +116,10 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
-            Factures d'achat {filtered.length > 0 && `(${filtered.length})`}
+            Factures de vente directe {filtered.length > 0 && `(${filtered.length})`}
           </CardTitle>
           <CardDescription>
-            Factures liées à vos ventes directes
+            Factures émises pour vos ventes directes (hors leasing)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -131,9 +131,9 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
           ) : filtered.length === 0 ? (
             <div className="text-center py-8">
               <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Aucune facture d'achat</h3>
+              <h3 className="text-lg font-semibold mb-2">Aucune facture de vente directe</h3>
               <p className="text-muted-foreground">
-                Importez vos factures d'achat depuis les paramètres Billit.
+                Les factures de vente directe apparaîtront ici lorsqu'une offre d'achat sera validée.
               </p>
             </div>
           ) : (
@@ -141,7 +141,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
-                  <TableHead>Fournisseur</TableHead>
+                  <TableHead>Client</TableHead>
                   <TableHead>Montant HTVA</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead>Commande liée</TableHead>
@@ -158,7 +158,7 @@ const PurchaseInvoicesTab: React.FC<PurchaseInvoicesTabProps> = ({ companyId }) 
                         {invoice.invoice_number || `PUR-${invoice.id.slice(0, 8)}`}
                       </TableCell>
                       <TableCell>
-                        {invoice.billing_data?.billit_supplier_name || invoice.leaser_name}
+                        {invoice.client_name || invoice.billing_data?.client_name || '-'}
                       </TableCell>
                       <TableCell>{formatCurrency(invoice.amount)}</TableCell>
                       <TableCell>{getStatusBadge(invoice.status)}</TableCell>

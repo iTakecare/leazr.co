@@ -297,7 +297,7 @@ const InvoicingPage = () => {
                </TabsTrigger>
                <TabsTrigger value="purchase-invoices" className="flex items-center gap-2">
                  <ShoppingCart className="h-4 w-4" />
-                 Factures achat
+                 Ventes directes
                </TabsTrigger>
                <TabsTrigger value="credit-notes" className="flex items-center gap-2">
                  <Receipt className="h-4 w-4" />
@@ -457,7 +457,7 @@ const InvoicingPage = () => {
                               </TableCell>
                               <TableCell>
                                 <Badge variant={isPurchase ? "outline" : "secondary"} className={isPurchase ? "border-emerald-500 text-emerald-600" : ""}>
-                                  {isPurchase ? "Achat" : "Leasing"}
+                                  {isPurchase ? "Vente directe" : "Leasing"}
                                 </Badge>
                               </TableCell>
                               <TableCell>{clientName}</TableCell>
