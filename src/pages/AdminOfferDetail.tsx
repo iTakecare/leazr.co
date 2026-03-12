@@ -1316,6 +1316,18 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           defaultOfferId={offer.id}
           defaultTitle={`Relance - ${offer.client_name || ''}`}
         />
+
+        {/* Modal de relance */}
+        {(allReminders.documentReminder || allReminders.offerReminder) && (
+          <SendReminderModal
+            open={reminderModalOpen}
+            onClose={() => setReminderModalOpen(false)}
+            offer={offer}
+            allReminders={allReminders}
+            sentReminders={sentReminders}
+            onSuccess={invalidateReminders}
+          />
+        )}
       </Container>
     </PageTransition>
   );
