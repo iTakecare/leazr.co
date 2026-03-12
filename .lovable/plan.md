@@ -1,40 +1,58 @@
 
 
-# Plan : Correction stepper "Contrat prêt" + Vérification carte d'identité + Bouton demande de docs
+# Historique des modifications SEPA par contrat
 
-## Problèmes identifiés
+## Objectif
 
-### 1. Le step "Contrat prêt" ne s'affiche pas comme actif
-Quand on passe de "Résultat leaser" à "Contrat prêt", le status DB devient `offer_validation`. Le mapping dans `getCurrentStepIndex` mappe `offer_validation` → `validated`, et le step_key DB est bien `validated`. **Cependant**, le stepper WinBroker ne trouve pas toujours le bon index car le mapping vers `Scoring_review` (avec un S majuscule) crée des conflits. De plus, après la validation avec email, `onStatusChange` est appelé avec `offer_validation` mais le composant parent peut ne pas rafraîchir correctement le status depuis la DB.
+Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
 
-**Correction** : S'assurer que le `statusMapping` dans `WinBrokerWorkflowStepper` couvre tous les cas et que `offer_validation` map bien vers `validated`. Ajouter aussi `contract_ready` et `contrat_pret` comme aliases au cas où.
+## 1. Nouvelle table `mollie_sepa_changes`
 
-### 2. Vérification carte d'identité avant envoi des félicitations
-Avant d'ouvrir la modale `EmailConfirmationModal` (transition vers `validated`/`offer_validation`), vérifier dans `offer_documents` si des documents de type `id_card_front` ou `id_card_back` existent pour cette offre. Si absents, afficher un warning non bloquant demandant confirmation.
+Migration SQL :
 
-### 3. Bouton demande de documents dans le scoring B
-Quand le score est B (interne ou leaser), un bouton dans le stepper doit permettre d'ouvrir directement le `RequestInfoModal` ou `ScoringModal` en mode demande de docs. Ce bouton existe déjà via le scoring B flow dans `ScoringModal.tsx` — il suffit de le rendre plus visible/accessible depuis le stepper.
+```sql
+CREATE TABLE public.mollie_sepa_changes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id),
+  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
+  old_value TEXT,
+  new_value TEXT,
+  changed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-## Modifications
+CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
+ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
 
-### `src/components/offers/detail/WinBrokerWorkflowStepper.tsx`
+CREATE POLICY "Company members can view sepa changes"
+ON public.mollie_sepa_changes FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
 
-1. **Correction du mapping** : Ajouter dans `statusMapping` les entrées manquantes pour garantir que `offer_validation` et `validated` sont toujours résolus vers le bon step. Nettoyer les doublons et cas ambigus.
+CREATE POLICY "Company members can insert sepa changes"
+ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
+);
+```
 
-2. **Vérification carte d'identité** : Avant d'ouvrir `showEmailModal` (ligne 200-203), faire une requête async vers `offer_documents` pour vérifier la présence de `id_card_front` / `id_card_back`. Si absents, afficher un `window.confirm` avec un warning du type "Aucune carte d'identité n'a été trouvée dans les documents. Voulez-vous continuer ?". Si l'utilisateur clique "Non", on ne procède pas. Si "Oui", on ouvre la modale email normalement.
+## 2. Logger les modifications dans `MollieSepaCard.tsx`
 
-3. **Bouton demande de docs pour score B** : Dans le rendu du stepper, quand un step a `enables_scoring` et que le score actuel est `B` (docs en attente), ajouter un bouton supplémentaire visible "Demander des documents" qui ouvre le `ScoringModal` ou le `RequestInfoModal` directement. Ce bouton sera visible dans la carte du step actif quand `waitingDocs` est true ou quand le score est B.
+Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
+- `change_type` : le type de modification
+- `old_value` / `new_value` : les anciennes et nouvelles valeurs
+- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
+- `company_id` : depuis les props
 
-### `src/components/offers/detail/InteractiveWorkflowStepper.tsx`
+## 3. Afficher l'historique dans `MollieSepaCard.tsx`
 
-Mêmes corrections de mapping et vérification carte d'identité (ce stepper partage la même logique).
+Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
+- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
+- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
+- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
 
-### Fichiers impactés
+## Fichiers modifies
 
-| Fichier | Modification |
-|---|---|
-| `WinBrokerWorkflowStepper.tsx` | Fix mapping, ajout vérification ID card, bouton docs score B |
-| `InteractiveWorkflowStepper.tsx` | Mêmes corrections (mapping + ID card check) |
-
-Aucune migration DB nécessaire — les documents `id_card_front`/`id_card_back` utilisent le champ `document_type` existant dans `offer_documents`.
+1. **Migration SQL** — table `mollie_sepa_changes` + RLS
+2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
 

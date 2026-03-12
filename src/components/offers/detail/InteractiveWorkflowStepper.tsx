@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Circle, Clock, ArrowRight, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import { useWorkflowSteps } from "@/hooks/workflows/useWorkflowSteps";
@@ -133,6 +134,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         'leaser_sent': 'leaser_review',
         'leaser_accepted': 'validated',
         'Scoring_review': 'leaser_review',
+        'score_leaser': 'leaser_review',
+        'accepted': 'leaser_review',
         // Offer/client statuses
         'offer_send': 'sent',
         'offer_sent': 'sent',
@@ -140,6 +143,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         'offer_accepted': 'validated',
         'offer_validation': 'validated',
         'validated': 'validated',
+        'contract_ready': 'validated',
+        'contrat_pret': 'validated',
         'financed': 'validated',
         'invoicing': 'invoicing',
         // Base statuses
@@ -210,6 +215,25 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 
     if (targetStatus === 'validated' || targetStatus === 'offer_validation') {
       console.log("🔔 STEPPER - Interception immédiate: ouverture de la modale d'email", targetStatus);
+      
+      // Vérifier la présence de la carte d'identité avant d'ouvrir la modale
+      try {
+        const { count } = await supabase
+          .from('offer_documents')
+          .select('*', { count: 'exact', head: true })
+          .eq('offer_id', offerId)
+          .in('document_type', ['id_card_front', 'id_card_back', 'id_card', 'identity_card']);
+        
+        if (!count || count === 0) {
+          const continueAnyway = window.confirm(
+            "⚠️ Aucune carte d'identité n'a été trouvée dans les documents de cette offre.\n\nVoulez-vous continuer malgré tout ?"
+          );
+          if (!continueAnyway) return;
+        }
+      } catch (err) {
+        console.error("Erreur vérification carte d'identité:", err);
+      }
+      
       setEmailModalReason("Validation de l'offre");
       setShowEmailModal(true);
       return;

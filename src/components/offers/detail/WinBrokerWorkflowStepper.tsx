@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import { useWorkflowSteps } from "@/hooks/workflows/useWorkflowSteps";
@@ -134,21 +135,23 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
         'internal_docs_requested': 'internal_review',
         'internal_rejected': 'internal_review',
         'internal_scoring': 'internal_review',
-        'leaser_approved': 'Scoring_review',
-        'leaser_docs_requested': 'Scoring_review',
-        'leaser_rejected': 'Scoring_review',
-        'leaser_scoring': 'Scoring_review',
+        'leaser_approved': 'leaser_review',
+        'leaser_docs_requested': 'leaser_review',
+        'leaser_rejected': 'leaser_review',
+        'leaser_scoring': 'leaser_review',
         'leaser_sent': 'leaser_introduced',
-        'leaser_accepted': 'Scoring_review',
-        'Scoring_review': 'Scoring_review',
-        'score_leaser': 'Scoring_review',
-        'accepted': 'Scoring_review',
+        'leaser_accepted': 'leaser_review',
+        'Scoring_review': 'leaser_review',
+        'score_leaser': 'leaser_review',
+        'accepted': 'leaser_review',
         'offer_send': 'offer_send',
         'offer_sent': 'offer_send',
         'client_approved': 'client_approved',
         'offer_accepted': 'offer_accepted',
         'offer_validation': 'validated',
         'validated': 'validated',
+        'contract_ready': 'validated',
+        'contrat_pret': 'validated',
         'financed': 'validated',
         'invoicing': 'invoicing',
         'draft': 'draft',
@@ -198,6 +201,24 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
     }
 
     if (targetStatus === 'validated' || targetStatus === 'offer_validation') {
+      // Vérifier la présence de la carte d'identité avant d'ouvrir la modale
+      try {
+        const { count } = await supabase
+          .from('offer_documents')
+          .select('*', { count: 'exact', head: true })
+          .eq('offer_id', offerId)
+          .in('document_type', ['id_card_front', 'id_card_back', 'id_card', 'identity_card']);
+        
+        if (!count || count === 0) {
+          const continueAnyway = window.confirm(
+            "⚠️ Aucune carte d'identité n'a été trouvée dans les documents de cette offre.\n\nVoulez-vous continuer malgré tout ?"
+          );
+          if (!continueAnyway) return;
+        }
+      } catch (err) {
+        console.error("Erreur vérification carte d'identité:", err);
+      }
+      
       setEmailModalReason("Validation de l'offre");
       setShowEmailModal(true);
       return;
@@ -469,6 +490,21 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                                step.scoring_type === 'leaser' ? 'Analyse Leaser' : 
                                'Documents'}
                             </span>
+                          </button>
+                        )}
+
+                        {/* Document request button for Score B or waiting docs */}
+                        {step.enables_scoring && onAnalysisClick && step.scoring_type && 
+                         (score === 'B' || waitingDocs) && (
+                          <button 
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAnalysisClick(step.scoring_type as 'internal' | 'leaser');
+                            }}
+                          >
+                            <FilePen className="w-4 h-4" />
+                            <span>Demander des documents</span>
                           </button>
                         )}
 
