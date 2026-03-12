@@ -283,14 +283,6 @@ const InvoicingPage = () => {
             </TabsList>
 
             <TabsContent value="invoices" className="mt-6">
-              {isRestoring && (
-                <div className="mb-4 p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary" />
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    Restauration des factures de vente directe en cours...
-                  </p>
-                </div>
-              )}
               {/* Sous-onglets pour filtrer par statut */}
               <Tabs value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter} className="mb-4">
                 <TabsList className="bg-muted/60">
