@@ -14,7 +14,7 @@ export const getOrphanedPurchaseOffers = async () => {
   // Récupérer toutes les offres is_purchase en invoicing
   const { data: offers, error } = await supabase
     .from('offers')
-    .select('id, company_id, client_name, amount, created_at, offer_reference')
+    .select('id, company_id, client_name, amount, created_at, offer_number')
     .eq('is_purchase', true)
     .eq('workflow_status', 'invoicing');
 
