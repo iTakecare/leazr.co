@@ -29,6 +29,7 @@ const PartnerManager: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [managingPacksPartner, setManagingPacksPartner] = useState<Partner | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<CreatePartnerData>({
     name: "",
