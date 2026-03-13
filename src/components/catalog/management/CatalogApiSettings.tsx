@@ -650,7 +650,7 @@ const CatalogApiSettings = () => {
               </div>
               
               <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg mt-4">
-                <h4 className="font-medium text-purple-900 mb-2">🏭 Gestion des fournisseurs (Nouveau v2024.4)</h4>
+                <h4 className="font-medium text-purple-900 mb-2">🏭 Gestion des fournisseurs (v2026.1)</h4>
                 <p className="text-sm text-purple-700 mb-2">
                   L'API permet maintenant de gérer les prix d'achat par fournisseur :
                 </p>
