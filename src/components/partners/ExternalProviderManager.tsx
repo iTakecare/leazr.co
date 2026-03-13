@@ -42,6 +42,8 @@ const ExternalProviderManager: React.FC = () => {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ExternalProviderProduct | null>(null);
   const [currentProviderId, setCurrentProviderId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [providerForm, setProviderForm] = useState<CreateExternalProviderData>({
     name: "",
