@@ -234,9 +234,6 @@ const PartnerManager: React.FC = () => {
                 onChange={(e) => setForm(prev => ({ ...prev, slug: e.target.value }))}
                 placeholder="nom-du-partenaire"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Accessible via : itakecare.be/{form.slug || "..."}
-              </p>
             </div>
             <div>
               <Label>Description</Label>
@@ -248,12 +245,57 @@ const PartnerManager: React.FC = () => {
               />
             </div>
             <div>
-              <Label>URL du logo</Label>
-              <Input
-                value={form.logo_url || ""}
-                onChange={(e) => setForm(prev => ({ ...prev, logo_url: e.target.value }))}
-                placeholder="https://..."
-              />
+              <Label>Logo</Label>
+              <div className="flex items-center gap-3 mt-1">
+                {form.logo_url && (
+                  <div className="relative h-16 w-16 border rounded overflow-hidden bg-muted flex items-center justify-center">
+                    <img src={form.logo_url} alt="Logo" className="max-h-full max-w-full object-contain" />
+                    <button
+                      type="button"
+                      className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl p-0.5"
+                      onClick={() => setForm(prev => ({ ...prev, logo_url: "" }))}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploading(true);
+                      try {
+                        const url = await cleanFileUpload(file, "site-settings", "partners");
+                        if (url) {
+                          setForm(prev => ({ ...prev, logo_url: url }));
+                        }
+                      } finally {
+                        setIsUploading(false);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }
+                    }}
+                    disabled={isUploading}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Upload...</>
+                    ) : (
+                      <><Upload className="mr-2 h-4 w-4" /> {form.logo_url ? "Changer" : "Télécharger"}</>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
             <div>
               <Label>Site web</Label>
