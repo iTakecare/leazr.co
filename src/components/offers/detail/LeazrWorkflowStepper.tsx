@@ -474,7 +474,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
                       </span>
                     )}
 
-                    {/* Action buttons INSIDE the card for active step - WinBroker style */}
+                    {/* Action buttons INSIDE the card for active step - Leazr style */}
                     {isActive && (
                       <div className="mt-3 flex flex-col gap-2 w-full px-1">
                         {/* Analysis/Document request button */}
