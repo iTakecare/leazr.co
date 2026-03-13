@@ -992,7 +992,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
       <Container>
         <TooltipProvider>
           <div className="p-2 md:p-4 space-y-6 pb-8">
-            {/* Header épuré style WinBroker */}
+            {/* Header épuré style Leazr */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <Button 
