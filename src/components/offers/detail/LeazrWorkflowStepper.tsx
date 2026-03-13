@@ -440,7 +440,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
                       </div>
                     )}
 
-                    {/* Icon inside rounded gray box - WinBroker style */}
+                    {/* Icon inside rounded gray box - Leazr style */}
                     <div className={cn(
                       "p-3 rounded-lg",
                       isCompleted && "bg-primary/10",
