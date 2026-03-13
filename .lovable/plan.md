@@ -1,58 +1,51 @@
 
 
-# Historique des modifications SEPA par contrat
+# Plan : Renommage WinBroker → Leazr + Correction stepper "Contrat prêt"
 
-## Objectif
+## 1. Renommage de tous les fichiers et références WinBroker
 
-Tracer toutes les modifications faites sur les parametres SEPA d'un contrat (montant, jour de prelevement, date de prelevement, IBAN) dans une table dediee, et afficher cet historique dans la MollieSepaCard.
+### Fichier renommé
+- `src/components/offers/detail/WinBrokerWorkflowStepper.tsx` → `src/components/offers/detail/LeazrWorkflowStepper.tsx`
 
-## 1. Nouvelle table `mollie_sepa_changes`
+### Références à mettre à jour
+| Fichier | Modification |
+|---|---|
+| `LeazrWorkflowStepper.tsx` (ex-WinBroker) | Renommer interface `WinBrokerWorkflowStepperProps` → `LeazrWorkflowStepperProps`, composant `WinBrokerWorkflowStepper` → `LeazrWorkflowStepper`, tous les commentaires "WinBroker style" → "Leazr style" |
+| `src/pages/AdminOfferDetail.tsx` | Mettre à jour l'import et les 2 commentaires mentionnant WinBroker |
+| `tailwind.config.ts` | Renommer le commentaire "WinBroker style" → "Leazr style" (ligne 55) |
 
-Migration SQL :
+## 2. Correction du step "Contrat prêt" qui ne s'affiche pas comme actif
 
-```sql
-CREATE TABLE public.mollie_sepa_changes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
-  company_id UUID REFERENCES public.companies(id),
-  change_type TEXT NOT NULL, -- 'amount', 'payment_day', 'next_date', 'iban'
-  old_value TEXT,
-  new_value TEXT,
-  changed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+### Problème identifié
+Après la transition vers `offer_validation`, le `handleStatusChange` fait un `setOffer({...offer, workflow_status: 'offer_validation'})`. Le mapping dans `getCurrentStepIndex` mappe `offer_validation` → `validated` et cherche un step avec `key === 'validated'` — ce step existe bien dans la DB.
 
-CREATE INDEX idx_mollie_sepa_changes_contract ON public.mollie_sepa_changes(contract_id);
-ALTER TABLE public.mollie_sepa_changes ENABLE ROW LEVEL SECURITY;
+Le problème réel est que `setOffer({...offer, ...})` utilise une **closure stale** de `offer` dans le callback. Si `offer` n'a pas changé entre le moment où le callback est créé et le moment où il est appelé, tout va bien. Mais si d'autres mises à jour d'état modifient `offer` entre-temps, la version dans la closure est périmée.
 
-CREATE POLICY "Company members can view sepa changes"
-ON public.mollie_sepa_changes FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
-
-CREATE POLICY "Company members can insert sepa changes"
-ON public.mollie_sepa_changes FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.company_id = mollie_sepa_changes.company_id)
-);
+### Correction
+1. Dans `AdminOfferDetail.tsx`, modifier `handleStatusChange` pour utiliser le pattern fonctionnel de setState :
+```typescript
+const handleStatusChange = (newStatus: string) => {
+  setOffer(prev => prev ? { ...prev, workflow_status: newStatus } : prev);
+};
 ```
 
-## 2. Logger les modifications dans `MollieSepaCard.tsx`
+2. Ajouter un `fetchOfferDetails()` après le changement de statut dans `handleSendEmailAndValidate` et `handleValidateWithoutEmail` du stepper, pour garantir un rafraîchissement complet depuis la DB. Passer `onRefresh` comme prop au stepper.
 
-Apres chaque appel reussi dans les 4 handlers (`handleUpdatePaymentDay`, `handleUpdateAmount`, `handleUpdateNextDate`, `handleUpdateIban`), inserer un enregistrement dans `mollie_sepa_changes` avec :
-- `change_type` : le type de modification
-- `old_value` / `new_value` : les anciennes et nouvelles valeurs
-- `changed_by` : l'utilisateur connecte (via `auth.uid()`)
-- `company_id` : depuis les props
+3. Dans le stepper `LeazrWorkflowStepper.tsx`, après `onStatusChange?.('offer_validation')`, appeler aussi `onRefresh?.()` pour forcer un rechargement complet de l'offre.
 
-## 3. Afficher l'historique dans `MollieSepaCard.tsx`
+### Props ajoutée
+- `onRefresh?: () => void` sur le stepper, branché sur `fetchOfferDetails` dans `AdminOfferDetail`
 
-Ajouter une section "Historique des modifications" en bas de la carte (apres la section paiements), avec :
-- Query des `mollie_sepa_changes` filtrees par `contract_id`, triees par date decroissante
-- Affichage en timeline compacte : date, type de changement (badge), ancienne valeur → nouvelle valeur
-- Icones selon le type (Euro pour montant, Calendar pour date/jour, Landmark pour IBAN)
+## 3. Même correction pour InteractiveWorkflowStepper
 
-## Fichiers modifies
+Appliquer la même logique de `onRefresh` et le même fix de closure stale.
 
-1. **Migration SQL** — table `mollie_sepa_changes` + RLS
-2. **`src/components/contracts/MollieSepaCard.tsx`** — insert apres chaque update + section historique
+## Fichiers modifiés
+
+| Fichier | Modification |
+|---|---|
+| `WinBrokerWorkflowStepper.tsx` → `LeazrWorkflowStepper.tsx` | Renommage complet + ajout prop `onRefresh` + appel après validation |
+| `InteractiveWorkflowStepper.tsx` | Ajout prop `onRefresh` + appel après validation |
+| `AdminOfferDetail.tsx` | Import renommé, `handleStatusChange` fonctionnel, passage de `onRefresh={fetchOfferDetails}` |
+| `tailwind.config.ts` | Commentaire renommé |
 
