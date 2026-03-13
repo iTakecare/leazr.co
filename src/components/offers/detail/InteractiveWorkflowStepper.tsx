@@ -18,6 +18,7 @@ interface InteractiveWorkflowStepperProps {
   currentStatus: string;
   offerId: string;
   onStatusChange?: (status: string) => void;
+  onRefresh?: () => void;
   internalScore?: 'A' | 'B' | 'C' | null;
   leaserScore?: 'A' | 'B' | 'C' | null;
   onAnalysisClick?: (analysisType: 'internal' | 'leaser') => void;
@@ -28,6 +29,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   currentStatus, 
   offerId,
   onStatusChange,
+  onRefresh,
   internalScore,
   leaserScore,
   onAnalysisClick,
