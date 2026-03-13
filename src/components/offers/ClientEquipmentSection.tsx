@@ -47,7 +47,7 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
   const totalGlobal = equipmentItems.reduce((sum: number, item: any) => {
     const monthlyPayment = item.monthlyPayment || 0;
     const quantity = item.quantity || 1;
-    return sum + (monthlyPayment * quantity);
+    return sum + monthlyPayment;
   }, 0);
 
   return (
@@ -82,7 +82,7 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
                 {equipmentItems.map((item: any, index: number) => {
                   const monthlyPayment = item.monthlyPayment || 0;
                   const quantity = item.quantity || 1;
-                  const totalMonthlyPayment = monthlyPayment * quantity;
+                  const totalMonthlyPayment = monthlyPayment;
                   
                   return (
                     <tr key={index} className={`border-b transition-colors hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
@@ -116,7 +116,7 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
                         </span>
                       </td>
                       <td className="py-6 px-4 text-right font-semibold text-gray-800">
-                        {formatCurrency(monthlyPayment)}
+                        {formatCurrency(quantity > 1 ? monthlyPayment / quantity : monthlyPayment)}
                       </td>
                       <td className="py-6 px-4 text-right font-semibold text-blue-700">
                         {formatCurrency(totalMonthlyPayment)}
