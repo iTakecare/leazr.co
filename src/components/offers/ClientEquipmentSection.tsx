@@ -82,7 +82,7 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
                 {equipmentItems.map((item: any, index: number) => {
                   const monthlyPayment = item.monthlyPayment || 0;
                   const quantity = item.quantity || 1;
-                  const totalMonthlyPayment = monthlyPayment * quantity;
+                  const totalMonthlyPayment = monthlyPayment;
                   
                   return (
                     <tr key={index} className={`border-b transition-colors hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
