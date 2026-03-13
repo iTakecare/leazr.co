@@ -195,6 +195,9 @@ const PartnerManager: React.FC = () => {
                       <Button variant="ghost" size="icon" onClick={() => setManagingPacksPartner(partner)} title="Gérer les packs">
                         <Package className="h-4 w-4" />
                       </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setManagingProvidersPartner(partner)} title="Prestataires externes">
+                        <Link className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(partner)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
