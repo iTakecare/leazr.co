@@ -1,0 +1,270 @@
+# API Partenaires & Prestataires Externes
+
+## Endpoints Partenaires
+
+### GET /v1/{companyId}/partners
+Liste tous les partenaires actifs.
+
+**Réponse :**
+```json
+{
+  "partners": [
+    {
+      "id": "uuid",
+      "name": "Nom du partenaire",
+      "slug": "nom-du-partenaire",
+      "description": "Texte de présentation",
+      "logo_url": "https://...",
+      "website_url": "https://...",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+### GET /v1/{companyId}/partners/{idOrSlug}
+Détail d'un partenaire par ID ou slug.
+
+**Réponse :**
+```json
+{
+  "partner": {
+    "id": "uuid",
+    "name": "Nom du partenaire",
+    "slug": "nom-du-partenaire",
+    "description": "Texte de présentation...",
+    "logo_url": "https://...",
+    "website_url": "https://...",
+    "is_active": true,
+    "created_at": "2025-01-01T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  }
+}
+```
+
+### GET /v1/{companyId}/partners/{idOrSlug}/packs
+Packs liés au partenaire avec options de personnalisation et produits.
+
+**Réponse :**
+```json
+{
+  "partner_packs": [
+    {
+      "id": "uuid",
+      "position": 0,
+      "is_customizable": true,
+      "pack": {
+        "id": "uuid",
+        "name": "Pack Pro",
+        "description": "Pack professionnel complet",
+        "image_url": "https://...",
+        "is_active": true,
+        "is_featured": true,
+        "total_monthly_price": 89.99,
+        "pack_monthly_price": 79.99,
+        "pack_promo_price": null,
+        "promo_active": false,
+        "items": [
+          {
+            "id": "uuid",
+            "product_id": "uuid",
+            "quantity": 1,
+            "unit_monthly_price": 29.99,
+            "position": 0,
+            "product": {
+              "id": "uuid",
+              "name": "iPhone 16 Pro 128Go",
+              "slug": "iphone-16-pro-128go",
+              "image_url": "https://...",
+              "brand_name": "Apple",
+              "category_name": "Smartphones",
+              "short_description": "..."
+            },
+            "variant_price": {
+              "id": "uuid",
+              "attributes": { "storage": "128Go", "color": "Noir" },
+              "price": 1199,
+              "monthly_price": 29.99
+            }
+          }
+        ]
+      },
+      "options": [
+        {
+          "id": "uuid",
+          "partner_pack_id": "uuid",
+          "category_name": "Tablette",
+          "is_required": false,
+          "max_quantity": 1,
+          "position": 0,
+          "allowed_product_ids": ["uuid1", "uuid2"],
+          "allowed_products": [
+            {
+              "id": "uuid",
+              "name": "iPad Air 13 M3",
+              "slug": "ipad-air-13-m3",
+              "image_url": "https://...",
+              "price": 799,
+              "monthly_price": 24.99,
+              "brand_name": "Apple",
+              "category_name": "Tablettes",
+              "product_variant_prices": [
+                {
+                  "id": "uuid",
+                  "attributes": { "storage": "256Go" },
+                  "price": 799,
+                  "monthly_price": 24.99
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "uuid",
+          "category_name": "Périphérique",
+          "is_required": false,
+          "max_quantity": 3,
+          "position": 1,
+          "allowed_products": [...]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### GET /v1/{companyId}/partners/{idOrSlug}/providers
+Cartes prestataires liées au partenaire avec produits/services.
+
+**Réponse :**
+```json
+{
+  "provider_cards": [
+    {
+      "id": "uuid",
+      "card_title": "Téléphonie",
+      "position": 0,
+      "provider": {
+        "id": "uuid",
+        "name": "Proximus",
+        "logo_url": "https://...",
+        "website_url": "https://www.proximus.be",
+        "description": "Opérateur télécom belge",
+        "is_active": true
+      },
+      "products": [
+        {
+          "id": "uuid",
+          "name": "Abonnement mobile",
+          "description": "Forfait mobile illimité",
+          "price_htva": 9.99,
+          "billing_period": "monthly",
+          "is_active": true,
+          "position": 0
+        },
+        {
+          "id": "uuid",
+          "name": "Abonnement téléphonique IP",
+          "description": "Ligne VoIP professionnelle",
+          "price_htva": 10.99,
+          "billing_period": "monthly",
+          "is_active": true,
+          "position": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Endpoints Prestataires Externes
+
+### GET /v1/{companyId}/providers
+Liste tous les prestataires externes actifs.
+
+**Réponse :**
+```json
+{
+  "providers": [
+    {
+      "id": "uuid",
+      "name": "Proximus",
+      "logo_url": "https://...",
+      "website_url": "https://...",
+      "description": "Opérateur télécom",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+### GET /v1/{companyId}/providers/{id}
+Détail d'un prestataire.
+
+### GET /v1/{companyId}/providers/{id}/products
+Produits/services d'un prestataire.
+
+**Réponse :**
+```json
+{
+  "products": [
+    {
+      "id": "uuid",
+      "name": "Abonnement mobile",
+      "description": "Forfait mobile illimité",
+      "price_htva": 9.99,
+      "billing_period": "monthly",
+      "is_active": true,
+      "position": 0,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Utilisation type pour une page partenaire
+
+```typescript
+// 1. Récupérer le partenaire par slug
+const partner = await fetch(`${API_URL}/v1/${companyId}/partners/nom-partenaire`, {
+  headers: { 'x-api-key': API_KEY }
+}).then(r => r.json())
+
+// 2. Récupérer ses packs avec options
+const { partner_packs } = await fetch(`${API_URL}/v1/${companyId}/partners/nom-partenaire/packs`, {
+  headers: { 'x-api-key': API_KEY }
+}).then(r => r.json())
+
+// 3. Récupérer ses cartes prestataires
+const { provider_cards } = await fetch(`${API_URL}/v1/${companyId}/partners/nom-partenaire/providers`, {
+  headers: { 'x-api-key': API_KEY }
+}).then(r => r.json())
+
+// 4. Afficher la page avec :
+//    - En-tête : partner.logo_url, partner.name, partner.description
+//    - Section packs : partner_packs[].pack (avec items)
+//    - Options personnalisables : partner_packs[].options[].allowed_products
+//    - Cartes prestataires : provider_cards[].provider + provider_cards[].products
+```
+
+## billing_period values
+
+| Valeur      | Description |
+|-------------|-------------|
+| `monthly`   | Mensuel     |
+| `yearly`    | Annuel      |
+| `one_time`  | Unique      |
+
+## Notes
+
+- Tous les endpoints nécessitent le header `x-api-key`
+- Le slug partenaire peut être utilisé à la place de l'ID UUID
+- Les prix `price_htva` des prestataires sont en euros HTVA
+- Souscription directe : le client souscrit auprès du prestataire, iTakecare affiche les options
+- Les `allowed_products` dans les options incluent les variantes (`product_variant_prices`)
