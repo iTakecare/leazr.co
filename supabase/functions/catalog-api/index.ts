@@ -283,6 +283,40 @@ Deno.serve(async (req) => {
         }
         break
 
+      case 'partners':
+        if (subPaths.length > 0) {
+          const partnerIdOrSlug = subPaths[0]
+          if (subPaths[1] === 'packs') {
+            // GET /partners/{id}/packs - Packs liés au partenaire avec options
+            data = await getPartnerPacks(supabaseAdmin, companyId, partnerIdOrSlug)
+          } else if (subPaths[1] === 'providers') {
+            // GET /partners/{id}/providers - Prestataires liés au partenaire
+            data = await getPartnerProviders(supabaseAdmin, companyId, partnerIdOrSlug)
+          } else {
+            // GET /partners/{id_or_slug} - Détail d'un partenaire
+            data = await getPartner(supabaseAdmin, companyId, partnerIdOrSlug)
+          }
+        } else {
+          // GET /partners - Liste des partenaires actifs
+          data = await getPartners(supabaseAdmin, companyId)
+        }
+        break
+
+      case 'providers':
+        if (subPaths.length > 0) {
+          if (subPaths[1] === 'products') {
+            // GET /providers/{id}/products
+            data = await getProviderProducts(supabaseAdmin, companyId, subPaths[0])
+          } else {
+            // GET /providers/{id}
+            data = await getProvider(supabaseAdmin, companyId, subPaths[0])
+          }
+        } else {
+          // GET /providers - Liste des prestataires externes actifs
+          data = await getProviders(supabaseAdmin, companyId)
+        }
+        break
+
       case 'search':
         data = await searchCatalog(supabaseAdmin, companyId, keyData.permissions, url.searchParams)
         break
