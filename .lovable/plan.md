@@ -1,31 +1,21 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Diagnostic : `getPartners is not defined`
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Cause identifiée
 
-## Endpoints API ajoutés
+L'erreur est un **`ReferenceError: getPartners is not defined`** dans les logs de l'edge function `catalog-api`. Cela signifie que la version **déployée** de la fonction ne contient pas les fonctions partenaires (`getPartners`, `getPartner`, `getPartnerPacks`, `getPartnerProviders`, `getProviderProducts`) qui ont été ajoutées au code source.
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+Le code source (`supabase/functions/catalog-api/index.ts`) est correct : les fonctions sont bien définies (lignes 1241-1561), le routage est en place (lignes 286-303). Le problème est uniquement un **décalage entre le code et le déploiement**.
 
-## Documentation
+### Données en base
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+Le partenaire "PodBW" (slug: `pod`) existe bien en base avec `is_active = true`. L'API devrait le retourner une fois redéployée.
 
-## Tables
+### Plan
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
+**1. Redéployer l'edge function `catalog-api`**
+- Aucune modification de code nécessaire
+- Le simple redéploiement synchronisera le code source avec la version en production
+- Cela rendra fonctionnels tous les endpoints : `GET partners`, `GET partners/{slug}`, `GET partners/{slug}/packs`, `GET partners/{slug}/providers`, `GET providers`, `GET providers/{id}/products`
+
