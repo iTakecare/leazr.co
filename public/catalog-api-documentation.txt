@@ -2,12 +2,12 @@
    DOCUMENTATION API CATALOG LOVABLE 
 ===========================================
 
-VERSION : 2024.5  
+VERSION : 2026.1  
 DATE : 13 mars 2026 - Écosystème partenaires & prestataires externes
 STATUT : Prêt pour production
 
 ===========================================
-   NOUVEAUTÉS VERSION 2024.5
+   NOUVEAUTÉS VERSION 2026.1
 ===========================================
 
 Cette version ajoute l'écosystème partenaires complet : pages dédiées,
