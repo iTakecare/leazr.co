@@ -283,6 +283,40 @@ Deno.serve(async (req) => {
         }
         break
 
+      case 'partners':
+        if (subPaths.length > 0) {
+          const partnerIdOrSlug = subPaths[0]
+          if (subPaths[1] === 'packs') {
+            // GET /partners/{id}/packs - Packs liés au partenaire avec options
+            data = await getPartnerPacks(supabaseAdmin, companyId, partnerIdOrSlug)
+          } else if (subPaths[1] === 'providers') {
+            // GET /partners/{id}/providers - Prestataires liés au partenaire
+            data = await getPartnerProviders(supabaseAdmin, companyId, partnerIdOrSlug)
+          } else {
+            // GET /partners/{id_or_slug} - Détail d'un partenaire
+            data = await getPartner(supabaseAdmin, companyId, partnerIdOrSlug)
+          }
+        } else {
+          // GET /partners - Liste des partenaires actifs
+          data = await getPartners(supabaseAdmin, companyId)
+        }
+        break
+
+      case 'providers':
+        if (subPaths.length > 0) {
+          if (subPaths[1] === 'products') {
+            // GET /providers/{id}/products
+            data = await getProviderProducts(supabaseAdmin, companyId, subPaths[0])
+          } else {
+            // GET /providers/{id}
+            data = await getProvider(supabaseAdmin, companyId, subPaths[0])
+          }
+        } else {
+          // GET /providers - Liste des prestataires externes actifs
+          data = await getProviders(supabaseAdmin, companyId)
+        }
+        break
+
       case 'search':
         data = await searchCatalog(supabaseAdmin, companyId, keyData.permissions, url.searchParams)
         break
@@ -1187,7 +1221,297 @@ async function updateVariantPurchasePrice(
         .update({ is_preferred: false })
         .eq('product_id', variant.product_id)
         .eq('variant_price_id', variantId)
+}
+
+// ============================================
+// PARTNERS ENDPOINTS
+// ============================================
+
+async function getPartners(supabase: any, companyId: string) {
+  console.log('🤝 GET PARTNERS - Starting for company:', companyId)
+  
+  const { data: partners, error } = await supabase
+    .from('partners')
+    .select('id, name, slug, description, logo_url, website_url, is_active, created_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .order('name')
+
+  if (error) throw error
+  return { partners: partners || [] }
+}
+
+async function getPartner(supabase: any, companyId: string, partnerIdOrSlug: string) {
+  console.log('🤝 GET PARTNER - Fetching:', partnerIdOrSlug)
+  
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(partnerIdOrSlug)
+  
+  let query = supabase
+    .from('partners')
+    .select('id, name, slug, description, logo_url, website_url, is_active, created_at, updated_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+
+  if (isUuid) {
+    query = query.eq('id', partnerIdOrSlug)
+  } else {
+    query = query.eq('slug', partnerIdOrSlug)
+  }
+
+  const { data: partner, error } = await query.single()
+
+  if (error) {
+    if (error.code === 'PGRST116') throw new Error('Partner not found')
+    throw error
+  }
+
+  return { partner }
+}
+
+async function getPartnerPacks(supabase: any, companyId: string, partnerIdOrSlug: string) {
+  console.log('🤝 GET PARTNER PACKS - Fetching for partner:', partnerIdOrSlug)
+  
+  // Resolve partner ID
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(partnerIdOrSlug)
+  let partnerId = partnerIdOrSlug
+  
+  if (!isUuid) {
+    const { data: partner, error: pErr } = await supabase
+      .from('partners')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('slug', partnerIdOrSlug)
+      .eq('is_active', true)
+      .single()
+    if (pErr || !partner) throw new Error('Partner not found')
+    partnerId = partner.id
+  }
+
+  // Get partner packs with full pack details and items
+  const { data: partnerPacks, error } = await supabase
+    .from('partner_packs')
+    .select(`
+      id,
+      position,
+      is_customizable,
+      pack:product_packs(
+        id,
+        name,
+        description,
+        image_url,
+        is_active,
+        is_featured,
+        total_monthly_price,
+        pack_monthly_price,
+        pack_promo_price,
+        promo_active,
+        items:product_pack_items(
+          id,
+          product_id,
+          variant_price_id,
+          quantity,
+          unit_monthly_price,
+          position,
+          product:products(
+            id,
+            name,
+            slug,
+            image_url,
+            brand_name,
+            category_name,
+            short_description
+          ),
+          variant_price:product_variant_prices(
+            id,
+            attributes,
+            price,
+            monthly_price
+          )
+        )
+      )
+    `)
+    .eq('partner_id', partnerId)
+    .order('position')
+
+  if (error) throw error
+
+  // Get options for customizable packs
+  const packIds = (partnerPacks || []).filter((pp: any) => pp.is_customizable).map((pp: any) => pp.id)
+  
+  let optionsMap: Record<string, any[]> = {}
+  if (packIds.length > 0) {
+    const { data: options } = await supabase
+      .from('partner_pack_options')
+      .select('id, partner_pack_id, category_name, is_required, max_quantity, position, allowed_product_ids')
+      .in('partner_pack_id', packIds)
+      .order('position')
+
+    for (const opt of (options || [])) {
+      if (!optionsMap[opt.partner_pack_id]) optionsMap[opt.partner_pack_id] = []
+      
+      // Fetch allowed products details
+      let allowedProducts: any[] = []
+      if (opt.allowed_product_ids && opt.allowed_product_ids.length > 0) {
+        const { data: products } = await supabase
+          .from('products')
+          .select(`
+            id, name, slug, image_url, price, monthly_price, brand_name, category_name, short_description,
+            product_variant_prices(id, attributes, price, monthly_price)
+          `)
+          .in('id', opt.allowed_product_ids)
+          .eq('active', true)
+          .or("admin_only.is.null,admin_only.eq.false")
+        allowedProducts = products || []
+      }
+      
+      optionsMap[opt.partner_pack_id].push({
+        ...opt,
+        allowed_products: allowedProducts
+      })
     }
+  }
+
+  // Merge options into packs
+  const enrichedPacks = (partnerPacks || []).map((pp: any) => ({
+    ...pp,
+    options: optionsMap[pp.id] || []
+  }))
+
+  return { partner_packs: enrichedPacks }
+}
+
+async function getPartnerProviders(supabase: any, companyId: string, partnerIdOrSlug: string) {
+  console.log('🤝 GET PARTNER PROVIDERS - Fetching for partner:', partnerIdOrSlug)
+  
+  // Resolve partner ID
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(partnerIdOrSlug)
+  let partnerId = partnerIdOrSlug
+  
+  if (!isUuid) {
+    const { data: partner, error: pErr } = await supabase
+      .from('partners')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('slug', partnerIdOrSlug)
+      .eq('is_active', true)
+      .single()
+    if (pErr || !partner) throw new Error('Partner not found')
+    partnerId = partner.id
+  }
+
+  // Get partner provider links with provider details
+  const { data: links, error } = await supabase
+    .from('partner_provider_links')
+    .select(`
+      id,
+      position,
+      card_title,
+      selected_product_ids,
+      provider:external_providers(
+        id,
+        name,
+        logo_url,
+        website_url,
+        description,
+        is_active
+      )
+    `)
+    .eq('partner_id', partnerId)
+    .order('position')
+
+  if (error) throw error
+
+  // For each link, fetch the selected products
+  const enrichedLinks = await Promise.all(
+    (links || []).map(async (link: any) => {
+      let products: any[] = []
+      if (link.selected_product_ids && link.selected_product_ids.length > 0) {
+        const { data: prods } = await supabase
+          .from('external_provider_products')
+          .select('id, name, description, price_htva, billing_period, is_active, position')
+          .in('id', link.selected_product_ids)
+          .eq('is_active', true)
+          .order('position')
+        products = prods || []
+      } else {
+        // If no specific selection, fetch all active products from this provider
+        const { data: prods } = await supabase
+          .from('external_provider_products')
+          .select('id, name, description, price_htva, billing_period, is_active, position')
+          .eq('provider_id', link.provider.id)
+          .eq('is_active', true)
+          .order('position')
+        products = prods || []
+      }
+      
+      return {
+        id: link.id,
+        card_title: link.card_title,
+        position: link.position,
+        provider: link.provider,
+        products
+      }
+    })
+  )
+
+  return { provider_cards: enrichedLinks }
+}
+
+// ============================================
+// EXTERNAL PROVIDERS ENDPOINTS
+// ============================================
+
+async function getProviders(supabase: any, companyId: string) {
+  console.log('🏢 GET PROVIDERS - Starting for company:', companyId)
+  
+  const { data: providers, error } = await supabase
+    .from('external_providers')
+    .select('id, name, logo_url, website_url, description, is_active, created_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .order('name')
+
+  if (error) throw error
+  return { providers: providers || [] }
+}
+
+async function getProvider(supabase: any, companyId: string, providerId: string) {
+  const { data: provider, error } = await supabase
+    .from('external_providers')
+    .select('id, name, logo_url, website_url, description, is_active, created_at')
+    .eq('id', providerId)
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') throw new Error('Provider not found')
+    throw error
+  }
+  return { provider }
+}
+
+async function getProviderProducts(supabase: any, companyId: string, providerId: string) {
+  // Verify provider belongs to company
+  const { data: provider, error: pErr } = await supabase
+    .from('external_providers')
+    .select('id')
+    .eq('id', providerId)
+    .eq('company_id', companyId)
+    .single()
+
+  if (pErr || !provider) throw new Error('Provider not found')
+
+  const { data: products, error } = await supabase
+    .from('external_provider_products')
+    .select('id, name, description, price_htva, billing_period, is_active, position, created_at')
+    .eq('provider_id', providerId)
+    .eq('is_active', true)
+    .order('position')
+
+  if (error) throw error
+  return { products: products || [] }
+}
 
     // Upsert supplier price
     const { error: upsertError } = await supabase

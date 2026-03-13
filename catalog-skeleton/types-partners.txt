@@ -1,0 +1,153 @@
+# Types TypeScript — Partenaires & Prestataires
+
+## Types Partenaire
+
+```typescript
+export interface Partner {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logo_url?: string;
+  website_url?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PartnerPack {
+  id: string;
+  position: number;
+  is_customizable: boolean;
+  pack: {
+    id: string;
+    name: string;
+    description?: string;
+    image_url?: string;
+    is_active: boolean;
+    is_featured: boolean;
+    total_monthly_price: number;
+    pack_monthly_price?: number;
+    pack_promo_price?: number;
+    promo_active: boolean;
+    items: PartnerPackItem[];
+  };
+  options: PartnerPackOption[];
+}
+
+export interface PartnerPackItem {
+  id: string;
+  product_id: string;
+  variant_price_id?: string;
+  quantity: number;
+  unit_monthly_price: number;
+  position: number;
+  product: {
+    id: string;
+    name: string;
+    slug: string;
+    image_url?: string;
+    brand_name?: string;
+    category_name?: string;
+    short_description?: string;
+  };
+  variant_price?: {
+    id: string;
+    attributes: Record<string, string>;
+    price: number;
+    monthly_price?: number;
+  };
+}
+
+export interface PartnerPackOption {
+  id: string;
+  partner_pack_id: string;
+  category_name: string;
+  is_required: boolean;
+  max_quantity: number;
+  position: number;
+  allowed_product_ids: string[];
+  allowed_products: OptionProduct[];
+}
+
+export interface OptionProduct {
+  id: string;
+  name: string;
+  slug: string;
+  image_url?: string;
+  price: number;
+  monthly_price?: number;
+  brand_name?: string;
+  category_name?: string;
+  short_description?: string;
+  product_variant_prices: {
+    id: string;
+    attributes: Record<string, string>;
+    price: number;
+    monthly_price?: number;
+  }[];
+}
+```
+
+## Types Prestataire Externe
+
+```typescript
+export interface ExternalProvider {
+  id: string;
+  name: string;
+  logo_url?: string;
+  website_url?: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ExternalProviderProduct {
+  id: string;
+  name: string;
+  description?: string;
+  price_htva: number;
+  billing_period: 'monthly' | 'yearly' | 'one_time';
+  is_active: boolean;
+  position: number;
+  created_at: string;
+}
+
+export interface ProviderCard {
+  id: string;
+  card_title: string;
+  position: number;
+  provider: ExternalProvider;
+  products: ExternalProviderProduct[];
+}
+```
+
+## Hooks React Query (exemple)
+
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { catalogApi } from './api-service';
+
+export function usePartner(slug: string) {
+  return useQuery({
+    queryKey: ['partner', slug],
+    queryFn: () => catalogApi.get(`/partners/${slug}`),
+  });
+}
+
+export function usePartnerPacks(slug: string) {
+  return useQuery({
+    queryKey: ['partner-packs', slug],
+    queryFn: () => catalogApi.get(`/partners/${slug}/packs`),
+    enabled: !!slug,
+  });
+}
+
+export function usePartnerProviders(slug: string) {
+  return useQuery({
+    queryKey: ['partner-providers', slug],
+    queryFn: () => catalogApi.get(`/partners/${slug}/providers`),
+    enabled: !!slug,
+  });
+}
+```
