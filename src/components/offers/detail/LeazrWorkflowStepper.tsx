@@ -604,4 +604,4 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
   );
 };
 
-export default WinBrokerWorkflowStepper;
+export default LeazrWorkflowStepper;
