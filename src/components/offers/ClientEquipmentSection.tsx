@@ -116,7 +116,7 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
                         </span>
                       </td>
                       <td className="py-6 px-4 text-right font-semibold text-gray-800">
-                        {formatCurrency(monthlyPayment)}
+                        {formatCurrency(quantity > 1 ? monthlyPayment / quantity : monthlyPayment)}
                       </td>
                       <td className="py-6 px-4 text-right font-semibold text-blue-700">
                         {formatCurrency(totalMonthlyPayment)}
