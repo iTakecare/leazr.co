@@ -1044,11 +1044,12 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
               </Button>
             </div>
 
-            {/* Stepper de progression style WinBroker */}
-            <WinBrokerWorkflowStepper 
+            {/* Stepper de progression Leazr */}
+            <LeazrWorkflowStepper 
               currentStatus={offer.workflow_status || 'draft'}
               offerId={offer.id}
               onStatusChange={handleStatusChange}
+              onRefresh={fetchOfferDetails}
               internalScore={offer.internal_score}
               leaserScore={offer.leaser_score}
               onAnalysisClick={handleAnalysisClick}
