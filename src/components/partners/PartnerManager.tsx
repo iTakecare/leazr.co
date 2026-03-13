@@ -21,6 +21,7 @@ import {
   generateSlug,
 } from "@/services/partnerService";
 import type { Partner, CreatePartnerData } from "@/types/partner";
+import PartnerPackManager from "./PartnerPackManager";
 
 const PartnerManager: React.FC = () => {
   const queryClient = useQueryClient();
