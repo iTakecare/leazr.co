@@ -352,8 +352,8 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
       );
       if (success) {
         toast.success("Offre validée sans email. Le contrat va être créé.");
-        setShowEmailModal(false);
         onStatusChange?.('offer_validation');
+        onRefresh?.();
       } else {
         toast.error("Échec de la validation de l'offre");
       }
