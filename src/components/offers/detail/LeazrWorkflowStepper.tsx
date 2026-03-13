@@ -29,20 +29,22 @@ import EmailConfirmationModal from "../EmailConfirmationModal";
 import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
 import { getOfferById } from "@/services/offerService";
 
-interface WinBrokerWorkflowStepperProps {
+interface LeazrWorkflowStepperProps {
   currentStatus: string;
   offerId: string;
   onStatusChange?: (status: string) => void;
+  onRefresh?: () => void;
   internalScore?: 'A' | 'B' | 'C' | null;
   leaserScore?: 'A' | 'B' | 'C' | null;
   onAnalysisClick?: (analysisType: 'internal' | 'leaser') => void;
   offer?: any;
 }
 
-const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({ 
+const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({ 
   currentStatus, 
   offerId,
   onStatusChange,
+  onRefresh,
   internalScore,
   leaserScore,
   onAnalysisClick,
@@ -332,8 +334,8 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
         console.error("Erreur d'envoi email:", emailErr);
         toast.warning("Offre validée. L'email n'a pas pu être envoyé.");
       }
-      setShowEmailModal(false);
       onStatusChange?.('offer_validation');
+      onRefresh?.();
     } finally {
       setIsEmailProcessing(false);
     }
@@ -350,8 +352,8 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
       );
       if (success) {
         toast.success("Offre validée sans email. Le contrat va être créé.");
-        setShowEmailModal(false);
         onStatusChange?.('offer_validation');
+        onRefresh?.();
       } else {
         toast.error("Échec de la validation de l'offre");
       }
@@ -390,7 +392,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
           )}
         </div>
 
-        {/* Stepper horizontal - WinBroker style */}
+        {/* Stepper horizontal - Leazr style */}
         <div className="relative flex items-start justify-center gap-0 overflow-x-auto pt-4 pb-6">
           {activeSteps.map((step, index) => {
             const Icon = step.icon;
@@ -406,7 +408,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
               <React.Fragment key={step.key}>
                 {/* Step column */}
                 <div className="flex flex-col items-center relative min-w-[120px]">
-                  {/* Step box - WinBroker style with ORANGE active border */}
+                  {/* Step box - Leazr style with ORANGE active border */}
                   <button
                     onClick={() => canClick && handleStepClick(step.key, index)}
                     disabled={!canClick || updating}
@@ -438,7 +440,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                       </div>
                     )}
 
-                    {/* Icon inside rounded gray box - WinBroker style */}
+                    {/* Icon inside rounded gray box - Leazr style */}
                     <div className={cn(
                       "p-3 rounded-lg",
                       isCompleted && "bg-primary/10",
@@ -472,7 +474,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                       </span>
                     )}
 
-                    {/* Action buttons INSIDE the card for active step - WinBroker style */}
+                    {/* Action buttons INSIDE the card for active step - Leazr style */}
                     {isActive && (
                       <div className="mt-3 flex flex-col gap-2 w-full px-1">
                         {/* Analysis/Document request button */}
@@ -544,7 +546,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                     {step.label}
                   </span>
                   
-                  {/* Status badge - WinBroker colors: green for completed, orange for active, GRAY for upcoming */}
+                  {/* Status badge - Leazr colors: green for completed, orange for active, GRAY for upcoming */}
                   <Badge 
                     variant="secondary"
                     className={cn(
@@ -557,7 +559,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                     {isCompleted ? 'Terminée' : isActive ? 'En cours' : 'À venir'}
                   </Badge>
 
-                  {/* Return link for completed steps - WinBroker style with ↩ symbol */}
+                  {/* Return link for completed steps - Leazr style with ↩ symbol */}
                   {isCompleted && (
                     <button 
                       onClick={(e) => {
@@ -574,7 +576,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
 
                 </div>
 
-                {/* Dashed arrow connector - WinBroker style */}
+                {/* Dashed arrow connector - Leazr style */}
                 {index < activeSteps.length - 1 && (
                   <div className="flex items-center self-start mt-14 px-2">
                     <div className="w-8 border-t-2 border-dashed border-gray-300"></div>
@@ -602,4 +604,4 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
   );
 };
 
-export default WinBrokerWorkflowStepper;
+export default LeazrWorkflowStepper;

@@ -18,6 +18,7 @@ interface InteractiveWorkflowStepperProps {
   currentStatus: string;
   offerId: string;
   onStatusChange?: (status: string) => void;
+  onRefresh?: () => void;
   internalScore?: 'A' | 'B' | 'C' | null;
   leaserScore?: 'A' | 'B' | 'C' | null;
   onAnalysisClick?: (analysisType: 'internal' | 'leaser') => void;
@@ -28,6 +29,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   currentStatus, 
   offerId,
   onStatusChange,
+  onRefresh,
   internalScore,
   leaserScore,
   onAnalysisClick,
@@ -357,6 +359,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       }
       setShowEmailModal(false);
       onStatusChange?.('offer_validation');
+      onRefresh?.();
     } finally {
       setIsEmailProcessing(false);
     }
@@ -376,6 +379,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         toast.success("Offre validée sans email. Le contrat va être créé.");
         setShowEmailModal(false);
         onStatusChange?.('offer_validation');
+        onRefresh?.();
       } else {
         toast.error("Échec de la validation de l'offre");
       }

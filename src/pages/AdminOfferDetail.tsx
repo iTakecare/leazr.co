@@ -23,7 +23,7 @@ import { useDocumentMonitoring } from "@/hooks/offers/useDocumentMonitoring";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
 // Import des composants améliorés
-import WinBrokerWorkflowStepper from "@/components/offers/detail/WinBrokerWorkflowStepper";
+import LeazrWorkflowStepper from "@/components/offers/detail/LeazrWorkflowStepper";
 import ClientSection from "@/components/offers/detail/ClientSection";
 import NewEquipmentSection from "@/components/offers/detail/NewEquipmentSection";
 import EquipmentOrderTracker from "@/components/contracts/EquipmentOrderTracker";
@@ -106,7 +106,7 @@ const [notesLoading, setNotesLoading] = useState(false);
   const { uploadLinks, generateUploadLink } = useOfferDocuments(id);
 
   const handleStatusChange = (newStatus: string) => {
-    setOffer({ ...offer, workflow_status: newStatus });
+    setOffer(prev => prev ? { ...prev, workflow_status: newStatus } : prev);
   };
   
   // Surveillance automatique des documents pour l'analyse interne
@@ -992,7 +992,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
       <Container>
         <TooltipProvider>
           <div className="p-2 md:p-4 space-y-6 pb-8">
-            {/* Header épuré style WinBroker */}
+            {/* Header épuré style Leazr */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <Button 
@@ -1044,11 +1044,12 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
               </Button>
             </div>
 
-            {/* Stepper de progression style WinBroker */}
-            <WinBrokerWorkflowStepper 
+            {/* Stepper de progression Leazr */}
+            <LeazrWorkflowStepper 
               currentStatus={offer.workflow_status || 'draft'}
               offerId={offer.id}
               onStatusChange={handleStatusChange}
+              onRefresh={fetchOfferDetails}
               internalScore={offer.internal_score}
               leaserScore={offer.leaser_score}
               onAnalysisClick={handleAnalysisClick}
