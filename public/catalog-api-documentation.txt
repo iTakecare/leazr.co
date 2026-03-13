@@ -2,39 +2,44 @@
    DOCUMENTATION API CATALOG LOVABLE 
 ===========================================
 
-VERSION : 2024.4  
-DATE : 29 décembre 2025 - Extension API prix d'achat et fournisseurs
+VERSION : 2024.5  
+DATE : 13 mars 2026 - Écosystème partenaires & prestataires externes
 STATUT : Prêt pour production
 
 ===========================================
-   NOUVEAUTÉS VERSION 2024.4
+   NOUVEAUTÉS VERSION 2024.5
 ===========================================
 
-Cette version ajoute des fonctionnalités d'écriture pour la mise à jour 
-des prix d'achat et la gestion des fournisseurs.
+Cette version ajoute l'écosystème partenaires complet : pages dédiées,
+packs exclusifs, prestataires externes et isolation du catalogue public.
 
 NOUVELLES FONCTIONNALITÉS :
 
-1. **Endpoints d'écriture (PATCH)**
-   - PATCH /products/{id}/purchase-price : Mise à jour prix d'achat produit
-   - PATCH /variants/{id}/purchase-price : Mise à jour prix d'achat variant
-   - Authentification par clé API avec permission `products_write`
+1. **Écosystème partenaires**
+   - GET /partners : Liste des partenaires actifs
+   - GET /partners/{slug} : Page partenaire complète (packs + prestataires)
+   - Packs assignés à un partenaire automatiquement masqués du catalogue public
 
-2. **Gestion des fournisseurs**
-   - GET /suppliers : Liste des fournisseurs
-   - GET /suppliers/{id} : Détails d'un fournisseur
-   - GET /products/{id}/suppliers : Prix par fournisseur pour un produit
-   - Permission requise : `suppliers`
+2. **Prestataires externes**
+   - Liaison de prestataires (fournisseurs tiers) à un partenaire
+   - Affichage des produits prestataires sur la page partenaire
+   - Gestion via l'interface admin (bouton Link sur chaque partenaire)
 
-3. **Nouvelles tables de base de données**
-   - `suppliers` : Table des fournisseurs par entreprise
-   - `product_supplier_prices` : Prix d'achat par fournisseur avec SKU
-   - `product_variant_prices.purchase_price` : Nouvelle colonne
+3. **Packs personnalisables**
+   - Options par catégorie sur les packs partenaires
+   - Menus déroulants pour choix de produits supplémentaires
 
-4. **Nouvelles permissions API**
-   - `products_write` : Écriture sur les produits
-   - `suppliers` : Lecture des fournisseurs
-   - `suppliers_write` : Écriture sur les fournisseurs
+4. **Isolation catalogue**
+   - Les packs liés à un partenaire sont exclus de GET /packs
+   - Visibles uniquement via GET /partners/{slug}
+
+5. **Nouvelles tables de base de données**
+   - `partners` : Partenaires par entreprise
+   - `partner_packs` : Packs assignés aux partenaires
+   - `partner_pack_options` : Options de personnalisation des packs
+   - `external_providers` : Prestataires externes
+   - `external_provider_products` : Produits des prestataires
+   - `partner_provider_links` : Liaisons partenaire ↔ prestataire
 
 ===========================================
    SOMMAIRE
@@ -44,19 +49,20 @@ NOUVELLES FONCTIONNALITÉS :
 2. AUTHENTIFICATION
 3. SÉCURITÉ ET FILTRAGE
 4. ENDPOINTS DE LECTURE (GET)
-5. ENDPOINTS D'ÉCRITURE (PATCH) - NOUVEAU
-6. GESTION DES FOURNISSEURS - NOUVEAU
-7. STRUCTURES DE DONNÉES
-8. GESTION DES ERREURS
-9. EXEMPLES D'IMPLÉMENTATION
-10. BASE DE DONNÉES REQUISE
+5. ENDPOINTS D'ÉCRITURE (PATCH)
+6. GESTION DES FOURNISSEURS
+7. ÉCOSYSTÈME PARTENAIRES - NOUVEAU
+8. STRUCTURES DE DONNÉES
+9. GESTION DES ERREURS
+10. EXEMPLES D'IMPLÉMENTATION
+11. BASE DE DONNÉES REQUISE
 
 ===========================================
    1. VUE D'ENSEMBLE
 ===========================================
 
 L'API Catalog permet d'accéder et de modifier les données de produits, 
-catégories, marques, fournisseurs et autres informations du catalogue.
+catégories, marques, fournisseurs, partenaires et autres informations du catalogue.
 
 URL DE BASE : https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/{companySlug}
 
@@ -84,13 +90,16 @@ Headers:
 
 PERMISSIONS PAR CLÉ API :
 - products: Lecture des produits
-- products_write: Écriture sur les produits (NOUVEAU)
+- products_write: Écriture sur les produits
 - categories: Accès aux catégories  
 - brands: Accès aux marques
 - packs: Accès aux packs de produits
 - environmental: Données environnementales
-- suppliers: Lecture des fournisseurs (NOUVEAU)
-- suppliers_write: Écriture sur les fournisseurs (NOUVEAU)
+- suppliers: Lecture des fournisseurs
+- suppliers_write: Écriture sur les fournisseurs
+
+NOTE : Les endpoints partenaires (GET /partners, GET /partners/{slug})
+sont publics et ne nécessitent pas de clé API.
 
 ===========================================
    3. SÉCURITÉ ET FILTRAGE
@@ -99,6 +108,12 @@ PERMISSIONS PAR CLÉ API :
 FILTRAGE AUTOMATIQUE DES PRODUITS ADMIN :
 - L'API publique filtre automatiquement les produits marqués avec `admin_only: true`
 - Seuls les produits avec `admin_only: false` ou `admin_only: null` sont exposés
+
+ISOLATION DES PACKS PARTENAIRES :
+- Les packs assignés à un ou plusieurs partenaires via `partner_packs` sont
+  automatiquement exclus de l'endpoint GET /packs
+- Ces packs restent accessibles uniquement via GET /partners/{slug}
+- Cette isolation garantit l'exclusivité des offres partenaires
 
 PERMISSIONS D'ÉCRITURE :
 - Les endpoints PATCH requièrent la permission `products_write`
@@ -159,6 +174,8 @@ GET /catalog-api/v1/{companySlug}/brands
 GET /catalog-api/v1/{companySlug}/packs
 GET /catalog-api/v1/{companySlug}/packs/{packId}
 ```
+NOTE : Les packs assignés à un partenaire sont automatiquement exclus
+de la liste. Utilisez GET /partners/{slug} pour les packs partenaires.
 
 ## 4.11 RECHERCHE
 ```
@@ -178,7 +195,7 @@ GET /catalog-api/v1/{companySlug}/customizations
 ```
 
 ===========================================
-   5. ENDPOINTS D'ÉCRITURE (PATCH) - NOUVEAU
+   5. ENDPOINTS D'ÉCRITURE (PATCH)
 ===========================================
 
 ## 5.1 MISE À JOUR PRIX D'ACHAT PRODUIT
@@ -242,7 +259,7 @@ RÉPONSE :
 ```
 
 ===========================================
-   6. GESTION DES FOURNISSEURS - NOUVEAU
+   6. GESTION DES FOURNISSEURS
 ===========================================
 
 ## 6.1 LISTE DES FOURNISSEURS
@@ -317,30 +334,219 @@ RÉPONSE :
       "last_price_update": "2025-12-29T10:00:00.000Z",
       "is_preferred": true,
       "notes": "Meilleur prix négocié"
-    },
-    {
-      "id": "uuid",
-      "supplier": {
-        "id": "uuid",
-        "name": "INMAC WSTORE",
-        "code": "INMAC",
-        "is_active": true
-      },
-      "sku": "INMAC-APP-MBP14M3",
-      "purchase_price": 1920.00,
-      "currency": "EUR",
-      "last_price_update": "2025-12-28T14:30:00.000Z",
-      "is_preferred": false
     }
   ]
 }
 ```
 
 ===========================================
-   7. STRUCTURES DE DONNÉES
+   7. ÉCOSYSTÈME PARTENAIRES - NOUVEAU
 ===========================================
 
-## FOURNISSEUR (NOUVEAU)
+## 7.1 LISTE DES PARTENAIRES
+```
+GET /catalog-api/v1/{companySlug}/partners
+```
+
+AUTHENTIFICATION : Aucune (endpoint public)
+
+RÉPONSE :
+```json
+{
+  "partners": [
+    {
+      "id": "uuid",
+      "name": "Cabinet Comptable XYZ",
+      "slug": "cabinet-comptable-xyz",
+      "description": "Partenaire spécialisé en PME",
+      "logo_url": "https://...",
+      "website_url": "https://...",
+      "is_active": true
+    }
+  ]
+}
+```
+
+## 7.2 PAGE PARTENAIRE COMPLÈTE
+```
+GET /catalog-api/v1/{companySlug}/partners/{partnerSlug}
+```
+
+AUTHENTIFICATION : Aucune (endpoint public)
+
+Retourne toutes les informations nécessaires pour afficher la landing
+page dédiée d'un partenaire : ses packs exclusifs avec options de
+personnalisation et ses prestataires externes avec leurs produits.
+
+RÉPONSE :
+```json
+{
+  "partner": {
+    "id": "uuid",
+    "name": "Cabinet Comptable XYZ",
+    "slug": "cabinet-comptable-xyz",
+    "description": "Description du partenaire",
+    "logo_url": "https://...",
+    "website_url": "https://..."
+  },
+  "packs": [
+    {
+      "id": "uuid",
+      "pack_id": "uuid",
+      "position": 0,
+      "is_customizable": true,
+      "pack": {
+        "id": "uuid",
+        "name": "Pack Starter PME",
+        "description": "Tout pour démarrer",
+        "image_url": "https://...",
+        "total_monthly_price": 89.90,
+        "pack_monthly_price": 79.90,
+        "is_active": true
+      },
+      "options": [
+        {
+          "id": "uuid",
+          "category_name": "Tablette",
+          "is_required": false,
+          "max_quantity": 1,
+          "position": 0,
+          "allowed_product_ids": ["uuid1", "uuid2"]
+        }
+      ]
+    }
+  ],
+  "providers": [
+    {
+      "id": "uuid",
+      "provider_id": "uuid",
+      "card_title": "Téléphonie",
+      "position": 0,
+      "selected_product_ids": ["uuid1"],
+      "provider": {
+        "id": "uuid",
+        "name": "Opérateur Télécom",
+        "logo_url": "https://...",
+        "website_url": "https://...",
+        "description": "Solutions téléphonie pour entreprises",
+        "is_active": true
+      },
+      "products": [
+        {
+          "id": "uuid",
+          "name": "Forfait Pro 5G",
+          "description": "Appels illimités + 100 Go",
+          "price_htva": 29.99,
+          "billing_period": "monthly",
+          "is_active": true,
+          "position": 0
+        }
+      ]
+    }
+  ]
+}
+```
+
+## 7.3 PACKS PARTENAIRES - OPTIONS DE PERSONNALISATION
+
+Les packs assignés à un partenaire peuvent avoir des options de
+personnalisation permettant au client final de choisir des produits
+supplémentaires dans des catégories définies.
+
+STRUCTURE D'UNE OPTION :
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| category_name | string | Nom de la catégorie (ex: "Tablette") |
+| is_required | boolean | L'option est-elle obligatoire ? |
+| max_quantity | number | Quantité maximale sélectionnable |
+| allowed_product_ids | uuid[] | IDs des produits autorisés dans cette catégorie |
+| position | number | Ordre d'affichage |
+
+## 7.4 PRESTATAIRES EXTERNES
+
+Les prestataires externes sont des fournisseurs de services tiers
+(téléphonie, assurance, etc.) dont les produits sont présentés sur
+la page partenaire sous forme de cartes de services.
+
+Le client peut souscrire directement via le site du prestataire
+(lien externe). Les produits prestataires ont une période de
+facturation : `monthly`, `yearly` ou `one_time`.
+
+## 7.5 ISOLATION DU CATALOGUE
+
+Comportement automatique :
+- Un pack assigné à au moins un partenaire via `partner_packs`
+  est automatiquement EXCLU du endpoint GET /packs
+- Ce pack reste visible dans l'admin (back-office)
+- Ce pack est accessible via GET /partners/{slug}
+- Si le pack est retiré de tous les partenaires, il réapparaît
+  dans GET /packs
+
+===========================================
+   8. STRUCTURES DE DONNÉES
+===========================================
+
+## PARTENAIRE (NOUVEAU)
+```json
+{
+  "id": "uuid",
+  "company_id": "uuid",
+  "name": "string",
+  "slug": "string",
+  "description": "string",
+  "logo_url": "string",
+  "website_url": "string",
+  "is_active": "boolean",
+  "created_at": "timestamp",
+  "updated_at": "timestamp"
+}
+```
+
+## PRESTATAIRE EXTERNE (NOUVEAU)
+```json
+{
+  "id": "uuid",
+  "company_id": "uuid",
+  "name": "string",
+  "logo_url": "string",
+  "website_url": "string",
+  "description": "string",
+  "is_active": "boolean",
+  "created_at": "timestamp",
+  "updated_at": "timestamp"
+}
+```
+
+## PRODUIT PRESTATAIRE (NOUVEAU)
+```json
+{
+  "id": "uuid",
+  "provider_id": "uuid",
+  "name": "string",
+  "description": "string",
+  "price_htva": "number",
+  "billing_period": "monthly | yearly | one_time",
+  "is_active": "boolean",
+  "position": "number",
+  "created_at": "timestamp"
+}
+```
+
+## LIEN PARTENAIRE-PRESTATAIRE (NOUVEAU)
+```json
+{
+  "id": "uuid",
+  "partner_id": "uuid",
+  "provider_id": "uuid",
+  "card_title": "string",
+  "selected_product_ids": "uuid[]",
+  "position": "number",
+  "created_at": "timestamp"
+}
+```
+
+## FOURNISSEUR
 ```json
 {
   "id": "uuid",
@@ -362,7 +568,7 @@ RÉPONSE :
 }
 ```
 
-## PRIX FOURNISSEUR (NOUVEAU)
+## PRIX FOURNISSEUR
 ```json
 {
   "id": "uuid",
@@ -396,7 +602,7 @@ RÉPONSE :
 ```
 
 ===========================================
-   8. GESTION DES ERREURS
+   9. GESTION DES ERREURS
 ===========================================
 
 ## CODES D'ERREUR HTTP
@@ -417,6 +623,13 @@ RÉPONSE :
 }
 ```
 
+### Partenaire introuvable (404)
+```json
+{
+  "error": "Partner not found"
+}
+```
+
 ### Champ requis manquant
 ```json
 {
@@ -425,13 +638,50 @@ RÉPONSE :
 ```
 
 ===========================================
-   9. EXEMPLES D'IMPLÉMENTATION
+   10. EXEMPLES D'IMPLÉMENTATION
 ===========================================
 
-## MISE À JOUR PRIX D'ACHAT (JavaScript)
+## RÉCUPÉRER LA PAGE PARTENAIRE (JavaScript)
 ```javascript
 const API_BASE = 'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1';
 const COMPANY_SLUG = 'your-company-slug';
+
+async function getPartnerPage(partnerSlug) {
+  const response = await fetch(
+    `${API_BASE}/${COMPANY_SLUG}/partners/${partnerSlug}`
+  );
+  
+  if (!response.ok) {
+    throw new Error('Partenaire non trouvé');
+  }
+  
+  const data = await response.json();
+  // data.partner : infos du partenaire
+  // data.packs : packs exclusifs avec options
+  // data.providers : prestataires avec produits
+  return data;
+}
+
+// Utilisation
+getPartnerPage('cabinet-comptable-xyz').then(data => {
+  console.log('Partenaire:', data.partner.name);
+  console.log('Packs:', data.packs.length);
+  console.log('Prestataires:', data.providers.length);
+});
+```
+
+## LISTER LES PARTENAIRES
+```javascript
+async function getPartners() {
+  const response = await fetch(
+    `${API_BASE}/${COMPANY_SLUG}/partners`
+  );
+  return await response.json();
+}
+```
+
+## MISE À JOUR PRIX D'ACHAT (JavaScript)
+```javascript
 const API_KEY = 'your-api-key';
 
 async function updateProductPurchasePrice(productId, purchasePrice, supplierId, sku) {
@@ -459,16 +709,6 @@ async function updateProductPurchasePrice(productId, purchasePrice, supplierId, 
   
   return await response.json();
 }
-
-// Utilisation
-updateProductPurchasePrice(
-  'product-uuid',
-  899.99,
-  'supplier-uuid',
-  'AFB-SKU-123'
-).then(result => {
-  console.log('Prix mis à jour:', result);
-});
 ```
 
 ## RÉCUPÉRER LES FOURNISSEURS
@@ -498,10 +738,96 @@ async function getProductSupplierPrices(productId) {
 ```
 
 ===========================================
-   10. BASE DE DONNÉES REQUISE
+   11. BASE DE DONNÉES REQUISE
 ===========================================
 
-## NOUVELLES TABLES v2024.4
+## TABLES PARTENAIRES v2024.5
+
+### partners
+```sql
+CREATE TABLE partners (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  description TEXT,
+  logo_url TEXT,
+  website_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### partner_packs
+```sql
+CREATE TABLE partner_packs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id UUID NOT NULL REFERENCES partners(id) ON DELETE CASCADE,
+  pack_id UUID NOT NULL REFERENCES product_packs(id) ON DELETE CASCADE,
+  position INTEGER DEFAULT 0,
+  is_customizable BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### partner_pack_options
+```sql
+CREATE TABLE partner_pack_options (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_pack_id UUID NOT NULL REFERENCES partner_packs(id) ON DELETE CASCADE,
+  category_name TEXT NOT NULL,
+  is_required BOOLEAN DEFAULT false,
+  max_quantity INTEGER DEFAULT 1,
+  position INTEGER DEFAULT 0,
+  allowed_product_ids UUID[] DEFAULT '{}'
+);
+```
+
+### external_providers
+```sql
+CREATE TABLE external_providers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  logo_url TEXT,
+  website_url TEXT,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### external_provider_products
+```sql
+CREATE TABLE external_provider_products (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider_id UUID NOT NULL REFERENCES external_providers(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  price_htva NUMERIC NOT NULL,
+  billing_period TEXT DEFAULT 'monthly',
+  is_active BOOLEAN DEFAULT true,
+  position INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### partner_provider_links
+```sql
+CREATE TABLE partner_provider_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id UUID NOT NULL REFERENCES partners(id) ON DELETE CASCADE,
+  provider_id UUID NOT NULL REFERENCES external_providers(id) ON DELETE CASCADE,
+  card_title TEXT,
+  selected_product_ids UUID[] DEFAULT '{}',
+  position INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+## TABLES FOURNISSEURS v2024.4
 
 ### suppliers
 ```sql
@@ -544,12 +870,6 @@ CREATE TABLE product_supplier_prices (
 );
 ```
 
-### Modification product_variant_prices
-```sql
-ALTER TABLE product_variant_prices 
-ADD COLUMN purchase_price NUMERIC;
-```
-
 ## PERMISSIONS API KEYS
 ```json
 {
@@ -567,6 +887,20 @@ ADD COLUMN purchase_price NUMERIC;
 ===========================================
    HISTORIQUE DES VERSIONS
 ===========================================
+
+## Version 2024.5 - 13 mars 2026
+**Écosystème partenaires & prestataires externes**
+
+NOUVELLES FONCTIONNALITÉS :
+- ✅ GET /partners : Liste des partenaires actifs
+- ✅ GET /partners/{slug} : Page partenaire complète
+- ✅ Isolation catalogue : packs partenaires exclus de GET /packs
+- ✅ Packs personnalisables avec options par catégorie
+- ✅ Prestataires externes liés aux partenaires
+- ✅ Tables : partners, partner_packs, partner_pack_options
+- ✅ Tables : external_providers, external_provider_products
+- ✅ Table : partner_provider_links
+- ✅ Interface admin : gestion des packs et prestataires par partenaire
 
 ## Version 2024.4 - 29 décembre 2025
 **Extension API prix d'achat et fournisseurs**
@@ -605,6 +939,7 @@ NOUVELLES FONCTIONNALITÉS :
 - Edge Functions : Déployées et stables
 - Base de données : Optimisée et sécurisée  
 - API : Pleinement fonctionnelle
-- Documentation : À jour version 2024.4
+- Écosystème partenaires : Opérationnel
+- Documentation : À jour version 2024.5
 
-Documentation technique - Version 2024.4 (29 décembre 2025)
+Documentation technique - Version 2024.5 (13 mars 2026)
