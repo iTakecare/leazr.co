@@ -741,7 +741,7 @@ async function getProductSupplierPrices(productId) {
    11. BASE DE DONNÉES REQUISE
 ===========================================
 
-## TABLES PARTENAIRES v2024.5
+## TABLES PARTENAIRES v2026.1
 
 ### partners
 ```sql
