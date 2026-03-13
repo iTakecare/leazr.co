@@ -559,7 +559,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
                     {isCompleted ? 'Terminée' : isActive ? 'En cours' : 'À venir'}
                   </Badge>
 
-                  {/* Return link for completed steps - WinBroker style with ↩ symbol */}
+                  {/* Return link for completed steps - Leazr style with ↩ symbol */}
                   {isCompleted && (
                     <button 
                       onClick={(e) => {
