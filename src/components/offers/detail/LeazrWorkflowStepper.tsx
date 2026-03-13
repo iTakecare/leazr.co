@@ -546,7 +546,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
                     {step.label}
                   </span>
                   
-                  {/* Status badge - WinBroker colors: green for completed, orange for active, GRAY for upcoming */}
+                  {/* Status badge - Leazr colors: green for completed, orange for active, GRAY for upcoming */}
                   <Badge 
                     variant="secondary"
                     className={cn(
