@@ -404,6 +404,42 @@ const CatalogApiSettings = () => {
       description: 'Mettre à jour le prix d\'achat d\'une variante (permission: products_write)',
       body: '{ "purchase_price": 799.99, "supplier_id": "uuid", "sku": "SKU-VARIANT" }',
       example: '{ "success": true, "variant_id": "uuid", "purchase_price": 799.99, "updated_at": "2025-12-29T10:00:00Z" }'
+    },
+    {
+      method: 'GET',
+      path: 'partners',
+      description: 'Liste des partenaires actifs',
+      example: '{ "partners": [{ "id": "uuid", "name": "Partenaire A", "slug": "partenaire-a", "logo_url": "https://...", "is_active": true }] }'
+    },
+    {
+      method: 'GET',
+      path: 'partners/{slug}',
+      description: 'Détail d\'un partenaire par slug ou ID',
+      example: '{ "partner": { "id": "uuid", "name": "Partenaire A", "slug": "partenaire-a", "description": "...", "logo_url": "https://...", "website_url": "https://..." } }'
+    },
+    {
+      method: 'GET',
+      path: 'partners/{slug}/packs',
+      description: 'Packs exclusifs liés au partenaire avec options personnalisables',
+      example: '{ "partner_packs": [{ "id": "uuid", "position": 0, "is_customizable": true, "pack": { "name": "Pack Pro", "total_monthly_price": 89.99, "items": [...] }, "options": [...] }] }'
+    },
+    {
+      method: 'GET',
+      path: 'partners/{slug}/providers',
+      description: 'Prestataires externes liés au partenaire avec leurs produits',
+      example: '{ "provider_cards": [{ "id": "uuid", "card_title": "Téléphonie", "provider": { "name": "Proximus", "logo_url": "..." }, "products": [...] }] }'
+    },
+    {
+      method: 'GET',
+      path: 'providers',
+      description: 'Liste des prestataires externes actifs',
+      example: '{ "providers": [{ "id": "uuid", "name": "Proximus", "logo_url": "https://...", "description": "Opérateur télécom", "is_active": true }] }'
+    },
+    {
+      method: 'GET',
+      path: 'providers/{id}/products',
+      description: 'Produits/services d\'un prestataire externe',
+      example: '{ "products": [{ "id": "uuid", "name": "Abonnement mobile", "price_htva": 9.99, "billing_period": "monthly", "is_active": true }] }'
     }
   ];
 
@@ -602,7 +638,7 @@ const CatalogApiSettings = () => {
               </div>
               
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg mt-4">
-                <h4 className="font-medium text-amber-900 mb-2">✏️ Permissions d'écriture (API v2024.4)</h4>
+                <h4 className="font-medium text-amber-900 mb-2">✏️ Permissions d'écriture (API v2026.1)</h4>
                 <p className="text-sm text-amber-700 mb-2">
                   Les endpoints PATCH nécessitent des permissions spécifiques dans votre clé API :
                 </p>
@@ -614,7 +650,7 @@ const CatalogApiSettings = () => {
               </div>
               
               <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg mt-4">
-                <h4 className="font-medium text-purple-900 mb-2">🏭 Gestion des fournisseurs (Nouveau v2024.4)</h4>
+                <h4 className="font-medium text-purple-900 mb-2">🏭 Gestion des fournisseurs (v2026.1)</h4>
                 <p className="text-sm text-purple-700 mb-2">
                   L'API permet maintenant de gérer les prix d'achat par fournisseur :
                 </p>
@@ -623,6 +659,19 @@ const CatalogApiSettings = () => {
                   <li>• <strong>Prix par fournisseur</strong> - Comparer les prix d'achat entre fournisseurs</li>
                   <li>• <strong>Fournisseur préféré</strong> - Marquer le fournisseur principal via <code className="bg-purple-100 px-1 rounded">is_preferred</code></li>
                   <li>• <strong>Historique des mises à jour</strong> - Suivre les changements de prix via <code className="bg-purple-100 px-1 rounded">last_price_update</code></li>
+                </ul>
+              </div>
+              
+              <div className="bg-indigo-50 border border-indigo-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-indigo-900 mb-2">🤝 Écosystème partenaires (v2026.1)</h4>
+                <p className="text-sm text-indigo-700 mb-2">
+                  L'API expose un écosystème complet pour les pages partenaires dédiées :
+                </p>
+                <ul className="text-sm text-indigo-700 space-y-1">
+                  <li>• <strong>Pages partenaires</strong> - Landing pages dédiées avec packs exclusifs et prestataires</li>
+                  <li>• <strong>Isolation catalogue</strong> - Les packs assignés à un partenaire sont masqués du catalogue public</li>
+                  <li>• <strong>Packs personnalisables</strong> - Options par catégorie (tablette, périphérique...) avec choix de produits</li>
+                  <li>• <strong>Prestataires externes</strong> - Services tiers (téléphonie, etc.) liés aux partenaires avec souscription directe</li>
                 </ul>
               </div>
             </CardHeader>
