@@ -408,7 +408,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
               <React.Fragment key={step.key}>
                 {/* Step column */}
                 <div className="flex flex-col items-center relative min-w-[120px]">
-                  {/* Step box - WinBroker style with ORANGE active border */}
+                  {/* Step box - Leazr style with ORANGE active border */}
                   <button
                     onClick={() => canClick && handleStepClick(step.key, index)}
                     disabled={!canClick || updating}
