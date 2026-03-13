@@ -404,6 +404,42 @@ const CatalogApiSettings = () => {
       description: 'Mettre à jour le prix d\'achat d\'une variante (permission: products_write)',
       body: '{ "purchase_price": 799.99, "supplier_id": "uuid", "sku": "SKU-VARIANT" }',
       example: '{ "success": true, "variant_id": "uuid", "purchase_price": 799.99, "updated_at": "2025-12-29T10:00:00Z" }'
+    },
+    {
+      method: 'GET',
+      path: 'partners',
+      description: 'Liste des partenaires actifs',
+      example: '{ "partners": [{ "id": "uuid", "name": "Partenaire A", "slug": "partenaire-a", "logo_url": "https://...", "is_active": true }] }'
+    },
+    {
+      method: 'GET',
+      path: 'partners/{slug}',
+      description: 'Détail d\'un partenaire par slug ou ID',
+      example: '{ "partner": { "id": "uuid", "name": "Partenaire A", "slug": "partenaire-a", "description": "...", "logo_url": "https://...", "website_url": "https://..." } }'
+    },
+    {
+      method: 'GET',
+      path: 'partners/{slug}/packs',
+      description: 'Packs exclusifs liés au partenaire avec options personnalisables',
+      example: '{ "partner_packs": [{ "id": "uuid", "position": 0, "is_customizable": true, "pack": { "name": "Pack Pro", "total_monthly_price": 89.99, "items": [...] }, "options": [...] }] }'
+    },
+    {
+      method: 'GET',
+      path: 'partners/{slug}/providers',
+      description: 'Prestataires externes liés au partenaire avec leurs produits',
+      example: '{ "provider_cards": [{ "id": "uuid", "card_title": "Téléphonie", "provider": { "name": "Proximus", "logo_url": "..." }, "products": [...] }] }'
+    },
+    {
+      method: 'GET',
+      path: 'providers',
+      description: 'Liste des prestataires externes actifs',
+      example: '{ "providers": [{ "id": "uuid", "name": "Proximus", "logo_url": "https://...", "description": "Opérateur télécom", "is_active": true }] }'
+    },
+    {
+      method: 'GET',
+      path: 'providers/{id}/products',
+      description: 'Produits/services d\'un prestataire externe',
+      example: '{ "products": [{ "id": "uuid", "name": "Abonnement mobile", "price_htva": 9.99, "billing_period": "monthly", "is_active": true }] }'
     }
   ];
 
