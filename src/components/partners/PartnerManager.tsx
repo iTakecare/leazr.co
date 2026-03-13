@@ -326,6 +326,14 @@ const PartnerManager: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {managingPacksPartner && (
+        <PartnerPackManager
+          partner={managingPacksPartner}
+          open={!!managingPacksPartner}
+          onOpenChange={(open) => { if (!open) setManagingPacksPartner(null); }}
+        />
+      )}
     </div>
   );
 };
