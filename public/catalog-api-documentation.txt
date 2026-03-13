@@ -944,6 +944,6 @@ NOUVELLES FONCTIONNALITÉS :
 - Base de données : Optimisée et sécurisée  
 - API : Pleinement fonctionnelle
 - Écosystème partenaires : Opérationnel
-- Documentation : À jour version 2024.5
+- Documentation : À jour version 2026.1
 
-Documentation technique - Version 2024.5 (13 mars 2026)
+Documentation technique - Version 2026.1 (13 mars 2026)

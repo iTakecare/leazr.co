@@ -661,6 +661,19 @@ const CatalogApiSettings = () => {
                   <li>• <strong>Historique des mises à jour</strong> - Suivre les changements de prix via <code className="bg-purple-100 px-1 rounded">last_price_update</code></li>
                 </ul>
               </div>
+              
+              <div className="bg-indigo-50 border border-indigo-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-indigo-900 mb-2">🤝 Écosystème partenaires (v2026.1)</h4>
+                <p className="text-sm text-indigo-700 mb-2">
+                  L'API expose un écosystème complet pour les pages partenaires dédiées :
+                </p>
+                <ul className="text-sm text-indigo-700 space-y-1">
+                  <li>• <strong>Pages partenaires</strong> - Landing pages dédiées avec packs exclusifs et prestataires</li>
+                  <li>• <strong>Isolation catalogue</strong> - Les packs assignés à un partenaire sont masqués du catalogue public</li>
+                  <li>• <strong>Packs personnalisables</strong> - Options par catégorie (tablette, périphérique...) avec choix de produits</li>
+                  <li>• <strong>Prestataires externes</strong> - Services tiers (téléphonie, etc.) liés aux partenaires avec souscription directe</li>
+                </ul>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
