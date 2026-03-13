@@ -721,6 +721,14 @@ async function getBrands(supabase: any, companyId: string, permissions: any) {
 }
 
 async function getPacks(supabase: any, companyId: string, permissions: any) {
+  // Get pack IDs assigned to partners (these should be hidden from the public catalog)
+  const { data: partnerPackRows } = await supabase
+    .from('partner_packs')
+    .select('pack_id, partner:partners!inner(company_id)')
+    .eq('partner.company_id', companyId)
+
+  const partnerPackIds = new Set((partnerPackRows || []).map((pp: any) => pp.pack_id))
+
   const { data: packs, error } = await supabase
     .from('product_packs')
     .select(`
@@ -748,7 +756,10 @@ async function getPacks(supabase: any, companyId: string, permissions: any) {
     .order('name', { ascending: true })
 
   if (error) throw error
-  return { packs: packs || [] }
+
+  // Filter out packs assigned to partners
+  const publicPacks = (packs || []).filter((p: any) => !partnerPackIds.has(p.id))
+  return { packs: publicPacks }
 }
 
 async function getPack(supabase: any, companyId: string, packId: string, permissions: any) {
