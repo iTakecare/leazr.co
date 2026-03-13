@@ -888,12 +888,16 @@ CREATE TABLE product_supplier_prices (
    HISTORIQUE DES VERSIONS
 ===========================================
 
-## Version 2024.5 - 13 mars 2026
+## Version 2026.1 - 13 mars 2026
 **Écosystème partenaires & prestataires externes**
 
 NOUVELLES FONCTIONNALITÉS :
 - ✅ GET /partners : Liste des partenaires actifs
 - ✅ GET /partners/{slug} : Page partenaire complète
+- ✅ GET /partners/{slug}/packs : Packs exclusifs du partenaire
+- ✅ GET /partners/{slug}/providers : Prestataires liés au partenaire
+- ✅ GET /providers : Liste des prestataires externes
+- ✅ GET /providers/{id}/products : Produits d'un prestataire
 - ✅ Isolation catalogue : packs partenaires exclus de GET /packs
 - ✅ Packs personnalisables avec options par catégorie
 - ✅ Prestataires externes liés aux partenaires
