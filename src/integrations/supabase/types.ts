@@ -3519,6 +3519,94 @@ export type Database = {
         }
         Relationships: []
       }
+      external_provider_products: {
+        Row: {
+          billing_period: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          position: number
+          price_htva: number
+          provider_id: string
+        }
+        Insert: {
+          billing_period?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          position?: number
+          price_htva?: number
+          provider_id: string
+        }
+        Update: {
+          billing_period?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: number
+          price_htva?: number
+          provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_provider_products_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "external_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_providers: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_providers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fleet_configurations: {
         Row: {
           budget: number | null
@@ -5698,6 +5786,178 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_pack_options: {
+        Row: {
+          allowed_product_ids: string[] | null
+          category_name: string
+          id: string
+          is_required: boolean
+          max_quantity: number
+          partner_pack_id: string
+          position: number
+        }
+        Insert: {
+          allowed_product_ids?: string[] | null
+          category_name: string
+          id?: string
+          is_required?: boolean
+          max_quantity?: number
+          partner_pack_id: string
+          position?: number
+        }
+        Update: {
+          allowed_product_ids?: string[] | null
+          category_name?: string
+          id?: string
+          is_required?: boolean
+          max_quantity?: number
+          partner_pack_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_pack_options_partner_pack_id_fkey"
+            columns: ["partner_pack_id"]
+            isOneToOne: false
+            referencedRelation: "partner_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_packs: {
+        Row: {
+          created_at: string
+          id: string
+          is_customizable: boolean
+          pack_id: string
+          partner_id: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_customizable?: boolean
+          pack_id: string
+          partner_id: string
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_customizable?: boolean
+          pack_id?: string
+          partner_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_packs_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "product_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_packs_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_provider_links: {
+        Row: {
+          card_title: string | null
+          created_at: string
+          id: string
+          partner_id: string
+          position: number
+          provider_id: string
+          selected_product_ids: string[] | null
+        }
+        Insert: {
+          card_title?: string | null
+          created_at?: string
+          id?: string
+          partner_id: string
+          position?: number
+          provider_id: string
+          selected_product_ids?: string[] | null
+        }
+        Update: {
+          card_title?: string | null
+          created_at?: string
+          id?: string
+          partner_id?: string
+          position?: number
+          provider_id?: string
+          selected_product_ids?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_provider_links_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_provider_links_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "external_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partners: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          slug: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          slug: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
