@@ -80,6 +80,14 @@ const CatalogManagement = () => {
               <Leaf className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Environnement" : <span>Environnement</span>}
             </TabsTrigger>
+            <TabsTrigger value="partners">
+              <Handshake className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Partenaires" : <span>Partenaires</span>}
+            </TabsTrigger>
+            <TabsTrigger value="external-providers">
+              <Building2 className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Prestataires" : <span>Prestataires externes</span>}
+            </TabsTrigger>
             <TabsTrigger value="configuration">
               <Settings className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Config" : <span>Configuration</span>}
