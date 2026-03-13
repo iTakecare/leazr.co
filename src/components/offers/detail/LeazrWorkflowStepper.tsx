@@ -334,8 +334,8 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
         console.error("Erreur d'envoi email:", emailErr);
         toast.warning("Offre validée. L'email n'a pas pu être envoyé.");
       }
-      setShowEmailModal(false);
       onStatusChange?.('offer_validation');
+      onRefresh?.();
     } finally {
       setIsEmailProcessing(false);
     }
