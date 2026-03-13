@@ -159,6 +159,14 @@ const CatalogManagement = () => {
           <EnvironmentalDataManager />
         </TabsContent>
 
+          <TabsContent value="partners">
+            <PartnerManager />
+          </TabsContent>
+
+          <TabsContent value="external-providers">
+            <ExternalProviderManager />
+          </TabsContent>
+
           <TabsContent value="configuration">
             <PublicCatalogSettings />
           </TabsContent>
