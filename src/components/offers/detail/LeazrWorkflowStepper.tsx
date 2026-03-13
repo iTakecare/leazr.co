@@ -576,7 +576,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
 
                 </div>
 
-                {/* Dashed arrow connector - WinBroker style */}
+                {/* Dashed arrow connector - Leazr style */}
                 {index < activeSteps.length - 1 && (
                   <div className="flex items-center self-start mt-14 px-2">
                     <div className="w-8 border-t-2 border-dashed border-gray-300"></div>
