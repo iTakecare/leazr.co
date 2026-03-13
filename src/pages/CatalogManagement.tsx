@@ -2,13 +2,15 @@
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Folder, Download, Package, Users, Settings, Leaf, Star } from "lucide-react";
+import { Award, Folder, Download, Package, Users, Settings, Leaf, Star, Handshake, Building2 } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
 import SimplifiedCategoryManager from "@/components/catalog/SimplifiedCategoryManager";
 import { PackManager } from "@/components/packs/PackManager";
 import { ClientCatalogManager } from "@/components/catalog/client-management/ClientCatalogManager";
 import { AmbassadorCatalogManager } from "@/components/catalog/ambassador-management/AmbassadorCatalogManager";
 import EnvironmentalDataManager from "@/components/admin/environmental/EnvironmentalDataManager";
+import PartnerManager from "@/components/partners/PartnerManager";
+import ExternalProviderManager from "@/components/partners/ExternalProviderManager";
 
 // Import refactored components
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
@@ -77,6 +79,14 @@ const CatalogManagement = () => {
             <TabsTrigger value="environmental">
               <Leaf className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Environnement" : <span>Environnement</span>}
+            </TabsTrigger>
+            <TabsTrigger value="partners">
+              <Handshake className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Partenaires" : <span>Partenaires</span>}
+            </TabsTrigger>
+            <TabsTrigger value="external-providers">
+              <Building2 className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Prestataires" : <span>Prestataires externes</span>}
             </TabsTrigger>
             <TabsTrigger value="configuration">
               <Settings className={isMobile ? "" : "mr-2 h-4 w-4"} />
@@ -148,6 +158,14 @@ const CatalogManagement = () => {
         <TabsContent value="environmental">
           <EnvironmentalDataManager />
         </TabsContent>
+
+          <TabsContent value="partners">
+            <PartnerManager />
+          </TabsContent>
+
+          <TabsContent value="external-providers">
+            <ExternalProviderManager />
+          </TabsContent>
 
           <TabsContent value="configuration">
             <PublicCatalogSettings />
