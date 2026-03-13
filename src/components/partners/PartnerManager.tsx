@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ExternalLink, Globe, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Loader2, X } from "lucide-react";
+import { cleanFileUpload } from "@/services/cleanFileUploadService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
