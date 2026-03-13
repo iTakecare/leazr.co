@@ -1,30 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Plan : Attacher des prestataires externes aux partenaires
+## Statut
 
-### Contexte
-Le service `partnerService.ts` expose déjà `fetchPartnerProviderLinks`, `addPartnerProviderLink`, `updatePartnerProviderLink` et `removePartnerProviderLink`. Il manque l'interface utilisateur.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-### Approche
-Même pattern que pour les packs : un bouton sur chaque ligne partenaire ouvrant un dialog dédié.
+## Endpoints API ajoutés
 
-### Fichiers à créer/modifier
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-**1. Créer `src/components/partners/PartnerProviderManager.tsx`**
-- Dialog recevant `partner: Partner` en props
-- `useQuery` pour charger les liens existants via `fetchPartnerProviderLinks`
-- `useQuery` pour charger tous les prestataires via `fetchExternalProviders`
-- Formulaire d'ajout : sélection du prestataire + titre de la carte
-- Liste des prestataires liés avec : nom du prestataire, titre de carte (éditable), bouton supprimer
-- Mutations avec invalidation du cache `["partner-provider-links", partnerId]`
+## Documentation
 
-**2. Modifier `src/components/partners/PartnerManager.tsx`**
-- Importer `PartnerProviderManager` + icône `Link`
-- Ajouter état `managingProvidersPartner` (Partner | null)
-- Ajouter bouton `Link` icon sur chaque ligne du tableau (à côté du bouton Package existant)
-- Rendre `<PartnerProviderManager>` conditionnel
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-### Services réutilisés
-- `partnerService.ts` : `fetchPartnerProviderLinks`, `addPartnerProviderLink`, `removePartnerProviderLink`, `updatePartnerProviderLink`
-- `externalProviderService.ts` : `fetchExternalProviders`
+## Tables
 
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
