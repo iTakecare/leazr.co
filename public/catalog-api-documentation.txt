@@ -827,7 +827,7 @@ CREATE TABLE partner_provider_links (
 );
 ```
 
-## TABLES FOURNISSEURS v2024.4
+## TABLES FOURNISSEURS v2026.1
 
 ### suppliers
 ```sql
