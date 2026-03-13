@@ -23,7 +23,7 @@ import { useDocumentMonitoring } from "@/hooks/offers/useDocumentMonitoring";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
 // Import des composants améliorés
-import WinBrokerWorkflowStepper from "@/components/offers/detail/WinBrokerWorkflowStepper";
+import LeazrWorkflowStepper from "@/components/offers/detail/LeazrWorkflowStepper";
 import ClientSection from "@/components/offers/detail/ClientSection";
 import NewEquipmentSection from "@/components/offers/detail/NewEquipmentSection";
 import EquipmentOrderTracker from "@/components/contracts/EquipmentOrderTracker";
