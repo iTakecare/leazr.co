@@ -1232,6 +1232,34 @@ async function updateVariantPurchasePrice(
         .update({ is_preferred: false })
         .eq('product_id', variant.product_id)
         .eq('variant_price_id', variantId)
+    }
+
+    // Upsert supplier price for this variant
+    const { error: upsertError } = await supabase
+      .from('product_supplier_prices')
+      .upsert({
+        product_id: variant.product_id,
+        variant_price_id: variantId,
+        supplier_id,
+        supplier_price: purchase_price,
+        is_preferred: is_preferred || false,
+        notes: notes || null,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'product_id,variant_price_id,supplier_id'
+      })
+
+    if (upsertError) {
+      console.error('❌ Error upserting variant supplier price:', upsertError)
+    }
+  }
+
+  return {
+    success: true,
+    variant_id: variantId,
+    purchase_price,
+    updated_at: new Date().toISOString()
+  }
 }
 
 // ============================================
