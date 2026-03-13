@@ -106,7 +106,7 @@ const [notesLoading, setNotesLoading] = useState(false);
   const { uploadLinks, generateUploadLink } = useOfferDocuments(id);
 
   const handleStatusChange = (newStatus: string) => {
-    setOffer({ ...offer, workflow_status: newStatus });
+    setOffer(prev => prev ? { ...prev, workflow_status: newStatus } : prev);
   };
   
   // Surveillance automatique des documents pour l'analyse interne
