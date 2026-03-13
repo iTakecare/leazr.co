@@ -339,6 +339,15 @@ const PartnerManager: React.FC = () => {
           onOpenChange={(open) => { if (!open) setManagingPacksPartner(null); }}
         />
       )}
+
+      {managingProvidersPartner && companyId && (
+        <PartnerProviderManager
+          partner={managingProvidersPartner}
+          companyId={companyId}
+          open={!!managingProvidersPartner}
+          onOpenChange={(open) => { if (!open) setManagingProvidersPartner(null); }}
+        />
+      )}
     </div>
   );
 };
