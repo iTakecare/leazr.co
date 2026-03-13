@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, Loader2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Loader2, X, Package } from "lucide-react";
 import { cleanFileUpload } from "@/services/cleanFileUploadService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
   generateSlug,
 } from "@/services/partnerService";
 import type { Partner, CreatePartnerData } from "@/types/partner";
+import PartnerPackManager from "./PartnerPackManager";
 
 const PartnerManager: React.FC = () => {
   const queryClient = useQueryClient();
@@ -28,6 +29,7 @@ const PartnerManager: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [managingPacksPartner, setManagingPacksPartner] = useState<Partner | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<CreatePartnerData>({
     name: "",
@@ -188,6 +190,9 @@ const PartnerManager: React.FC = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => setManagingPacksPartner(partner)} title="Gérer les packs">
+                        <Package className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(partner)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -321,6 +326,14 @@ const PartnerManager: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {managingPacksPartner && (
+        <PartnerPackManager
+          partner={managingPacksPartner}
+          open={!!managingPacksPartner}
+          onOpenChange={(open) => { if (!open) setManagingPacksPartner(null); }}
+        />
+      )}
     </div>
   );
 };

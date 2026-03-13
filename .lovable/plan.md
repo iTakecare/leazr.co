@@ -1,36 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Plan : Attribution de packs aux partenaires
+## Statut
 
-### Contexte
-Le service `partnerService.ts` expose déjà `fetchPartnerPacks`, `addPartnerPack`, `removePartnerPack` et `updatePartnerPack`. Il manque l'interface utilisateur pour gérer les packs d'un partenaire.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-### Approche
-Ajouter un bouton **"Gérer les packs"** sur chaque ligne partenaire dans le tableau. Ce bouton ouvre un **dialog dédié** (`PartnerPackManager`) qui affiche :
+## Endpoints API ajoutés
 
-1. **Les packs déjà attribués** au partenaire (avec possibilité de supprimer)
-2. **Un sélecteur** pour ajouter un pack existant (dropdown des packs disponibles via `product_packs`)
-3. **Toggle "Personnalisable"** sur chaque pack attribué (pour activer les options de personnalisation)
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-### Fichiers à créer/modifier
+## Documentation
 
-**1. Créer `src/components/partners/PartnerPackManager.tsx`**
-- Dialog qui reçoit `partnerId` et `partnerName` en props
-- `useQuery` pour charger les packs attribués via `fetchPartnerPacks`
-- `useQuery` pour charger tous les packs disponibles via `getPacks()` (du `packService`)
-- Dropdown `Select` filtrant les packs non-encore attribués
-- Bouton "Ajouter" qui appelle `addPartnerPack`
-- Liste des packs attribués avec : nom, prix, toggle personnalisable, bouton supprimer
-- Mutations avec invalidation du cache
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-**2. Modifier `src/components/partners/PartnerManager.tsx`**
-- Importer `PartnerPackManager`
-- Ajouter un état `managingPacksPartner` (Partner | null)
-- Ajouter un bouton `Package` icon sur chaque ligne du tableau
-- Rendre `<PartnerPackManager>` conditionnel sur cet état
+## Tables
 
-### Détail technique
-- Réutilise `getPacks()` de `packService.ts` pour lister les packs du catalogue
-- Réutilise `fetchPartnerPacks`, `addPartnerPack`, `removePartnerPack`, `updatePartnerPack` de `partnerService.ts`
-- Query keys : `["partner-packs", partnerId]` et `["packs"]`
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
