@@ -638,7 +638,7 @@ const CatalogApiSettings = () => {
               </div>
               
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg mt-4">
-                <h4 className="font-medium text-amber-900 mb-2">✏️ Permissions d'écriture (API v2024.4)</h4>
+                <h4 className="font-medium text-amber-900 mb-2">✏️ Permissions d'écriture (API v2026.1)</h4>
                 <p className="text-sm text-amber-700 mb-2">
                   Les endpoints PATCH nécessitent des permissions spécifiques dans votre clé API :
                 </p>
