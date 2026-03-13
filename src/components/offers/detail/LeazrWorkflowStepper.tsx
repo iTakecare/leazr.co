@@ -29,20 +29,22 @@ import EmailConfirmationModal from "../EmailConfirmationModal";
 import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
 import { getOfferById } from "@/services/offerService";
 
-interface WinBrokerWorkflowStepperProps {
+interface LeazrWorkflowStepperProps {
   currentStatus: string;
   offerId: string;
   onStatusChange?: (status: string) => void;
+  onRefresh?: () => void;
   internalScore?: 'A' | 'B' | 'C' | null;
   leaserScore?: 'A' | 'B' | 'C' | null;
   onAnalysisClick?: (analysisType: 'internal' | 'leaser') => void;
   offer?: any;
 }
 
-const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({ 
+const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({ 
   currentStatus, 
   offerId,
   onStatusChange,
+  onRefresh,
   internalScore,
   leaserScore,
   onAnalysisClick,
