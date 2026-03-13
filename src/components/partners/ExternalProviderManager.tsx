@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronUp, Upload, X, Loader2 } from "lucide-react";
+import { cleanFileUpload } from "@/services/cleanFileUploadService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +42,8 @@ const ExternalProviderManager: React.FC = () => {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ExternalProviderProduct | null>(null);
   const [currentProviderId, setCurrentProviderId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [providerForm, setProviderForm] = useState<CreateExternalProviderData>({
     name: "",
@@ -348,8 +351,47 @@ const ExternalProviderManager: React.FC = () => {
               <Textarea value={providerForm.description || ""} onChange={(e) => setProviderForm(p => ({ ...p, description: e.target.value }))} rows={2} />
             </div>
             <div>
-              <Label>URL du logo</Label>
-              <Input value={providerForm.logo_url || ""} onChange={(e) => setProviderForm(p => ({ ...p, logo_url: e.target.value }))} placeholder="https://..." />
+              <Label>Logo</Label>
+              {providerForm.logo_url ? (
+                <div className="flex items-center gap-3 mt-1">
+                  <img src={providerForm.logo_url} alt="Logo" className="h-16 w-16 rounded border object-contain bg-background" />
+                  <Button variant="outline" size="sm" onClick={() => setProviderForm(p => ({ ...p, logo_url: "" }))}>
+                    <X className="h-4 w-4 mr-1" /> Supprimer
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploading(true);
+                      try {
+                        const url = await cleanFileUpload(file, "site-settings", "providers");
+                        if (url) {
+                          setProviderForm(p => ({ ...p, logo_url: url }));
+                        }
+                      } finally {
+                        setIsUploading(false);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                    {isUploading ? "Upload..." : "Choisir un logo"}
+                  </Button>
+                </div>
+              )}
             </div>
             <div>
               <Label>Site web</Label>
