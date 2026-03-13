@@ -359,6 +359,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       }
       setShowEmailModal(false);
       onStatusChange?.('offer_validation');
+      onRefresh?.();
     } finally {
       setIsEmailProcessing(false);
     }
