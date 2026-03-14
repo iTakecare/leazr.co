@@ -13,10 +13,11 @@ interface OfferTypeTagProps {
   type: string;
   source?: string | null;
   hasCustomPacks?: boolean;
+  partnerName?: string | null;
   size?: "sm" | "md" | "lg";
 }
 
-const OfferTypeTag = ({ type, source, hasCustomPacks = false, size = "md" }: OfferTypeTagProps) => {
+const OfferTypeTag = ({ type, source, hasCustomPacks = false, partnerName, size = "md" }: OfferTypeTagProps) => {
   // Si type est vide, afficher la SOURCE au lieu du type
   if (!type || type === "") {
     const sourceLabel = translateOfferSource(source);

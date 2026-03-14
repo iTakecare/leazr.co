@@ -3,7 +3,7 @@
  * Traduit les types d'offres de la base de données en libellés français pour l'affichage
  */
 
-export const translateOfferType = (type: string | undefined | null): string => {
+export const translateOfferType = (type: string | undefined | null, partnerName?: string | null): string => {
   if (!type) return "Non défini";
   
   switch (type.toLowerCase()) {
@@ -19,6 +19,8 @@ export const translateOfferType = (type: string | undefined | null): string => {
       return "Demande Achat";
     case 'partner_offer':
       return "Offre partenaire";
+    case 'partner_request':
+      return partnerName ? `Partenaire - ${partnerName}` : "Partenaire";
     case 'self_leasing':
       return "Location propre";
     default:

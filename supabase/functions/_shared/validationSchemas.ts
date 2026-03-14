@@ -162,7 +162,21 @@ export const createProductRequestSchema = z.object({
   total: z.number().nonnegative().max(10000000, 'Total invalide').optional(),
   create_client_account: z.boolean().optional(),
   notes: z.string().trim().max(2000, 'Notes trop longues').optional(),
-  request_type: z.enum(['quote', 'order'], { errorMap: () => ({ message: 'Type de requête invalide' }) }).optional()
+  request_type: z.enum(['quote', 'order'], { errorMap: () => ({ message: 'Type de requête invalide' }) }).optional(),
+  
+  // Partner fields
+  partner_slug: z.string().trim().min(1).max(100, 'Slug partenaire trop long').optional(),
+  partner_name: z.string().trim().min(1).max(200, 'Nom partenaire trop long').optional(),
+  
+  // External services (from partner providers)
+  external_services: z.array(z.object({
+    provider_name: z.string().trim().min(1, 'Nom du prestataire requis').max(200),
+    product_name: z.string().trim().min(1, 'Nom du produit requis').max(500),
+    description: z.string().trim().max(1000, 'Description trop longue').optional(),
+    price_htva: z.number().nonnegative().max(100000, 'Prix invalide'),
+    billing_period: z.enum(['monthly', 'yearly', 'one_time'], { errorMap: () => ({ message: 'Période de facturation invalide' }) }),
+    quantity: z.number().int().positive().max(100, 'Quantité trop élevée').optional().default(1)
+  })).max(20, 'Maximum 20 services externes').optional()
 }).refine((data) => {
   // Au moins l'un des deux formats doit être fourni
   const hasOldFormat = !!data.client;
