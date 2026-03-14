@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Package, Trash2, Plus, Loader2 } from "lucide-react";
+import { Package, Trash2, Plus, Loader2, Settings2 } from "lucide-react";
+import PartnerPackOptionsEditor from "./PartnerPackOptionsEditor";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,7 @@ interface PartnerPackManagerProps {
 const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, onOpenChange }) => {
   const queryClient = useQueryClient();
   const [selectedPackId, setSelectedPackId] = useState<string>("");
+  const [optionsEditorPack, setOptionsEditorPack] = useState<{ id: string; name: string } | null>(null);
 
   const { data: partnerPacks = [], isLoading: loadingPacks } = useQuery({
     queryKey: ["partner-packs", partner.id],
@@ -78,6 +80,7 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -159,17 +162,29 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
                       />
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (confirm("Retirer ce pack du partenaire ?")) {
-                            removeMutation.mutate(pp.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {pp.is_customizable && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Gerer les options"
+                            onClick={() => setOptionsEditorPack({ id: pp.id, name: pp.pack?.name || "Pack" })}
+                          >
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm("Retirer ce pack du partenaire ?")) {
+                              removeMutation.mutate(pp.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -179,6 +194,16 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
         )}
       </DialogContent>
     </Dialog>
+
+    {optionsEditorPack && (
+      <PartnerPackOptionsEditor
+        partnerPackId={optionsEditorPack.id}
+        packName={optionsEditorPack.name}
+        open={!!optionsEditorPack}
+        onOpenChange={(v) => { if (!v) setOptionsEditorPack(null); }}
+      />
+    )}
+    </>
   );
 };
 
