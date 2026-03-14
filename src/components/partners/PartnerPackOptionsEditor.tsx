@@ -304,8 +304,7 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
             Ajouter une categorie d'option
           </Button>
         )}
-      </DialogContent>
-    </Dialog>
+    </div>
   );
 };
 
