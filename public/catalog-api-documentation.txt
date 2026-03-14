@@ -974,10 +974,20 @@ CREATE TABLE product_supplier_prices (
    HISTORIQUE DES VERSIONS
 ===========================================
 
-## Version 2026.1 - 13 mars 2026
-**Écosystème partenaires & prestataires externes**
+## Version 2026.2 - 14 mars 2026
+**Options personnalisables enrichies & UI admin**
 
-NOUVELLES FONCTIONNALITÉS :
+NOUVELLES FONCTIONNALITES :
+- ✅ Options enrichies : allowed_products[] avec details complets
+- ✅ Variants des produits autorises inclus dans la reponse
+- ✅ Interface admin PartnerPackOptionsEditor
+- ✅ Gestion des categories d'options par pack personnalisable
+- ✅ Selection des produits autorises avec filtre par categorie
+
+## Version 2026.1 - 13 mars 2026
+**Ecosysteme partenaires & prestataires externes**
+
+NOUVELLES FONCTIONNALITES :
 - ✅ GET /partners : Liste des partenaires actifs
 - ✅ GET /partners/{slug} : Page partenaire complète
 - ✅ GET /partners/{slug}/packs : Packs exclusifs du partenaire
