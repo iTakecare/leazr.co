@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
+  fetchPartners,
   fetchPartnerPacks,
   fetchPartnerPackOptions,
   upsertPartnerPackOption,
@@ -23,6 +24,7 @@ import type { PartnerPackOption } from "@/types/partner";
 interface PartnerPackOptionsEditorProps {
   partnerPackId: string;
   partnerId: string;
+  companyId: string;
   packName: string;
 }
 
@@ -43,6 +45,7 @@ const emptyForm: OptionFormData = {
 const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   partnerPackId,
   partnerId,
+  companyId,
   packName,
 }) => {
   const queryClient = useQueryClient();
@@ -50,6 +53,7 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   const [form, setForm] = useState<OptionFormData>(emptyForm);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [copySourcePartnerId, setCopySourcePartnerId] = useState<string>("");
   const [copySourcePackId, setCopySourcePackId] = useState<string>("");
   const [isCopying, setIsCopying] = useState(false);
 
@@ -60,13 +64,24 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
 
   const { data: categories = [] } = useCategories();
 
-  // Fetch other packs from the same partner for "copy options" feature
-  const { data: partnerPacks = [] } = useQuery({
-    queryKey: ["partner-packs", partnerId],
-    queryFn: () => fetchPartnerPacks(partnerId),
+  // Fetch all partners for cross-partner copy
+  const { data: allPartners = [] } = useQuery({
+    queryKey: ["partners", companyId],
+    queryFn: () => fetchPartners(companyId),
+    enabled: !!companyId,
   });
 
-  const otherPacks = partnerPacks.filter((pp) => pp.id !== partnerPackId);
+  // Fetch packs from the selected source partner
+  const { data: sourcePartnerPacks = [] } = useQuery({
+    queryKey: ["partner-packs", copySourcePartnerId],
+    queryFn: () => fetchPartnerPacks(copySourcePartnerId),
+    enabled: !!copySourcePartnerId,
+  });
+
+  // Exclude current pack if same partner is selected
+  const availableSourcePacks = sourcePartnerPacks.filter(
+    (pp) => pp.id !== partnerPackId
+  );
 
   const handleCopyOptions = async () => {
     if (!copySourcePackId) return;
@@ -211,15 +226,37 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
 
   return (
     <div className="space-y-4">
-      {otherPacks.length > 0 && (
-        <div className="flex items-center gap-2">
+      {allPartners.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
           <Copy className="h-4 w-4 text-muted-foreground shrink-0" />
-          <Select value={copySourcePackId} onValueChange={setCopySourcePackId}>
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Copier les options d'un autre pack..." />
+          <Select
+            value={copySourcePartnerId}
+            onValueChange={(v) => {
+              setCopySourcePartnerId(v);
+              setCopySourcePackId("");
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Partenaire source..." />
             </SelectTrigger>
             <SelectContent>
-              {otherPacks.map((pp) => (
+              {allPartners.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={copySourcePackId}
+            onValueChange={setCopySourcePackId}
+            disabled={!copySourcePartnerId || availableSourcePacks.length === 0}
+          >
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder={!copySourcePartnerId ? "Choisir un partenaire d'abord..." : availableSourcePacks.length === 0 ? "Aucun pack disponible" : "Pack source..."} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableSourcePacks.map((pp) => (
                 <SelectItem key={pp.id} value={pp.id}>
                   {pp.pack?.name || "Pack inconnu"}
                 </SelectItem>

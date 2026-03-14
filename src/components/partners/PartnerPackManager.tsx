@@ -21,11 +21,12 @@ import type { Partner } from "@/types/partner";
 
 interface PartnerPackManagerProps {
   partner: Partner;
+  companyId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, onOpenChange }) => {
+const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, companyId, open, onOpenChange }) => {
   const queryClient = useQueryClient();
   const [selectedPackId, setSelectedPackId] = useState<string>("");
   const [optionsEditorPack, setOptionsEditorPack] = useState<{ id: string; name: string } | null>(null);
@@ -102,6 +103,7 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
             <PartnerPackOptionsEditor
               partnerPackId={optionsEditorPack.id}
               partnerId={partner.id}
+              companyId={companyId}
               packName={optionsEditorPack.name}
             />
           </>

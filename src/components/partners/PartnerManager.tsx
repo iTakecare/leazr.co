@@ -351,9 +351,10 @@ const PartnerManager: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {managingPacksPartner && (
+      {managingPacksPartner && companyId && (
         <PartnerPackManager
           partner={managingPacksPartner}
+          companyId={companyId}
           open={!!managingPacksPartner}
           onOpenChange={(open) => { if (!open) setManagingPacksPartner(null); }}
         />
