@@ -226,15 +226,37 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
 
   return (
     <div className="space-y-4">
-      {otherPacks.length > 0 && (
-        <div className="flex items-center gap-2">
+      {allPartners.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
           <Copy className="h-4 w-4 text-muted-foreground shrink-0" />
-          <Select value={copySourcePackId} onValueChange={setCopySourcePackId}>
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Copier les options d'un autre pack..." />
+          <Select
+            value={copySourcePartnerId}
+            onValueChange={(v) => {
+              setCopySourcePartnerId(v);
+              setCopySourcePackId("");
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Partenaire source..." />
             </SelectTrigger>
             <SelectContent>
-              {otherPacks.map((pp) => (
+              {allPartners.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={copySourcePackId}
+            onValueChange={setCopySourcePackId}
+            disabled={!copySourcePartnerId || availableSourcePacks.length === 0}
+          >
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder={!copySourcePartnerId ? "Choisir un partenaire d'abord..." : availableSourcePacks.length === 0 ? "Aucun pack disponible" : "Pack source..."} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableSourcePacks.map((pp) => (
                 <SelectItem key={pp.id} value={pp.id}>
                   {pp.pack?.name || "Pack inconnu"}
                 </SelectItem>
