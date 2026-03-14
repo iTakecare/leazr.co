@@ -2,8 +2,8 @@
    DOCUMENTATION API CATALOG LOVABLE 
 ===========================================
 
-VERSION : 2026.2  
-DATE : 14 mars 2026 - Options personnalisables enrichies & UI admin
+VERSION : 2026.3  
+DATE : 14 mars 2026 - Demandes partenaires & services externes
 STATUT : Prêt pour production
 
 ===========================================
