@@ -7,6 +7,32 @@ DATE : 14 mars 2026 - Demandes partenaires & services externes
 STATUT : Prêt pour production
 
 ===========================================
+   NOUVEAUTES VERSION 2026.3
+===========================================
+
+L'endpoint create-product-request supporte desormais les demandes
+partenaires et les services de prestataires externes.
+
+NOUVELLES FONCTIONNALITES :
+
+1. **Champs partenaire (create-product-request)**
+   - `partner_slug` (string, optionnel) : identifiant du partenaire
+   - `partner_name` (string, optionnel) : nom d'affichage
+   - Si partner_slug est present, le type d'offre est `partner_request`
+   - Le tag dans l'admin affiche "Partenaire - {partner_name}"
+
+2. **Services externes (create-product-request)**
+   - `external_services[]` (array, optionnel) : services prestataires
+   - Chaque service : provider_name, product_name, description,
+     price_htva, billing_period (monthly/yearly/one_time), quantity
+   - Stockes dans la nouvelle table `offer_external_services`
+   - Visibles dans le detail d'une demande (onglet Vue d'ensemble)
+
+3. **Nouvelles tables et colonnes**
+   - `offers.partner_slug` et `offers.partner_name` : colonnes texte
+   - `offer_external_services` : table dediee avec RLS
+
+===========================================
    NOUVEAUTES VERSION 2026.2
 ===========================================
 
