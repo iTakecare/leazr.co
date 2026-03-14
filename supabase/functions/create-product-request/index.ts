@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
 import { getAppUrl, getFromEmail, getFromName } from "../_shared/url-utils.ts";
 import { createProductRequestSchema, createValidationErrorResponse } from "../_shared/validationSchemas.ts";
 import { checkRateLimit } from "../_shared/rateLimit.ts";
 import { getClientIp } from "../_shared/security.ts";
-import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { z } from "npm:zod@3.22.4";
 
 // Configuration CORS pour permettre les requêtes depuis n'importe quelle origine
 const corsHeaders = {
