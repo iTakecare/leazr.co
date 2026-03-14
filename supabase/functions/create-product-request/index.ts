@@ -1005,6 +1005,26 @@ serve(async (req) => {
                   </ul>
                 </div>
                 
+                ${data.partner_slug ? `
+                <div style="background: linear-gradient(135deg, #fef3e2 0%, #fde8c8 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #e67e22;">
+                  <h3 style="color: #d35400; margin-top: 0;">🤝 Source partenaire</h3>
+                  <p style="margin: 0;"><strong>${data.partner_name || data.partner_slug}</strong></p>
+                </div>
+                ` : ''}
+
+                ${data.external_services && data.external_services.length > 0 ? `
+                <div style="background: linear-gradient(135deg, #f3e8ff 0%, #e8d5ff 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #8e44ad;">
+                  <h3 style="color: #7b2d8e; margin-top: 0;">📡 Services externes (${data.external_services.length})</h3>
+                  <ul style="list-style: none; padding: 0; margin: 0;">
+                    ${data.external_services.map((svc: any) => {
+                      const period = svc.billing_period === 'monthly' ? '/mois' : svc.billing_period === 'yearly' ? '/an' : '';
+                      const qty = (svc.quantity || 1) > 1 ? ` × ${svc.quantity}` : '';
+                      return `<li style="margin: 8px 0;">• <strong>${svc.provider_name}</strong> — ${svc.product_name}${qty} : ${svc.price_htva.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HTVA${period}</li>`;
+                    }).join('')}
+                  </ul>
+                </div>
+                ` : ''}
+
                 ${data.delivery_info ? `
                 <div style="background: linear-gradient(135deg, #f8fff0 0%, #efffdc 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #4caf50;">
                   <h3 style="color: #2e7d32; margin-top: 0;">🚚 Adresse de livraison</h3>
