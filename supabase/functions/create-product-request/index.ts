@@ -1163,7 +1163,10 @@ serve(async (req) => {
       coefficient: coefficient,
       financed_amount: totalFinancedAmount,
       margin: parseFloat(marginAmount.toFixed(2)),
-      packs_summary: packsSummary, // ✅ NOUVEAU
+      packs_summary: packsSummary,
+      partner_slug: data.partner_slug || null,
+      partner_name: data.partner_name || null,
+      external_services_count: data.external_services?.length || 0,
       created_at: new Date().toISOString()
     };
 
