@@ -60,6 +60,45 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
 
   const { data: categories = [] } = useCategories();
 
+  // Fetch other packs from the same partner for "copy options" feature
+  const { data: partnerPacks = [] } = useQuery({
+    queryKey: ["partner-packs", partnerId],
+    queryFn: () => fetchPartnerPacks(partnerId),
+  });
+
+  const otherPacks = partnerPacks.filter((pp) => pp.id !== partnerPackId);
+
+  const handleCopyOptions = async () => {
+    if (!copySourcePackId) return;
+    setIsCopying(true);
+    try {
+      const sourceOptions = await fetchPartnerPackOptions(copySourcePackId);
+      if (sourceOptions.length === 0) {
+        toast.error("Ce pack n'a aucune option à copier");
+        return;
+      }
+      for (const option of sourceOptions) {
+        await upsertPartnerPackOption({
+          partner_pack_id: partnerPackId,
+          category_name: option.category_name,
+          is_required: option.is_required,
+          max_quantity: option.max_quantity,
+          position: option.position,
+          allowed_product_ids: (option.allowed_product_ids || []).map(
+            (id: string) => id.startsWith("vprice_") ? id.replace("vprice_", "") : id
+          ),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["partner-pack-options", partnerPackId] });
+      setCopySourcePackId("");
+      toast.success(`${sourceOptions.length} option(s) copiée(s) avec succès`);
+    } catch (e: any) {
+      toast.error(e.message || "Erreur lors de la copie");
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   const { data: allProducts = [], isLoading: loadingProducts } = useQuery({
     queryKey: ["products-for-options"],
     queryFn: () => getProducts({ includeAdminOnly: true }),
