@@ -58,7 +58,6 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   const { data: allProducts = [], isLoading: loadingProducts } = useQuery({
     queryKey: ["products-for-options"],
     queryFn: () => getProducts({ includeAdminOnly: true }),
-    enabled: open,
   });
 
   const filteredProducts = selectedCategory
