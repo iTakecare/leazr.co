@@ -1,31 +1,48 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Plan : Afficher les variantes des produits dans l'éditeur d'options
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Problème
 
-## Endpoints API ajoutés
+Actuellement, la liste des produits dans `PartnerPackOptionsEditor` n'affiche que le nom du produit parent. Les produits avec variantes (RAM, stockage, etc.) ne montrent pas leurs déclinaisons. L'admin ne peut pas choisir quelles variantes spécifiques autoriser.
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+### Solution
 
-## Documentation
+Modifier `PartnerPackOptionsEditor` pour afficher les produits **avec leurs variantes** dans la liste de sélection. Les produits avec `product_variant_prices` seront affichés en arborescence : le parent comme en-tête, puis chaque variante indentée avec ses attributs et son prix mensuel.
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+### Changements
 
-## Tables
+**Fichier : `src/components/partners/PartnerPackOptionsEditor.tsx`**
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
+1. **Enrichir la requête produits** : `getProducts` retourne déjà `product_variant_prices` (voir catalogService L24-30). Ces données sont disponibles.
+
+2. **Refondre la liste de sélection** pour afficher une arborescence :
+   - Produit sans variantes → checkbox simple (comme aujourd'hui)
+   - Produit avec variantes → label parent non-sélectionnable + sous-liste indentée de chaque variante avec :
+     - Checkbox
+     - Attributs formatés (ex: "16Go RAM / 512Go SSD")
+     - Prix mensuel
+   - L'ID stocké dans `allowed_product_ids` sera le `product_variant_price.id` (préfixé `vprice_`) pour distinguer des product IDs
+
+3. **Ajouter un toggle "Tout sélectionner"** par produit parent pour cocher/décocher toutes ses variantes d'un coup
+
+4. **Mettre à jour le compteur** pour refléter le nombre de variantes sélectionnées
+
+### Structure de rendu
+
+```text
+☐ MacBook Air M2 (Apple)                    [Tout sélectionner]
+   ☐ 8Go RAM / 256Go SSD                    12.50 EUR/mois
+   ☐ 8Go RAM / 512Go SSD                    15.00 EUR/mois
+   ☐ 16Go RAM / 512Go SSD                   18.00 EUR/mois
+☑ Écran 24" Samsung (Samsung)                9.99 EUR/mois
+```
+
+### Impact sur le stockage
+
+Les `allowed_product_ids` contiendront un mix de :
+- IDs de produits simples (UUID produit)
+- IDs de variantes prix (UUID `product_variant_prices`)
+
+L'API catalog-api devra interpréter ces deux types — mais comme elle enrichit déjà les produits avec leurs variantes, le site client pourra filtrer côté front.
+
