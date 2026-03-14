@@ -1389,18 +1389,58 @@ async function getPartnerPacks(supabase: any, companyId: string, partnerIdOrSlug
       if (!optionsMap[opt.partner_pack_id]) optionsMap[opt.partner_pack_id] = []
       
       // Fetch allowed products details
+      // allowed_product_ids contains a mix of product IDs and variant price IDs
       let allowedProducts: any[] = []
       if (opt.allowed_product_ids && opt.allowed_product_ids.length > 0) {
-        const { data: products } = await supabase
-          .from('products')
-          .select(`
-            id, name, slug, image_url, price, monthly_price, brand_name, category_name, short_description,
-            product_variant_prices(id, attributes, price, monthly_price)
-          `)
-          .in('id', opt.allowed_product_ids)
-          .eq('active', true)
-          .or("admin_only.is.null,admin_only.eq.false")
-        allowedProducts = products || []
+        const allowedIds: string[] = opt.allowed_product_ids
+
+        // Step 1: Look up which IDs are variant price IDs
+        const { data: variantPrices } = await supabase
+          .from('product_variant_prices')
+          .select('id, product_id')
+          .in('id', allowedIds)
+
+        const variantPriceIds = new Set((variantPrices || []).map((vp: any) => vp.id))
+        const parentProductIds = [...new Set((variantPrices || []).map((vp: any) => vp.product_id))]
+
+        // Step 2: IDs not found in variant_prices are direct product IDs
+        const directProductIds = allowedIds.filter((id: string) => !variantPriceIds.has(id))
+
+        // Step 3: Union of all product IDs to fetch
+        const allProductIds = [...new Set([...parentProductIds, ...directProductIds])]
+
+        if (allProductIds.length > 0) {
+          const { data: products } = await supabase
+            .from('products')
+            .select(`
+              id, name, slug, image_url, price, monthly_price, brand_name, category_name, short_description,
+              product_variant_prices(id, attributes, price, monthly_price)
+            `)
+            .in('id', allProductIds)
+            .eq('active', true)
+            .or("admin_only.is.null,admin_only.eq.false")
+
+          // Step 4: Filter variants to only those selected, exclude products with 0 selected variants
+          for (const product of (products || [])) {
+            if (product.product_variant_prices && product.product_variant_prices.length > 0) {
+              // Filter to only allowed variant prices
+              const filteredVariants = product.product_variant_prices.filter(
+                (vp: any) => variantPriceIds.has(vp.id)
+              )
+              if (filteredVariants.length > 0) {
+                allowedProducts.push({ ...product, product_variant_prices: filteredVariants })
+              }
+              // If 0 selected variants AND it's not a direct product ID → skip
+              else if (directProductIds.includes(product.id)) {
+                allowedProducts.push(product)
+              }
+              // else: skip product (0 variants selected)
+            } else {
+              // Simple product (no variants) — include as-is
+              allowedProducts.push(product)
+            }
+          }
+        }
       }
       
       optionsMap[opt.partner_pack_id].push({
