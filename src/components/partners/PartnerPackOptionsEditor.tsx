@@ -96,7 +96,9 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
       category_name: option.category_name,
       is_required: option.is_required,
       max_quantity: option.max_quantity,
-      allowed_product_ids: option.allowed_product_ids || [],
+      allowed_product_ids: (option.allowed_product_ids || []).map(
+        (id: string) => id.startsWith("vprice_") ? id.replace("vprice_", "") : id
+      ),
     });
     const matchingCat = (categories as any[]).find((c: any) => c.name === option.category_name);
     setSelectedCategory(matchingCat?.id || "");
