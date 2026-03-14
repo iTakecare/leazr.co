@@ -315,6 +315,22 @@ const ExternalProviderManager: React.FC = () => {
                                   <Button variant="ghost" size="icon" onClick={() => openEditProduct(product)}>
                                     <Pencil className="h-3 w-3" />
                                   </Button>
+                                  <Button variant="ghost" size="icon" title="Dupliquer" onClick={() => {
+                                    createProductMut.mutate({
+                                      provider_id: product.provider_id,
+                                      name: `${product.name} (copie)`,
+                                      description: product.description,
+                                      price_htva: product.price_htva,
+                                      billing_period: product.billing_period,
+                                      image_url: product.image_url,
+                                      category: product.category,
+                                      external_url: product.external_url,
+                                      position: product.position,
+                                      is_active: product.is_active,
+                                    });
+                                  }}>
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
                                   <Button variant="ghost" size="icon" onClick={() => {
                                     if (confirm(`Supprimer "${product.name}" ?`)) deleteProductMut.mutate(product.id);
                                   }}>
