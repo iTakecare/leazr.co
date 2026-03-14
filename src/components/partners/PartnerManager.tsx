@@ -205,7 +205,15 @@ const PartnerManager: React.FC = () => {
                       <Button variant="ghost" size="icon" onClick={() => setManagingPacksPartner(partner)} title="Gérer les packs">
                         <Package className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setManagingProvidersPartner(partner)} title="Prestataires externes">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => duplicateMutation.mutate(partner.id)}
+                        disabled={duplicateMutation.isPending}
+                        title="Dupliquer le partenaire"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                         <Link className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(partner)}>
