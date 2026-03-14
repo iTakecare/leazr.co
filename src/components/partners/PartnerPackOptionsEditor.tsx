@@ -281,34 +281,105 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
                 {loadingProducts ? (
                   <div className="text-sm text-muted-foreground">Chargement des produits...</div>
                 ) : (
-                  <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
+                  <div className="border rounded-md max-h-64 overflow-y-auto p-2 space-y-0.5">
                     {filteredProducts.length === 0 ? (
                       <div className="text-sm text-muted-foreground py-2 text-center">
                         Aucun produit trouve{selectedCategory ? " dans cette categorie" : ""}
                       </div>
                     ) : (
-                      (filteredProducts as any[]).map((product: any) => (
-                        <label
-                          key={product.id}
-                          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={form.allowed_product_ids.includes(product.id)}
-                            onChange={() => toggleProductId(product.id)}
-                            className="rounded border-input"
-                          />
-                          <span className="truncate flex-1">{product.name}</span>
-                          {product.brand && (
-                            <span className="text-xs text-muted-foreground shrink-0">{product.brand}</span>
-                          )}
-                          {product.monthly_price != null && (
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              {Number(product.monthly_price).toFixed(2)} EUR/mois
-                            </span>
-                          )}
-                        </label>
-                      ))
+                      (filteredProducts as any[]).map((product: any) => {
+                        const variants = product.variant_combination_prices || product.product_variant_prices || [];
+                        const hasVariants = variants.length > 0;
+                        const isExpanded = expandedProducts.has(product.id);
+
+                        if (!hasVariants) {
+                          // Simple product - single checkbox
+                          return (
+                            <label
+                              key={product.id}
+                              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={form.allowed_product_ids.includes(product.id)}
+                                onChange={() => toggleProductId(product.id)}
+                                className="rounded border-input"
+                              />
+                              <span className="truncate flex-1">{product.name}</span>
+                              {product.brand && (
+                                <span className="text-xs text-muted-foreground shrink-0">{product.brand}</span>
+                              )}
+                              {product.monthly_price != null && (
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  {Number(product.monthly_price).toFixed(2)} EUR/mois
+                                </span>
+                              )}
+                            </label>
+                          );
+                        }
+
+                        // Product with variants - tree view
+                        const variantIds = variants.map((v: any) => `vprice_${v.id}`);
+                        const selectedCount = variantIds.filter((id: string) => form.allowed_product_ids.includes(id)).length;
+                        const allSelected = selectedCount === variantIds.length;
+
+                        return (
+                          <div key={product.id} className="border-b border-border/50 last:border-0">
+                            <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent/50 rounded">
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded(product.id)}
+                                className="shrink-0 text-muted-foreground hover:text-foreground"
+                              >
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </button>
+                              <span className="font-medium text-sm truncate flex-1">{product.name}</span>
+                              {product.brand && (
+                                <span className="text-xs text-muted-foreground shrink-0">{product.brand}</span>
+                              )}
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                {selectedCount}/{variants.length}
+                              </Badge>
+                              <button
+                                type="button"
+                                onClick={() => toggleAllVariants(variantIds)}
+                                className="text-xs text-primary hover:underline shrink-0"
+                              >
+                                {allSelected ? "Tout deselectionner" : "Tout selectionner"}
+                              </button>
+                            </div>
+                            {isExpanded && (
+                              <div className="ml-6 space-y-0.5 pb-1">
+                                {variants.map((variant: any) => {
+                                  const vid = `vprice_${variant.id}`;
+                                  const attrs = variant.attributes || {};
+                                  return (
+                                    <label
+                                      key={vid}
+                                      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-sm"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={form.allowed_product_ids.includes(vid)}
+                                        onChange={() => toggleProductId(vid)}
+                                        className="rounded border-input"
+                                      />
+                                      <span className="truncate flex-1 text-muted-foreground">
+                                        {formatAttributes(attrs) || "Variante"}
+                                      </span>
+                                      {variant.monthly_price != null && (
+                                        <span className="text-xs text-muted-foreground shrink-0">
+                                          {Number(variant.monthly_price).toFixed(2)} EUR/mois
+                                        </span>
+                                      )}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 )}
