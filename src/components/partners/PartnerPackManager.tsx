@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Package, Trash2, Plus, Loader2 } from "lucide-react";
+import { Package, Trash2, Plus, Loader2, Settings2 } from "lucide-react";
+import PartnerPackOptionsEditor from "./PartnerPackOptionsEditor";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
