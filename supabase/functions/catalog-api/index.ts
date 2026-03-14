@@ -489,7 +489,7 @@ async function getRelatedProducts(supabase: any, companyId: string, productId: s
     .or("admin_only.is.null,admin_only.eq.false")
     .limit(6)
 
-  return { products: relatedProducts }
+  return { products: (relatedProducts || []).map(flattenProductBrandCategory) }
 }
 
 async function getProductCO2(supabase: any, companyId: string, productId: string, permissions: any) {
