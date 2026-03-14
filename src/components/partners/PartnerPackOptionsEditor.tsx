@@ -351,7 +351,7 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
                             {isExpanded && (
                               <div className="ml-6 space-y-0.5 pb-1">
                                 {variants.map((variant: any) => {
-                                  const vid = `vprice_${variant.id}`;
+                                  const vid = variant.id;
                                   const attrs = variant.attributes || {};
                                   return (
                                     <label
