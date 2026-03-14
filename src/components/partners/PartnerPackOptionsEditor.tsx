@@ -64,13 +64,24 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
 
   const { data: categories = [] } = useCategories();
 
-  // Fetch other packs from the same partner for "copy options" feature
-  const { data: partnerPacks = [] } = useQuery({
-    queryKey: ["partner-packs", partnerId],
-    queryFn: () => fetchPartnerPacks(partnerId),
+  // Fetch all partners for cross-partner copy
+  const { data: allPartners = [] } = useQuery({
+    queryKey: ["partners", companyId],
+    queryFn: () => fetchPartners(companyId),
+    enabled: !!companyId,
   });
 
-  const otherPacks = partnerPacks.filter((pp) => pp.id !== partnerPackId);
+  // Fetch packs from the selected source partner
+  const { data: sourcePartnerPacks = [] } = useQuery({
+    queryKey: ["partner-packs", copySourcePartnerId],
+    queryFn: () => fetchPartnerPacks(copySourcePartnerId),
+    enabled: !!copySourcePartnerId,
+  });
+
+  // Exclude current pack if same partner is selected
+  const availableSourcePacks = sourcePartnerPacks.filter(
+    (pp) => pp.id !== partnerPackId
+  );
 
   const handleCopyOptions = async () => {
     if (!copySourcePackId) return;
