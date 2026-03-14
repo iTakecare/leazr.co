@@ -28,6 +28,7 @@ interface PartnerPackManagerProps {
 const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, onOpenChange }) => {
   const queryClient = useQueryClient();
   const [selectedPackId, setSelectedPackId] = useState<string>("");
+  const [optionsEditorPack, setOptionsEditorPack] = useState<{ id: string; name: string } | null>(null);
 
   const { data: partnerPacks = [], isLoading: loadingPacks } = useQuery({
     queryKey: ["partner-packs", partner.id],
