@@ -53,6 +53,7 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   const [form, setForm] = useState<OptionFormData>(emptyForm);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [copySourcePartnerId, setCopySourcePartnerId] = useState<string>("");
   const [copySourcePackId, setCopySourcePackId] = useState<string>("");
   const [isCopying, setIsCopying] = useState(false);
 
