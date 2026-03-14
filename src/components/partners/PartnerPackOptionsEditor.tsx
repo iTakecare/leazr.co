@@ -51,7 +51,6 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   const { data: options = [], isLoading: loadingOptions } = useQuery({
     queryKey: ["partner-pack-options", partnerPackId],
     queryFn: () => fetchPartnerPackOptions(partnerPackId),
-    enabled: open,
   });
 
   const { data: categories = [] } = useCategories();
