@@ -5,6 +5,7 @@ import { getAppUrl, getFromEmail, getFromName } from "../_shared/url-utils.ts";
 import { createProductRequestSchema, createValidationErrorResponse } from "../_shared/validationSchemas.ts";
 import { checkRateLimit } from "../_shared/rateLimit.ts";
 import { getClientIp } from "../_shared/security.ts";
+import { stripHtml, generateClientConfirmationEmail, generateClientAccountEmail, generateAdminNotificationEmail } from "../_shared/emailTemplates.ts";
 import { z } from "npm:zod@3.22.4";
 
 // Configuration CORS pour permettre les requêtes depuis n'importe quelle origine
@@ -101,7 +102,6 @@ serve(async (req) => {
     console.log("Données reçues par la fonction Edge:", data);
     
     // ========= EXTRACTION DES INFORMATIONS CLIENT ==========
-    // Support des deux formats : ancien (client) et nouveau (contact_info + company_info)
     let clientName: string;
     let clientEmail: string;
     let clientCompany: string | undefined;
@@ -118,14 +118,12 @@ serve(async (req) => {
     let deliverySameAsBilling = true;
 
     if (data.client) {
-      // Format ancien (client direct)
       console.log("📦 Utilisation du format ancien (client)");
       clientName = data.client.name;
       clientEmail = data.client.email;
       clientCompany = data.client.company;
       clientPhone = data.client.phone;
     } else if (data.contact_info && data.company_info) {
-      // Format nouveau (iTakecare)
       console.log("📦 Utilisation du format nouveau (contact_info + company_info)");
       const firstName = data.contact_info.first_name || '';
       const lastName = data.contact_info.last_name || '';
@@ -140,7 +138,6 @@ serve(async (req) => {
       clientPostalCode = data.company_info.postal_code;
       clientCountry = data.company_info.country;
       
-      // Adresse de livraison
       if (data.delivery_info) {
         deliverySameAsBilling = data.delivery_info.same_as_company ?? true;
         deliveryAddress = deliverySameAsBilling ? clientAddress : data.delivery_info.address;
@@ -157,6 +154,8 @@ serve(async (req) => {
       format: data.client ? 'ancien' : 'nouveau'
     });
     
+    const companyName = clientCompany || '';
+    
     // Traitement des produits
     console.log("Traitement des produits:", data.products);
     
@@ -168,7 +167,6 @@ serve(async (req) => {
     let targetCompanyId = null;
     
     if (refererHeader.includes('.leazr.co')) {
-      // Extraction du sous-domaine
       const subdomain = refererHeader.split('//')[1]?.split('.')[0];
       if (subdomain && subdomain !== 'www') {
         const { data: companyDomain } = await supabaseAdmin
@@ -183,14 +181,13 @@ serve(async (req) => {
       }
     }
     
-    // Si pas de company détectée, utiliser la company par défaut (iTakecare)
     if (!targetCompanyId) {
       console.log("Utilisation du company_id par défaut: c1ce66bb-3ad2-474d-b477-583baa7ff1c0");
       targetCompanyId = "c1ce66bb-3ad2-474d-b477-583baa7ff1c0";
     }
 
     const equipmentList = [];
-    const equipmentCalculations = []; // Store calculations for later use
+    const equipmentCalculations = [];
     let totalPurchaseAmount = 0;
     let totalMonthlyPayment = 0;
     let totalFinancedAmountEstimate = 0;
@@ -199,16 +196,12 @@ serve(async (req) => {
     for (const product of data.products) {
       console.log("Produit reçu:", JSON.stringify(product, null, 2));
       
-      // Récupérer le nom du produit
-      console.log("Récupération du nom du produit pour product_id:", product.product_id);
-      
       const { data: productInfo, error: productError } = await supabaseAdmin
         .from('products')
         .select('name, description')
         .eq('id', product.product_id)
         .single();
       
-      // Si produit non trouvé → mettre "Produit inconnu"
       const productName = productError 
         ? "Produit inconnu" 
         : (productInfo?.name || "Produit inconnu");
@@ -220,12 +213,11 @@ serve(async (req) => {
       }
 
       // ========== RÉCUPÉRATION DES PRIX ==========
-      let price = 0; // Prix d'achat unitaire (purchase_price)
+      let price = 0;
       let attributes = {};
-      let variantMonthlyPrice = 0; // Mensualité unitaire depuis variant
-      let productMonthlyPrice = 0; // Mensualité unitaire depuis product (fallback)
+      let variantMonthlyPrice = 0;
+      let productMonthlyPrice = 0;
 
-      // 🔵 PRIX D'ACHAT + MENSUALITÉ : TOUJOURS depuis DB Leazr (source de vérité)
       console.log(`🔍 Récupération des prix depuis DB Leazr pour ${productName}`);
       
       if (product.variant_id) {
@@ -245,7 +237,6 @@ serve(async (req) => {
         }
       }
       
-      // Fallback sur la table products si variante non trouvée ou pas de variant_id
       if (price === 0) {
         const { data: productPrices } = await supabaseAdmin
           .from('products')
@@ -258,18 +249,15 @@ serve(async (req) => {
         console.log(`✅ Prix récupérés de products (fallback): achat=${price}€, mensuel=${productMonthlyPrice}€`);
       }
 
-      // 🟢 MENSUALITÉ UNITAIRE : DB Leazr comme source de vérité
       let monthlyPrice = variantMonthlyPrice || productMonthlyPrice || 0;
       console.log(`📊 Mensualité UNITAIRE DB Leazr: ${monthlyPrice}€`);
       
-      // Appliquer la réduction pack partenaire si applicable
       if (monthlyPrice > 0 && product.pack_discount_percentage && product.pack_discount_percentage > 0) {
         const originalMonthly = monthlyPrice;
         monthlyPrice = monthlyPrice * (1 - product.pack_discount_percentage / 100);
         console.log(`🏷️ Réduction pack ${product.pack_discount_percentage}% appliquée: ${originalMonthly}€ → ${monthlyPrice}€`);
       }
       
-      // Fallback sur unit_price iTakecare UNIQUEMENT si pas de prix mensuel en DB
       if (monthlyPrice === 0) {
         monthlyPrice = (product.unit_price || 0) / product.quantity;
         console.log(`⚠️ Fallback sur unit_price iTakecare: ${monthlyPrice}€/u`);
@@ -277,12 +265,10 @@ serve(async (req) => {
       
       const totalMonthlyForLine = monthlyPrice * product.quantity;
       
-      // Calculs par équipement
-      const coefficient = 3.53; // Estimation initiale
-      const sellingPrice = (monthlyPrice * 100) / coefficient;
+      const coefficientInit = 3.53;
+      const sellingPrice = (monthlyPrice * 100) / coefficientInit;
       const equipmentMargin = price > 0 ? ((sellingPrice - price) / price) * 100 : 0;
       
-      // Totaux pour cet équipement
       const totalPurchasePrice = price * product.quantity;
       const totalSellingPrice = sellingPrice * product.quantity;
       
@@ -298,14 +284,10 @@ serve(async (req) => {
         pack_discount: product.pack_discount_percentage || 0
       });
       
-      // Accumuler les totaux
       totalPurchaseAmount += totalPurchasePrice;
-      totalMonthlyPayment += totalMonthlyForLine; // Utiliser le total mensuel depuis DB Leazr
+      totalMonthlyPayment += totalMonthlyForLine;
       totalFinancedAmountEstimate += totalSellingPrice;
       
-      console.log("Montants cumulés - Total d'achat:", totalPurchaseAmount, "Mensuel:", totalMonthlyPayment);
-      
-      // Stocker les calculs pour plus tard
       equipmentCalculations.push({
         productName,
         productId: product.product_id,
@@ -321,7 +303,6 @@ serve(async (req) => {
       });
       
       equipmentList.push(`${productName} (x${product.quantity})`);
-      console.log("Attributs du variant à stocker:", attributes);
     }
     
     console.log("Liste d'équipements:", equipmentList);
@@ -330,15 +311,7 @@ serve(async (req) => {
     // Récupérer le leaser Grenke et ses tranches
     const { data: leaserData } = await supabaseAdmin
       .from('leasers')
-      .select(`
-        id,
-        name,
-        leaser_ranges (
-          min,
-          max,
-          coefficient
-        )
-      `)
+      .select(`id, name, leaser_ranges (min, max, coefficient)`)
       .eq('name', '1. Grenke Lease')
       .single();
 
@@ -346,35 +319,24 @@ serve(async (req) => {
       throw new Error('Leaser Grenke non trouvé ou tranches manquantes');
     }
 
-    console.log("GRENKE trouvé avec tranches:", leaserData.name, "- Nombre de tranches:", leaserData.leaser_ranges.length);
-
-    // Fonction pour trouver le coefficient selon le montant
     function getCoefficientForAmount(amount: number, ranges: any[]): number {
       const sortedRanges = ranges.sort((a, b) => a.min - b.min);
-      
       for (const range of sortedRanges) {
         if (amount >= range.min && amount <= range.max) {
-          return range.coefficient || 3.53; // Fallback par défaut
+          return range.coefficient || 3.53;
         }
       }
-      
-      // Si pas de tranche trouvée, utiliser la dernière tranche
       const lastRange = sortedRanges[sortedRanges.length - 1];
       return lastRange?.coefficient || 3.53;
     }
 
-    // Calcul itératif pour trouver le bon coefficient
-    // Estimation initiale correcte : mensualité × 100 / coefficient_par_défaut
     let estimatedFinancedAmount = (totalMonthlyPayment * 100) / 3.53;
     let coefficient = getCoefficientForAmount(estimatedFinancedAmount, leaserData.leaser_ranges);
-    let totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient; // Formule Grenke
+    let totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
     
-    // Itération pour convergence (max 5 itérations)
     for (let i = 0; i < 5; i++) {
       const newCoefficient = getCoefficientForAmount(totalFinancedAmount, leaserData.leaser_ranges);
-      if (Math.abs(newCoefficient - coefficient) < 0.001) {
-        break; // Convergence atteinte
-      }
+      if (Math.abs(newCoefficient - coefficient) < 0.001) break;
       coefficient = newCoefficient;
       totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
     }
@@ -385,27 +347,17 @@ serve(async (req) => {
     const marginPercentage = totalPurchaseAmount > 0 ? (marginAmount / totalPurchaseAmount) * 100 : 0;
     const calculatedMonthlyPayment = totalMonthlyPayment;
 
-    console.log("📊 Calculs finaux de l'offre:\n" +
-      "      - Prix d'achat total: " + totalPurchaseAmount.toFixed(2) + "€\n" +
-      "      - Montant financé total: " + totalFinancedAmount.toFixed(2) + "€\n" +
-      "      - Coefficient utilisé: " + coefficient + "\n" +
-      "      - Mensualité totale: " + calculatedMonthlyPayment.toFixed(2) + "€\n" +
-      "      - Marge: " + marginAmount.toFixed(2) + "€ (" + marginPercentage.toFixed(2) + "%)");
-
     // Génération d'un ID unique pour la demande
     const requestId = crypto.randomUUID();
     const clientId = crypto.randomUUID();
     
-    // Génération du numéro de dossier (même format que le frontend)
     const year = new Date().getFullYear();
     const timestamp = Date.now().toString().slice(-4);
     const dossierNumber = `ITC-${year}-OFF-${timestamp}`;
-    console.log("Numéro de dossier généré:", dossierNumber);
 
-    // Les informations client ont déjà été extraites plus haut (lignes 55-106)
     const equipmentDescription = equipmentList.join(', ');
 
-    // Création du client avec les informations extraites
+    // Création du client
     const clientData = {
       id: clientId,
       name: clientName,
@@ -431,42 +383,26 @@ serve(async (req) => {
       company_id: targetCompanyId
     };
 
-    console.log("Création du client avec les données:", clientData);
+    const { error: clientError } = await supabaseAdmin.from('clients').insert(clientData);
+    if (clientError) throw new Error(`Erreur client: ${clientError.message}`);
 
-    const { error: clientError } = await supabaseAdmin
-      .from('clients')
-      .insert(clientData);
-
-    if (clientError) {
-      console.error("Erreur lors de la création du client :", clientError);
-      throw new Error(`Erreur client: ${clientError.message}`);
-    }
-
-    // Déterminer le leaser (Grenke pour ce cas)
+    // Déterminer le leaser
     const { data: leaserIdData } = await supabaseAdmin
-      .from('leasers')
-      .select('id')
-      .eq('name', 'Grenke Lease')
-      .single();
-
+      .from('leasers').select('id').eq('name', 'Grenke Lease').single();
     const leaserId = leaserIdData?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949';
 
-    // La source est toujours 'site_web' car toutes les demandes viennent du site iTakecare
     const offerSource = 'site_web';
-    
-    // Le type est déterminé selon la présence de partenaire ou de packs personnalisés
     let offerType: string;
     if (data.partner_slug) {
-      offerType = 'partner_request';  // Demande via un partenaire
+      offerType = 'partner_request';
     } else if (data.packs && data.packs.length > 0) {
-      offerType = 'custom_pack_request';  // Demande web avec pack personnalisé
+      offerType = 'custom_pack_request';
     } else {
-      offerType = 'web_request';         // Demande web standard (catalogue)
+      offerType = 'web_request';
     }
     
     console.log(`Type: ${offerType}, Source: ${offerSource}, Partner: ${data.partner_slug || 'none'}`);
 
-    // Création de l'offre
     const offerData = {
       id: requestId,
       client_id: clientId,
@@ -494,40 +430,20 @@ serve(async (req) => {
       partner_name: data.partner_name || null
     };
 
-    console.log("Création de l'offre avec les données:", offerData);
-
-    const { error: offerError } = await supabaseAdmin
-      .from('offers')
-      .insert(offerData);
-
-    if (offerError) {
-      console.error("Erreur lors de la création de l'offre :", offerError);
-      throw new Error(`Erreur offre: ${offerError.message}`);
-    }
+    const { error: offerError } = await supabaseAdmin.from('offers').insert(offerData);
+    if (offerError) throw new Error(`Erreur offre: ${offerError.message}`);
 
     // ========= GESTION DES PACKS PERSONNALISÉS ==========
     if (data.packs && data.packs.length > 0) {
-      console.log("Traitement des packs personnalisés:", data.packs.length, "packs");
-      
       for (const pack of data.packs) {
-        console.log("Création du pack:", pack.pack_name);
-        
-        // Calculer les totaux du pack à partir des produits
         const packProducts = data.products.filter(p => p.pack_id === pack.custom_pack_id);
-        
         const originalMonthlyTotal = packProducts.reduce((sum, p) => {
-          // Recalculer le prix original sans réduction
           const originalUnitPrice = p.unit_price ? p.unit_price / (1 - (p.pack_discount_percentage || 0) / 100) : 0;
           return sum + (originalUnitPrice * p.quantity);
         }, 0);
-        
-        const discountedMonthlyTotal = packProducts.reduce((sum, p) => 
-          sum + ((p.unit_price || 0) * p.quantity), 0
-        );
-        
+        const discountedMonthlyTotal = packProducts.reduce((sum, p) => sum + ((p.unit_price || 0) * p.quantity), 0);
         const monthlySavings = originalMonthlyTotal - discountedMonthlyTotal;
         
-        // Insérer le pack personnalisé
         const { data: createdPack, error: packError } = await supabaseAdmin
           .from('offer_custom_packs')
           .insert({
@@ -543,48 +459,29 @@ serve(async (req) => {
           .single();
         
         if (packError) {
-          console.error("Erreur lors de la création du pack personnalisé:", packError);
-          // Ne pas bloquer la création de l'offre, juste logger
+          console.error("Erreur pack:", packError);
           continue;
         }
-        
-        console.log("Pack personnalisé créé avec succès:", pack.pack_name, "- ID:", createdPack.id);
+        console.log("Pack créé:", pack.pack_name, "- ID:", createdPack.id);
       }
     }
 
     // Création des équipements détaillés
-    console.log("Création des équipements détaillés:", equipmentCalculations.length, "items");
-
     for (let i = 0; i < equipmentCalculations.length; i++) {
       const calc = equipmentCalculations[i];
       const product = data.products[i];
       
-      // Recalculer le prix de vente et la marge avec le coefficient final
       const finalSellingPrice = (calc.monthlyPrice * 100) / coefficient;
       const finalMargin = calc.purchasePrice > 0 ? ((finalSellingPrice - calc.purchasePrice) / calc.purchasePrice) * 100 : 0;
-      
-      console.log(`✅ Création équipement ${calc.productName}:`, {
-        prix_achat: calc.purchasePrice.toFixed(2),
-        prix_vente: finalSellingPrice.toFixed(2),
-        mensualite_unitaire: calc.monthlyPrice.toFixed(2),
-        marge: finalMargin.toFixed(2) + '%',
-        quantity: calc.quantity
-      });
 
-      // Récupérer l'ID du pack personnalisé si applicable
       let customPackDbId = null;
       if (calc.packId) {
         const { data: packData } = await supabaseAdmin
-          .from('offer_custom_packs')
-          .select('id')
-          .eq('offer_id', requestId)
-          .eq('custom_pack_id', calc.packId)
-          .single();
-        
+          .from('offer_custom_packs').select('id')
+          .eq('offer_id', requestId).eq('custom_pack_id', calc.packId).single();
         customPackDbId = packData?.id || null;
       }
       
-      // Calculer le prix original si le produit fait partie d'un pack
       const originalUnitPrice = calc.packDiscountPercentage 
         ? calc.monthlyPrice / (1 - calc.packDiscountPercentage / 100)
         : null;
@@ -594,54 +491,34 @@ serve(async (req) => {
         title: product.product_name || calc.productName,
         purchase_price: calc.purchasePrice,
         quantity: calc.quantity,
-        monthly_payment: calc.monthlyPrice * calc.quantity, // TOTAL de la ligne (convention: monthly_payment = total)
+        monthly_payment: calc.monthlyPrice * calc.quantity,
         selling_price: finalSellingPrice,
         margin: finalMargin,
         coefficient: coefficient,
         duration: product.duration || 36,
         product_id: calc.productId || null,
         variant_id: calc.variantId || null,
-        
-        // Champs pour les packs
         custom_pack_id: customPackDbId,
         pack_discount_percentage: calc.packDiscountPercentage || null,
         original_unit_price: originalUnitPrice,
         is_part_of_custom_pack: !!calc.packId
       };
 
-      console.log("Création de l'équipement:", equipmentData);
-
       const { data: equipment, error: equipmentError } = await supabaseAdmin
-        .from('offer_equipment')
-        .insert(equipmentData)
-        .select('id')
-        .single();
+        .from('offer_equipment').insert(equipmentData).select('id').single();
 
       if (equipmentError) {
-        console.error("Erreur lors de la création de l'équipement:", equipmentError);
+        console.error("Erreur équipement:", equipmentError);
         continue;
       }
 
-      console.log("Équipement créé avec succès:", calc.productName);
-
-      // Stockage des attributs
       if (equipment && calc.attributes && Object.keys(calc.attributes).length > 0) {
-        console.log("Stockage des attributs pour l'équipement ID:", equipment.id);
-        
         for (const [key, value] of Object.entries(calc.attributes)) {
-          const { error: attrError } = await supabaseAdmin
-            .from('offer_equipment_attributes')
-            .insert({
-              equipment_id: equipment.id,
-              key: key,
-              value: String(value)
-            });
-
-          if (attrError) {
-            console.error(`Erreur lors de la création de l'attribut ${key}:`, attrError);
-          } else {
-            console.log(`Attribut ${key}: ${value} créé avec succès`);
-          }
+          await supabaseAdmin.from('offer_equipment_attributes').insert({
+            equipment_id: equipment.id,
+            key: key,
+            value: String(value)
+          });
         }
       }
     }
@@ -664,7 +541,7 @@ serve(async (req) => {
           });
         
         if (serviceError) {
-          console.error(`❌ Erreur insertion service externe ${service.product_name}:`, serviceError);
+          console.error(`❌ Erreur service externe ${service.product_name}:`, serviceError);
         } else {
           console.log(`✅ Service externe créé: ${service.provider_name} - ${service.product_name}`);
         }
@@ -672,190 +549,73 @@ serve(async (req) => {
     }
 
     // ========= ENVOI D'EMAIL AU CLIENT ==========
+    const dateStr = new Date().toLocaleDateString('fr-FR');
+    const timeStr = new Date().toLocaleTimeString('fr-FR');
+    
     if (clientEmail) {
-      console.log("Début de la procédure d'envoi d'email...");
-      
-      // Récupérer les paramètres d'email de l'entreprise
       const { data: smtpSettings, error: settingsError } = await supabaseAdmin
         .from('smtp_settings')
         .select('resend_api_key, from_email, from_name, use_resend')
-        .eq('id', 1)
-        .single();
+        .eq('id', 1).single();
       
-      if (settingsError || !smtpSettings) {
-        console.error("Erreur lors de la récupération des paramètres SMTP:", settingsError);
-        throw new Error("Paramètres SMTP non trouvés");
-      }
-      
-      console.log("Paramètres email récupérés:", {
-        from_email: smtpSettings.from_email, 
-        from_name: smtpSettings.from_name,
-        use_resend: smtpSettings.use_resend
-      });
+      if (settingsError || !smtpSettings) throw new Error("Paramètres SMTP non trouvés");
 
-      // Récupérer les informations de l'entreprise pour personnaliser les emails
-      const { data: companyInfo, error: companyError } = await supabaseAdmin
-        .from('companies')
-        .select('name, logo_url')
-        .eq('id', targetCompanyId)
-        .single();
+      const { data: companyInfo } = await supabaseAdmin
+        .from('companies').select('name, logo_url').eq('id', targetCompanyId).single();
       
       const companyLogo = companyInfo?.logo_url || '';
       const platformCompanyName = companyInfo?.name || 'iTakecare';
 
-      // Fonctions utilitaires pour formatter les emails
-      const formatAmount = (amount: number): string => {
-        return parseFloat(amount.toFixed(2)).toString();
-      };
-      
-      const formatMonthlyPayment = (payment: number): string => {
-        return parseFloat(payment.toFixed(2)).toString();
-      };
-      
-      const generateSummaryItems = (equipment: string, totalAmount: number, monthlyPayment: number): string => {
-        let items = [`<li>📱 Équipement : ${equipment}</li>`];
-        items.push(`<li>📅 Mensualité : ${formatMonthlyPayment(monthlyPayment)} €/mois</li>`);
-        return items.join('\n            ');
-      };
+      const formatMonthlyPayment = (p: number) => parseFloat(p.toFixed(2)).toString();
+      const summaryItemsHtml = [
+        `<li>📱 Équipement : ${equipmentDescription}</li>`,
+        `<li>📅 Mensualité : ${formatMonthlyPayment(totalMonthlyPayment)} €/mois</li>`
+      ].join('\n            ');
 
-      // Récupérer le modèle d'email de demande de produit
-      const { data: emailTemplate, error: templateError } = await supabaseAdmin
-        .from('email_templates')
-        .select('subject, html_content')
-        .eq('type', 'product_request')
-        .eq('company_id', targetCompanyId)
-        .single();
+      // Check for custom email template
+      const { data: emailTemplate } = await supabaseAdmin
+        .from('email_templates').select('subject, html_content')
+        .eq('type', 'product_request').eq('company_id', targetCompanyId).single();
       
-      if (templateError) {
-        console.log("Erreur lors de la récupération du modèle d'email, utilisation du modèle par défaut:", templateError);
-      }
-
       let subject = `🎉 Bienvenue sur ${platformCompanyName} - Confirmation de votre demande`;
-      let htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            ${companyLogo ? `<img src="${companyLogo}" alt="${platformCompanyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${platformCompanyName}</h1>`}
-          </div>
-          <h2 style="color: #2d618f; border-bottom: 2px solid #2d618f; padding-bottom: 10px;">👋 Bienvenue ${clientName || companyName} !</h2>
-          <p style="font-size: 16px; line-height: 1.6;">✨ Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
-          <p style="font-size: 16px; line-height: 1.6;">📋 Voici un récapitulatif de votre demande :</p>
-          <ul style="background: linear-gradient(135deg, #f8fafd 0%, #e8f4fd 100%); padding: 20px; border-radius: 10px; list-style: none; margin: 20px 0; border-left: 4px solid #2d618f;">
-            ${generateSummaryItems(equipmentDescription, totalPurchaseAmount, totalMonthlyPayment)}
-          </ul>
-          <div style="background: linear-gradient(135deg, #e8f5e8 0%, #d4ecd4 100%); padding: 20px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #4caf50;">
-            <h3 style="color: #2e7d32; margin-top: 0; display: flex; align-items: center;">🎯 Prochaines étapes</h3>
-            <ol style="color: #2e7d32; padding-left: 20px; line-height: 1.8;">
-              <li><strong>Traitement de votre demande</strong> : Notre équipe analyse votre demande sous 24h ouvrées</li>
-              <li><strong>Validation et signature</strong> : Une fois acceptée, nous finalisons ensemble votre contrat</li>
-            </ol>
-          </div>
-          <div style="text-align: center; margin: 30px 0;">
-            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">💬 Vous avez des questions ? Notre équipe est là pour vous aider !</p>
-          </div>
-          <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
-            📧 Cet email a été envoyé automatiquement suite à votre demande d'équipement.<br>
-            🕐 Demande reçue le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}
-          </p>
-          <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-            <p style="color: #999; font-size: 11px; margin: 0;">
-              ${platformCompanyName} - Solution de leasing professionnel<br>
-              Merci de votre confiance ! 🙏
-            </p>
-          </div>
-        </div>
-      `;
+      let htmlContent = generateClientConfirmationEmail({
+        companyLogo, platformCompanyName, clientName, companyName,
+        summaryItemsHtml, dateStr, timeStr
+      });
 
-      if (emailTemplate && emailTemplate.html_content) {
+      if (emailTemplate?.html_content) {
         subject = emailTemplate.subject || subject;
         htmlContent = emailTemplate.html_content;
       }
 
-      // Vérifier si l'utilisateur demande la création d'un compte
+      // Création de compte client si demandé
       if (data.create_client_account) {
-        console.log("L'utilisateur a demandé la création d'un compte client");
-        
         try {
-          // Créer un compte utilisateur sans mot de passe
           const { data: userData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
             email: clientEmail,
             email_confirm: true,
-            user_metadata: { 
-              name: clientName || companyName,
-              role: "client",
-              client_id: clientId 
-            },
+            user_metadata: { name: clientName || companyName, role: "client", client_id: clientId },
           });
           
-          if (createUserError) {
-            console.error("Erreur lors de la création du compte utilisateur:", createUserError);
-            throw new Error(`Erreur lors de la création du compte: ${createUserError.message}`);
-          }
-          
-          console.log("Compte utilisateur créé avec succès:", userData);
+          if (createUserError) throw createUserError;
 
-          // Créer un lien de définition de mot de passe
           const { data: passwordLinkData, error: passwordLinkError } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'recovery',
-            email: clientEmail,
+            type: 'recovery', email: clientEmail,
           });
 
-          if (passwordLinkError) {
-            console.error("Erreur lors de la génération du lien de mot de passe:", passwordLinkError);
-          } else {
-            console.log("Lien de définition de mot de passe généré avec succès");
-            
+          if (!passwordLinkError) {
             const passwordLink = passwordLinkData?.properties?.action_link || '';
-            
-            // Template spécial pour création de compte
-            htmlContent = `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                  ${companyLogo ? `<img src="${companyLogo}" alt="${platformCompanyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${platformCompanyName}</h1>`}
-                </div>
-                <h2 style="color: #2d618f; border-bottom: 2px solid #2d618f; padding-bottom: 10px;">👋 Bienvenue ${clientName || companyName} !</h2>
-                <p style="font-size: 16px; line-height: 1.6;">✨ Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
-                
-                <div style="background: linear-gradient(135deg, #e8f4fd 0%, #d1e9fc 100%); padding: 20px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #2d618f;">
-                  <h3 style="color: #2d618f; margin-top: 0; display: flex; align-items: center;">🎉 Votre compte client a été créé !</h3>
-                  <p style="color: #2d618f; margin: 10px 0;">Nous avons créé votre compte personnel pour suivre vos demandes et gérer vos équipements.</p>
-                  <div style="text-align: center; margin: 20px 0;">
-                    <a href="${passwordLink}" style="background: linear-gradient(135deg, #2d618f 0%, #4a90e2 100%); color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
-                      🔐 Définir mon mot de passe
-                    </a>
-                  </div>
-                  <p style="color: #666; font-size: 12px; margin: 0;">Ce lien est valable pendant 24 heures. Vous pourrez ensuite accéder à votre espace client personnalisé.</p>
-                </div>
-
-                <p style="font-size: 16px; line-height: 1.6;">📋 Récapitulatif de votre demande :</p>
-                <ul style="background: linear-gradient(135deg, #f8fafd 0%, #e8f4fd 100%); padding: 20px; border-radius: 10px; list-style: none; margin: 20px 0; border-left: 4px solid #2d618f;">
-                  ${generateSummaryItems(equipmentDescription, totalPurchaseAmount, totalMonthlyPayment)}
-                </ul>
-
-                <div style="background: linear-gradient(135deg, #e8f5e8 0%, #d4ecd4 100%); padding: 20px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #4caf50;">
-                  <h3 style="color: #2e7d32; margin-top: 0;">🎯 Prochaines étapes</h3>
-                  <ol style="color: #2e7d32; padding-left: 20px; line-height: 1.8;">
-                    <li><strong>Activez votre compte</strong> : Cliquez sur le lien ci-dessus pour définir votre mot de passe</li>
-                    <li><strong>Accédez à votre espace</strong> : Suivez le traitement de votre demande en temps réel</li>
-                    <li><strong>Recevez votre offre</strong> : Notre équipe vous contactera sous 24h ouvrées</li>
-                  </ol>
-                </div>
-
-                <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
-                  📧 Cet email a été envoyé automatiquement suite à votre demande d'équipement.<br>
-                  🕐 Demande reçue le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}
-                </p>
-              </div>
-            `;
+            htmlContent = generateClientAccountEmail({
+              companyLogo, platformCompanyName, clientName, companyName,
+              passwordLink, summaryItemsHtml, dateStr, timeStr
+            });
           }
         } catch (accountError) {
-          console.error("Erreur lors de la création du compte:", accountError);
-          // Continuer sans bloquer l'envoi d'email
+          console.error("Erreur création compte:", accountError);
         }
-      } else {
-        console.log("L'utilisateur n'a pas demandé de création de compte client");
       }
 
-      // Envoi de l'email de confirmation au client
+      // Envoi email client
       const globalResendKey = Deno.env.get('ITAKECARE_RESEND_API');
       const resendApiKey = globalResendKey || smtpSettings.resend_api_key;
       
@@ -865,289 +625,110 @@ serve(async (req) => {
         const fromEmail = globalResendKey ? "noreply@itakecare.be" : getFromEmail(smtpSettings);
         const from = `${fromName} <${fromEmail}>`;
         
-        console.log("Tentative d'envoi d'email via Resend à", clientEmail, "depuis", from);
-        
         const emailResult = await resend.emails.send({
-          from,
-          to: clientEmail,
-          subject,
-          html: htmlContent,
-          text: stripHtml(htmlContent),
+          from, to: clientEmail, subject, html: htmlContent, text: stripHtml(htmlContent),
         });
         
         if (emailResult.error) {
-          console.error("Erreur lors de l'envoi via Resend:", emailResult.error);
+          console.error("Erreur Resend:", emailResult.error);
         } else {
-          console.log("Email envoyé avec succès via Resend:", emailResult.data);
+          console.log("Email client envoyé:", emailResult.data);
         }
       }
     }
 
     // ========= NOTIFICATION AUX ADMINISTRATEURS ==========
     try {
-      console.log("🔔 Début de l'envoi des notifications aux administrateurs...");
-      
-      // Récupérer tous les administrateurs avec leurs emails directement via SQL
       const { data: adminUsers, error: adminError } = await supabaseAdmin
         .rpc('get_admin_emails_for_company', { p_company_id: targetCompanyId });
       
-      console.log("✅ Nombre d'admins trouvés:", adminUsers?.length || 0);
-      console.log("✅ Détails des admins:", JSON.stringify(adminUsers));
-      
-      if (adminError) {
-        console.error("❌ Erreur lors de la récupération des administrateurs:", adminError);
-        
-        // Créer une notification de secours dans la base
+      const fallbackNotification = async (errorReason: string) => {
         await supabaseAdmin.from('admin_notifications').insert({
           company_id: targetCompanyId,
           offer_id: requestId,
           type: 'new_offer',
           title: `Nouvelle demande d'offre - ${clientName || companyName}`,
-          message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
-          metadata: {
-            client_name: clientName,
-            company_name: companyName,
-            client_email: clientEmail,
-            total_monthly: totalMonthlyPayment,
-            error: 'Failed to retrieve admin emails'
-          }
+          message: `Demande reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
+          metadata: { client_name: clientName, company_name: companyName, client_email: clientEmail, total_monthly: totalMonthlyPayment, error: errorReason }
         });
-      } else if (!adminUsers || adminUsers.length === 0) {
-        console.log("⚠️ Aucun administrateur trouvé pour l'entreprise");
-        
-        // Créer une notification de secours dans la base
-        await supabaseAdmin.from('admin_notifications').insert({
-          company_id: targetCompanyId,
-          offer_id: requestId,
-          type: 'new_offer',
-          title: `Nouvelle demande d'offre - ${clientName || companyName}`,
-          message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
-          metadata: {
-            client_name: clientName,
-            company_name: companyName,
-            client_email: clientEmail,
-            total_monthly: totalMonthlyPayment,
-            error: 'No admin users found'
-          }
-        });
+      };
+
+      if (adminError || !adminUsers || adminUsers.length === 0) {
+        await fallbackNotification(adminError ? adminError.message : 'No admin users found');
       } else {
-        const adminEmails = adminUsers.map(admin => ({
-          email: admin.email,
-          name: admin.name || 'Administrateur'
-        }));
-        
-        console.log("✅ Emails récupérés:", adminEmails.map(a => a.email).join(', '));
+        const adminEmails = adminUsers.map(a => ({ email: a.email, name: a.name || 'Administrateur' }));
         
         if (adminEmails.length === 0) {
-          console.log("⚠️ Aucun email d'administrateur valide récupéré");
-          
-          // Créer une notification de secours dans la base
-          await supabaseAdmin.from('admin_notifications').insert({
-            company_id: targetCompanyId,
-            offer_id: requestId,
-            type: 'new_offer',
-            title: `Nouvelle demande d'offre - ${clientName || companyName}`,
-            message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
-            metadata: {
-              client_name: clientName,
-              company_name: companyName,
-              client_email: clientEmail,
-              total_monthly: totalMonthlyPayment,
-              error: 'No valid admin emails'
-            }
-          });
+          await fallbackNotification('No valid admin emails');
         } else {
-          console.log(`Envoi de notifications à ${adminEmails.length} administrateur(s)`);
-          
-          // Utiliser les mêmes paramètres email que pour le client
           const globalResendKey = Deno.env.get('ITAKECARE_RESEND_API');
           const { data: smtpSettings } = await supabaseAdmin
-            .from('smtp_settings')
-            .select('resend_api_key, from_email, from_name')
-            .eq('id', 1)
-            .single();
+            .from('smtp_settings').select('resend_api_key, from_email, from_name').eq('id', 1).single();
           
           const resendApiKey = globalResendKey || smtpSettings?.resend_api_key;
-          
-          console.log("✅ Clé Resend configurée:", !!resendApiKey);
           
           if (resendApiKey) {
             const resend = new Resend(resendApiKey);
             const fromName = globalResendKey ? "iTakecare" : getFromName(smtpSettings);
-            const fromEmail = globalResendKey ? "noreply@itakecare.be" : getFromEmail(smtpSettings);
-            const from = `${fromName} <${fromEmail}>`;
+            const fromEmailAddr = globalResendKey ? "noreply@itakecare.be" : getFromEmail(smtpSettings);
+            const from = `${fromName} <${fromEmailAddr}>`;
             
-            // Récupérer les informations de l'entreprise
             const { data: companyInfo } = await supabaseAdmin
-              .from('companies')
-              .select('name, logo_url')
-              .eq('id', targetCompanyId)
-              .single();
+              .from('companies').select('name, logo_url').eq('id', targetCompanyId).single();
             
-            const companyLogo = companyInfo?.logo_url || '';
-            const platformCompanyName = companyInfo?.name || 'iTakecare';
-            
-            // Template d'email pour les administrateurs
             const adminSubject = `🚨 Nouvelle demande d'offre reçue - ${clientName || companyName}`;
-            const adminHtmlContent = `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                  ${companyLogo ? `<img src="${companyLogo}" alt="${platformCompanyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${platformCompanyName}</h1>`}
-                </div>
-                
-                <h2 style="color: #d73527; border-bottom: 2px solid #d73527; padding-bottom: 10px;">🚨 Nouvelle demande d'offre reçue</h2>
-                
-                <div style="background: linear-gradient(135deg, #fff3f3 0%, #ffe8e8 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #d73527;">
-                  <h3 style="color: #d73527; margin-top: 0;">📋 Informations client</h3>
-                  <ul style="list-style: none; padding: 0; margin: 0;">
-                    <li style="margin: 8px 0;"><strong>👤 Nom :</strong> ${clientName || 'Non renseigné'}</li>
-                    <li style="margin: 8px 0;"><strong>🏢 Entreprise :</strong> ${companyName || 'Non renseignée'}</li>
-                    <li style="margin: 8px 0;"><strong>📧 Email :</strong> ${clientEmail}</li>
-                    <li style="margin: 8px 0;"><strong>📞 Téléphone :</strong> ${data.contact_info.phone || 'Non renseigné'}</li>
-                    <li style="margin: 8px 0;"><strong>🏠 Adresse :</strong> ${data.company_info.address || 'Non renseignée'}, ${data.company_info.city || ''} ${data.company_info.postal_code || ''}</li>
-                    ${data.company_info.vat_number ? `<li style="margin: 8px 0;"><strong>🆔 N° TVA :</strong> ${data.company_info.vat_number}</li>` : ''}
-                  </ul>
-                </div>
-                
-                <div style="background: linear-gradient(135deg, #f0f8ff 0%, #e1f0ff 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #2d618f;">
-                  <h3 style="color: #2d618f; margin-top: 0;">💰 Détails financiers</h3>
-                  <ul style="list-style: none; padding: 0; margin: 0;">
-                    <li style="margin: 8px 0;"><strong>📱 Équipement :</strong> ${equipmentDescription}</li>
-                    <li style="margin: 8px 0;"><strong>💶 Prix d'achat total :</strong> ${totalPurchaseAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</li>
-                    <li style="margin: 8px 0;"><strong>📅 Mensualité :</strong> ${totalMonthlyPayment.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/mois</li>
-                    <li style="margin: 8px 0;"><strong>🔢 Coefficient :</strong> ${coefficient}</li>
-                    <li style="margin: 8px 0;"><strong>💵 Montant financé :</strong> ${totalFinancedAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</li>
-                    <li style="margin: 8px 0;"><strong>📈 Marge :</strong> ${marginAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € (${marginPercentage}%)</li>
-                  </ul>
-                </div>
-                
-                ${data.partner_slug ? `
-                <div style="background: linear-gradient(135deg, #fef3e2 0%, #fde8c8 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #e67e22;">
-                  <h3 style="color: #d35400; margin-top: 0;">🤝 Source partenaire</h3>
-                  <p style="margin: 0;"><strong>${data.partner_name || data.partner_slug}</strong></p>
-                </div>
-                ` : ''}
-
-                ${data.external_services && data.external_services.length > 0 ? `
-                <div style="background: linear-gradient(135deg, #f3e8ff 0%, #e8d5ff 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #8e44ad;">
-                  <h3 style="color: #7b2d8e; margin-top: 0;">📡 Services externes (${data.external_services.length})</h3>
-                  <ul style="list-style: none; padding: 0; margin: 0;">
-                    ${data.external_services.map((svc: any) => {
-                      const period = svc.billing_period === 'monthly' ? '/mois' : svc.billing_period === 'yearly' ? '/an' : '';
-                      const qty = (svc.quantity || 1) > 1 ? ` × ${svc.quantity}` : '';
-                      return `<li style="margin: 8px 0;">• <strong>${svc.provider_name}</strong> — ${svc.product_name}${qty} : ${svc.price_htva.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HTVA${period}</li>`;
-                    }).join('')}
-                  </ul>
-                </div>
-                ` : ''}
-
-                ${data.delivery_info ? `
-                <div style="background: linear-gradient(135deg, #f8fff0 0%, #efffdc 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #4caf50;">
-                  <h3 style="color: #2e7d32; margin-top: 0;">🚚 Adresse de livraison</h3>
-                  <p style="margin: 0;">${data.delivery_info.address || ''}<br>
-                  ${data.delivery_info.city || ''} ${data.delivery_info.postal_code || ''}<br>
-                  ${data.delivery_info.country || ''}</p>
-                </div>
-                ` : ''}
-                
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${getAppUrl(req)}/offers/${requestId}" 
-                     style="background: linear-gradient(135deg, #2d618f 0%, #4a90e2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; box-shadow: 0 4px 15px rgba(45, 97, 143, 0.3);">
-                    👀 Voir l'offre dans l'interface admin
-                  </a>
-                </div>
-                
-                <div style="background-color: #fff8e1; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
-                  <p style="margin: 0; color: #f57c00; font-weight: bold;">⚡ Action requise</p>
-                  <p style="margin: 5px 0 0 0; font-size: 14px;">Cette demande nécessite votre attention. Connectez-vous à l'interface d'administration pour traiter la demande.</p>
-                </div>
-                
-                <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
-                  📧 Cet email a été envoyé automatiquement suite à une demande d'offre via le catalogue web.<br>
-                  🕐 Demande reçue le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}
-                </p>
-              </div>
-            `;
+            const adminHtmlContent = generateAdminNotificationEmail({
+              companyLogo: companyInfo?.logo_url || '',
+              platformCompanyName: companyInfo?.name || 'iTakecare',
+              clientName, companyName, clientEmail,
+              contactPhone: data.contact_info?.phone || clientPhone || '',
+              companyAddress: data.company_info?.address || clientAddress || '',
+              companyCity: data.company_info?.city || clientCity || '',
+              companyPostalCode: data.company_info?.postal_code || clientPostalCode || '',
+              vatNumber: data.company_info?.vat_number || clientVatNumber || '',
+              equipmentDescription, totalPurchaseAmount, totalMonthlyPayment,
+              coefficient, totalFinancedAmount, marginAmount, marginPercentage,
+              partnerSlug: data.partner_slug,
+              partnerName: data.partner_name,
+              externalServices: data.external_services,
+              deliveryInfo: data.delivery_info,
+              adminLink: `${getAppUrl(req)}/offers/${requestId}`,
+              dateStr, timeStr,
+            });
             
-            // Envoyer un email groupé à tous les administrateurs pour éviter le rate limit
             const recipients = adminEmails.map(a => a.email);
             try {
               let adminEmailResult = await resend.emails.send({
-                from,
-                to: recipients,
-                subject: adminSubject,
-                html: adminHtmlContent,
-                text: stripHtml(adminHtmlContent),
+                from, to: recipients, subject: adminSubject,
+                html: adminHtmlContent, text: stripHtml(adminHtmlContent),
               });
 
-              // Gestion simple du rate limit (429)
-              if (
-                adminEmailResult.error &&
-                ((adminEmailResult.error as any).name === 'rate_limit_exceeded' ||
-                  /Too many requests/i.test(((adminEmailResult.error as any).message) || ''))
-              ) {
-                console.log('Rate limit détecté, nouvel essai dans 800ms...');
+              if (adminEmailResult.error && ((adminEmailResult.error as any).name === 'rate_limit_exceeded' || /Too many requests/i.test(((adminEmailResult.error as any).message) || ''))) {
                 await new Promise((r) => setTimeout(r, 800));
                 adminEmailResult = await resend.emails.send({
-                  from,
-                  to: recipients,
-                  subject: adminSubject,
-                  html: adminHtmlContent,
-                  text: stripHtml(adminHtmlContent),
+                  from, to: recipients, subject: adminSubject,
+                  html: adminHtmlContent, text: stripHtml(adminHtmlContent),
                 });
               }
 
               if (adminEmailResult.error) {
-                console.error('❌ Erreur lors de l\'envoi groupé aux admins:', adminEmailResult.error);
-                
-                // Créer une notification de secours dans la base
-                await supabaseAdmin.from('admin_notifications').insert({
-                  company_id: targetCompanyId,
-                  offer_id: requestId,
-                  type: 'new_offer',
-                  title: `Nouvelle demande d'offre - ${clientName || companyName}`,
-                  message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
-                  metadata: {
-                    client_name: clientName,
-                    company_name: companyName,
-                    client_email: clientEmail,
-                    total_monthly: totalMonthlyPayment,
-                    error: 'Email sending failed',
-                    error_details: adminEmailResult.error
-                  }
-                });
+                console.error('❌ Erreur email admin:', adminEmailResult.error);
+                await fallbackNotification('Email sending failed');
               } else {
-                console.log(`✅ Email admin groupé envoyé avec succès à: ${recipients.join(', ')}`);
+                console.log(`✅ Email admin envoyé à: ${recipients.join(', ')}`);
               }
             } catch (adminEmailError) {
-              console.error('❌ Exception lors de l\'envoi groupé aux admins:', adminEmailError);
-              
-              // Créer une notification de secours dans la base
-              await supabaseAdmin.from('admin_notifications').insert({
-                company_id: targetCompanyId,
-                offer_id: requestId,
-                type: 'new_offer',
-                title: `Nouvelle demande d'offre - ${clientName || companyName}`,
-                message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
-                metadata: {
-                  client_name: clientName,
-                  company_name: companyName,
-                  client_email: clientEmail,
-                  total_monthly: totalMonthlyPayment,
-                  error: 'Email exception',
-                  error_details: String(adminEmailError)
-                }
-              });
+              console.error('❌ Exception email admin:', adminEmailError);
+              await fallbackNotification('Email exception');
             }
           }
         }
       }
     } catch (adminNotificationError) {
-      console.error("Exception lors de l'envoi des notifications admin:", adminNotificationError);
-      // Ne pas bloquer le processus même si les notifications admin échouent
+      console.error("Exception notifications admin:", adminNotificationError);
     }
 
-    // ✅ NOUVEAU : Récupérer les packs créés pour la réponse
+    // Récupérer les packs créés pour la réponse
     let packsSummary = [];
     if (data.packs && data.packs.length > 0) {
       const { data: createdPacks } = await supabaseAdmin
@@ -1166,7 +747,6 @@ serve(async (req) => {
       }
     }
 
-    // Préparer les données de réponse
     const responseData = {
       id: requestId,
       client_id: clientId,
@@ -1186,7 +766,7 @@ serve(async (req) => {
       created_at: new Date().toISOString()
     };
 
-    console.log("Traitement réussi, retour de la réponse:", responseData);
+    console.log("Traitement réussi:", responseData);
     
     return new Response(
       JSON.stringify(responseData),
@@ -1201,8 +781,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Utilitaire pour supprimer les balises HTML d'une chaîne
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>?/gm, '');
-}
