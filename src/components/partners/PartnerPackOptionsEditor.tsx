@@ -59,7 +59,7 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
     enabled: open,
   });
 
-  const { data: categories = [] } = useCategories(undefined, { enabled: open });
+  const { data: categories = [] } = useCategories();
 
   const { data: allProducts = [], isLoading: loadingProducts } = useQuery({
     queryKey: ["products-for-options"],
