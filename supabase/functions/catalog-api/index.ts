@@ -436,7 +436,7 @@ async function getProduct(supabase: any, companyId: string, productId: string, p
     .or("admin_only.is.null,admin_only.eq.false")
     .single()
 
-  return { product }
+  return { product: product ? flattenProductBrandCategory(product) : null }
 }
 
 async function getProductVariants(supabase: any, companyId: string, productId: string, permissions: any) {
