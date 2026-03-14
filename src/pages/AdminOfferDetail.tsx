@@ -30,6 +30,7 @@ import EquipmentOrderTracker from "@/components/contracts/EquipmentOrderTracker"
 import FinancialSection from "@/components/offers/detail/FinancialSection";
 import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
+import ExternalServicesSection from "@/components/offers/detail/ExternalServicesSection";
 import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
 import ScoringModal from "@/components/offers/detail/ScoringModal";
