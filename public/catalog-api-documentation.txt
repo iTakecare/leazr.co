@@ -7,10 +7,30 @@ DATE : 14 mars 2026 - Options personnalisables enrichies & UI admin
 STATUT : Prêt pour production
 
 ===========================================
-   NOUVEAUTÉS VERSION 2026.1
+   NOUVEAUTES VERSION 2026.2
 ===========================================
 
-Cette version ajoute l'écosystème partenaires complet : pages dédiées,
+Cette version enrichit les options de personnalisation des packs
+partenaires avec les details complets des produits autorises.
+
+NOUVELLES FONCTIONNALITES :
+
+1. **Options enrichies (allowed_products)**
+   - GET /partners/{slug}/packs retourne desormais les produits
+     autorises avec tous leurs details (nom, prix, image, variants)
+   - Chaque option contient `allowed_products[]` en plus de `allowed_product_ids[]`
+   - Les variants de chaque produit autorise sont inclus
+
+2. **Interface admin des options**
+   - Nouveau composant PartnerPackOptionsEditor dans le back-office
+   - Selection des categories et produits autorises par pack personnalisable
+   - Gestion obligatoire/optionnel, quantite max, position
+
+===========================================
+   NOUVEAUTES VERSION 2026.1
+===========================================
+
+Ecosysteme partenaires complet : pages dediees,
 packs exclusifs, prestataires externes et isolation du catalogue public.
 
 NOUVELLES FONCTIONNALITÉS :
