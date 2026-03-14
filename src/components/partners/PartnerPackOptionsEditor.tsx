@@ -137,16 +137,8 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5" />
-            Options du pack : {packName}
-          </DialogTitle>
-        </DialogHeader>
-
-        {loadingOptions ? (
+    <div className="space-y-4">
+      {loadingOptions ? (
           <div className="text-center py-6 text-muted-foreground">Chargement...</div>
         ) : options.length === 0 && !showAddForm ? (
           <div className="text-center py-8 text-muted-foreground text-sm">
