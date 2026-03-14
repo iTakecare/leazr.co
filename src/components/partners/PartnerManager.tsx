@@ -93,6 +93,15 @@ const PartnerManager: React.FC = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const duplicateMutation = useMutation({
+    mutationFn: (partnerId: string) => duplicatePartner(partnerId, companyId!),
+    onSuccess: (newPartner) => {
+      queryClient.invalidateQueries({ queryKey: ["partners"] });
+      toast.success(`Partenaire dupliqué : ${newPartner.name}`);
+    },
+    onError: (e: any) => toast.error(`Erreur lors de la duplication : ${e.message}`),
+  });
+
   const openCreate = () => {
     setEditingPartner(null);
     setForm({ name: "", slug: "", description: "", logo_url: "", website_url: "", is_active: true });
