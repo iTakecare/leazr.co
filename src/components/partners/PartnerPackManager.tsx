@@ -193,6 +193,16 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
         )}
       </DialogContent>
     </Dialog>
+
+    {optionsEditorPack && (
+      <PartnerPackOptionsEditor
+        partnerPackId={optionsEditorPack.id}
+        packName={optionsEditorPack.name}
+        open={!!optionsEditorPack}
+        onOpenChange={(v) => { if (!v) setOptionsEditorPack(null); }}
+      />
+    )}
+    </>
   );
 };
 
