@@ -415,7 +415,10 @@ async function getProducts(supabase: any, companyId: string, permissions: any, s
 
   const { data: products } = await query
 
-  return { products, pagination: { page, limit, total: products?.length || 0 } }
+  // Flatten brand/category from joined tables into top-level fields
+  const normalizedProducts = (products || []).map(flattenProductBrandCategory)
+
+  return { products: normalizedProducts, pagination: { page, limit, total: normalizedProducts.length } }
 }
 
 async function getProduct(supabase: any, companyId: string, productId: string, permissions: any) {
