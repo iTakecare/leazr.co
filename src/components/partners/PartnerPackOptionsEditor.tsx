@@ -41,8 +41,6 @@ const emptyForm: OptionFormData = {
 const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   partnerPackId,
   packName,
-  open,
-  onOpenChange,
 }) => {
   const queryClient = useQueryClient();
   const [editingOption, setEditingOption] = useState<string | null>(null);
