@@ -319,7 +319,7 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
                         }
 
                         // Product with variants - tree view
-                        const variantIds = variants.map((v: any) => `vprice_${v.id}`);
+                        const variantIds = variants.map((v: any) => v.id);
                         const selectedCount = variantIds.filter((id: string) => form.allowed_product_ids.includes(id)).length;
                         const allSelected = selectedCount === variantIds.length;
 
@@ -351,7 +351,7 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
                             {isExpanded && (
                               <div className="ml-6 space-y-0.5 pb-1">
                                 {variants.map((variant: any) => {
-                                  const vid = `vprice_${variant.id}`;
+                                  const vid = variant.id;
                                   const attrs = variant.attributes || {};
                                   return (
                                     <label
