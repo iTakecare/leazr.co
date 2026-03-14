@@ -85,12 +85,16 @@ const OfferTypeTag = ({ type, source, hasCustomPacks = false, partnerName, size 
       color = "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100";
       icon = <Home className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
+    case "partner_request":
+      color = "bg-indigo-50 text-indigo-700 border-indigo-300 hover:bg-indigo-50";
+      icon = <Handshake className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+      break;
     default:
       color = "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100";
       icon = <User className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
   }
 
-  const translatedType = translateOfferType(type);
+  const translatedType = translateOfferType(type, partnerName);
 
   if (size === "sm") {
     return (

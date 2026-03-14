@@ -467,11 +467,15 @@ serve(async (req) => {
       source: offerSource,
       workflow_status: 'draft',
       status: 'pending',
-      remarks: 'Demande créée via API web avec Grenke (36 mois)',
+      remarks: data.partner_slug 
+        ? `Demande via partenaire ${data.partner_name || data.partner_slug} (Grenke 36 mois)`
+        : 'Demande créée via API web avec Grenke (36 mois)',
       user_id: null,
       company_id: targetCompanyId,
       leaser_id: leaserId,
-      dossier_number: dossierNumber
+      dossier_number: dossierNumber,
+      partner_slug: data.partner_slug || null,
+      partner_name: data.partner_name || null
     };
 
     console.log("Création de l'offre avec les données:", offerData);
