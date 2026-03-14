@@ -1423,20 +1423,16 @@ async function getPartnerPacks(supabase: any, companyId: string, partnerIdOrSlug
           // Step 4: Filter variants to only those selected, exclude products with 0 selected variants
           for (const product of (products || [])) {
             if (product.product_variant_prices && product.product_variant_prices.length > 0) {
-              // Filter to only allowed variant prices
+              // Variable product: include ONLY if at least one variant is selected
               const filteredVariants = product.product_variant_prices.filter(
                 (vp: any) => variantPriceIds.has(vp.id)
               )
               if (filteredVariants.length > 0) {
                 allowedProducts.push({ ...product, product_variant_prices: filteredVariants })
               }
-              // If 0 selected variants AND it's not a direct product ID → skip
-              else if (directProductIds.includes(product.id)) {
-                allowedProducts.push(product)
-              }
-              // else: skip product (0 variants selected)
-            } else {
-              // Simple product (no variants) — include as-is
+              // 0 selected variants → always skip, even if parent product ID is in allowed list
+            } else if (directProductIds.includes(product.id)) {
+              // Simple product (no variants) — include only if explicitly selected
               allowedProducts.push(product)
             }
           }
