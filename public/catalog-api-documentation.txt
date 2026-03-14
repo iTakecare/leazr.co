@@ -469,19 +469,72 @@ RÉPONSE :
 
 ## 7.3 PACKS PARTENAIRES - OPTIONS DE PERSONNALISATION
 
-Les packs assignés à un partenaire peuvent avoir des options de
+Les packs assignes a un partenaire peuvent avoir des options de
 personnalisation permettant au client final de choisir des produits
-supplémentaires dans des catégories définies.
+supplementaires dans des categories definies.
+
+L'API enrichit automatiquement chaque option avec les details complets
+des produits autorises (nom, image, prix, variants).
 
 STRUCTURE D'UNE OPTION :
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| category_name | string | Nom de la catégorie (ex: "Tablette") |
+| id | uuid | Identifiant unique de l'option |
+| category_name | string | Nom de la categorie (ex: "Tablettes") |
 | is_required | boolean | L'option est-elle obligatoire ? |
-| max_quantity | number | Quantité maximale sélectionnable |
-| allowed_product_ids | uuid[] | IDs des produits autorisés dans cette catégorie |
+| max_quantity | number | Quantite maximale selectionnable |
+| allowed_product_ids | uuid[] | IDs des produits autorises |
+| allowed_products | object[] | Produits autorises avec details complets |
 | position | number | Ordre d'affichage |
+
+STRUCTURE D'UN PRODUIT AUTORISE (allowed_products[]) :
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| id | uuid | ID du produit |
+| name | string | Nom du produit |
+| slug | string | Slug du produit |
+| image_url | string | URL de l'image |
+| price | number | Prix d'achat |
+| monthly_price | number | Prix mensuel |
+| brand_name | string | Nom de la marque |
+| category_name | string | Nom de la categorie |
+| short_description | string | Description courte |
+| product_variant_prices | object[] | Variants avec prix |
+
+EXEMPLE DE REPONSE (option enrichie) :
+```json
+{
+  "id": "uuid",
+  "category_name": "Tablettes",
+  "is_required": false,
+  "max_quantity": 2,
+  "position": 0,
+  "allowed_product_ids": ["uuid1", "uuid2"],
+  "allowed_products": [
+    {
+      "id": "uuid1",
+      "name": "iPad Air M2",
+      "slug": "ipad-air-m2",
+      "image_url": "https://...",
+      "price": 699,
+      "monthly_price": 19.99,
+      "brand_name": "Apple",
+      "category_name": "Tablettes",
+      "short_description": "iPad Air avec puce M2",
+      "product_variant_prices": [
+        {
+          "id": "var_uuid",
+          "attributes": { "storage": "256Go", "color": "Gris sideral" },
+          "price": 799,
+          "monthly_price": 22.99
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## 7.4 PRESTATAIRES EXTERNES
 
