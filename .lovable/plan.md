@@ -1,31 +1,20 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Plan : Mettre à jour la documentation API
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Changements
 
-## Endpoints API ajoutés
+**1. `public/catalog-api-documentation.txt`**
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+- Ajouter une note dans la section "STRUCTURE D'UNE OPTION" (vers ligne 500) expliquant que `allowed_product_ids` contient des **variant price IDs** (pas des product IDs) et que l'API filtre automatiquement les produits pour n'inclure que ceux ayant au moins une variante sélectionnée
+- Ajouter une entrée dans l'historique des versions (ligne ~986) :
+  - `✅ Filtrage intelligent : seuls les produits avec variantes sélectionnées sont retournés dans allowed_products`
+  - `✅ allowed_product_ids accepte des variant price IDs (UUIDs de product_variant_prices)`
 
-## Documentation
+**2. `catalog-skeleton/partners-api.txt`**
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+- Ajouter dans la section "Notes" (ligne 270) :
+  - `allowed_product_ids` contient des **variant price IDs** (UUIDs de `product_variant_prices`), pas des product IDs directs
+  - L'API filtre automatiquement : un produit n'apparaît dans `allowed_products` que s'il a au moins une variante sélectionnée
+  - Les `product_variant_prices` retournés sont limités aux seules variantes présentes dans `allowed_product_ids`
 
-## Tables
-
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
