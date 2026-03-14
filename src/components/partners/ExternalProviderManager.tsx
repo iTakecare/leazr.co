@@ -322,9 +322,6 @@ const ExternalProviderManager: React.FC = () => {
                                       description: product.description,
                                       price_htva: product.price_htva,
                                       billing_period: product.billing_period,
-                                      image_url: product.image_url,
-                                      category: product.category,
-                                      external_url: product.external_url,
                                       position: product.position,
                                       is_active: product.is_active,
                                     });
