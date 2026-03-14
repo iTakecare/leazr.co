@@ -365,6 +365,23 @@ Deno.serve(async (req) => {
 })
 
 // ============================================
+// HELPERS
+// ============================================
+
+/**
+ * Flatten joined brands/categories into top-level brand/category strings.
+ * Ensures API consumers always get consistent string fields.
+ */
+function flattenProductBrandCategory(product: any) {
+  if (!product) return product
+  return {
+    ...product,
+    brand: product.brands?.name || product.brand_name || product.brand || '',
+    category: product.categories?.translation || product.categories?.name || product.category_name || product.category || '',
+  }
+}
+
+// ============================================
 // READ ENDPOINTS
 // ============================================
 
@@ -415,7 +432,10 @@ async function getProducts(supabase: any, companyId: string, permissions: any, s
 
   const { data: products } = await query
 
-  return { products, pagination: { page, limit, total: products?.length || 0 } }
+  // Flatten brand/category from joined tables into top-level fields
+  const normalizedProducts = (products || []).map(flattenProductBrandCategory)
+
+  return { products: normalizedProducts, pagination: { page, limit, total: normalizedProducts.length } }
 }
 
 async function getProduct(supabase: any, companyId: string, productId: string, permissions: any) {
@@ -433,7 +453,7 @@ async function getProduct(supabase: any, companyId: string, productId: string, p
     .or("admin_only.is.null,admin_only.eq.false")
     .single()
 
-  return { product }
+  return { product: product ? flattenProductBrandCategory(product) : null }
 }
 
 async function getProductVariants(supabase: any, companyId: string, productId: string, permissions: any) {
@@ -469,7 +489,7 @@ async function getRelatedProducts(supabase: any, companyId: string, productId: s
     .or("admin_only.is.null,admin_only.eq.false")
     .limit(6)
 
-  return { products: relatedProducts }
+  return { products: (relatedProducts || []).map(flattenProductBrandCategory) }
 }
 
 async function getProductCO2(supabase: any, companyId: string, productId: string, permissions: any) {

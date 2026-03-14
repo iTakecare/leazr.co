@@ -1,38 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Problème identifié
+## Statut
 
-Le champ `brand_name` dans la table `products` contient des valeurs obsolètes ("Generic", "Non spécifié", vide) au lieu du vrai nom de marque. Ce champ dénormalisé n'est pas synchronisé avec la table `brands`.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-**Données actuelles (exemples) :**
-- iPad Pro M4 → `brand_id` = Apple, mais `brand_name` = "Non spécifié"
-- MacBook Pro 16 M4 → `brand_id` = Apple, mais `brand_name` = "Generic"
-- HP Elitebook 860 → `brand_id` = HP, mais `brand_name` = "Generic"
+## Endpoints API ajoutés
 
-**Impact API :** Les endpoints packs/partenaires utilisent `brand_name` directement (pas le join `brands`), donc le consommateur reçoit "Generic" au lieu de "Apple".
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-## Plan de correction
+## Documentation
 
-### 1. Mise à jour des données existantes (SQL one-shot)
-Exécuter un `UPDATE` qui synchronise `brand_name` depuis la table `brands` pour tous les produits ayant un `brand_id` valide :
-```sql
-UPDATE products p
-SET brand_name = b.name
-FROM brands b
-WHERE p.brand_id = b.id
-  AND (p.brand_name IS NULL OR p.brand_name = '' OR p.brand_name = 'Generic' OR p.brand_name = 'Non spécifié');
-```
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-### 2. Aussi synchroniser `category_name` (même risque)
-Vérifier et corriger `category_name` de la même façon.
+## Tables
 
-### 3. Trigger de synchronisation automatique
-Créer un trigger sur la table `products` qui met à jour `brand_name` automatiquement quand `brand_id` change, pour éviter que le problème ne se reproduise.
-
-### 4. Uniformiser l'API
-Dans `getProducts` et `getProduct`, ajouter un mapping qui écrit `brand: brands.name` et `category: categories.translation || categories.name` en champs plats dans la réponse, pour que tous les endpoints retournent le même format.
-
-### Fichiers à modifier
-- **SQL** : UPDATE données + trigger
-- **`supabase/functions/catalog-api/index.ts`** : Normaliser les réponses des endpoints `getProducts`/`getProduct` pour aplatir brand/category
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
