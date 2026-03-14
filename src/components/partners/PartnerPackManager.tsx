@@ -26,7 +26,7 @@ interface PartnerPackManagerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, onOpenChange }) => {
+const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, companyId, open, onOpenChange }) => {
   const queryClient = useQueryClient();
   const [selectedPackId, setSelectedPackId] = useState<string>("");
   const [optionsEditorPack, setOptionsEditorPack] = useState<{ id: string; name: string } | null>(null);
