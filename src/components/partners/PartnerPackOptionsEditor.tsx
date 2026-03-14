@@ -22,8 +22,6 @@ import type { PartnerPackOption } from "@/types/partner";
 interface PartnerPackOptionsEditorProps {
   partnerPackId: string;
   packName: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
 }
 
 interface OptionFormData {
