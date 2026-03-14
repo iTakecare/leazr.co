@@ -1076,6 +1076,8 @@ NOUVELLES FONCTIONNALITÉS :
 - API : Pleinement fonctionnelle
 - Ecosysteme partenaires : Operationnel
 - Options personnalisables : Enrichies avec produits complets
-- Documentation : A jour version 2026.2
+- Demandes partenaires : Operationnel (partner_slug, partner_name)
+- Services externes : Table offer_external_services active
+- Documentation : A jour version 2026.3
 
-Documentation technique - Version 2026.2 (14 mars 2026)
+Documentation technique - Version 2026.3 (14 mars 2026)
