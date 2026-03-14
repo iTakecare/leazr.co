@@ -438,12 +438,17 @@ serve(async (req) => {
     // La source est toujours 'site_web' car toutes les demandes viennent du site iTakecare
     const offerSource = 'site_web';
     
-    // Le type est déterminé selon la présence de packs personnalisés
-    const offerType = (data.packs && data.packs.length > 0) 
-      ? 'custom_pack_request'  // Demande web avec pack personnalisé
-      : 'web_request';         // Demande web standard (catalogue)
+    // Le type est déterminé selon la présence de partenaire ou de packs personnalisés
+    let offerType: string;
+    if (data.partner_slug) {
+      offerType = 'partner_request';  // Demande via un partenaire
+    } else if (data.packs && data.packs.length > 0) {
+      offerType = 'custom_pack_request';  // Demande web avec pack personnalisé
+    } else {
+      offerType = 'web_request';         // Demande web standard (catalogue)
+    }
     
-    console.log(`Type: ${offerType}, Source: ${offerSource}`);
+    console.log(`Type: ${offerType}, Source: ${offerSource}, Partner: ${data.partner_slug || 'none'}`);
 
     // Création de l'offre
     const offerData = {
