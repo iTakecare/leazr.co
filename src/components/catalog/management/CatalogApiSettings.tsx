@@ -440,6 +440,13 @@ const CatalogApiSettings = () => {
       path: 'providers/{id}/products',
       description: 'Produits/services d\'un prestataire externe',
       example: '{ "products": [{ "id": "uuid", "name": "Abonnement mobile", "price_htva": 9.99, "billing_period": "monthly", "is_active": true }] }'
+    },
+    {
+      method: 'POST',
+      path: 'create-product-request (Edge Function)',
+      description: 'Créer une demande de devis/commande. Supporte les champs partenaire et services externes.',
+      body: '{\n  "products": [{ "product_id": "uuid", "variant_id": "uuid", "quantity": 2, "unit_price": 25.99 }],\n  "contact_info": { "first_name": "Jean", "last_name": "Dupont", "email": "jean@example.com" },\n  "company_info": { "company_name": "Acme SA", "vat_number": "BE0123456789" },\n  "partner_slug": "the-pod",\n  "partner_name": "The Pod",\n  "external_services": [\n    { "provider_name": "Proximus", "product_name": "Mobile Pro", "price_htva": 9.99, "billing_period": "monthly", "quantity": 1 }\n  ]\n}',
+      example: '{ "success": true, "request_id": "uuid", "message": "Demande créée avec succès" }'
     }
   ];
 
