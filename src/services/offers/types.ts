@@ -122,5 +122,6 @@ export enum OfferType {
   DIRECT = 'direct_offer',
   WEB_REQUEST = 'web_request',
   CUSTOM_PACK_REQUEST = 'custom_pack_request',
+  PARTNER_REQUEST = 'partner_request',
   SELF_LEASING = 'self_leasing'
 }
