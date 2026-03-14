@@ -161,17 +161,29 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
                       />
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (confirm("Retirer ce pack du partenaire ?")) {
-                            removeMutation.mutate(pp.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {pp.is_customizable && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Gerer les options"
+                            onClick={() => setOptionsEditorPack({ id: pp.id, name: pp.pack?.name || "Pack" })}
+                          >
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm("Retirer ce pack du partenaire ?")) {
+                              removeMutation.mutate(pp.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
