@@ -681,6 +681,19 @@ const CatalogApiSettings = () => {
                   <li>• <strong>Prestataires externes</strong> - Services tiers (téléphonie, etc.) liés aux partenaires avec souscription directe</li>
                 </ul>
               </div>
+              
+              <div className="bg-violet-50 border border-violet-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-violet-900 mb-2">📦 Demandes partenaires & services externes (v2026.3)</h4>
+                <p className="text-sm text-violet-700 mb-2">
+                  L'endpoint <code className="bg-violet-100 px-1 rounded">create-product-request</code> supporte maintenant les champs partenaire et services externes :
+                </p>
+                <ul className="text-sm text-violet-700 space-y-1">
+                  <li>• <code className="bg-violet-100 px-1 rounded">partner_slug</code> - Identifiant du partenaire (ex: "the-pod"). Définit le type comme <code>partner_request</code></li>
+                  <li>• <code className="bg-violet-100 px-1 rounded">partner_name</code> - Nom d'affichage du partenaire (ex: "The Pod")</li>
+                  <li>• <code className="bg-violet-100 px-1 rounded">external_services[]</code> - Services de prestataires externes sélectionnés par le client</li>
+                  <li>• Chaque service : <code className="bg-violet-100 px-1 rounded">provider_name</code>, <code className="bg-violet-100 px-1 rounded">product_name</code>, <code className="bg-violet-100 px-1 rounded">price_htva</code>, <code className="bg-violet-100 px-1 rounded">billing_period</code> (monthly/yearly/one_time), <code className="bg-violet-100 px-1 rounded">quantity</code></li>
+                </ul>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
