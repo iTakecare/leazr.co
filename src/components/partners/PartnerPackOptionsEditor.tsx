@@ -170,12 +170,23 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
       return;
     }
 
+    // Normalize: remove parent product IDs for products that have variants
+    // Only variant price IDs should be kept for variable products
+    const productsWithVariants = new Set(
+      allProducts
+        .filter((p: any) => p.product_variant_prices && p.product_variant_prices.length > 0)
+        .map((p: any) => p.id)
+    );
+    const normalizedIds = form.allowed_product_ids.filter(
+      (id: string) => !productsWithVariants.has(id)
+    );
+
     const payload: any = {
       partner_pack_id: partnerPackId,
       category_name: form.category_name,
       is_required: form.is_required,
       max_quantity: form.max_quantity,
-      allowed_product_ids: form.allowed_product_ids,
+      allowed_product_ids: normalizedIds,
       position: editingOption
         ? options.find((o) => o.id === editingOption)?.position ?? 0
         : options.length,
