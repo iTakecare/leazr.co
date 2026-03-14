@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Loader2, GripVertical, ChevronDown, ChevronRight, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
+  fetchPartnerPacks,
   fetchPartnerPackOptions,
   upsertPartnerPackOption,
   deletePartnerPackOption,
@@ -21,6 +22,7 @@ import type { PartnerPackOption } from "@/types/partner";
 
 interface PartnerPackOptionsEditorProps {
   partnerPackId: string;
+  partnerId: string;
   packName: string;
 }
 
