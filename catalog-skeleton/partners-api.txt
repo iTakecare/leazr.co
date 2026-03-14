@@ -268,3 +268,6 @@ const { provider_cards } = await fetch(`${API_URL}/v1/${companyId}/partners/nom-
 - Les prix `price_htva` des prestataires sont en euros HTVA
 - Souscription directe : le client souscrit auprès du prestataire, iTakecare affiche les options
 - Les `allowed_products` dans les options incluent les variantes (`product_variant_prices`)
+- `allowed_product_ids` contient des **variant price IDs** (UUIDs de `product_variant_prices`), pas des product IDs directs
+- L'API filtre automatiquement : un produit n'apparaît dans `allowed_products` que s'il a au moins une variante sélectionnée
+- Les `product_variant_prices` retournés sont limités aux seules variantes présentes dans `allowed_product_ids`
