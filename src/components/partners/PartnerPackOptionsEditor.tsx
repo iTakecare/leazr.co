@@ -127,13 +127,40 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
     upsertMutation.mutate(payload);
   };
 
-  const toggleProductId = (productId: string) => {
+  const toggleProductId = (id: string) => {
     setForm((prev) => ({
       ...prev,
-      allowed_product_ids: prev.allowed_product_ids.includes(productId)
-        ? prev.allowed_product_ids.filter((id) => id !== productId)
-        : [...prev.allowed_product_ids, productId],
+      allowed_product_ids: prev.allowed_product_ids.includes(id)
+        ? prev.allowed_product_ids.filter((x) => x !== id)
+        : [...prev.allowed_product_ids, id],
     }));
+  };
+
+  const toggleAllVariants = (variantIds: string[]) => {
+    setForm((prev) => {
+      const allSelected = variantIds.every((id) => prev.allowed_product_ids.includes(id));
+      const newIds = allSelected
+        ? prev.allowed_product_ids.filter((id) => !variantIds.includes(id))
+        : [...new Set([...prev.allowed_product_ids, ...variantIds])];
+      return { ...prev, allowed_product_ids: newIds };
+    });
+  };
+
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (productId: string) => {
+    setExpandedProducts((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const formatAttributes = (attrs: Record<string, any>): string => {
+    return Object.entries(attrs)
+      .map(([, val]) => String(val))
+      .join(" / ");
   };
 
   return (
