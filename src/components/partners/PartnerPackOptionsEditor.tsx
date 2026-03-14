@@ -45,6 +45,7 @@ const emptyForm: OptionFormData = {
 const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   partnerPackId,
   partnerId,
+  companyId,
   packName,
 }) => {
   const queryClient = useQueryClient();
