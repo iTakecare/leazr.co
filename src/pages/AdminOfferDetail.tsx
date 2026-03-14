@@ -1014,7 +1014,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                       currentLeaserReference={offer.leaser_request_number}
                       onUpdate={fetchOfferDetails}
                     />
-                    {offer.type && <OfferTypeTag type={offer.type} size="sm" />}
+                    {offer.type && <OfferTypeTag type={offer.type} partnerName={offer.partner_name} size="sm" />}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-sm text-muted-foreground">{offer.client_name}</p>
