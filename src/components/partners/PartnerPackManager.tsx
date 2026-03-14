@@ -203,7 +203,12 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
         partnerPackId={optionsEditorPack.id}
         packName={optionsEditorPack.name}
         open={!!optionsEditorPack}
-        onOpenChange={(v) => { if (!v) setOptionsEditorPack(null); }}
+        onOpenChange={(v) => {
+          if (!v) {
+            setOptionsEditorPack(null);
+            onOpenChange(true);
+          }
+        }}
       />
     )}
     </>
