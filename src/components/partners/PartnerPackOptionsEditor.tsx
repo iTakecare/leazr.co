@@ -50,6 +50,8 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   const [form, setForm] = useState<OptionFormData>(emptyForm);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [copySourcePackId, setCopySourcePackId] = useState<string>("");
+  const [isCopying, setIsCopying] = useState(false);
 
   const { data: options = [], isLoading: loadingOptions } = useQuery({
     queryKey: ["partner-pack-options", partnerPackId],
