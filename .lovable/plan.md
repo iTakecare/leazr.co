@@ -1,31 +1,42 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Plan : UI d'administration des options de catégories par pack partenaire
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Contexte
 
-## Endpoints API ajoutés
+Le modèle de données (`partner_pack_options`), les services (`fetchPartnerPackOptions`, `upsertPartnerPackOption`, `deletePartnerPackOption`), et l'API (`catalog-api` enrichit déjà les options avec `allowed_products`) sont **tous déjà en place**. Il manque uniquement l'interface admin pour gérer ces options.
 
-| Endpoint | Description |
+### Ce qui sera créé
+
+**1. Nouveau composant `PartnerPackOptionsEditor`** (`src/components/partners/PartnerPackOptionsEditor.tsx`)
+
+Un panneau qui s'ouvre quand on clique sur un pack personnalisable dans le `PartnerPackManager`. Il permet de :
+- Lister les options (catégories) déjà configurées pour ce pack
+- Ajouter une nouvelle option avec :
+  - **Nom de catégorie** : texte libre ou sélection depuis les catégories existantes
+  - **Obligatoire** : switch oui/non
+  - **Quantité max** : nombre
+  - **Produits autorisés** : multi-sélection de produits depuis le catalogue, filtrés par catégorie
+- Modifier/supprimer une option existante
+- Réordonner les options (position)
+
+**2. Modification de `PartnerPackManager`**
+
+- Ajouter un bouton "Gérer les options" sur chaque ligne de pack où `is_customizable` est activé
+- Ouvrir le `PartnerPackOptionsEditor` au clic
+
+### Détail technique
+
+- Récupérer les catégories via `getCategories()` pour proposer les noms
+- Récupérer les produits par catégorie via `getProducts()` filtrés pour le multi-select des `allowed_product_ids`
+- Utiliser `useQuery` pour `fetchPartnerPackOptions(partnerPackId)` 
+- Utiliser `useMutation` avec `upsertPartnerPackOption` et `deletePartnerPackOption`
+- Composant Combobox ou Select pour le choix des produits autorisés
+
+### Fichiers impactés
+
+| Fichier | Action |
 |---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+| `src/components/partners/PartnerPackOptionsEditor.tsx` | Créer |
+| `src/components/partners/PartnerPackManager.tsx` | Ajouter bouton "Options" par pack customizable |
 
-## Documentation
-
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
-
-## Tables
-
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
