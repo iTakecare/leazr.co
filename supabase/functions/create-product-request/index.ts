@@ -222,21 +222,24 @@ serve(async (req) => {
       // ========== RÉCUPÉRATION DES PRIX ==========
       let price = 0; // Prix d'achat unitaire (purchase_price)
       let attributes = {};
+      let variantMonthlyPrice = 0; // Mensualité unitaire depuis variant
+      let productMonthlyPrice = 0; // Mensualité unitaire depuis product (fallback)
 
-      // 🔵 PRIX D'ACHAT : TOUJOURS depuis DB Leazr
-      console.log(`🔍 Récupération du prix d'achat depuis DB Leazr pour ${productName}`);
+      // 🔵 PRIX D'ACHAT + MENSUALITÉ : TOUJOURS depuis DB Leazr (source de vérité)
+      console.log(`🔍 Récupération des prix depuis DB Leazr pour ${productName}`);
       
       if (product.variant_id) {
         const { data: variantData, error: variantError } = await supabaseAdmin
           .from('product_variant_prices')
-          .select('price, attributes')
+          .select('price, attributes, monthly_price')
           .eq('id', product.variant_id)
           .single();
         
         if (!variantError && variantData) {
           price = variantData.price || 0;
           attributes = variantData.attributes || {};
-          console.log(`✅ Prix d'achat récupéré de product_variant_prices: ${price}€`);
+          variantMonthlyPrice = variantData.monthly_price || 0;
+          console.log(`✅ Prix récupérés de product_variant_prices: achat=${price}€, mensuel=${variantMonthlyPrice}€`);
         } else {
           console.log("⚠️ Variante non trouvée, fallback sur products");
         }
@@ -246,24 +249,36 @@ serve(async (req) => {
       if (price === 0) {
         const { data: productPrices } = await supabaseAdmin
           .from('products')
-          .select('price')
+          .select('price, monthly_price')
           .eq('id', product.product_id)
           .single();
         
         price = productPrices?.price || 0;
-        console.log(`✅ Prix d'achat récupéré de products (fallback): ${price}€`);
+        productMonthlyPrice = productPrices?.monthly_price || 0;
+        console.log(`✅ Prix récupérés de products (fallback): achat=${price}€, mensuel=${productMonthlyPrice}€`);
       }
 
-      // 🟢 MENSUALITÉ : unit_price contient la mensualité TOTALE de la ligne (déjà multiplié par quantité)
-      const totalMonthlyFromItakecare = product.unit_price || 0;
-      console.log(`✅ Mensualité TOTALE depuis iTakecare: ${totalMonthlyFromItakecare}€`);
+      // 🟢 MENSUALITÉ UNITAIRE : DB Leazr comme source de vérité
+      let monthlyPrice = variantMonthlyPrice || productMonthlyPrice || 0;
+      console.log(`📊 Mensualité UNITAIRE DB Leazr: ${monthlyPrice}€`);
       
-      // Calculer la mensualité UNITAIRE en divisant par la quantité
-      const monthlyPrice = totalMonthlyFromItakecare / product.quantity;
-      console.log(`✅ Mensualité UNITAIRE calculée: ${monthlyPrice}€ (${totalMonthlyFromItakecare} / ${product.quantity})`);
+      // Appliquer la réduction pack partenaire si applicable
+      if (monthlyPrice > 0 && product.pack_discount_percentage && product.pack_discount_percentage > 0) {
+        const originalMonthly = monthlyPrice;
+        monthlyPrice = monthlyPrice * (1 - product.pack_discount_percentage / 100);
+        console.log(`🏷️ Réduction pack ${product.pack_discount_percentage}% appliquée: ${originalMonthly}€ → ${monthlyPrice}€`);
+      }
+      
+      // Fallback sur unit_price iTakecare UNIQUEMENT si pas de prix mensuel en DB
+      if (monthlyPrice === 0) {
+        monthlyPrice = (product.unit_price || 0) / product.quantity;
+        console.log(`⚠️ Fallback sur unit_price iTakecare: ${monthlyPrice}€/u`);
+      }
+      
+      const totalMonthlyForLine = monthlyPrice * product.quantity;
       
       // Calculs par équipement
-      const coefficient = 3.53; // On utilisera le coefficient final plus tard, mais on utilise 3.53 pour l'estimation
+      const coefficient = 3.53; // Estimation initiale
       const sellingPrice = (monthlyPrice * 100) / coefficient;
       const equipmentMargin = price > 0 ? ((sellingPrice - price) / price) * 100 : 0;
       
@@ -275,16 +290,17 @@ serve(async (req) => {
         quantite: product.quantity,
         prix_achat_unitaire: price.toFixed(2),
         prix_achat_total: totalPurchasePrice.toFixed(2),
-        mensualite_totale_itakecare: totalMonthlyFromItakecare.toFixed(2),
-        mensualite_unitaire: monthlyPrice.toFixed(2),
+        mensualite_unitaire_db: monthlyPrice.toFixed(2),
+        mensualite_totale_ligne: totalMonthlyForLine.toFixed(2),
         prix_vente_unitaire: sellingPrice.toFixed(2),
         prix_vente_total: totalSellingPrice.toFixed(2),
-        marge_pct: equipmentMargin.toFixed(2) + '%'
+        marge_pct: equipmentMargin.toFixed(2) + '%',
+        pack_discount: product.pack_discount_percentage || 0
       });
       
       // Accumuler les totaux
       totalPurchaseAmount += totalPurchasePrice;
-      totalMonthlyPayment += totalMonthlyFromItakecare; // Utiliser le total mensuel depuis iTakecare
+      totalMonthlyPayment += totalMonthlyForLine; // Utiliser le total mensuel depuis DB Leazr
       totalFinancedAmountEstimate += totalSellingPrice;
       
       console.log("Montants cumulés - Total d'achat:", totalPurchaseAmount, "Mensuel:", totalMonthlyPayment);
