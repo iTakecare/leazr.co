@@ -103,6 +103,7 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, compan
             <PartnerPackOptionsEditor
               partnerPackId={optionsEditorPack.id}
               partnerId={partner.id}
+              companyId={companyId}
               packName={optionsEditorPack.name}
             />
           </>
