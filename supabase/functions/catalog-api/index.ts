@@ -365,6 +365,23 @@ Deno.serve(async (req) => {
 })
 
 // ============================================
+// HELPERS
+// ============================================
+
+/**
+ * Flatten joined brands/categories into top-level brand/category strings.
+ * Ensures API consumers always get consistent string fields.
+ */
+function flattenProductBrandCategory(product: any) {
+  if (!product) return product
+  return {
+    ...product,
+    brand: product.brands?.name || product.brand_name || product.brand || '',
+    category: product.categories?.translation || product.categories?.name || product.category_name || product.category || '',
+  }
+}
+
+// ============================================
 // READ ENDPOINTS
 // ============================================
 
