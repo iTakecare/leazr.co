@@ -5272,6 +5272,50 @@ export type Database = {
           },
         ]
       }
+      offer_external_services: {
+        Row: {
+          billing_period: string
+          created_at: string
+          description: string | null
+          id: string
+          offer_id: string
+          price_htva: number
+          product_name: string
+          provider_name: string
+          quantity: number
+        }
+        Insert: {
+          billing_period?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          offer_id: string
+          price_htva?: number
+          product_name: string
+          provider_name: string
+          quantity?: number
+        }
+        Update: {
+          billing_period?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          offer_id?: string
+          price_htva?: number
+          product_name?: string
+          provider_name?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_external_services_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_info_requests: {
         Row: {
           created_at: string
@@ -5530,6 +5574,8 @@ export type Database = {
           monthly_payment_before_discount: number | null
           offer_number: string | null
           pack_id: string | null
+          partner_name: string | null
+          partner_slug: string | null
           previous_status: string | null
           products_to_be_determined: boolean | null
           remarks: string | null
@@ -5589,6 +5635,8 @@ export type Database = {
           monthly_payment_before_discount?: number | null
           offer_number?: string | null
           pack_id?: string | null
+          partner_name?: string | null
+          partner_slug?: string | null
           previous_status?: string | null
           products_to_be_determined?: boolean | null
           remarks?: string | null
@@ -5648,6 +5696,8 @@ export type Database = {
           monthly_payment_before_discount?: number | null
           offer_number?: string | null
           pack_id?: string | null
+          partner_name?: string | null
+          partner_slug?: string | null
           previous_status?: string | null
           products_to_be_determined?: boolean | null
           remarks?: string | null
@@ -9233,6 +9283,8 @@ export type Database = {
           monthly_payment_before_discount: number | null
           offer_number: string | null
           pack_id: string | null
+          partner_name: string | null
+          partner_slug: string | null
           previous_status: string | null
           products_to_be_determined: boolean | null
           remarks: string | null

@@ -107,6 +107,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                 type={offer.type} 
                 source={offer.source} 
                 hasCustomPacks={offer.offer_custom_packs && offer.offer_custom_packs.length > 0}
+                partnerName={offer.partner_name}
                 size="sm" 
               />
               {/* Reminder Indicator */}

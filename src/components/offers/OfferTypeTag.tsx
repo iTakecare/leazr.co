@@ -13,10 +13,11 @@ interface OfferTypeTagProps {
   type: string;
   source?: string | null;
   hasCustomPacks?: boolean;
+  partnerName?: string | null;
   size?: "sm" | "md" | "lg";
 }
 
-const OfferTypeTag = ({ type, source, hasCustomPacks = false, size = "md" }: OfferTypeTagProps) => {
+const OfferTypeTag = ({ type, source, hasCustomPacks = false, partnerName, size = "md" }: OfferTypeTagProps) => {
   // Si type est vide, afficher la SOURCE au lieu du type
   if (!type || type === "") {
     const sourceLabel = translateOfferSource(source);
@@ -84,12 +85,16 @@ const OfferTypeTag = ({ type, source, hasCustomPacks = false, size = "md" }: Off
       color = "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100";
       icon = <Home className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
+    case "partner_request":
+      color = "bg-indigo-50 text-indigo-700 border-indigo-300 hover:bg-indigo-50";
+      icon = <Handshake className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+      break;
     default:
       color = "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100";
       icon = <User className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
   }
 
-  const translatedType = translateOfferType(type);
+  const translatedType = translateOfferType(type, partnerName);
 
   if (size === "sm") {
     return (

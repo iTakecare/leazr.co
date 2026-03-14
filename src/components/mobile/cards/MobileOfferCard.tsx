@@ -96,6 +96,7 @@ const MobileOfferCard: React.FC<MobileOfferCardProps> = ({
             type={offer.type} 
             source={offer.source} 
             hasCustomPacks={offer.offer_custom_packs && offer.offer_custom_packs.length > 0}
+            partnerName={offer.partner_name}
             size="sm" 
           />
         </div>

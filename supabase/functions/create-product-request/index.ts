@@ -438,12 +438,17 @@ serve(async (req) => {
     // La source est toujours 'site_web' car toutes les demandes viennent du site iTakecare
     const offerSource = 'site_web';
     
-    // Le type est déterminé selon la présence de packs personnalisés
-    const offerType = (data.packs && data.packs.length > 0) 
-      ? 'custom_pack_request'  // Demande web avec pack personnalisé
-      : 'web_request';         // Demande web standard (catalogue)
+    // Le type est déterminé selon la présence de partenaire ou de packs personnalisés
+    let offerType: string;
+    if (data.partner_slug) {
+      offerType = 'partner_request';  // Demande via un partenaire
+    } else if (data.packs && data.packs.length > 0) {
+      offerType = 'custom_pack_request';  // Demande web avec pack personnalisé
+    } else {
+      offerType = 'web_request';         // Demande web standard (catalogue)
+    }
     
-    console.log(`Type: ${offerType}, Source: ${offerSource}`);
+    console.log(`Type: ${offerType}, Source: ${offerSource}, Partner: ${data.partner_slug || 'none'}`);
 
     // Création de l'offre
     const offerData = {
@@ -462,11 +467,15 @@ serve(async (req) => {
       source: offerSource,
       workflow_status: 'draft',
       status: 'pending',
-      remarks: 'Demande créée via API web avec Grenke (36 mois)',
+      remarks: data.partner_slug 
+        ? `Demande via partenaire ${data.partner_name || data.partner_slug} (Grenke 36 mois)`
+        : 'Demande créée via API web avec Grenke (36 mois)',
       user_id: null,
       company_id: targetCompanyId,
       leaser_id: leaserId,
-      dossier_number: dossierNumber
+      dossier_number: dossierNumber,
+      partner_slug: data.partner_slug || null,
+      partner_name: data.partner_name || null
     };
 
     console.log("Création de l'offre avec les données:", offerData);
@@ -617,6 +626,31 @@ serve(async (req) => {
           } else {
             console.log(`Attribut ${key}: ${value} créé avec succès`);
           }
+        }
+      }
+    }
+
+    // ========= INSERTION DES SERVICES EXTERNES ==========
+    if (data.external_services && data.external_services.length > 0) {
+      console.log(`📦 Insertion de ${data.external_services.length} services externes`);
+      
+      for (const service of data.external_services) {
+        const { error: serviceError } = await supabaseAdmin
+          .from('offer_external_services')
+          .insert({
+            offer_id: requestId,
+            provider_name: service.provider_name,
+            product_name: service.product_name,
+            description: service.description || null,
+            price_htva: service.price_htva,
+            billing_period: service.billing_period,
+            quantity: service.quantity || 1
+          });
+        
+        if (serviceError) {
+          console.error(`❌ Erreur insertion service externe ${service.product_name}:`, serviceError);
+        } else {
+          console.log(`✅ Service externe créé: ${service.provider_name} - ${service.product_name}`);
         }
       }
     }

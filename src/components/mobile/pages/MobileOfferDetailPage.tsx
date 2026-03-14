@@ -217,6 +217,7 @@ const MobileOfferDetailPage: React.FC<MobileOfferDetailPageProps> = ({
                 hasCustomPacks={
                   offer.offer_custom_packs && offer.offer_custom_packs.length > 0
                 }
+                partnerName={offer.partner_name}
                 size="sm"
               />
             </div>

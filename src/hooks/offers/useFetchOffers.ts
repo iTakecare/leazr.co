@@ -26,6 +26,8 @@ export interface Offer extends OfferData {
     pack_name: string;
     discount_percentage: number;
   }>;
+  partner_slug?: string | null;
+  partner_name?: string | null;
 }
 
 export const useFetchOffers = () => {
