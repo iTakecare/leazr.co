@@ -381,12 +381,40 @@ export const updateProduct = async (productId: string, productData: any) => {
 };
 
 export const deleteProduct = async (productId: string) => {
+  // 1. Delete records in tables with NO ACTION FK constraints (blocking)
+  const { error: eqReqError } = await supabase
+    .from("equipment_requests")
+    .delete()
+    .eq("equipment_id", productId);
+  if (eqReqError) throw new Error(`Erreur suppression equipment_requests: ${eqReqError.message}`);
+
+  const { error: eqAlertError } = await supabase
+    .from("equipment_alerts")
+    .delete()
+    .eq("equipment_id", productId);
+  if (eqAlertError) throw new Error(`Erreur suppression equipment_alerts: ${eqAlertError.message}`);
+
+  const { error: offerEqError } = await supabase
+    .from("offer_equipment")
+    .delete()
+    .eq("product_id", productId);
+  if (offerEqError) throw new Error(`Erreur suppression offer_equipment: ${offerEqError.message}`);
+
+  // 2. Delete child products (variants) — their CASCADE deps will auto-delete
+  const { error: childError } = await supabase
+    .from("products")
+    .delete()
+    .eq("parent_id", productId);
+  if (childError) throw new Error(`Erreur suppression produits enfants: ${childError.message}`);
+
+  // 3. Delete the product itself (CASCADE handles: product_variant_prices, 
+  //    product_supplier_prices, product_pack_items, client_custom_prices, 
+  //    ambassador_custom_prices, product_upsells, equipment_tracking, equipment_maintenance)
   const { error } = await supabase
     .from("products")
     .delete()
     .eq("id", productId);
-
-  if (error) throw error;
+  if (error) throw new Error(`Erreur suppression produit: ${error.message}`);
 };
 
 export const uploadProductImage = async (imageFile: File, productId: string, isMain?: boolean | string) => {
