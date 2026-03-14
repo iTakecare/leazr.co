@@ -211,7 +211,31 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
 
   return (
     <div className="space-y-4">
-      {loadingOptions ? (
+      {otherPacks.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Copy className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Select value={copySourcePackId} onValueChange={setCopySourcePackId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Copier les options d'un autre pack..." />
+            </SelectTrigger>
+            <SelectContent>
+              {otherPacks.map((pp) => (
+                <SelectItem key={pp.id} value={pp.id}>
+                  {pp.pack?.name || "Pack inconnu"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCopyOptions}
+            disabled={!copySourcePackId || isCopying}
+          >
+            {isCopying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Copier"}
+          </Button>
+        </div>
+      )}
           <div className="text-center py-6 text-muted-foreground">Chargement...</div>
         ) : options.length === 0 && !showAddForm ? (
           <div className="text-center py-8 text-muted-foreground text-sm">
