@@ -440,6 +440,13 @@ const CatalogApiSettings = () => {
       path: 'providers/{id}/products',
       description: 'Produits/services d\'un prestataire externe',
       example: '{ "products": [{ "id": "uuid", "name": "Abonnement mobile", "price_htva": 9.99, "billing_period": "monthly", "is_active": true }] }'
+    },
+    {
+      method: 'POST',
+      path: 'create-product-request (Edge Function)',
+      description: 'Créer une demande de devis/commande. Supporte les champs partenaire et services externes.',
+      body: '{\n  "products": [{ "product_id": "uuid", "variant_id": "uuid", "quantity": 2, "unit_price": 25.99 }],\n  "contact_info": { "first_name": "Jean", "last_name": "Dupont", "email": "jean@example.com" },\n  "company_info": { "company_name": "Acme SA", "vat_number": "BE0123456789" },\n  "partner_slug": "the-pod",\n  "partner_name": "The Pod",\n  "external_services": [\n    { "provider_name": "Proximus", "product_name": "Mobile Pro", "price_htva": 9.99, "billing_period": "monthly", "quantity": 1 }\n  ]\n}',
+      example: '{ "success": true, "request_id": "uuid", "message": "Demande créée avec succès" }'
     }
   ];
 
@@ -672,6 +679,19 @@ const CatalogApiSettings = () => {
                   <li>• <strong>Isolation catalogue</strong> - Les packs assignés à un partenaire sont masqués du catalogue public</li>
                   <li>• <strong>Packs personnalisables</strong> - Options par catégorie (tablette, périphérique...) avec choix de produits</li>
                   <li>• <strong>Prestataires externes</strong> - Services tiers (téléphonie, etc.) liés aux partenaires avec souscription directe</li>
+                </ul>
+              </div>
+              
+              <div className="bg-violet-50 border border-violet-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-violet-900 mb-2">📦 Demandes partenaires & services externes (v2026.3)</h4>
+                <p className="text-sm text-violet-700 mb-2">
+                  L'endpoint <code className="bg-violet-100 px-1 rounded">create-product-request</code> supporte maintenant les champs partenaire et services externes :
+                </p>
+                <ul className="text-sm text-violet-700 space-y-1">
+                  <li>• <code className="bg-violet-100 px-1 rounded">partner_slug</code> - Identifiant du partenaire (ex: "the-pod"). Définit le type comme <code>partner_request</code></li>
+                  <li>• <code className="bg-violet-100 px-1 rounded">partner_name</code> - Nom d'affichage du partenaire (ex: "The Pod")</li>
+                  <li>• <code className="bg-violet-100 px-1 rounded">external_services[]</code> - Services de prestataires externes sélectionnés par le client</li>
+                  <li>• Chaque service : <code className="bg-violet-100 px-1 rounded">provider_name</code>, <code className="bg-violet-100 px-1 rounded">product_name</code>, <code className="bg-violet-100 px-1 rounded">price_htva</code>, <code className="bg-violet-100 px-1 rounded">billing_period</code> (monthly/yearly/one_time), <code className="bg-violet-100 px-1 rounded">quantity</code></li>
                 </ul>
               </div>
             </CardHeader>
