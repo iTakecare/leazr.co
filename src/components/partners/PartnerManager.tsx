@@ -18,6 +18,7 @@ import {
   createPartner,
   updatePartner,
   deletePartner,
+  duplicatePartner,
   generateSlug,
 } from "@/services/partnerService";
 import type { Partner, CreatePartnerData } from "@/types/partner";
