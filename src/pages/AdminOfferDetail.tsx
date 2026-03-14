@@ -1075,6 +1075,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <ClientSection offer={offer} />
                     <NewEquipmentSection offer={offer} onOfferUpdate={() => { setEquipmentRefreshKey((k) => k + 1); fetchOfferDetails(); }} />
+                    <ExternalServicesSection offerId={offer.id} />
                     <EquipmentOrderTracker
                       sourceType="offer"
                       sourceId={offer.id}
