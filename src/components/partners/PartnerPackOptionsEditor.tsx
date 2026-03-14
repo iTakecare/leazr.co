@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, Settings2, GripVertical } from "lucide-react";
+import { Plus, Trash2, Loader2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import {
   fetchPartnerPackOptions,
@@ -23,8 +22,6 @@ import type { PartnerPackOption } from "@/types/partner";
 interface PartnerPackOptionsEditorProps {
   partnerPackId: string;
   packName: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
 }
 
 interface OptionFormData {
@@ -44,8 +41,6 @@ const emptyForm: OptionFormData = {
 const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   partnerPackId,
   packName,
-  open,
-  onOpenChange,
 }) => {
   const queryClient = useQueryClient();
   const [editingOption, setEditingOption] = useState<string | null>(null);
@@ -56,7 +51,6 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   const { data: options = [], isLoading: loadingOptions } = useQuery({
     queryKey: ["partner-pack-options", partnerPackId],
     queryFn: () => fetchPartnerPackOptions(partnerPackId),
-    enabled: open,
   });
 
   const { data: categories = [] } = useCategories();
@@ -64,7 +58,6 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   const { data: allProducts = [], isLoading: loadingProducts } = useQuery({
     queryKey: ["products-for-options"],
     queryFn: () => getProducts({ includeAdminOnly: true }),
-    enabled: open,
   });
 
   const filteredProducts = selectedCategory
@@ -144,16 +137,8 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5" />
-            Options du pack : {packName}
-          </DialogTitle>
-        </DialogHeader>
-
-        {loadingOptions ? (
+    <div className="space-y-4">
+      {loadingOptions ? (
           <div className="text-center py-6 text-muted-foreground">Chargement...</div>
         ) : options.length === 0 && !showAddForm ? (
           <div className="text-center py-8 text-muted-foreground text-sm">
@@ -319,8 +304,7 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
             Ajouter une categorie d'option
           </Button>
         )}
-      </DialogContent>
-    </Dialog>
+    </div>
   );
 };
 
