@@ -989,6 +989,9 @@ NOUVELLES FONCTIONNALITES :
 - ✅ Interface admin PartnerPackOptionsEditor
 - ✅ Gestion des categories d'options par pack personnalisable
 - ✅ Selection des produits autorises avec filtre par categorie
+- ✅ Filtrage intelligent : seuls les produits avec variantes selectionnees sont retournes dans allowed_products
+- ✅ allowed_product_ids accepte des variant price IDs (UUIDs de product_variant_prices)
+- ✅ Produits sans variante selectionnee automatiquement exclus de la reponse
 
 ## Version 2026.1 - 13 mars 2026
 **Ecosysteme partenaires & prestataires externes**
