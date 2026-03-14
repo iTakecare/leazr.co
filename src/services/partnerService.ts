@@ -151,6 +151,65 @@ export const removePartnerProviderLink = async (id: string): Promise<void> => {
 };
 
 // ============================================
+// DUPLICATE PARTNER
+// ============================================
+
+export const duplicatePartner = async (sourcePartnerId: string, companyId: string): Promise<Partner> => {
+  // 1. Fetch source partner
+  const { data: source, error: sourceError } = await supabase
+    .from("partners")
+    .select("*")
+    .eq("id", sourcePartnerId)
+    .single();
+  if (sourceError || !source) throw sourceError || new Error("Partenaire introuvable");
+
+  // 2. Create new partner
+  const newPartner = await createPartner(companyId, {
+    name: `${source.name} (copie)`,
+    slug: `${source.slug}-copie`,
+    description: source.description || "",
+    logo_url: source.logo_url || "",
+    website_url: source.website_url || "",
+    is_active: false,
+  });
+
+  // 3. Duplicate packs + their options
+  const sourcePacks = await fetchPartnerPacks(sourcePartnerId);
+  for (const sp of sourcePacks) {
+    const newPack = await addPartnerPack(newPartner.id, sp.pack_id, sp.position);
+    await updatePartnerPack(newPack.id, { is_customizable: sp.is_customizable });
+
+    const sourceOptions = await fetchPartnerPackOptions(sp.id);
+    for (const opt of sourceOptions) {
+      await upsertPartnerPackOption({
+        partner_pack_id: newPack.id,
+        category_name: opt.category_name,
+        is_required: opt.is_required,
+        max_quantity: opt.max_quantity,
+        position: opt.position,
+        allowed_product_ids: (opt.allowed_product_ids || []).map((id: string) =>
+          id.startsWith("vprice_") ? id.replace("vprice_", "") : id
+        ),
+      });
+    }
+  }
+
+  // 4. Duplicate provider links
+  const sourceLinks = await fetchPartnerProviderLinks(sourcePartnerId);
+  for (const link of sourceLinks) {
+    await addPartnerProviderLink(
+      newPartner.id,
+      link.provider_id,
+      link.card_title || "",
+      link.selected_product_ids || [],
+      link.position
+    );
+  }
+
+  return newPartner;
+};
+
+// ============================================
 // SLUG HELPER
 // ============================================
 

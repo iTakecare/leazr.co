@@ -1,37 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Plan : Dupliquer un partenaire
+## Statut
 
-### Objectif
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-Ajouter un bouton "Dupliquer" sur chaque ligne partenaire dans `PartnerManager`. La duplication crée un nouveau partenaire avec tout son contenu (packs, options de packs, liens prestataires) en ne changeant que le nom/slug (suffixé " (copie)").
+## Endpoints API ajoutés
 
-### Changements
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-**1. `src/services/partnerService.ts`** — Nouvelle fonction `duplicatePartner`
+## Documentation
 
-```typescript
-export const duplicatePartner = async (
-  sourcePartnerId: string, 
-  companyId: string
-): Promise<Partner>
-```
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-Logique séquentielle :
-1. Fetch le partenaire source → créer une copie avec nom + " (copie)", slug + "-copie", logo/description/website identiques
-2. Fetch `partner_packs` du source → insérer chaque pack pour le nouveau partenaire (même `pack_id`, `is_customizable`, `position`)
-3. Pour chaque pack copié, fetch `partner_pack_options` de l'original → insérer les options avec le nouveau `partner_pack_id` (sanitize `vprice_` au passage)
-4. Fetch `partner_provider_links` du source → insérer chaque lien pour le nouveau partenaire (même `provider_id`, `card_title`, `selected_product_ids`, `position`)
-5. Retourner le nouveau partenaire
+## Tables
 
-**2. `src/components/partners/PartnerManager.tsx`** — Bouton dupliquer
-
-- Ajouter une icône `Copy` (lucide) dans la colonne Actions de chaque ligne, entre le bouton Prestataires et Modifier
-- Au clic, appeler `duplicatePartner` via une mutation
-- Toast de succès avec le nom du nouveau partenaire
-- Invalidation du cache `["partners"]`
-
-### Résultat
-
-L'admin clique sur l'icône de duplication, un nouveau partenaire apparait immédiatement dans la liste avec " (copie)" dans le nom. Il peut ensuite l'éditer pour changer nom, logo et site web.
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`

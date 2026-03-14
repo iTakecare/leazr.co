@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, Loader2, X, Package, Link } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Loader2, X, Package, Link, Copy } from "lucide-react";
 import { cleanFileUpload } from "@/services/cleanFileUploadService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
   createPartner,
   updatePartner,
   deletePartner,
+  duplicatePartner,
   generateSlug,
 } from "@/services/partnerService";
 import type { Partner, CreatePartnerData } from "@/types/partner";
@@ -90,6 +91,15 @@ const PartnerManager: React.FC = () => {
       toast.success("Partenaire supprimé");
     },
     onError: (e: any) => toast.error(e.message),
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: (partnerId: string) => duplicatePartner(partnerId, companyId!),
+    onSuccess: (newPartner) => {
+      queryClient.invalidateQueries({ queryKey: ["partners"] });
+      toast.success(`Partenaire dupliqué : ${newPartner.name}`);
+    },
+    onError: (e: any) => toast.error(`Erreur lors de la duplication : ${e.message}`),
   });
 
   const openCreate = () => {
@@ -194,6 +204,15 @@ const PartnerManager: React.FC = () => {
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => setManagingPacksPartner(partner)} title="Gérer les packs">
                         <Package className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => duplicateMutation.mutate(partner.id)}
+                        disabled={duplicateMutation.isPending}
+                        title="Dupliquer le partenaire"
+                      >
+                        <Copy className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => setManagingProvidersPartner(partner)} title="Prestataires externes">
                         <Link className="h-4 w-4" />
