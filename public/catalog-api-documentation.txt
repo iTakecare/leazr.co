@@ -497,8 +497,14 @@ STRUCTURE D'UNE OPTION :
 | category_name | string | Nom de la categorie (ex: "Tablettes") |
 | is_required | boolean | L'option est-elle obligatoire ? |
 | max_quantity | number | Quantite maximale selectionnable |
-| allowed_product_ids | uuid[] | IDs des produits autorises |
+| allowed_product_ids | uuid[] | IDs de variantes (product_variant_prices) autorisees |
 | allowed_products | object[] | Produits autorises avec details complets |
+
+⚠️ NOTE IMPORTANTE sur allowed_product_ids :
+- Ces IDs sont des **variant price IDs** (UUIDs de la table `product_variant_prices`), PAS des product IDs directs.
+- L'API effectue un filtrage intelligent : seuls les produits ayant au moins une variante selectionnee apparaissent dans `allowed_products`.
+- Les `product_variant_prices` retournes pour chaque produit sont limites aux seules variantes presentes dans `allowed_product_ids`.
+- Un produit avec 0 variante selectionnee est automatiquement exclu de la reponse.
 | position | number | Ordre d'affichage |
 
 STRUCTURE D'UN PRODUIT AUTORISE (allowed_products[]) :
