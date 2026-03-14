@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Loader2, GripVertical, ChevronDown, ChevronRight, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
+  fetchPartnerPacks,
   fetchPartnerPackOptions,
   upsertPartnerPackOption,
   deletePartnerPackOption,
@@ -21,6 +22,7 @@ import type { PartnerPackOption } from "@/types/partner";
 
 interface PartnerPackOptionsEditorProps {
   partnerPackId: string;
+  partnerId: string;
   packName: string;
 }
 
@@ -40,6 +42,7 @@ const emptyForm: OptionFormData = {
 
 const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   partnerPackId,
+  partnerId,
   packName,
 }) => {
   const queryClient = useQueryClient();
@@ -47,6 +50,8 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   const [form, setForm] = useState<OptionFormData>(emptyForm);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [copySourcePackId, setCopySourcePackId] = useState<string>("");
+  const [isCopying, setIsCopying] = useState(false);
 
   const { data: options = [], isLoading: loadingOptions } = useQuery({
     queryKey: ["partner-pack-options", partnerPackId],
@@ -54,6 +59,45 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
   });
 
   const { data: categories = [] } = useCategories();
+
+  // Fetch other packs from the same partner for "copy options" feature
+  const { data: partnerPacks = [] } = useQuery({
+    queryKey: ["partner-packs", partnerId],
+    queryFn: () => fetchPartnerPacks(partnerId),
+  });
+
+  const otherPacks = partnerPacks.filter((pp) => pp.id !== partnerPackId);
+
+  const handleCopyOptions = async () => {
+    if (!copySourcePackId) return;
+    setIsCopying(true);
+    try {
+      const sourceOptions = await fetchPartnerPackOptions(copySourcePackId);
+      if (sourceOptions.length === 0) {
+        toast.error("Ce pack n'a aucune option à copier");
+        return;
+      }
+      for (const option of sourceOptions) {
+        await upsertPartnerPackOption({
+          partner_pack_id: partnerPackId,
+          category_name: option.category_name,
+          is_required: option.is_required,
+          max_quantity: option.max_quantity,
+          position: option.position,
+          allowed_product_ids: (option.allowed_product_ids || []).map(
+            (id: string) => id.startsWith("vprice_") ? id.replace("vprice_", "") : id
+          ),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["partner-pack-options", partnerPackId] });
+      setCopySourcePackId("");
+      toast.success(`${sourceOptions.length} option(s) copiée(s) avec succès`);
+    } catch (e: any) {
+      toast.error(e.message || "Erreur lors de la copie");
+    } finally {
+      setIsCopying(false);
+    }
+  };
 
   const { data: allProducts = [], isLoading: loadingProducts } = useQuery({
     queryKey: ["products-for-options"],
@@ -167,6 +211,32 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
 
   return (
     <div className="space-y-4">
+      {otherPacks.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Copy className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Select value={copySourcePackId} onValueChange={setCopySourcePackId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Copier les options d'un autre pack..." />
+            </SelectTrigger>
+            <SelectContent>
+              {otherPacks.map((pp) => (
+                <SelectItem key={pp.id} value={pp.id}>
+                  {pp.pack?.name || "Pack inconnu"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCopyOptions}
+            disabled={!copySourcePackId || isCopying}
+          >
+            {isCopying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Copier"}
+          </Button>
+        </div>
+      )}
+
       {loadingOptions ? (
           <div className="text-center py-6 text-muted-foreground">Chargement...</div>
         ) : options.length === 0 && !showAddForm ? (

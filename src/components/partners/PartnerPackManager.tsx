@@ -101,6 +101,7 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
             </DialogHeader>
             <PartnerPackOptionsEditor
               partnerPackId={optionsEditorPack.id}
+              partnerId={partner.id}
               packName={optionsEditorPack.name}
             />
           </>
