@@ -168,7 +168,10 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
                             variant="ghost"
                             size="icon"
                             title="Gerer les options"
-                            onClick={() => setOptionsEditorPack({ id: pp.id, name: pp.pack?.name || "Pack" })}
+                            onClick={() => {
+                              setOptionsEditorPack({ id: pp.id, name: pp.pack?.name || "Pack" });
+                              onOpenChange(false);
+                            }}
                           >
                             <Settings2 className="h-4 w-4" />
                           </Button>
@@ -200,7 +203,12 @@ const PartnerPackManager: React.FC<PartnerPackManagerProps> = ({ partner, open, 
         partnerPackId={optionsEditorPack.id}
         packName={optionsEditorPack.name}
         open={!!optionsEditorPack}
-        onOpenChange={(v) => { if (!v) setOptionsEditorPack(null); }}
+        onOpenChange={(v) => {
+          if (!v) {
+            setOptionsEditorPack(null);
+            onOpenChange(true);
+          }
+        }}
       />
     )}
     </>
