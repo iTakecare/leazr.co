@@ -236,6 +236,8 @@ const PartnerPackOptionsEditor: React.FC<PartnerPackOptionsEditorProps> = ({
           </Button>
         </div>
       )}
+
+      {loadingOptions ? (
           <div className="text-center py-6 text-muted-foreground">Chargement...</div>
         ) : options.length === 0 && !showAddForm ? (
           <div className="text-center py-8 text-muted-foreground text-sm">
