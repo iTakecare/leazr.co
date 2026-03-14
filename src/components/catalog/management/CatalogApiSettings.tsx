@@ -420,8 +420,8 @@ const CatalogApiSettings = () => {
     {
       method: 'GET',
       path: 'partners/{slug}/packs',
-      description: 'Packs exclusifs liés au partenaire avec options personnalisables',
-      example: '{ "partner_packs": [{ "id": "uuid", "position": 0, "is_customizable": true, "pack": { "name": "Pack Pro", "total_monthly_price": 89.99, "items": [...] }, "options": [...] }] }'
+      description: 'Packs exclusifs avec options enrichies (produits autorises avec details et variants)',
+      example: '{ "partner_packs": [{ "id": "uuid", "position": 0, "is_customizable": true, "pack": { "name": "Pack Pro", "total_monthly_price": 89.99, "items": [...] }, "options": [{ "category_name": "Tablettes", "is_required": false, "max_quantity": 2, "allowed_products": [{ "id": "uuid", "name": "iPad Air M2", "monthly_price": 19.99, "product_variant_prices": [...] }] }] }] }'
     },
     {
       method: 'GET',

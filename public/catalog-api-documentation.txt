@@ -2,15 +2,35 @@
    DOCUMENTATION API CATALOG LOVABLE 
 ===========================================
 
-VERSION : 2026.1  
-DATE : 13 mars 2026 - Écosystème partenaires & prestataires externes
+VERSION : 2026.2  
+DATE : 14 mars 2026 - Options personnalisables enrichies & UI admin
 STATUT : Prêt pour production
 
 ===========================================
-   NOUVEAUTÉS VERSION 2026.1
+   NOUVEAUTES VERSION 2026.2
 ===========================================
 
-Cette version ajoute l'écosystème partenaires complet : pages dédiées,
+Cette version enrichit les options de personnalisation des packs
+partenaires avec les details complets des produits autorises.
+
+NOUVELLES FONCTIONNALITES :
+
+1. **Options enrichies (allowed_products)**
+   - GET /partners/{slug}/packs retourne desormais les produits
+     autorises avec tous leurs details (nom, prix, image, variants)
+   - Chaque option contient `allowed_products[]` en plus de `allowed_product_ids[]`
+   - Les variants de chaque produit autorise sont inclus
+
+2. **Interface admin des options**
+   - Nouveau composant PartnerPackOptionsEditor dans le back-office
+   - Selection des categories et produits autorises par pack personnalisable
+   - Gestion obligatoire/optionnel, quantite max, position
+
+===========================================
+   NOUVEAUTES VERSION 2026.1
+===========================================
+
+Ecosysteme partenaires complet : pages dediees,
 packs exclusifs, prestataires externes et isolation du catalogue public.
 
 NOUVELLES FONCTIONNALITÉS :
@@ -407,11 +427,24 @@ RÉPONSE :
       "options": [
         {
           "id": "uuid",
-          "category_name": "Tablette",
+          "category_name": "Tablettes",
           "is_required": false,
-          "max_quantity": 1,
+          "max_quantity": 2,
           "position": 0,
-          "allowed_product_ids": ["uuid1", "uuid2"]
+          "allowed_product_ids": ["uuid1", "uuid2"],
+          "allowed_products": [
+            {
+              "id": "uuid1",
+              "name": "iPad Air M2",
+              "image_url": "https://...",
+              "price": 699,
+              "monthly_price": 19.99,
+              "brand_name": "Apple",
+              "product_variant_prices": [
+                { "id": "var_uuid", "attributes": { "storage": "256Go" }, "price": 799, "monthly_price": 22.99 }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -449,19 +482,72 @@ RÉPONSE :
 
 ## 7.3 PACKS PARTENAIRES - OPTIONS DE PERSONNALISATION
 
-Les packs assignés à un partenaire peuvent avoir des options de
+Les packs assignes a un partenaire peuvent avoir des options de
 personnalisation permettant au client final de choisir des produits
-supplémentaires dans des catégories définies.
+supplementaires dans des categories definies.
+
+L'API enrichit automatiquement chaque option avec les details complets
+des produits autorises (nom, image, prix, variants).
 
 STRUCTURE D'UNE OPTION :
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| category_name | string | Nom de la catégorie (ex: "Tablette") |
+| id | uuid | Identifiant unique de l'option |
+| category_name | string | Nom de la categorie (ex: "Tablettes") |
 | is_required | boolean | L'option est-elle obligatoire ? |
-| max_quantity | number | Quantité maximale sélectionnable |
-| allowed_product_ids | uuid[] | IDs des produits autorisés dans cette catégorie |
+| max_quantity | number | Quantite maximale selectionnable |
+| allowed_product_ids | uuid[] | IDs des produits autorises |
+| allowed_products | object[] | Produits autorises avec details complets |
 | position | number | Ordre d'affichage |
+
+STRUCTURE D'UN PRODUIT AUTORISE (allowed_products[]) :
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| id | uuid | ID du produit |
+| name | string | Nom du produit |
+| slug | string | Slug du produit |
+| image_url | string | URL de l'image |
+| price | number | Prix d'achat |
+| monthly_price | number | Prix mensuel |
+| brand_name | string | Nom de la marque |
+| category_name | string | Nom de la categorie |
+| short_description | string | Description courte |
+| product_variant_prices | object[] | Variants avec prix |
+
+EXEMPLE DE REPONSE (option enrichie) :
+```json
+{
+  "id": "uuid",
+  "category_name": "Tablettes",
+  "is_required": false,
+  "max_quantity": 2,
+  "position": 0,
+  "allowed_product_ids": ["uuid1", "uuid2"],
+  "allowed_products": [
+    {
+      "id": "uuid1",
+      "name": "iPad Air M2",
+      "slug": "ipad-air-m2",
+      "image_url": "https://...",
+      "price": 699,
+      "monthly_price": 19.99,
+      "brand_name": "Apple",
+      "category_name": "Tablettes",
+      "short_description": "iPad Air avec puce M2",
+      "product_variant_prices": [
+        {
+          "id": "var_uuid",
+          "attributes": { "storage": "256Go", "color": "Gris sideral" },
+          "price": 799,
+          "monthly_price": 22.99
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## 7.4 PRESTATAIRES EXTERNES
 
@@ -888,10 +974,20 @@ CREATE TABLE product_supplier_prices (
    HISTORIQUE DES VERSIONS
 ===========================================
 
-## Version 2026.1 - 13 mars 2026
-**Écosystème partenaires & prestataires externes**
+## Version 2026.2 - 14 mars 2026
+**Options personnalisables enrichies & UI admin**
 
-NOUVELLES FONCTIONNALITÉS :
+NOUVELLES FONCTIONNALITES :
+- ✅ Options enrichies : allowed_products[] avec details complets
+- ✅ Variants des produits autorises inclus dans la reponse
+- ✅ Interface admin PartnerPackOptionsEditor
+- ✅ Gestion des categories d'options par pack personnalisable
+- ✅ Selection des produits autorises avec filtre par categorie
+
+## Version 2026.1 - 13 mars 2026
+**Ecosysteme partenaires & prestataires externes**
+
+NOUVELLES FONCTIONNALITES :
 - ✅ GET /partners : Liste des partenaires actifs
 - ✅ GET /partners/{slug} : Page partenaire complète
 - ✅ GET /partners/{slug}/packs : Packs exclusifs du partenaire
@@ -939,11 +1035,12 @@ NOUVELLES FONCTIONNALITÉS :
    STATUT DE PRODUCTION
 ===========================================
 
-✅ **PRODUCTION** - Tous les systèmes opérationnels
-- Edge Functions : Déployées et stables
-- Base de données : Optimisée et sécurisée  
+✅ **PRODUCTION** - Tous les systemes operationnels
+- Edge Functions : Deployees et stables
+- Base de donnees : Optimisee et securisee  
 - API : Pleinement fonctionnelle
-- Écosystème partenaires : Opérationnel
-- Documentation : À jour version 2026.1
+- Ecosysteme partenaires : Operationnel
+- Options personnalisables : Enrichies avec produits complets
+- Documentation : A jour version 2026.2
 
-Documentation technique - Version 2026.1 (13 mars 2026)
+Documentation technique - Version 2026.2 (14 mars 2026)
