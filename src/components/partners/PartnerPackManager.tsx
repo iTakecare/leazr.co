@@ -21,6 +21,7 @@ import type { Partner } from "@/types/partner";
 
 interface PartnerPackManagerProps {
   partner: Partner;
+  companyId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
