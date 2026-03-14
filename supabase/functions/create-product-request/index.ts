@@ -630,6 +630,31 @@ serve(async (req) => {
       }
     }
 
+    // ========= INSERTION DES SERVICES EXTERNES ==========
+    if (data.external_services && data.external_services.length > 0) {
+      console.log(`📦 Insertion de ${data.external_services.length} services externes`);
+      
+      for (const service of data.external_services) {
+        const { error: serviceError } = await supabaseAdmin
+          .from('offer_external_services')
+          .insert({
+            offer_id: requestId,
+            provider_name: service.provider_name,
+            product_name: service.product_name,
+            description: service.description || null,
+            price_htva: service.price_htva,
+            billing_period: service.billing_period,
+            quantity: service.quantity || 1
+          });
+        
+        if (serviceError) {
+          console.error(`❌ Erreur insertion service externe ${service.product_name}:`, serviceError);
+        } else {
+          console.log(`✅ Service externe créé: ${service.provider_name} - ${service.product_name}`);
+        }
+      }
+    }
+
     // ========= ENVOI D'EMAIL AU CLIENT ==========
     if (clientEmail) {
       console.log("Début de la procédure d'envoi d'email...");
