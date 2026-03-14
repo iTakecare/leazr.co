@@ -24,6 +24,7 @@ import type { PartnerPackOption } from "@/types/partner";
 interface PartnerPackOptionsEditorProps {
   partnerPackId: string;
   partnerId: string;
+  companyId: string;
   packName: string;
 }
 
