@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { createErrorResponse } from '../_shared/errorHandler.ts';
 
