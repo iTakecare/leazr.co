@@ -45,7 +45,9 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
         leasers(name),
         offer_equipment(id, title, purchase_price, quantity, margin, monthly_payment, selling_price, coefficient),
         offer_custom_packs(id, pack_name, discount_percentage),
-        business_sector
+        business_sector,
+        partner_name,
+        partner_slug
       `)
       .eq('company_id', profile.company_id);
     
