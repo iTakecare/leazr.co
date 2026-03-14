@@ -427,11 +427,24 @@ RÉPONSE :
       "options": [
         {
           "id": "uuid",
-          "category_name": "Tablette",
+          "category_name": "Tablettes",
           "is_required": false,
-          "max_quantity": 1,
+          "max_quantity": 2,
           "position": 0,
-          "allowed_product_ids": ["uuid1", "uuid2"]
+          "allowed_product_ids": ["uuid1", "uuid2"],
+          "allowed_products": [
+            {
+              "id": "uuid1",
+              "name": "iPad Air M2",
+              "image_url": "https://...",
+              "price": 699,
+              "monthly_price": 19.99,
+              "brand_name": "Apple",
+              "product_variant_prices": [
+                { "id": "var_uuid", "attributes": { "storage": "256Go" }, "price": 799, "monthly_price": 22.99 }
+              ]
+            }
+          ]
         }
       ]
     }
