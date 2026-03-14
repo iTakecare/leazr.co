@@ -1,22 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Plan : Bouton de duplication pour les produits de prestataires externes
+## Statut
 
-### Changement
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-**Fichier : `src/components/partners/ExternalProviderManager.tsx`**
+## Endpoints API ajoutés
 
-1. Importer l'icône `Copy` depuis lucide-react
-2. Ajouter un bouton `Copy` dans la colonne Actions de chaque produit (entre Pencil et Trash2, lignes ~314-322)
-3. Au clic, appeler `createProviderProduct` (mutation existante `createProductMut`) avec les mêmes données du produit source mais sans `id`, et le nom suffixé " (copie)"
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-Aucun nouveau service nécessaire — on réutilise `createProductMut` déjà en place.
+## Documentation
 
-### UI résultante
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-```text
-Actions: [✏️] [📋] [🗑️]
-```
+## Tables
 
-Le produit dupliqué apparaît immédiatement dans la liste avec " (copie)" dans le nom.
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`

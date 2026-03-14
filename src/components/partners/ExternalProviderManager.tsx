@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronUp, Upload, X, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronUp, Upload, X, Loader2, Copy } from "lucide-react";
 import { cleanFileUpload } from "@/services/cleanFileUploadService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -314,6 +314,19 @@ const ExternalProviderManager: React.FC = () => {
                                 <div className="flex items-center justify-end gap-1">
                                   <Button variant="ghost" size="icon" onClick={() => openEditProduct(product)}>
                                     <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" title="Dupliquer" onClick={() => {
+                                    createProductMut.mutate({
+                                      provider_id: product.provider_id,
+                                      name: `${product.name} (copie)`,
+                                      description: product.description,
+                                      price_htva: product.price_htva,
+                                      billing_period: product.billing_period,
+                                      position: product.position,
+                                      is_active: product.is_active,
+                                    });
+                                  }}>
+                                    <Copy className="h-3 w-3" />
                                   </Button>
                                   <Button variant="ghost" size="icon" onClick={() => {
                                     if (confirm(`Supprimer "${product.name}" ?`)) deleteProductMut.mutate(product.id);
