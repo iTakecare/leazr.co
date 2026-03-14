@@ -1,31 +1,26 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Fix: Clean `vprice_` prefix from existing data on load
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Problem
+Previously saved `allowed_product_ids` in the database contain IDs prefixed with `vprice_` (e.g., `vprice_8ca0315-...`). When the editor loads these and tries to save/query, the DB rejects them as invalid UUIDs.
 
-## Endpoints API ajoutés
+### Solution
+In `PartnerPackOptionsEditor.tsx`, sanitize `allowed_product_ids` when loading an existing option in the `startEditing` function. Strip the `vprice_` prefix from any ID that has it.
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+### Change
 
-## Documentation
+**File: `src/components/partners/PartnerPackOptionsEditor.tsx`** — `startEditing` function (line 99):
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+```typescript
+// Before:
+allowed_product_ids: option.allowed_product_ids || [],
 
-## Tables
+// After:
+allowed_product_ids: (option.allowed_product_ids || []).map(
+  (id: string) => id.startsWith("vprice_") ? id.replace("vprice_", "") : id
+),
+```
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
+This is a single-line fix that cleans corrupted data on load. The next save will persist clean UUIDs, permanently fixing the data.
+
