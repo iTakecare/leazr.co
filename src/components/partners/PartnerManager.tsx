@@ -214,6 +214,7 @@ const PartnerManager: React.FC = () => {
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setManagingProvidersPartner(partner)} title="Prestataires externes">
                         <Link className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(partner)}>
