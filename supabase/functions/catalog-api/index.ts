@@ -1318,7 +1318,7 @@ async function getPartner(supabase: any, companyId: string, partnerIdOrSlug: str
   
   let query = supabase
     .from('partners')
-    .select('id, name, slug, description, logo_url, website_url, is_active, created_at, updated_at')
+    .select('id, name, slug, description, logo_url, hero_image_url, website_url, is_active, created_at, updated_at')
     .eq('company_id', companyId)
     .eq('is_active', true)
 

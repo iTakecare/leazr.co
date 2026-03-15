@@ -119,6 +119,7 @@ const PartnerManager: React.FC = () => {
       slug: partner.slug,
       description: partner.description || "",
       logo_url: partner.logo_url || "",
+      hero_image_url: partner.hero_image_url || "",
       website_url: partner.website_url || "",
       is_active: partner.is_active,
     });
