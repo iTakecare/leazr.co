@@ -29,10 +29,28 @@ const ContactPage = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // TODO: Implement form submission logic
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from('contact_submissions').insert({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || null,
+        company_name: formData.company.trim() || null,
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+      });
+      if (error) throw error;
+      toast.success('Message envoyé avec succès !');
+      setFormData({ name: '', email: '', company: '', phone: '', subject: '', message: '' });
+    } catch (err: any) {
+      toast.error('Erreur lors de l\'envoi. Veuillez réessayer.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
