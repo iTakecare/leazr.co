@@ -930,13 +930,17 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
             : '⚠️ Produits non trouvés dans le catalogue';
         }
 
+        // Diagnostic logging for incoming lead data
+        console.log(`[META IMPORT] Raw lead fields: ${Object.keys(lead).join(', ')}`);
+        console.log(`[META IMPORT] vat_number received: "${lead.vat_number || 'MISSING'}", company_name: "${lead.company_name || 'MISSING'}"`);
+
         // Check if client already exists by email OR phone
         let existingClient = null;
         
         if (validEmail) {
           const { data: clientByEmail } = await supabase
             .from('clients')
-            .select('id, name')
+            .select('id, name, vat_number, company')
             .eq('email', validEmail)
             .eq('company_id', company.id)
             .single();
@@ -946,7 +950,7 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
         if (!existingClient && validPhone) {
           const { data: clientByPhone } = await supabase
             .from('clients')
-            .select('id, name')
+            .select('id, name, vat_number, company')
             .eq('phone', validPhone)
             .eq('company_id', company.id)
             .single();
