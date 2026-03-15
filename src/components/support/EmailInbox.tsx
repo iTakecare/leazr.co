@@ -95,6 +95,7 @@ const EmailInbox = () => {
   }
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">Boîte mail</CardTitle>

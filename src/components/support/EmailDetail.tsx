@@ -153,6 +153,24 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
               onClick={() => analyzeEmail.mutate()}
               disabled={analyzeEmail.isPending}
             >
+            </Button>
+            {onHide && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onHide(email.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Masquer cet email
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => analyzeEmail.mutate()}
+              disabled={analyzeEmail.isPending}
+            >
               {analyzeEmail.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (

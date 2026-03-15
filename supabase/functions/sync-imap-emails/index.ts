@@ -150,6 +150,13 @@ serve(async (req) => {
 
         console.log("[sync-imap-emails] New emails to fetch:", newEnvelopes.length, "| Already synced:", skippedCount);
 
+        // Sort by date DESC so we fetch the most recent emails first
+        newEnvelopes.sort((a, b) => {
+          const dateA = new Date(a.envelope?.date || 0).getTime();
+          const dateB = new Date(b.envelope?.date || 0).getTime();
+          return dateB - dateA;
+        });
+
         // Step 3: Fetch full source only for new emails, limited batch
         const toFetch = newEnvelopes.slice(0, MAX_NEW_EMAILS);
 
