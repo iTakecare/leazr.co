@@ -1,23 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Problème
+## Statut
 
-Quand la remise pack (ex: -15%) est appliquée sur chaque mensualité unitaire (ligne 257), le résultat n'est **jamais arrondi à 2 décimales**. Exemple :
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-- Produit à 36.51€/mois × 0.85 = 31.0335€ (pas arrondi)
-- Multiplié par quantité, sommé sur 5 lignes → les erreurs flottantes s'accumulent
-- Résultat : 182.77€ au lieu de 182.80€
+## Endpoints API ajoutés
 
-iTakecare arrondit chaque ligne à 2 décimales, mais la Edge Function Leazr travaille avec des décimales flottantes brutes.
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-## Solution
+## Documentation
 
-**Fichier** : `supabase/functions/create-product-request/index.ts`
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-Arrondir à 2 décimales à deux endroits :
+## Tables
 
-1. **Après application de la remise pack** (ligne 258) : arrondir `monthlyPrice` à 2 décimales
-2. **Après calcul de la mensualité totale de la ligne** (ligne 266) : arrondir `totalMonthlyForLine` à 2 décimales
-
-Cela garantit que les mêmes arrondis sont appliqués côté Leazr et côté iTakecare, pour un résultat identique au centime.
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
