@@ -882,8 +882,7 @@ const CreateOffer = () => {
             <div className="px-4 lg:px-6 py-4">
               <div className="max-w-7xl mx-auto">
                 {loading ? <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="ml-2">Chargement...</span>
+                    <WaveLoader message="Chargement..." />
                   </div> : <div className="space-y-4">
                     {/* Configuration de l'offre */}
                     <OfferConfiguration 
