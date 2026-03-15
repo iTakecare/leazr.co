@@ -409,9 +409,19 @@ serve(async (req) => {
     const requestId = crypto.randomUUID();
     const clientId = crypto.randomUUID();
     
-    const year = new Date().getFullYear();
-    const timestamp = Date.now().toString().slice(-4);
-    const dossierNumber = data.reference_number || `ITC-${year}-OFF-${timestamp}`;
+    let dossierNumber = data.reference_number;
+    if (!dossierNumber) {
+      // Générer un numéro séquentiel via la séquence PostgreSQL
+      const { data: seqNumber, error: seqError } = await supabaseAdmin.rpc('get_next_dossier_number');
+      if (seqError || !seqNumber) {
+        console.warn('⚠️ Fallback dossier number (sequence error):', seqError);
+        const year = new Date().getFullYear();
+        const timestamp = Date.now().toString().slice(-4);
+        dossierNumber = `ITC-${year}-OFF-${timestamp}`;
+      } else {
+        dossierNumber = seqNumber;
+      }
+    }
     console.log(`📋 Numéro de dossier: ${dossierNumber}`);
 
     const equipmentDescription = equipmentList.join(', ');
