@@ -69,23 +69,35 @@ const ImapSettingsForm = () => {
   const saveSettings = useMutation({
     mutationFn: async () => {
       console.log("[ImapSettings] Saving settings...");
-      const { data, error } = await supabase.functions.invoke("sync-imap-emails", {
-        body: {
-          action: "save_settings",
-          user_id: user!.id,
-          company_id: companyId!,
-          settings: form,
-        },
-      });
-      if (error) {
-        console.error("[ImapSettings] invoke error:", error);
-        throw error;
+      try {
+        const { data, error } = await supabase.functions.invoke("sync-imap-emails", {
+          body: {
+            action: "save_settings",
+            user_id: user!.id,
+            company_id: companyId!,
+            settings: form,
+          },
+        });
+        if (error) {
+          console.error("[ImapSettings] invoke error:", error);
+          // Network/CORS errors from the SDK — retry-friendly message
+          if (error.message?.includes("Failed to send")) {
+            throw new Error("Erreur réseau. La sauvegarde a peut-être réussi. Rechargez la page pour vérifier.");
+          }
+          throw error;
+        }
+        if (data && data.error) {
+          console.error("[ImapSettings] function returned error:", data.error);
+          throw new Error(data.error);
+        }
+        return data;
+      } catch (err: any) {
+        // Catch fetch-level errors (network offline, CORS block)
+        if (err.name === "TypeError" && err.message?.includes("fetch")) {
+          throw new Error("Impossible de contacter le serveur. Vérifiez votre connexion internet.");
+        }
+        throw err;
       }
-      if (data && data.error) {
-        console.error("[ImapSettings] function returned error:", data.error);
-        throw new Error(data.error);
-      }
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["imap-settings"] });
@@ -93,7 +105,7 @@ const ImapSettingsForm = () => {
       setHasExisting(true);
     },
     onError: (err: any) => {
-      toast.error("Erreur : " + (err.message || "Impossible de sauvegarder"));
+      toast.error(err.message || "Impossible de sauvegarder");
     },
   });
 
