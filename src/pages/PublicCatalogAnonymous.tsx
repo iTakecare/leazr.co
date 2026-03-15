@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState, useRef } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
