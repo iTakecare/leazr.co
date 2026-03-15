@@ -601,6 +601,41 @@ Comportement automatique :
 - Si le pack est retiré de tous les partenaires, il réapparaît
   dans GET /packs
 
+## 7.6 GÉNÉRATION DE NUMÉRO DE DOSSIER SÉQUENTIEL
+
+```
+POST /catalog-api/v1/{companySlug}/partners/{partnerSlug}/next-reference
+```
+
+AUTHENTIFICATION : Clé API requise (x-api-key)
+
+Génère et réserve le prochain numéro de dossier séquentiel au format
+`ITC-{année}-OFF-{numéro}`. Le numéro est atomique et garanti unique.
+
+Appelez cet endpoint AVANT de soumettre une demande via
+`create-product-request` pour obtenir le `reference_number` à inclure
+dans le payload.
+
+RÉPONSE :
+```json
+{
+  "reference_number": "ITC-2026-OFF-9976"
+}
+```
+
+FLUX D'UTILISATION :
+
+1. Appeler POST /partners/{slug}/next-reference
+   → Recevoir { "reference_number": "ITC-2026-OFF-9976" }
+
+2. Appeler POST /create-product-request avec le champ
+   "reference_number": "ITC-2026-OFF-9976" dans le payload
+
+3. L'offre est créée dans Leazr avec ce numéro de dossier
+
+NOTE : Si `reference_number` n'est pas fourni dans create-product-request,
+un numéro séquentiel est généré automatiquement côté serveur.
+
 ===========================================
    8. STRUCTURES DE DONNÉES
 ===========================================

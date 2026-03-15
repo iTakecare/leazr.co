@@ -286,7 +286,18 @@ Deno.serve(async (req) => {
       case 'partners':
         if (subPaths.length > 0) {
           const partnerIdOrSlug = subPaths[0]
-          if (subPaths[1] === 'packs') {
+          if (subPaths[1] === 'next-reference' && req.method === 'POST') {
+            // POST /partners/{slug}/next-reference - Générer le prochain numéro de dossier
+            const { data: refNumber, error: refError } = await supabaseAdmin.rpc('get_next_dossier_number')
+            if (refError) {
+              console.error('❌ Error generating next reference:', refError)
+              return new Response(
+                JSON.stringify({ error: 'Failed to generate reference number' }),
+                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+            data = { reference_number: refNumber }
+          } else if (subPaths[1] === 'packs') {
             // GET /partners/{id}/packs - Packs liés au partenaire avec options
             data = await getPartnerPacks(supabaseAdmin, companyId, partnerIdOrSlug)
           } else if (subPaths[1] === 'providers') {

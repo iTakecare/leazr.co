@@ -9239,6 +9239,7 @@ export type Database = {
               year: number
             }[]
           }
+      get_next_dossier_number: { Args: never; Returns: string }
       get_offer_by_id_public: {
         Args: { offer_id: string }
         Returns: {
