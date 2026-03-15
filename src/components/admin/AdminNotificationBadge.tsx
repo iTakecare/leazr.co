@@ -8,20 +8,21 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export const AdminNotificationBadge = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useAdminNotifications();
   const navigate = useNavigate();
+  const { companySlug } = useParams<{ companySlug: string }>();
 
   const handleNotificationClick = (notification: any) => {
     markAsRead(notification.id);
     
     // Navigate to offer if available
     if (notification.offer_id) {
-      navigate(`/admin/offers/${notification.offer_id}`);
+      navigate(`/${companySlug}/admin/offers/${notification.offer_id}`);
     }
   };
 

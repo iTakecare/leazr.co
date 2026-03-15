@@ -734,8 +734,8 @@ serve(async (req) => {
             const fromEmailAddr = globalResendKey ? "noreply@itakecare.be" : getFromEmail(smtpSettings);
             const from = `${fromName} <${fromEmailAddr}>`;
             
-            const { data: companyInfo } = await supabaseAdmin
-              .from('companies').select('name, logo_url').eq('id', targetCompanyId).single();
+      const { data: companyInfo } = await supabaseAdmin
+        .from('companies').select('name, logo_url, slug').eq('id', targetCompanyId).single();
             
             const adminSubject = `🚨 Nouvelle demande d'offre reçue - ${clientName || companyName}`;
             const adminHtmlContent = generateAdminNotificationEmail({
@@ -753,7 +753,7 @@ serve(async (req) => {
               partnerName: data.partner_name,
               externalServices: data.external_services,
               deliveryInfo: data.delivery_info,
-              adminLink: `${getAppUrl(req)}/offers/${requestId}`,
+              adminLink: `${getAppUrl(req)}/${companyInfo?.slug || 'itakecare'}/admin/offers/${requestId}`,
               dateStr, timeStr,
             });
             
