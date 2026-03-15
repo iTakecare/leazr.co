@@ -1038,7 +1038,7 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
               email: validEmail,
               phone: validPhone,
               company: lead.company_name || null,
-              vat_number: lead.vat_number || null,
+              vat_number: lead.vat_number ? normalizeVatNumber(lead.vat_number) : null,
               status: 'lead',
               notes: clientNotes
             })
