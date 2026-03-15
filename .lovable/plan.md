@@ -1,31 +1,28 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Suppression des doublons d'importation
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Constat
+- **72 demandes (offers)** créées après Collard Yohan (après le 15 mars 13:16:42), toutes importées en rafale entre 15:06 et 15:07 — ce sont des doublons d'une resynchronisation.
+- Seulement **4 clients** créés après cette date (les doublons ont été rattachés aux clients existants).
 
-## Endpoints API ajoutés
+### Actions à effectuer
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+1. **Supprimer les 72 offers en doublon** — toutes les entrées dans `offers` avec `created_at > '2026-03-15 13:16:42.339094+00'`
+2. **Vérifier et supprimer les 4 clients en doublon** créés après cette date, s'ils sont effectivement des doublons (pas de données propres rattachées)
 
-## Documentation
+### Requêtes SQL (via l'outil insert/update)
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+```sql
+-- 1. Supprimer les offers en doublon
+DELETE FROM offers 
+WHERE created_at > '2026-03-15 13:16:42.339094+00';
 
-## Tables
+-- 2. Supprimer les clients en doublon (après vérification)
+DELETE FROM clients 
+WHERE created_at > '2026-03-15 13:16:42+00'
+AND id NOT IN (SELECT DISTINCT client_id FROM offers WHERE client_id IS NOT NULL);
+```
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
+Aucune modification de code nécessaire — uniquement du nettoyage de données.
+
