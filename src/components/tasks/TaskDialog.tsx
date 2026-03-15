@@ -69,6 +69,7 @@ interface TaskDialogProps {
   defaultClientName?: string;
   defaultOfferId?: string;
   defaultTitle?: string;
+  defaultDescription?: string;
 }
 
 const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defaultClientName, defaultOfferId, defaultTitle }: TaskDialogProps) => {
