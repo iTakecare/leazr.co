@@ -332,6 +332,94 @@ const PartnerManager: React.FC = () => {
               </div>
             </div>
             <div>
+              <Label>Image Hero (bannière)</Label>
+              <div className="mt-1 space-y-2">
+                {form.hero_image_url && (
+                  <div className="relative w-full h-32 border rounded overflow-hidden bg-muted">
+                    <img src={form.hero_image_url} alt="Hero" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                      onClick={() => setForm(prev => ({ ...prev, hero_image_url: "" }))}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={heroFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingHero(true);
+                      try {
+                        const url = await cleanFileUpload(file, "site-settings", "partners/heroes");
+                        if (url) {
+                          setForm(prev => ({ ...prev, hero_image_url: url }));
+                        }
+                      } finally {
+                        setIsUploadingHero(false);
+                        if (heroFileInputRef.current) heroFileInputRef.current.value = "";
+                      }
+                    }}
+                    disabled={isUploadingHero || isGeneratingHero}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => heroFileInputRef.current?.click()}
+                    disabled={isUploadingHero || isGeneratingHero}
+                  >
+                    {isUploadingHero ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Upload...</>
+                    ) : (
+                      <><ImageIcon className="mr-2 h-4 w-4" /> Télécharger</>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      if (!form.name.trim()) {
+                        toast.error("Entrez un nom de partenaire d'abord");
+                        return;
+                      }
+                      setIsGeneratingHero(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('generate-partner-hero', {
+                          body: { partner_name: form.name, partner_description: form.description },
+                        });
+                        if (error) throw error;
+                        if (data?.imageUrl) {
+                          setForm(prev => ({ ...prev, hero_image_url: data.imageUrl }));
+                          toast.success("Image hero générée avec succès");
+                        } else {
+                          throw new Error(data?.error || "Erreur lors de la génération");
+                        }
+                      } catch (err: any) {
+                        toast.error(err.message || "Erreur lors de la génération de l'image");
+                      } finally {
+                        setIsGeneratingHero(false);
+                      }
+                    }}
+                    disabled={isUploadingHero || isGeneratingHero}
+                  >
+                    {isGeneratingHero ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Génération...</>
+                    ) : (
+                      <><Sparkles className="mr-2 h-4 w-4" /> Générer avec IA</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div>
               <Label>Site web</Label>
               <Input
                 value={form.website_url || ""}
