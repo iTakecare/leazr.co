@@ -31,6 +31,7 @@ const priorityLabels: Record<string, string> = {
 
 const SupportTicketDetail = ({ ticket, onBack }: SupportTicketDetailProps) => {
   const queryClient = useQueryClient();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const updateTicket = useMutation({
     mutationFn: async (updates: Record<string, string>) => {
@@ -43,6 +44,24 @@ const SupportTicketDetail = ({ ticket, onBack }: SupportTicketDetailProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
       toast.success("Ticket mis à jour");
+    },
+  });
+
+  const deleteTicket = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("support_tickets")
+        .delete()
+        .eq("id", ticket.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
+      toast.success("Ticket supprimé");
+      onBack();
+    },
+    onError: () => {
+      toast.error("Erreur lors de la suppression");
     },
   });
 
