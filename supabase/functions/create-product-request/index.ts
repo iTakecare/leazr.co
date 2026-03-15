@@ -397,7 +397,8 @@ serve(async (req) => {
     
     const year = new Date().getFullYear();
     const timestamp = Date.now().toString().slice(-4);
-    const dossierNumber = `ITC-${year}-OFF-${timestamp}`;
+    const dossierNumber = data.reference_number || `ITC-${year}-OFF-${timestamp}`;
+    console.log(`📋 Numéro de dossier: ${dossierNumber}`);
 
     const equipmentDescription = equipmentList.join(', ');
 

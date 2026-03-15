@@ -168,6 +168,9 @@ export const createProductRequestSchema = z.object({
   partner_slug: z.string().trim().min(1).max(100, 'Slug partenaire trop long').optional(),
   partner_name: z.string().trim().min(1).max(200, 'Nom partenaire trop long').optional(),
   
+  // Reference number from external site (used as dossier_number)
+  reference_number: z.string().trim().max(50, 'Numéro de référence trop long').optional(),
+  
   // External services (from partner providers)
   external_services: z.array(z.object({
     provider_name: z.string().trim().min(1, 'Nom du prestataire requis').max(200),
