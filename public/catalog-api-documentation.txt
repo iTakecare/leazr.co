@@ -2,9 +2,21 @@
    DOCUMENTATION API CATALOG LOVABLE 
 ===========================================
 
-VERSION : 2026.3  
-DATE : 14 mars 2026 - Demandes partenaires & services externes
+VERSION : 2026.4  
+DATE : 15 mars 2026 — Image hero partenaires & génération IA
 STATUT : Prêt pour production
+
+===========================================
+   NOUVEAUTES VERSION 2026.4
+===========================================
+
+- Champ `hero_image_url` ajouté aux endpoints partenaires
+  (GET /partners, GET /partners/:slug)
+- Génération IA d'images hero via Edge Function `generate-partner-hero`
+  - Scraping automatique du site web du partenaire pour contexte visuel
+  - Prompt IA basé sur le nom, la description et le contenu du site
+- Upload manuel d'image hero depuis l'interface admin
+- Le champ est nullable : si absent, le catalogue affiche un fallback
 
 ===========================================
    NOUVEAUTES VERSION 2026.3
