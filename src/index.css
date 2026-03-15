@@ -184,4 +184,24 @@
   .momentum-scroll {
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Wave loader animations */
+  .animate-wave-rise {
+    animation: wave-rise 2.5s ease-in-out infinite;
+  }
+  .animate-wave-move {
+    animation: wave-move 1.5s linear infinite;
+  }
+}
+
+@keyframes wave-rise {
+  0% { clip-path: inset(100% 0 0 0); }
+  50% { clip-path: inset(0% 0 0 0); }
+  60% { clip-path: inset(0% 0 0 0); }
+  100% { clip-path: inset(100% 0 0 0); }
+}
+
+@keyframes wave-move {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
