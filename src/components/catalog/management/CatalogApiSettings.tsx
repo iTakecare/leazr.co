@@ -686,9 +686,9 @@ const CatalogApiSettings = () => {
                   <li>• <strong>Packs personnalisables</strong> - Options par catégorie (tablette, périphérique...) avec choix de produits</li>
                   <li>• <strong>Prestataires externes</strong> - Services tiers (téléphonie, etc.) liés aux partenaires avec souscription directe</li>
                 </ul>
-              </div>
-              
-              <div className="bg-violet-50 border border-violet-200 p-3 rounded-lg mt-4">
+               </div>
+               
+               <div className="bg-violet-50 border border-violet-200 p-3 rounded-lg mt-4">
                 <h4 className="font-medium text-violet-900 mb-2">📦 Demandes partenaires & services externes (v2026.3)</h4>
                 <p className="text-sm text-violet-700 mb-2">
                   L'endpoint <code className="bg-violet-100 px-1 rounded">create-product-request</code> supporte maintenant les champs partenaire et services externes :
@@ -699,6 +699,23 @@ const CatalogApiSettings = () => {
                   <li>• <code className="bg-violet-100 px-1 rounded">external_services[]</code> - Services de prestataires externes sélectionnés par le client</li>
                   <li>• Chaque service : <code className="bg-violet-100 px-1 rounded">provider_name</code>, <code className="bg-violet-100 px-1 rounded">product_name</code>, <code className="bg-violet-100 px-1 rounded">price_htva</code>, <code className="bg-violet-100 px-1 rounded">billing_period</code> (monthly/yearly/one_time), <code className="bg-violet-100 px-1 rounded">quantity</code></li>
                 </ul>
+              </div>
+              
+              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-emerald-900 mb-2">🆕 Numéros de dossier séquentiels (v2026.3)</h4>
+                <p className="text-sm text-emerald-700 mb-2">
+                  Nouveau endpoint pour générer des numéros de dossier au format <code className="bg-emerald-100 px-1 rounded">ITC-YYYY-OFF-XXXX</code> :
+                </p>
+                <ul className="text-sm text-emerald-700 space-y-1">
+                  <li>• <strong>POST</strong> <code className="bg-emerald-100 px-1 rounded">partners/{'{slug}'}/next-reference</code> — Génère et réserve le prochain numéro</li>
+                  <li>• Le numéro est <strong>séquentiel et unique</strong> — chaque appel incrémente le compteur</li>
+                  <li>• Inclure le numéro dans le champ <code className="bg-emerald-100 px-1 rounded">reference_number</code> de <code className="bg-emerald-100 px-1 rounded">create-product-request</code></li>
+                  <li>• Si <code className="bg-emerald-100 px-1 rounded">reference_number</code> n'est pas fourni, un numéro est généré automatiquement</li>
+                </ul>
+                <div className="mt-2 bg-emerald-100 p-2 rounded text-xs font-mono text-emerald-900">
+                  curl -X POST "{baseApiUrl}/partners/slug/next-reference" -H "x-api-key: VOTRE_CLE"<br/>
+                  → {`{ "reference_number": "ITC-2026-OFF-9976" }`}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
