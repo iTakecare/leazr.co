@@ -392,8 +392,8 @@ const PartnerManager: React.FC = () => {
                       }
                       setIsGeneratingHero(true);
                       try {
-                        const { data, error } = await supabase.functions.invoke('generate-partner-hero', {
-                          body: { partner_name: form.name, partner_description: form.description },
+                         const { data, error } = await supabase.functions.invoke('generate-partner-hero', {
+                           body: { partner_name: form.name, partner_description: form.description, website_url: form.website_url },
                         });
                         if (error) throw error;
                         if (data?.imageUrl) {
