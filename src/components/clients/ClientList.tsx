@@ -254,7 +254,7 @@ const ClientList: React.FC<ClientListProps> = ({
         </TableHeader>
         <TableBody>
           {sortedClients.map((client) => (
-            <TableRow key={client.id} className="hover:bg-gray-50">
+            <TableRow key={client.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => handleViewClient(client)}>
               <TableCell>
                 <div className="font-medium">{client.name}</div>
                 {client.contact_name && client.contact_name !== client.name && (
@@ -306,7 +306,7 @@ const ClientList: React.FC<ClientListProps> = ({
               <TableCell>
                 {formatDateToFrench(new Date(client.created_at))}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
