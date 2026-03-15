@@ -29,6 +29,7 @@ const EmailInbox = () => {
   const queryClient = useQueryClient();
   const [selectedEmail, setSelectedEmail] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
+  const [emailToHide, setEmailToHide] = useState<string | null>(null);
 
   const { data: emails, isLoading } = useQuery({
     queryKey: ["synced-emails", companyId],
