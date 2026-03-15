@@ -1,31 +1,28 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Plan : Ajouter version et date aux fichiers de documentation API
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Problème
+Les fichiers de documentation `catalog-skeleton/partners-api.txt` et `catalog-skeleton/types-partners.txt` n'ont ni numéro de version ni date de dernière mise à jour. Aucun fichier du skeleton n'en a actuellement.
 
-## Endpoints API ajoutés
+### Solution
+Ajouter un en-tête de versioning aux deux fichiers modifiés récemment (partners) :
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+**`catalog-skeleton/partners-api.txt`** — Ajouter après le titre (ligne 1) :
+```
+> Version : 1.1.0 | Dernière mise à jour : 2026-03-15
+> Changelog : Ajout du champ `hero_image_url` sur les partenaires
+```
 
-## Documentation
+**`catalog-skeleton/types-partners.txt`** — Ajouter après le titre (ligne 1) :
+```
+> Version : 1.1.0 | Dernière mise à jour : 2026-03-15
+> Changelog : Ajout de `hero_image_url` dans l'interface Partner
+```
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+### Fichiers modifiés
+| Fichier | Action |
+|---------|--------|
+| `catalog-skeleton/partners-api.txt` | Ajouter en-tête version + date |
+| `catalog-skeleton/types-partners.txt` | Ajouter en-tête version + date |
 
-## Tables
-
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
