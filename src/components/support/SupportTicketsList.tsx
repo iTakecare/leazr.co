@@ -88,6 +88,20 @@ const SupportTicketsList = () => {
     },
   });
 
+  const deleteTicket = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("support_tickets").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
+      setTicketToDelete(null);
+      toast.success("Ticket supprimé");
+    },
+    onError: () => {
+      toast.error("Erreur lors de la suppression");
+    },
+  });
   if (selectedTicket) {
     return <SupportTicketDetail ticket={selectedTicket} onBack={() => setSelectedTicket(null)} />;
   }
