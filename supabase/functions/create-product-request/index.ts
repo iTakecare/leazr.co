@@ -263,7 +263,7 @@ serve(async (req) => {
         console.log(`⚠️ Fallback sur unit_price iTakecare: ${monthlyPrice}€/u`);
       }
       
-      const totalMonthlyForLine = monthlyPrice * product.quantity;
+      const totalMonthlyForLine = Math.round(monthlyPrice * product.quantity * 100) / 100;
       
       const coefficientInit = 3.53;
       const sellingPrice = (monthlyPrice * 100) / coefficientInit;
