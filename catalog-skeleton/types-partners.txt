@@ -1,5 +1,8 @@
 # Types TypeScript — Partenaires & Prestataires
 
+> Version : 1.1.0 | Dernière mise à jour : 2026-03-15
+> Changelog : Ajout de `hero_image_url` dans l'interface Partner
+
 ## Types Partenaire
 
 ```typescript
