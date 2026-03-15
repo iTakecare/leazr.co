@@ -192,7 +192,7 @@ const CompanyValuesSettings = () => {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center p-8">Chargement...</div>;
+    return <div className="flex items-center justify-center p-8"><WaveLoader /></div>;
   }
 
   return (
