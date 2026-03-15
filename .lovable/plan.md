@@ -1,31 +1,28 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Deux corrections
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### 1. Layout de la page Support — trop collée
 
-## Endpoints API ajoutés
+La page `SupportPage.tsx` utilise `<div className="space-y-6">` sans padding, alors que les autres pages admin (Tasks, StockManagement, EquipmentOrders) utilisent `p-6 space-y-6`. Le composant Layout ne fournit aucun padding dans `<main>`.
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+**Correction** : Ajouter `p-6` au conteneur principal de `SupportPage.tsx` :
+```
+<div className="space-y-6"> → <div className="space-y-6 p-6">
+```
 
-## Documentation
+### 2. Erreur de sauvegarde IMAP — "Failed to send a request to the Edge Function"
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+Les logs de l'edge function montrent que **la sauvegarde fonctionne** (16:46:40 - "Settings saved"). L'erreur "Failed to send a request" vient du SDK Supabase côté client — c'est une erreur réseau/CORS transitoire ou un timeout.
 
-## Tables
+**Corrections** :
+- **`ImapSettingsForm.tsx`** : Ajouter un meilleur traitement de l'erreur réseau avec un message explicite et un retry. Aussi ajouter un `try/catch` autour de l'invoke pour capturer les erreurs réseau spécifiquement.
+- **Edge function** : Redéployer la fonction `sync-imap-emails` pour s'assurer que la dernière version est active (les logs montrent que ça fonctionne, mais le client peut avoir un cache périmé).
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
+### Fichiers modifiés
+| Fichier | Modification |
+|---------|-------------|
+| `src/pages/admin/SupportPage.tsx` | Ajouter `p-6` au conteneur |
+| `src/components/support/ImapSettingsForm.tsx` | Meilleure gestion erreur réseau |
+| `supabase/functions/sync-imap-emails/index.ts` | Redéploiement |
+
