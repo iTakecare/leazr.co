@@ -1,31 +1,28 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Plan : Rendre les lignes du tableau clients cliquables dans ClientList.tsx
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Problème
+Le composant `ClientList.tsx` (utilisé sur la page `/admin/clients`) ne met pas de `onClick` sur les `TableRow` (ligne 257). Le clic sur la ligne ne déclenche donc aucune navigation. Seuls les boutons du menu Actions fonctionnent.
 
-## Endpoints API ajoutés
+### Correction dans `src/components/clients/ClientList.tsx`
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+1. **Ajouter `onClick` et `cursor-pointer`** sur le `TableRow` (ligne 257) :
+   ```tsx
+   <TableRow 
+     key={client.id} 
+     className="hover:bg-gray-50 cursor-pointer"
+     onClick={() => handleViewClient(client)}
+   >
+   ```
 
-## Documentation
+2. **Ajouter `e.stopPropagation()`** sur la cellule Actions (ligne 309) pour éviter que le clic sur le menu ne déclenche la navigation :
+   ```tsx
+   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+   ```
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+### Fichier modifié
+| Fichier | Action |
+|---------|--------|
+| `src/components/clients/ClientList.tsx` | Ajouter onClick sur TableRow + stopPropagation sur la cellule Actions |
 
-## Tables
-
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
