@@ -187,9 +187,7 @@ const PublicSignedContractDownload: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6 flex flex-col items-center gap-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg font-medium">Préparation du téléchargement...</p>
-            <p className="text-sm text-muted-foreground">Récupération de votre contrat signé</p>
+            <WaveLoader message="Préparation du téléchargement..." />
           </CardContent>
         </Card>
       </div>
