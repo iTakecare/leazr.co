@@ -254,7 +254,7 @@ const ClientList: React.FC<ClientListProps> = ({
         </TableHeader>
         <TableBody>
           {sortedClients.map((client) => (
-            <TableRow key={client.id} className="hover:bg-gray-50">
+            <TableRow key={client.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => handleViewClient(client)}>
               <TableCell>
                 <div className="font-medium">{client.name}</div>
                 {client.contact_name && client.contact_name !== client.name && (
