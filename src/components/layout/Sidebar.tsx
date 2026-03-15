@@ -20,7 +20,8 @@ import {
   Mail,
   Truck,
   CheckSquare,
-  Warehouse
+  Warehouse,
+  Headset
 } from "lucide-react";
 import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
