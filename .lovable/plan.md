@@ -1,31 +1,17 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Plan : Ajouter un bouton supprimer dans la liste des tickets
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Problème
+La suppression ne fonctionne que depuis la vue détail, et le ticket reste affiché dans la liste. Il faut ajouter une icône de suppression directement dans chaque ligne du tableau.
 
-## Endpoints API ajoutés
+### Changements dans `src/components/support/SupportTicketsList.tsx`
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+1. **Ajouter une colonne "Actions"** dans le `TableHeader` (après Statut)
+2. **Ajouter un bouton Trash2** dans chaque `TableRow` avec `onClick` qui stoppe la propagation et ouvre une confirmation
+3. **Ajouter un état `ticketToDelete`** + un `AlertDialog` de confirmation (comme dans `SupportTicketDetail`)
+4. **Ajouter une mutation `deleteTicket`** qui supprime le ticket et invalide le cache
+5. **Imports** : `Trash2` de lucide-react, `AlertDialog` components
 
-## Documentation
+Cela permettra de supprimer directement depuis la liste sans avoir à ouvrir le détail.
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
-
-## Tables
-
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
