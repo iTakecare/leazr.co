@@ -5,7 +5,7 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Ticket, CheckSquare, Sparkles, Loader2, User, MessageSquare } from "lucide-react";
+import { ArrowLeft, Ticket, CheckSquare, Sparkles, Loader2, User, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
