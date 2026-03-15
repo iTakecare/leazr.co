@@ -106,7 +106,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defau
       setRecurrenceEndDate(task.recurrence_end_date ? task.recurrence_end_date.split('T')[0] : '');
     } else {
       setTitle(defaultTitle || '');
-      setDescription('');
+      setDescription(defaultDescription || '');
       setPriority('medium');
       setAssignedTo('');
       setDueDate('');
