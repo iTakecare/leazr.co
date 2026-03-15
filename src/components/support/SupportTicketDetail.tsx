@@ -67,10 +67,21 @@ const SupportTicketDetail = ({ ticket, onBack }: SupportTicketDetailProps) => {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" onClick={onBack}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Retour aux tickets
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Retour aux tickets
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Supprimer
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>
