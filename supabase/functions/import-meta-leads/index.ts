@@ -964,6 +964,15 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
           // Reuse existing client
           clientId = existingClient.id;
           console.log(`[META IMPORT] Using existing client: ${existingClient.name} (${clientId})`);
+          
+          // Enrich existing client with missing data
+          const updates: Record<string, string> = {};
+          if (!existingClient.vat_number && lead.vat_number) updates.vat_number = lead.vat_number;
+          if (!existingClient.company && lead.company_name) updates.company = lead.company_name;
+          if (Object.keys(updates).length > 0) {
+            console.log(`[META IMPORT] Enriching existing client with: ${JSON.stringify(updates)}`);
+            await supabase.from('clients').update(updates).eq('id', clientId);
+          }
         } else {
           // Create new client
           isNewClient = true;
