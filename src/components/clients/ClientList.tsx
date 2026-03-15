@@ -306,7 +306,7 @@ const ClientList: React.FC<ClientListProps> = ({
               <TableCell>
                 {formatDateToFrench(new Date(client.created_at))}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
