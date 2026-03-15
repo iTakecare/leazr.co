@@ -17,6 +17,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
+    console.log("[sync-imap-emails] Received action:", body.action);
     const { action, user_id, company_id, settings } = body;
 
     // Action: save IMAP settings
