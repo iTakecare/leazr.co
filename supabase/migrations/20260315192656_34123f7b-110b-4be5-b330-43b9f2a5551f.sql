@@ -1,0 +1,1 @@
+ALTER TABLE synced_emails ADD COLUMN IF NOT EXISTS linked_client_id uuid REFERENCES clients(id);

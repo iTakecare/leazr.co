@@ -7943,6 +7943,7 @@ export type Database = {
           id: string
           is_hidden: boolean | null
           is_read: boolean
+          linked_client_id: string | null
           linked_task_id: string | null
           linked_ticket_id: string | null
           message_id: string
@@ -7964,6 +7965,7 @@ export type Database = {
           id?: string
           is_hidden?: boolean | null
           is_read?: boolean
+          linked_client_id?: string | null
           linked_task_id?: string | null
           linked_ticket_id?: string | null
           message_id: string
@@ -7985,6 +7987,7 @@ export type Database = {
           id?: string
           is_hidden?: boolean | null
           is_read?: boolean
+          linked_client_id?: string | null
           linked_task_id?: string | null
           linked_ticket_id?: string | null
           message_id?: string
@@ -7999,6 +8002,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "synced_emails_linked_client_id_fkey"
+            columns: ["linked_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
