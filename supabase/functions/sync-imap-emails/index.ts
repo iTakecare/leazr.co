@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { ImapFlow } from "npm:imapflow@1.0.171";
+import { simpleParser } from "npm:mailparser@3.7.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,10 +19,10 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    console.log("[sync-imap-emails] Received action:", body.action);
+    console.log("[sync-imap-emails] Action:", body.action);
     const { action, user_id, company_id, settings } = body;
 
-    // Action: save IMAP settings
+    // ── Save IMAP settings ──
     if (action === "save_settings") {
       if (!user_id || !company_id || !settings) {
         throw new Error("Missing required fields for save_settings");
@@ -35,17 +37,14 @@ serve(async (req) => {
         imap_use_ssl: settings.imap_use_ssl,
         folder: settings.folder,
         is_active: settings.is_active,
+        sync_days: settings.sync_days || 7,
         updated_at: new Date().toISOString(),
       };
 
-      // Only update password if provided
       if (settings.imap_password && settings.imap_password.trim() !== "") {
-        // Encode password in base64 for basic obfuscation
-        // In production, use pgcrypto or a proper encryption mechanism
         settingsToSave.imap_password_encrypted = btoa(settings.imap_password);
       }
 
-      // Upsert based on user_id + company_id
       const { error } = await supabase
         .from("user_imap_settings")
         .upsert(settingsToSave, { onConflict: "user_id,company_id" });
@@ -55,18 +54,15 @@ serve(async (req) => {
         throw error;
       }
 
-      console.log("[sync-imap-emails] Settings saved successfully for user:", user_id);
+      console.log("[sync-imap-emails] Settings saved for user:", user_id);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Action: sync emails (default)
-    if (!user_id) {
-      throw new Error("user_id is required");
-    }
+    // ── Sync emails ──
+    if (!user_id) throw new Error("user_id is required");
 
-    // Get IMAP settings
     const { data: imapSettings, error: settingsError } = await supabase
       .from("user_imap_settings")
       .select("*")
@@ -78,135 +74,90 @@ serve(async (req) => {
     if (!imapSettings) {
       throw new Error("Aucune configuration IMAP active trouvée. Veuillez configurer vos paramètres IMAP.");
     }
+    if (!imapSettings.imap_password_encrypted) {
+      throw new Error("Mot de passe IMAP manquant. Veuillez reconfigurer vos paramètres.");
+    }
 
-    // Decode password
     const password = atob(imapSettings.imap_password_encrypted);
+    const syncDays = imapSettings.sync_days || 7;
 
-    // Connect to IMAP using Deno's TCP
-    const conn = imapSettings.imap_use_ssl
-      ? await Deno.connectTls({
-          hostname: imapSettings.imap_host,
-          port: imapSettings.imap_port,
-        })
-      : await Deno.connect({
-          hostname: imapSettings.imap_host,
-          port: imapSettings.imap_port,
-        });
+    console.log("[sync-imap-emails] Connecting to", imapSettings.imap_host, "port", imapSettings.imap_port, "sync_days:", syncDays);
 
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
+    // Connect with ImapFlow
+    const client = new ImapFlow({
+      host: imapSettings.imap_host,
+      port: imapSettings.imap_port,
+      secure: imapSettings.imap_use_ssl,
+      auth: {
+        user: imapSettings.imap_username,
+        pass: password,
+      },
+      logger: false,
+    });
 
-    const readResponse = async (): Promise<string> => {
-      const buf = new Uint8Array(8192);
-      const n = await conn.read(buf);
-      if (n === null) return "";
-      return decoder.decode(buf.subarray(0, n));
-    };
-
-    const sendCommand = async (tag: string, command: string): Promise<string> => {
-      await conn.write(encoder.encode(`${tag} ${command}\r\n`));
-      let response = "";
-      let attempts = 0;
-      while (attempts < 20) {
-        const chunk = await readResponse();
-        response += chunk;
-        if (response.includes(`${tag} OK`) || response.includes(`${tag} NO`) || response.includes(`${tag} BAD`)) {
-          break;
-        }
-        attempts++;
-      }
-      return response;
-    };
-
-    // Read greeting
-    await readResponse();
-
-    // Login
-    const loginResp = await sendCommand("A001", `LOGIN "${imapSettings.imap_username}" "${password}"`);
-    if (!loginResp.includes("A001 OK")) {
-      conn.close();
-      throw new Error("Échec de l'authentification IMAP");
+    try {
+      await client.connect();
+      console.log("[sync-imap-emails] Connected successfully");
+    } catch (connErr: any) {
+      console.error("[sync-imap-emails] Connection failed:", connErr.message);
+      throw new Error(`Connexion IMAP échouée: ${connErr.message}`);
     }
-
-    // Select folder
-    const selectResp = await sendCommand("A002", `SELECT "${imapSettings.folder}"`);
-    if (!selectResp.includes("A002 OK")) {
-      await sendCommand("A999", "LOGOUT");
-      conn.close();
-      throw new Error(`Impossible d'ouvrir le dossier ${imapSettings.folder}`);
-    }
-
-    // Search for recent unseen emails (last 7 days)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const dateStr = sevenDaysAgo.toLocaleDateString("en-US", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).replace(",", "");
-    
-    const searchResp = await sendCommand("A003", `SEARCH SINCE ${dateStr}`);
-    const searchMatch = searchResp.match(/\* SEARCH (.+)/);
-    const messageIds = searchMatch ? searchMatch[1].trim().split(" ").filter(Boolean) : [];
 
     let syncedCount = 0;
 
-    // Fetch last 50 messages max
-    const idsToFetch = messageIds.slice(-50);
+    try {
+      const lock = await client.getMailboxLock(imapSettings.folder || "INBOX");
 
-    for (const seqNum of idsToFetch) {
       try {
-        const fetchResp = await sendCommand(
-          `F${seqNum}`,
-          `FETCH ${seqNum} (BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)] BODY[TEXT])`
+        const sinceDate = new Date(Date.now() - syncDays * 24 * 60 * 60 * 1000);
+
+        // Search messages since the configured period
+        const messages = client.fetch(
+          { since: sinceDate },
+          { envelope: true, source: true, uid: true }
         );
 
-        // Parse headers
-        const fromMatch = fetchResp.match(/From:\s*(.+)/i);
-        const toMatch = fetchResp.match(/To:\s*(.+)/i);
-        const subjectMatch = fetchResp.match(/Subject:\s*(.+)/i);
-        const dateMatch = fetchResp.match(/Date:\s*(.+)/i);
-        const messageIdMatch = fetchResp.match(/Message-ID:\s*(.+)/i);
+        let count = 0;
+        for await (const msg of messages) {
+          if (count >= 100) break; // Limit to 100 messages
+          count++;
 
-        const rawFrom = fromMatch?.[1]?.trim() || "";
-        const fromNameMatch = rawFrom.match(/^"?([^"<]+)"?\s*<(.+)>/);
-        const fromName = fromNameMatch?.[1]?.trim() || null;
-        const fromAddress = fromNameMatch?.[2]?.trim() || rawFrom;
-
-        const msgId = messageIdMatch?.[1]?.trim() || `${seqNum}-${Date.now()}`;
-
-        // Extract body text (simplified)
-        const bodyParts = fetchResp.split(/\r\n\r\n/);
-        const bodyText = bodyParts.length > 2 ? bodyParts.slice(2).join("\n\n").substring(0, 10000) : null;
-
-        let receivedAt: string | null = null;
-        if (dateMatch?.[1]) {
           try {
-            receivedAt = new Date(dateMatch[1].trim()).toISOString();
-          } catch {
-            receivedAt = null;
+            const parsed = await simpleParser(msg.source);
+
+            const fromAddress = parsed.from?.value?.[0]?.address || "";
+            const fromName = parsed.from?.value?.[0]?.name || null;
+            const toAddress = parsed.to?.value?.[0]?.address || null;
+            const messageId = parsed.messageId || `uid-${msg.uid}-${Date.now()}`;
+            const receivedAt = parsed.date ? parsed.date.toISOString() : null;
+
+            const { error: insertError } = await supabase.from("synced_emails").upsert(
+              {
+                user_id,
+                company_id: imapSettings.company_id,
+                message_id: messageId,
+                from_address: fromAddress,
+                from_name: fromName,
+                to_address: toAddress,
+                subject: parsed.subject || null,
+                body_text: parsed.text?.substring(0, 10000) || null,
+                body_html: parsed.html || null,
+                received_at: receivedAt,
+              },
+              { onConflict: "user_id,message_id" }
+            );
+
+            if (!insertError) syncedCount++;
+            else console.error("[sync-imap-emails] Insert error:", insertError.message);
+          } catch (parseErr: any) {
+            console.error("[sync-imap-emails] Parse error for UID", msg.uid, ":", parseErr.message);
           }
         }
-
-        // Upsert email
-        const { error: insertError } = await supabase.from("synced_emails").upsert(
-          {
-            user_id,
-            company_id: imapSettings.company_id,
-            message_id: msgId,
-            from_address: fromAddress,
-            from_name: fromName,
-            to_address: toMatch?.[1]?.trim() || null,
-            subject: subjectMatch?.[1]?.trim() || null,
-            body_text: bodyText,
-            received_at: receivedAt,
-          },
-          { onConflict: "user_id,message_id" }
-        );
-
-        if (!insertError) syncedCount++;
-      } catch (fetchErr) {
-        console.error(`Error fetching message ${seqNum}:`, fetchErr);
+      } finally {
+        lock.release();
       }
+    } finally {
+      await client.logout();
     }
 
     // Update last_sync_at
@@ -215,16 +166,13 @@ serve(async (req) => {
       .update({ last_sync_at: new Date().toISOString() })
       .eq("id", imapSettings.id);
 
-    // Logout
-    await sendCommand("A999", "LOGOUT");
-    conn.close();
-
+    console.log("[sync-imap-emails] Synced", syncedCount, "emails");
     return new Response(
       JSON.stringify({ success: true, count: syncedCount }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
-    console.error("sync-imap-emails error:", error);
+    console.error("[sync-imap-emails] Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: message }),

@@ -8,8 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, Shield } from "lucide-react";
 import { toast } from "sonner";
+
+const SYNC_PERIOD_OPTIONS = [
+  { value: "5", label: "5 jours" },
+  { value: "10", label: "10 jours" },
+  { value: "15", label: "15 jours" },
+  { value: "30", label: "1 mois" },
+  { value: "60", label: "2 mois" },
+  { value: "90", label: "3 mois" },
+  { value: "180", label: "6 mois" },
+];
 
 const ImapSettingsForm = () => {
   const { companyId } = useMultiTenant();
@@ -24,6 +35,7 @@ const ImapSettingsForm = () => {
     imap_use_ssl: true,
     folder: "INBOX",
     is_active: true,
+    sync_days: 7,
   });
   const [hasExisting, setHasExisting] = useState(false);
 
@@ -41,10 +53,11 @@ const ImapSettingsForm = () => {
           imap_host: data.imap_host,
           imap_port: data.imap_port,
           imap_username: data.imap_username,
-          imap_password: "", // Don't show encrypted password
+          imap_password: "",
           imap_use_ssl: data.imap_use_ssl,
           folder: data.folder,
           is_active: data.is_active,
+          sync_days: (data as any).sync_days || 7,
         });
         setHasExisting(true);
       }
@@ -154,13 +167,33 @@ const ImapSettingsForm = () => {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Dossier</Label>
-            <Input
-              value={form.folder}
-              onChange={(e) => setForm((p) => ({ ...p, folder: e.target.value }))}
-              placeholder="INBOX"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Dossier</Label>
+              <Input
+                value={form.folder}
+                onChange={(e) => setForm((p) => ({ ...p, folder: e.target.value }))}
+                placeholder="INBOX"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Période de synchronisation</Label>
+              <Select
+                value={String(form.sync_days)}
+                onValueChange={(v) => setForm((p) => ({ ...p, sync_days: parseInt(v) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SYNC_PERIOD_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
