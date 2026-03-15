@@ -50,8 +50,12 @@ serve(async (req) => {
         .from("user_imap_settings")
         .upsert(settingsToSave, { onConflict: "user_id,company_id" });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[sync-imap-emails] Upsert error:", error);
+        throw error;
+      }
 
+      console.log("[sync-imap-emails] Settings saved successfully for user:", user_id);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

@@ -1,0 +1,1 @@
+ALTER TABLE public.user_imap_settings ALTER COLUMN imap_password_encrypted DROP NOT NULL;

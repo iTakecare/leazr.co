@@ -55,8 +55,8 @@ const ImapSettingsForm = () => {
 
   const saveSettings = useMutation({
     mutationFn: async () => {
-      // Use edge function to encrypt password and save
-      const { error } = await supabase.functions.invoke("sync-imap-emails", {
+      console.log("[ImapSettings] Saving settings...");
+      const { data, error } = await supabase.functions.invoke("sync-imap-emails", {
         body: {
           action: "save_settings",
           user_id: user!.id,
@@ -64,7 +64,15 @@ const ImapSettingsForm = () => {
           settings: form,
         },
       });
-      if (error) throw error;
+      if (error) {
+        console.error("[ImapSettings] invoke error:", error);
+        throw error;
+      }
+      if (data && data.error) {
+        console.error("[ImapSettings] function returned error:", data.error);
+        throw new Error(data.error);
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["imap-settings"] });

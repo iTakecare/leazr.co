@@ -8363,7 +8363,7 @@ export type Database = {
           folder: string
           id: string
           imap_host: string
-          imap_password_encrypted: string
+          imap_password_encrypted: string | null
           imap_port: number
           imap_use_ssl: boolean
           imap_username: string
@@ -8378,7 +8378,7 @@ export type Database = {
           folder?: string
           id?: string
           imap_host: string
-          imap_password_encrypted: string
+          imap_password_encrypted?: string | null
           imap_port?: number
           imap_use_ssl?: boolean
           imap_username: string
@@ -8393,7 +8393,7 @@ export type Database = {
           folder?: string
           id?: string
           imap_host?: string
-          imap_password_encrypted?: string
+          imap_password_encrypted?: string | null
           imap_port?: number
           imap_use_ssl?: boolean
           imap_username?: string
