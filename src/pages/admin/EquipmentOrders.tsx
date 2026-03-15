@@ -91,6 +91,7 @@ const EquipmentOrders: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilters, setStatusFilters] = useState<OrderStatus[]>(['to_order']);
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
+  const [clientFilter, setClientFilter] = useState<string>('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [addedToStock, setAddedToStock] = useState<Set<string>>(new Set());
 
