@@ -1,49 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Problème identifié
+## Statut
 
-Les données IMAP sont bien sauvegardées en base (confirmé : `ex5.mail.ovh.bet`, `hello@itakecare.be`, port 993, sync_days 10).
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-Le bug est dans `ImapSettingsForm.tsx` : le `setForm()` est appelé **à l'intérieur de `queryFn`**. Quand React Query retourne des données depuis le cache (navigation entre onglets), `queryFn` ne se ré-exécute pas, donc `setForm` n'est jamais appelé et le formulaire reste vide.
+## Endpoints API ajoutés
 
-## Correction
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-Remplacer le pattern actuel (setState dans queryFn) par une initialisation du formulaire via un `useEffect` qui réagit aux données retournées par le query :
+## Documentation
 
-```tsx
-const { data: existingSettings, isLoading } = useQuery({
-  queryKey: ["imap-settings", user?.id],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from("user_imap_settings")
-      .select("*")
-      .eq("user_id", user!.id)
-      .maybeSingle();
-    if (error) throw error;
-    return data;
-  },
-  enabled: !!user,
-});
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-useEffect(() => {
-  if (existingSettings) {
-    setForm({
-      imap_host: existingSettings.imap_host,
-      imap_port: existingSettings.imap_port,
-      imap_username: existingSettings.imap_username,
-      imap_password: "",
-      imap_use_ssl: existingSettings.imap_use_ssl,
-      folder: existingSettings.folder,
-      is_active: existingSettings.is_active,
-      sync_days: (existingSettings as any).sync_days || 7,
-    });
-    setHasExisting(true);
-  }
-}, [existingSettings]);
-```
+## Tables
 
-### Fichier modifié
-| Fichier | Modification |
-|---------|-------------|
-| `src/components/support/ImapSettingsForm.tsx` | Déplacer `setForm` dans un `useEffect` réactif aux données du query |
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
