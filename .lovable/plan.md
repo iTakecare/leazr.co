@@ -1,31 +1,58 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Plan : Image Hero pour les partenaires
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Résumé
 
-## Endpoints API ajoutés
+Ajouter un champ `hero_image_url` à chaque partenaire, avec possibilité d'uploader manuellement une image ou d'en générer une via IA (Gemini). L'image sera stockée dans le bucket `site-settings` sous `partners/heroes/`, exposée via l'API catalogue, et documentée.
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+### 1. Migration SQL — Ajouter la colonne
 
-## Documentation
+Ajouter `hero_image_url TEXT` à la table `partners`.
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+### 2. Types TypeScript
 
-## Tables
+- Ajouter `hero_image_url?: string` dans `Partner` et `CreatePartnerData` (`src/types/partner.ts`)
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
+### 3. Service partenaire
+
+- Inclure `hero_image_url` dans `createPartner` et `updatePartner` (`src/services/partnerService.ts`)
+
+### 4. UI — Formulaire partenaire (`src/components/partners/PartnerManager.tsx`)
+
+Ajouter dans le dialog de création/modification une section "Image Hero" avec :
+- Prévisualisation de l'image actuelle
+- Bouton **Télécharger** pour upload manuel (même logique que le logo, bucket `site-settings`, dossier `partners/heroes`)
+- Bouton **Générer avec IA** qui appelle la Edge Function `generate-offer-images` (ou une nouvelle fonction dédiée `generate-partner-hero`) pour créer une image adaptée au partenaire (nom, description comme contexte du prompt)
+
+### 5. Edge Function — Génération IA (`supabase/functions/generate-partner-hero/index.ts`)
+
+Nouvelle Edge Function qui :
+- Reçoit `{ partner_name, partner_description }` en entrée
+- Appelle l'API Gemini (`google/gemini-2.5-flash-image`) avec un prompt adapté (bannière hero professionnelle)
+- Upload l'image base64 dans le bucket `site-settings` sous `partners/heroes/`
+- Retourne l'URL publique
+
+### 6. API Catalogue — Exposer le champ
+
+Dans `supabase/functions/catalog-api/index.ts` :
+- `getPartners` : ajouter `hero_image_url` dans le `select`
+- `getPartner` : ajouter `hero_image_url` dans le `select`
+
+### 7. Documentation
+
+Mettre à jour `catalog-skeleton/partners-api.txt` et `catalog-skeleton/types-partners.txt` pour inclure `hero_image_url` dans les réponses et les types.
+
+### Fichiers modifiés
+
+| Fichier | Action |
+|---------|--------|
+| Nouvelle migration SQL | `ALTER TABLE partners ADD COLUMN hero_image_url TEXT` |
+| `src/types/partner.ts` | Ajouter `hero_image_url` |
+| `src/services/partnerService.ts` | Inclure le champ dans les opérations |
+| `src/components/partners/PartnerManager.tsx` | Section hero image avec upload + bouton IA |
+| `supabase/functions/generate-partner-hero/index.ts` | Nouvelle Edge Function |
+| `supabase/functions/catalog-api/index.ts` | Ajouter le champ aux selects partners |
+| `catalog-skeleton/partners-api.txt` | Documenter `hero_image_url` |
+| `catalog-skeleton/types-partners.txt` | Ajouter le type |
+
