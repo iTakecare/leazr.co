@@ -153,6 +153,12 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
               onClick={() => analyzeEmail.mutate()}
               disabled={analyzeEmail.isPending}
             >
+              {analyzeEmail.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              {hasAnalysis ? "Ré-analyser" : "Analyser avec IA"}
             </Button>
             {onHide && (
               <Button
@@ -165,19 +171,6 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
                 Masquer cet email
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => analyzeEmail.mutate()}
-              disabled={analyzeEmail.isPending}
-            >
-              {analyzeEmail.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              {hasAnalysis ? "Ré-analyser" : "Analyser avec IA"}
-            </Button>
           </div>
 
           {/* AI Analysis Results */}
