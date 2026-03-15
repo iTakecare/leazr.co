@@ -255,9 +255,14 @@ const EquipmentOrders: React.FC = () => {
   };
 
   const uniqueClients = useMemo(() => {
+    const activeStatuses: OrderStatus[] = ['to_order', 'ordered'];
     const clientMap = new Map<string, string>();
     items.forEach(item => {
-      if (item.client_name) {
+      if (!item.client_name) return;
+      const hasActiveStatus = item.units && item.units.length > 0
+        ? item.units.some(u => activeStatuses.includes(u.order_status as OrderStatus))
+        : activeStatuses.includes(item.order_status as OrderStatus);
+      if (hasActiveStatus) {
         clientMap.set(item.client_name, item.client_name);
       }
     });
