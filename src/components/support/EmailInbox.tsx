@@ -169,6 +169,24 @@ const EmailInbox = () => {
         )}
       </CardContent>
     </Card>
+
+      <AlertDialog open={!!emailToHide} onOpenChange={() => setEmailToHide(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Masquer cet email ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'email sera masqué de votre boîte mail mais ne sera pas supprimé du serveur.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => emailToHide && hideEmail(emailToHide)}>
+              Masquer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
