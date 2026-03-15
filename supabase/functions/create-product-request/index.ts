@@ -249,18 +249,30 @@ serve(async (req) => {
         console.log(`✅ Prix récupérés de products (fallback): achat=${price}€, mensuel=${productMonthlyPrice}€`);
       }
 
-      let monthlyPrice = variantMonthlyPrice || productMonthlyPrice || 0;
-      console.log(`📊 Mensualité UNITAIRE DB Leazr: ${monthlyPrice}€`);
-      
-      if (monthlyPrice > 0 && product.pack_discount_percentage && product.pack_discount_percentage > 0) {
-        const originalMonthly = monthlyPrice;
-        monthlyPrice = Math.round(monthlyPrice * (1 - product.pack_discount_percentage / 100) * 100) / 100;
-        console.log(`🏷️ Réduction pack ${product.pack_discount_percentage}% appliquée: ${originalMonthly}€ → ${monthlyPrice}€ (arrondi 2 déc.)`);
-      }
-      
-      if (monthlyPrice === 0) {
-        monthlyPrice = (product.unit_price || 0) / product.quantity;
-        console.log(`⚠️ Fallback sur unit_price iTakecare: ${monthlyPrice}€/u`);
+      let monthlyPrice = 0;
+
+      if (product.unit_price && product.unit_price > 0) {
+        // Prix envoyé par iTakecare = ce que le client a vu (déjà arrondi, déjà remisé)
+        monthlyPrice = product.unit_price;
+        console.log(`📊 Mensualité UNITAIRE iTakecare (prioritaire): ${monthlyPrice}€`);
+
+        // Validation de cohérence avec la DB (log seulement)
+        let dbMonthly = variantMonthlyPrice || productMonthlyPrice || 0;
+        if (dbMonthly > 0 && product.pack_discount_percentage && product.pack_discount_percentage > 0) {
+          dbMonthly = Math.round(dbMonthly * (1 - product.pack_discount_percentage / 100) * 100) / 100;
+        }
+        if (dbMonthly > 0 && Math.abs(monthlyPrice - dbMonthly) / dbMonthly > 0.05) {
+          console.warn(`⚠️ Écart >5% entre iTakecare (${monthlyPrice}€) et DB (${dbMonthly}€) pour ${productName}`);
+        }
+      } else {
+        // Fallback : calcul depuis la DB (cas sans iTakecare)
+        monthlyPrice = variantMonthlyPrice || productMonthlyPrice || 0;
+        console.log(`📊 Mensualité UNITAIRE DB Leazr (fallback): ${monthlyPrice}€`);
+        if (monthlyPrice > 0 && product.pack_discount_percentage && product.pack_discount_percentage > 0) {
+          const originalMonthly = monthlyPrice;
+          monthlyPrice = Math.round(monthlyPrice * (1 - product.pack_discount_percentage / 100) * 100) / 100;
+          console.log(`🏷️ Réduction pack ${product.pack_discount_percentage}% appliquée: ${originalMonthly}€ → ${monthlyPrice}€`);
+        }
       }
       
       const totalMonthlyForLine = Math.round(monthlyPrice * product.quantity * 100) / 100;
