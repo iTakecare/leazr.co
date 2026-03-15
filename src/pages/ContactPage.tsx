@@ -153,9 +153,9 @@ const ContactPage = () => {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
-                    <Send className="mr-2 h-5 w-5" />
-                    Envoyer le message
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" size="lg" disabled={submitting}>
+                    {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
+                    {submitting ? 'Envoi en cours...' : 'Envoyer le message'}
                   </Button>
                 </form>
               </CardContent>

@@ -310,6 +310,7 @@ const AppRoutes = () => (
       <Route path="equipment-orders" element={<Layout><EquipmentOrders /></Layout>} />
       <Route path="stock" element={<Layout><StockManagement /></Layout>} />
       <Route path="tasks" element={<Layout><Tasks /></Layout>} />
+      <Route path="support" element={<Layout><SupportPage /></Layout>} />
       <Route path="crm" element={<Layout><CRMPage /></Layout>} />
       
       {/* Unified product form routes - handles both creation and editing */}

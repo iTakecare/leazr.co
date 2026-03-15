@@ -131,6 +131,13 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         moduleSlug: "chat" 
       },
       { 
+        icon: Headset, 
+        label: "Support", 
+        href: `${basePrefix}/admin/support`, 
+        moduleSlug: "support",
+        alwaysVisible: true 
+      },
+      { 
         icon: Settings, 
         label: "Paramètres", 
         href: `${basePrefix}/admin/settings`, 
