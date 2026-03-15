@@ -7,11 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Loader2, Mail, MailOpen } from "lucide-react";
+import { RefreshCw, Loader2, Mail, MailOpen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import EmailDetail from "./EmailDetail";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const EmailInbox = () => {
   const { companyId } = useMultiTenant();
@@ -19,6 +29,7 @@ const EmailInbox = () => {
   const queryClient = useQueryClient();
   const [selectedEmail, setSelectedEmail] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
+  const [emailToHide, setEmailToHide] = useState<string | null>(null);
 
   const { data: emails, isLoading } = useQuery({
     queryKey: ["synced-emails", companyId],
@@ -27,6 +38,7 @@ const EmailInbox = () => {
         .from("synced_emails")
         .select("*")
         .eq("user_id", user!.id)
+        .eq("is_hidden", false)
         .order("received_at", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -55,8 +67,23 @@ const EmailInbox = () => {
     }
   };
 
+  const hideEmail = async (emailId: string) => {
+    try {
+      const { error } = await supabase
+        .from("synced_emails")
+        .update({ is_hidden: true } as any)
+        .eq("id", emailId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["synced-emails"] });
+      toast.success("Email masqué");
+    } catch (err: any) {
+      toast.error("Erreur : " + (err.message || "Échec"));
+    }
+    setEmailToHide(null);
+  };
+
   if (selectedEmail) {
-    return <EmailDetail email={selectedEmail} onBack={() => setSelectedEmail(null)} />;
+    return <EmailDetail email={selectedEmail} onBack={() => setSelectedEmail(null)} onHide={(id: string) => { setEmailToHide(id); }} />;
   }
 
   if (isLoading) {
@@ -68,6 +95,7 @@ const EmailInbox = () => {
   }
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">Boîte mail</CardTitle>
@@ -93,6 +121,7 @@ const EmailInbox = () => {
                 <TableHead>Sujet</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Lié à</TableHead>
+                <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -124,6 +153,16 @@ const EmailInbox = () => {
                     {email.linked_ticket_id && <Badge variant="secondary">Ticket</Badge>}
                     {email.linked_task_id && <Badge variant="secondary">Tâche</Badge>}
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setEmailToHide(email.id); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -131,6 +170,24 @@ const EmailInbox = () => {
         )}
       </CardContent>
     </Card>
+
+      <AlertDialog open={!!emailToHide} onOpenChange={() => setEmailToHide(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Masquer cet email ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'email sera masqué de votre boîte mail mais ne sera pas supprimé du serveur.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => emailToHide && hideEmail(emailToHide)}>
+              Masquer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

@@ -5,7 +5,7 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Ticket, CheckSquare, Sparkles, Loader2, User, MessageSquare } from "lucide-react";
+import { ArrowLeft, Ticket, CheckSquare, Sparkles, Loader2, User, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -14,6 +14,7 @@ import DOMPurify from "dompurify";
 interface EmailDetailProps {
   email: any;
   onBack: () => void;
+  onHide?: (id: string) => void;
 }
 
 const SENTIMENT_COLORS: Record<string, string> = {
@@ -30,7 +31,7 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
   autre: "Autre",
 };
 
-const EmailDetail = ({ email, onBack }: EmailDetailProps) => {
+const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
   const { companyId } = useMultiTenant();
   const queryClient = useQueryClient();
 
@@ -159,6 +160,17 @@ const EmailDetail = ({ email, onBack }: EmailDetailProps) => {
               )}
               {hasAnalysis ? "Ré-analyser" : "Analyser avec IA"}
             </Button>
+            {onHide && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onHide(email.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Masquer cet email
+              </Button>
+            )}
           </div>
 
           {/* AI Analysis Results */}

@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_NEW_EMAILS = 20;
+const MAX_NEW_EMAILS = 100;
 const SAFETY_TIMEOUT_MS = 45000; // 45s safety timeout
 
 serve(async (req) => {
@@ -149,6 +149,13 @@ serve(async (req) => {
         skippedCount = envelopes.length - newEnvelopes.length;
 
         console.log("[sync-imap-emails] New emails to fetch:", newEnvelopes.length, "| Already synced:", skippedCount);
+
+        // Sort by date DESC so we fetch the most recent emails first
+        newEnvelopes.sort((a, b) => {
+          const dateA = new Date(a.envelope?.date || 0).getTime();
+          const dateB = new Date(b.envelope?.date || 0).getTime();
+          return dateB - dateA;
+        });
 
         // Step 3: Fetch full source only for new emails, limited batch
         const toFetch = newEnvelopes.slice(0, MAX_NEW_EMAILS);
