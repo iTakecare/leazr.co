@@ -15,6 +15,7 @@ import { fr } from "date-fns/locale";
 export const AdminNotificationBadge = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useAdminNotifications();
   const navigate = useNavigate();
+  const { companySlug } = useParams<{ companySlug: string }>();
 
   const handleNotificationClick = (notification: any) => {
     markAsRead(notification.id);
