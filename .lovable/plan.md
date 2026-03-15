@@ -1,31 +1,34 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Problème identifié
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+Deux URLs cassées — il manque le slug company (`itakecare`) dans le chemin :
 
-## Endpoints API ajoutés
+### 1. Notification click (`AdminNotificationBadge.tsx`, ligne 24)
+```
+// Actuel (cassé) :
+navigate(`/admin/offers/${notification.offer_id}`)
+// Attendu :
+navigate(`/${companySlug}/admin/offers/${notification.offer_id}`)
+```
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+### 2. Lien email admin (`create-product-request/index.ts`, ligne 756)
+```
+// Actuel (cassé) :
+adminLink: `${getAppUrl(req)}/offers/${requestId}`
+// Attendu :
+adminLink: `${getAppUrl(req)}/${companySlug}/admin/offers/${requestId}`
+```
 
-## Documentation
+## Corrections
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+### Fichier 1 : `src/components/admin/AdminNotificationBadge.tsx`
+- Importer `useParams` et extraire `companySlug`
+- Ligne 24 : changer `navigate('/admin/offers/...')` → `navigate('/${companySlug}/admin/offers/...')`
 
-## Tables
+### Fichier 2 : `supabase/functions/create-product-request/index.ts`
+- Ligne 632-633 : ajouter `slug` au SELECT de la requête companies → `.select('name, logo_url, slug')`
+- Ligne 756 : construire le lien admin avec le slug → `` `${getAppUrl(req)}/${companyInfo?.slug || 'itakecare'}/admin/offers/${requestId}` ``
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
+Deux modifications simples, le reste du code ne change pas.
+
