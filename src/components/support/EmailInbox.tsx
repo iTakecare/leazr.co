@@ -67,8 +67,23 @@ const EmailInbox = () => {
     }
   };
 
+  const hideEmail = async (emailId: string) => {
+    try {
+      const { error } = await supabase
+        .from("synced_emails")
+        .update({ is_hidden: true } as any)
+        .eq("id", emailId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["synced-emails"] });
+      toast.success("Email masqué");
+    } catch (err: any) {
+      toast.error("Erreur : " + (err.message || "Échec"));
+    }
+    setEmailToHide(null);
+  };
+
   if (selectedEmail) {
-    return <EmailDetail email={selectedEmail} onBack={() => setSelectedEmail(null)} />;
+    return <EmailDetail email={selectedEmail} onBack={() => setSelectedEmail(null)} onHide={(id: string) => { setEmailToHide(id); }} />;
   }
 
   if (isLoading) {
