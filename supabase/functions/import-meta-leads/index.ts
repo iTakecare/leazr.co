@@ -999,7 +999,7 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
 
 🔹 Plateforme: ${lead.platform === 'fb' ? 'Facebook' : 'Instagram'}
 🔹 Date du lead: ${formattedDate}
-🔹 Meta Lead ID: ${lead.meta_lead_id}
+🔹 Meta Lead ID: ${lead.meta_lead_id}${lead.vat_number ? `\n🔹 N° TVA: ${lead.vat_number}` : ''}${lead.company_name ? `\n🔹 Entreprise: ${lead.company_name}` : ''}
 
 📦 PACK INTÉRESSÉ:
 ${parsedPack.displayName}
