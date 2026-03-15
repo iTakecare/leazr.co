@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Plus, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -47,6 +48,7 @@ const SupportTicketsList = () => {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [ticketToDelete, setTicketToDelete] = useState<any>(null);
   const [newTicket, setNewTicket] = useState({ subject: "", description: "", priority: "medium" });
 
   const { data: tickets, isLoading } = useQuery({
@@ -86,6 +88,20 @@ const SupportTicketsList = () => {
     },
   });
 
+  const deleteTicket = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("support_tickets").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
+      setTicketToDelete(null);
+      toast.success("Ticket supprimé");
+    },
+    onError: () => {
+      toast.error("Erreur lors de la suppression");
+    },
+  });
   if (selectedTicket) {
     return <SupportTicketDetail ticket={selectedTicket} onBack={() => setSelectedTicket(null)} />;
   }
@@ -133,8 +149,9 @@ const SupportTicketsList = () => {
                   <TableHead>Sujet</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Priorité</TableHead>
-                  <TableHead>Statut</TableHead>
-                </TableRow>
+                   <TableHead>Statut</TableHead>
+                   <TableHead className="w-12"></TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tickets.map((ticket: any) => (
@@ -157,6 +174,19 @@ const SupportTicketsList = () => {
                       <Badge className={statusColors[ticket.status]} variant="secondary">
                         {statusLabels[ticket.status]}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTicketToDelete(ticket);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -214,6 +244,26 @@ const SupportTicketsList = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!ticketToDelete} onOpenChange={(open) => !open && setTicketToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce ticket ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le ticket "{ticketToDelete?.subject}" sera définitivement supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => ticketToDelete && deleteTicket.mutate(ticketToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
