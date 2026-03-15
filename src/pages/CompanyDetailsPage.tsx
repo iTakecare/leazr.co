@@ -1,4 +1,5 @@
 import React from 'react';
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ const CompanyDetailsPage = () => {
       <PageTransition>
         <Container>
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <WaveLoader />
           </div>
         </Container>
       </PageTransition>

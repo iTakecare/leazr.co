@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
@@ -206,8 +207,7 @@ const OfferDetail = () => {
     if (loading) {
       return (
         <div className="flex items-center justify-center min-h-[300px]">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-          <span className="ml-3 text-muted-foreground">Chargement des détails...</span>
+          <WaveLoader message="Chargement des détails..." />
         </div>
       );
     }

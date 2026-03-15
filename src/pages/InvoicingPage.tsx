@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -349,9 +350,8 @@ const InvoicingPage = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
-                      <p className="mt-4 text-muted-foreground">Chargement des factures...</p>
+                    <div className="flex items-center justify-center py-8">
+                      <WaveLoader message="Chargement des factures..." />
                     </div>
                   ) : filteredInvoices.length === 0 ? (
                     <div className="text-center py-8">

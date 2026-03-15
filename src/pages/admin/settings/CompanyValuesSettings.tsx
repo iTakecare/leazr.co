@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, GripVertical, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -191,7 +192,7 @@ const CompanyValuesSettings = () => {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center p-8">Chargement...</div>;
+    return <div className="flex items-center justify-center p-8"><WaveLoader /></div>;
   }
 
   return (

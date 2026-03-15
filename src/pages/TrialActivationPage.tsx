@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,11 +123,7 @@ const TrialActivationPage: React.FC = () => {
       <Container className="flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Activation en cours...</h3>
-            <p className="text-sm text-muted-foreground text-center">
-              Nous activons votre compte et préparons votre essai gratuit.
-            </p>
+            <WaveLoader message="Activation en cours..." />
           </CardContent>
         </Card>
       </Container>

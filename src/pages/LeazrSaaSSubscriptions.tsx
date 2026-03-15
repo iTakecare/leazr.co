@@ -1,5 +1,6 @@
 
 import React from 'react';
+import WaveLoader from "@/components/ui/WaveLoader";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
@@ -21,8 +22,7 @@ const LeazrSaaSSubscriptions = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <span className="ml-2">Chargement...</span>
+        <WaveLoader />
       </div>
     );
   }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -145,11 +146,7 @@ const Login = () => {
     console.log("🔀 LOGIN RENDER - Redirection en cours...");
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Redirection en cours...</p>
-          <p className="text-sm text-gray-500 mt-2">Chargement de votre espace...</p>
-        </div>
+        <WaveLoader message="Redirection en cours..." />
       </div>
     );
   }

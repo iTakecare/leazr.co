@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState, useRef } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
@@ -182,10 +183,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
       <div className="min-h-screen bg-white">
         <Container className="max-w-[1320px]">
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Chargement de l'entreprise...</p>
-            </div>
+            <WaveLoader message="Chargement de l'entreprise..." />
           </div>
         </Container>
       </div>
@@ -233,10 +231,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
       <div className="min-h-screen bg-white">
         <Container className="max-w-[1320px]">
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Chargement du catalogue...</p>
-            </div>
+            <WaveLoader message="Chargement du catalogue..." />
           </div>
         </Container>
       </div>

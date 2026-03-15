@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -68,8 +69,7 @@ const AmbassadorEditPage = () => {
       <PageTransition>
         <Container>
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Chargement...</span>
+            <WaveLoader message="Chargement..." />
           </div>
         </Container>
       </PageTransition>

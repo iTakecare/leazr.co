@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -257,10 +258,7 @@ const AmbassadorDashboardPage = () => {
     console.log("🔄 Rendering loading state");
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Chargement du tableau de bord...</p>
-        </div>
+        <WaveLoader message="Chargement du tableau de bord..." />
       </div>
     );
   }

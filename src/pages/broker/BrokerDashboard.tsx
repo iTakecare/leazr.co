@@ -1,4 +1,5 @@
 import React from 'react';
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useBrokerContext } from '@/context/BrokerContext';
 import CompanyDashboard from '@/components/dashboard/CompanyDashboard';
 
@@ -8,7 +9,7 @@ const BrokerDashboard: React.FC = () => {
   if (!brokerId) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <WaveLoader />
       </div>
     );
   }

@@ -29,6 +29,7 @@ import { receiveToStock } from "@/services/stockService";
 import { exportEquipmentOrdersToExcel } from "@/services/equipmentOrderExportService";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
+import WaveLoader from "@/components/ui/WaveLoader";
 
 // Inline editable price component
 const EditablePrice: React.FC<{
@@ -580,8 +581,8 @@ const EquipmentOrders: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-6 flex justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
+      <div className="p-6 flex items-center justify-center h-[40vh]">
+        <WaveLoader message="Chargement des commandes..." />
       </div>
     );
   }

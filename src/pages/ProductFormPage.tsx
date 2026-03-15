@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
@@ -85,8 +86,7 @@ const ProductFormPage = () => {
             </div>
             
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2">Chargement du produit...</span>
+              <WaveLoader message="Chargement du produit..." />
             </div>
           </div>
         </Container>

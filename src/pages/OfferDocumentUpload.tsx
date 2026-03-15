@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useLocation, useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -277,8 +278,8 @@ const OfferDocumentUpload = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <WaveLoader />
       </div>
     );
   }

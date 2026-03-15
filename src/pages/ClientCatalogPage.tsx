@@ -1,4 +1,5 @@
 import React from 'react';
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useClientData } from '@/hooks/useClientData';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,13 +64,10 @@ const ClientCatalogPage: React.FC = () => {
 
   if (clientLoading || isLoadingCompany) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Chargement du catalogue...</p>
-            </div>
+            <WaveLoader message="Chargement du catalogue..." />
           </div>
         </div>
       </div>

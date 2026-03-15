@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import WaveLoader from "@/components/ui/WaveLoader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -55,10 +56,7 @@ const LeazrSaaSDashboard = () => {
       <PageTransition>
         <Container>
           <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Vérification des autorisations...</p>
-            </div>
+            <WaveLoader message="Vérification des autorisations..." />
           </div>
         </Container>
       </PageTransition>
@@ -72,10 +70,7 @@ const LeazrSaaSDashboard = () => {
       <PageTransition>
         <Container>
           <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Accès non autorisé, redirection en cours...</p>
-            </div>
+            <WaveLoader message="Accès non autorisé, redirection en cours..." />
           </div>
         </Container>
       </PageTransition>

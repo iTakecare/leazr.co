@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -160,8 +161,7 @@ const AmbassadorCatalogPage = () => {
           <div className="min-h-[calc(100vh-400px)]">
             {isLoading ? (
               <div className="flex items-center justify-center h-40">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2">Chargement des produits...</span>
+                <WaveLoader message="Chargement des produits..." />
               </div>
             ) : error ? (
               <div className="text-center p-8 text-destructive">
