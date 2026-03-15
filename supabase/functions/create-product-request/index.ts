@@ -318,7 +318,39 @@ serve(async (req) => {
     }
     
     console.log("Liste d'équipements:", equipmentList);
-    console.log("Mensualité totale des produits:", totalMonthlyPayment + "€");
+    console.log("Mensualité totale des produits (somme unit_prices):", totalMonthlyPayment + "€");
+
+    // ====== CORRECTION MENSUALITÉ : utiliser data.total - services externes ======
+    if (data.total && data.total > 0) {
+      const externalServicesTotal = (data.external_services || []).reduce(
+        (acc: number, svc: any) => acc + (svc.price_htva * (svc.quantity || 1)), 0
+      );
+      const correctMonthlyTotal = Math.round((data.total - externalServicesTotal) * 100) / 100;
+      
+      console.log(`📊 data.total: ${data.total}€, services externes: ${externalServicesTotal}€, mensualité équipements correcte: ${correctMonthlyTotal}€`);
+      
+      if (Math.abs(correctMonthlyTotal - totalMonthlyPayment) > 0.01) {
+        console.log(`⚠️ Correction mensualité: ${totalMonthlyPayment}€ → ${correctMonthlyTotal}€ (ratio: ${(correctMonthlyTotal / totalMonthlyPayment).toFixed(4)})`);
+        const ratio = correctMonthlyTotal / totalMonthlyPayment;
+        
+        let redistributedTotal = 0;
+        for (let i = 0; i < equipmentCalculations.length; i++) {
+          const corrected = Math.round(equipmentCalculations[i].monthlyPrice * ratio * 100) / 100;
+          equipmentCalculations[i].monthlyPrice = corrected;
+          redistributedTotal += corrected * equipmentCalculations[i].quantity;
+        }
+        
+        // Ajustement du reste sur la dernière ligne
+        const remainder = Math.round((correctMonthlyTotal - redistributedTotal) * 100) / 100;
+        if (Math.abs(remainder) > 0 && equipmentCalculations.length > 0) {
+          const last = equipmentCalculations[equipmentCalculations.length - 1];
+          last.monthlyPrice = Math.round((last.monthlyPrice + remainder / last.quantity) * 100) / 100;
+        }
+        
+        totalMonthlyPayment = correctMonthlyTotal;
+        console.log(`✅ Mensualité corrigée: ${totalMonthlyPayment}€`);
+      }
+    }
 
     // Récupérer le leaser Grenke et ses tranches
     const { data: leaserData } = await supabaseAdmin
@@ -365,7 +397,8 @@ serve(async (req) => {
     
     const year = new Date().getFullYear();
     const timestamp = Date.now().toString().slice(-4);
-    const dossierNumber = `ITC-${year}-OFF-${timestamp}`;
+    const dossierNumber = data.reference_number || `ITC-${year}-OFF-${timestamp}`;
+    console.log(`📋 Numéro de dossier: ${dossierNumber}`);
 
     const equipmentDescription = equipmentList.join(', ');
 
