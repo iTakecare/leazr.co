@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -17,6 +17,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
+    console.log("[sync-imap-emails] Received action:", body.action);
     const { action, user_id, company_id, settings } = body;
 
     // Action: save IMAP settings
@@ -49,8 +50,12 @@ serve(async (req) => {
         .from("user_imap_settings")
         .upsert(settingsToSave, { onConflict: "user_id,company_id" });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[sync-imap-emails] Upsert error:", error);
+        throw error;
+      }
 
+      console.log("[sync-imap-emails] Settings saved successfully for user:", user_id);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
