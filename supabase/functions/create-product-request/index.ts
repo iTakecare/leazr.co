@@ -753,7 +753,7 @@ serve(async (req) => {
               partnerName: data.partner_name,
               externalServices: data.external_services,
               deliveryInfo: data.delivery_info,
-              adminLink: `${getAppUrl(req)}/offers/${requestId}`,
+              adminLink: `${getAppUrl(req)}/${companyInfo?.slug || 'itakecare'}/admin/offers/${requestId}`,
               dateStr, timeStr,
             });
             

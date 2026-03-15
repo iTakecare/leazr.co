@@ -22,7 +22,7 @@ export const AdminNotificationBadge = () => {
     
     // Navigate to offer if available
     if (notification.offer_id) {
-      navigate(`/admin/offers/${notification.offer_id}`);
+      navigate(`/${companySlug}/admin/offers/${notification.offer_id}`);
     }
   };
 
