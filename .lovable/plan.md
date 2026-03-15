@@ -1,13 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Rendre les lignes clients cliquables
+## Statut
 
-### Changement
-Ajouter un `onClick` sur le `<TableRow>` dans `ClientTableRow.tsx` pour naviguer vers la fiche client au clic, avec un curseur pointer. Le clic sur la colonne Actions (dropdown) ne doit pas déclencher la navigation.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-### Fichier modifié
-**`src/components/clients/ClientTableRow.tsx`**
+## Endpoints API ajoutés
 
-- Ajouter `onClick={handleViewClient}` et `className="cursor-pointer hover:bg-muted/50"` sur le `<TableRow>`
-- Sur la `<TableCell>` des actions, ajouter `onClick={(e) => e.stopPropagation()}` pour éviter que le clic sur le menu déclenche aussi la navigation
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
+## Documentation
+
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+
+## Tables
+
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`

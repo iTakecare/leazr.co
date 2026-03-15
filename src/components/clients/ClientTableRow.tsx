@@ -55,14 +55,14 @@ const ClientTableRow = ({ client, onDelete, onEdit, onView }: ClientTableRowProp
   };
 
   return (
-    <TableRow>
+    <TableRow onClick={handleViewClient} className="cursor-pointer hover:bg-muted/50">
       <TableCell className="font-medium">{client.name}</TableCell>
       <TableCell>{client.company || "-"}</TableCell>
       <TableCell>{client.email || "-"}</TableCell>
       <TableCell>{client.phone || "-"}</TableCell>
       <TableCell>{getStatusBadge(client.status)}</TableCell>
       <TableCell>{formatDate(client.created_at)}</TableCell>
-      <TableCell>
+      <TableCell onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
