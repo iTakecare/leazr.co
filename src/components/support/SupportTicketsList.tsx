@@ -149,8 +149,8 @@ const SupportTicketsList = () => {
                   <TableHead>Sujet</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Priorité</TableHead>
-                  <TableHead>Statut</TableHead>
-                </TableRow>
+                   <TableHead>Statut</TableHead>
+                   <TableHead className="w-12"></TableHead>
               </TableHeader>
               <TableBody>
                 {tickets.map((ticket: any) => (
