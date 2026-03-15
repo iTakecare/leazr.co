@@ -69,9 +69,10 @@ interface TaskDialogProps {
   defaultClientName?: string;
   defaultOfferId?: string;
   defaultTitle?: string;
+  defaultDescription?: string;
 }
 
-const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defaultClientName, defaultOfferId, defaultTitle }: TaskDialogProps) => {
+const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defaultClientName, defaultOfferId, defaultTitle, defaultDescription }: TaskDialogProps) => {
   const { data: profiles = [] } = useCompanyProfiles();
   const { companyId } = useMultiTenant();
 
@@ -105,7 +106,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defau
       setRecurrenceEndDate(task.recurrence_end_date ? task.recurrence_end_date.split('T')[0] : '');
     } else {
       setTitle(defaultTitle || '');
-      setDescription('');
+      setDescription(defaultDescription || '');
       setPriority('medium');
       setAssignedTo('');
       setDueDate('');
@@ -119,7 +120,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defau
         setOffers([]);
       }
     }
-  }, [task, open, defaultTitle, defaultClientId, defaultOfferId]);
+  }, [task, open, defaultTitle, defaultDescription, defaultClientId, defaultOfferId]);
 
   // Load client dossiers when client changes
   useEffect(() => {
