@@ -7928,6 +7928,9 @@ export type Database = {
       }
       synced_emails: {
         Row: {
+          ai_analysis: string | null
+          ai_analyzed_at: string | null
+          ai_suggestions: Json | null
           body_html: string | null
           body_text: string | null
           company_id: string
@@ -7945,6 +7948,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_analysis?: string | null
+          ai_analyzed_at?: string | null
+          ai_suggestions?: Json | null
           body_html?: string | null
           body_text?: string | null
           company_id: string
@@ -7962,6 +7968,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_analysis?: string | null
+          ai_analyzed_at?: string | null
+          ai_suggestions?: Json | null
           body_html?: string | null
           body_text?: string | null
           company_id?: string
@@ -8369,6 +8378,7 @@ export type Database = {
           imap_username: string
           is_active: boolean
           last_sync_at: string | null
+          sync_days: number | null
           updated_at: string
           user_id: string
         }
@@ -8384,6 +8394,7 @@ export type Database = {
           imap_username: string
           is_active?: boolean
           last_sync_at?: string | null
+          sync_days?: number | null
           updated_at?: string
           user_id: string
         }
@@ -8399,6 +8410,7 @@ export type Database = {
           imap_username?: string
           is_active?: boolean
           last_sync_at?: string | null
+          sync_days?: number | null
           updated_at?: string
           user_id?: string
         }
