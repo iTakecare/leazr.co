@@ -1,4 +1,5 @@
 import React from 'react';
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useClientData } from '@/hooks/useClientData';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

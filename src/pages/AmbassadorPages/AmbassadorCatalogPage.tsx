@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
