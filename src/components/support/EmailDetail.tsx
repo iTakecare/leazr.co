@@ -14,6 +14,7 @@ import DOMPurify from "dompurify";
 interface EmailDetailProps {
   email: any;
   onBack: () => void;
+  onHide?: (id: string) => void;
 }
 
 const SENTIMENT_COLORS: Record<string, string> = {
