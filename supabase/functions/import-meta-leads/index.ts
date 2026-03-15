@@ -930,13 +930,17 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
             : '⚠️ Produits non trouvés dans le catalogue';
         }
 
+        // Diagnostic logging for incoming lead data
+        console.log(`[META IMPORT] Raw lead fields: ${Object.keys(lead).join(', ')}`);
+        console.log(`[META IMPORT] vat_number received: "${lead.vat_number || 'MISSING'}", company_name: "${lead.company_name || 'MISSING'}"`);
+
         // Check if client already exists by email OR phone
         let existingClient = null;
         
         if (validEmail) {
           const { data: clientByEmail } = await supabase
             .from('clients')
-            .select('id, name')
+            .select('id, name, vat_number, company')
             .eq('email', validEmail)
             .eq('company_id', company.id)
             .single();
@@ -946,7 +950,7 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
         if (!existingClient && validPhone) {
           const { data: clientByPhone } = await supabase
             .from('clients')
-            .select('id, name')
+            .select('id, name, vat_number, company')
             .eq('phone', validPhone)
             .eq('company_id', company.id)
             .single();
@@ -960,6 +964,15 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
           // Reuse existing client
           clientId = existingClient.id;
           console.log(`[META IMPORT] Using existing client: ${existingClient.name} (${clientId})`);
+          
+          // Enrich existing client with missing data
+          const updates: Record<string, string> = {};
+          if (!existingClient.vat_number && lead.vat_number) updates.vat_number = lead.vat_number;
+          if (!existingClient.company && lead.company_name) updates.company = lead.company_name;
+          if (Object.keys(updates).length > 0) {
+            console.log(`[META IMPORT] Enriching existing client with: ${JSON.stringify(updates)}`);
+            await supabase.from('clients').update(updates).eq('id', clientId);
+          }
         } else {
           // Create new client
           isNewClient = true;
@@ -986,7 +999,7 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
 
 🔹 Plateforme: ${lead.platform === 'fb' ? 'Facebook' : 'Instagram'}
 🔹 Date du lead: ${formattedDate}
-🔹 Meta Lead ID: ${lead.meta_lead_id}
+🔹 Meta Lead ID: ${lead.meta_lead_id}${lead.vat_number ? `\n🔹 N° TVA: ${lead.vat_number}` : ''}${lead.company_name ? `\n🔹 Entreprise: ${lead.company_name}` : ''}
 
 📦 PACK INTÉRESSÉ:
 ${parsedPack.displayName}
