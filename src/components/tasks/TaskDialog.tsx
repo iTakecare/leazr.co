@@ -72,7 +72,7 @@ interface TaskDialogProps {
   defaultDescription?: string;
 }
 
-const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defaultClientName, defaultOfferId, defaultTitle }: TaskDialogProps) => {
+const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defaultClientName, defaultOfferId, defaultTitle, defaultDescription }: TaskDialogProps) => {
   const { data: profiles = [] } = useCompanyProfiles();
   const { companyId } = useMultiTenant();
 
