@@ -1,6 +1,27 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Resend } from "npm:resend@2.0.0";
 
+// Normalize VAT/enterprise numbers to uniform format (e.g. BE0123456789)
+function normalizeVatNumber(raw: string): string {
+  if (!raw) return '';
+  // Remove all separators: dots, dashes, spaces, colons
+  let cleaned = raw.replace(/[\s.\-:]/g, '').toUpperCase();
+  // Extract country prefix if present (2 letters followed by digits)
+  let prefix = '';
+  const match = cleaned.match(/^([A-Z]{2})(\d+)$/);
+  if (match) {
+    prefix = match[1];
+    cleaned = match[2];
+  }
+  // Default to BE if no prefix
+  if (!prefix) prefix = 'BE';
+  // Pad with leading zero if needed (Belgian numbers are 10 digits)
+  if (prefix === 'BE' && cleaned.length === 9) {
+    cleaned = '0' + cleaned;
+  }
+  return `${prefix}${cleaned}`;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -967,7 +988,7 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
           
           // Enrich existing client with missing data
           const updates: Record<string, string> = {};
-          if (!existingClient.vat_number && lead.vat_number) updates.vat_number = lead.vat_number;
+          if (!existingClient.vat_number && lead.vat_number) updates.vat_number = normalizeVatNumber(lead.vat_number);
           if (!existingClient.company && lead.company_name) updates.company = lead.company_name;
           if (Object.keys(updates).length > 0) {
             console.log(`[META IMPORT] Enriching existing client with: ${JSON.stringify(updates)}`);
@@ -1017,7 +1038,7 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
               email: validEmail,
               phone: validPhone,
               company: lead.company_name || null,
-              vat_number: lead.vat_number || null,
+              vat_number: lead.vat_number ? normalizeVatNumber(lead.vat_number) : null,
               status: 'lead',
               notes: clientNotes
             })

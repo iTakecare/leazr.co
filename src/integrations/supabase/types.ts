@@ -9767,6 +9767,7 @@ export type Database = {
         Returns: boolean
       }
       mark_upload_token_used: { Args: { p_token: string }; Returns: boolean }
+      normalize_vat_number: { Args: { raw: string }; Returns: string }
       organize_product_variants: { Args: never; Returns: undefined }
       recalculate_offer_to_target_monthly: {
         Args: { p_offer_id: string; p_target_monthly_payment: number }
