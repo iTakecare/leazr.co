@@ -254,8 +254,8 @@ serve(async (req) => {
       
       if (monthlyPrice > 0 && product.pack_discount_percentage && product.pack_discount_percentage > 0) {
         const originalMonthly = monthlyPrice;
-        monthlyPrice = monthlyPrice * (1 - product.pack_discount_percentage / 100);
-        console.log(`🏷️ Réduction pack ${product.pack_discount_percentage}% appliquée: ${originalMonthly}€ → ${monthlyPrice}€`);
+        monthlyPrice = Math.round(monthlyPrice * (1 - product.pack_discount_percentage / 100) * 100) / 100;
+        console.log(`🏷️ Réduction pack ${product.pack_discount_percentage}% appliquée: ${originalMonthly}€ → ${monthlyPrice}€ (arrondi 2 déc.)`);
       }
       
       if (monthlyPrice === 0) {
