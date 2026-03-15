@@ -1,13 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Rendre les lignes cliquables dans AmbassadorClientsList
+## Statut
 
-### Changement
-Même pattern que `ClientTableRow` : ajouter `onClick` et `cursor-pointer hover:bg-muted/50` sur le `<TableRow>` pour ouvrir le dialog de détail au clic. Ajouter `stopPropagation` sur la cellule Actions.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-### Fichier modifié
-**`src/components/ambassador/AmbassadorClientsList.tsx`**
+## Endpoints API ajoutés
 
-- Ligne 161 : `<TableRow key={client.id}>` → `<TableRow key={client.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewClient(client)}>`
-- Ligne 167 : `<TableCell className="text-right">` → `<TableCell className="text-right" onClick={(e) => e.stopPropagation()}>`
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
+## Documentation
+
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+
+## Tables
+
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
