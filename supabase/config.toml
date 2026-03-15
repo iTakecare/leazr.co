@@ -236,3 +236,6 @@ verify_jwt = false
 
 [functions.send-manual-followup-email]
 verify_jwt = false
+
+[functions.sync-imap-emails]
+verify_jwt = false

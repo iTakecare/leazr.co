@@ -2248,6 +2248,59 @@ export type Database = {
           },
         ]
       }
+      contact_submissions: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          replied_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          replied_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          replied_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_submissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_cms: {
         Row: {
           content: Json
@@ -7803,6 +7856,145 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          client_id: string | null
+          company_id: string
+          contact_submission_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          email_id: string | null
+          id: string
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_id?: string | null
+          company_id: string
+          contact_submission_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          email_id?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          client_id?: string | null
+          company_id?: string
+          contact_submission_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          email_id?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_contact_submission_id_fkey"
+            columns: ["contact_submission_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      synced_emails: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          company_id: string
+          created_at: string
+          from_address: string | null
+          from_name: string | null
+          id: string
+          is_read: boolean
+          linked_task_id: string | null
+          linked_ticket_id: string | null
+          message_id: string
+          received_at: string | null
+          subject: string | null
+          to_address: string | null
+          user_id: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          company_id: string
+          created_at?: string
+          from_address?: string | null
+          from_name?: string | null
+          id?: string
+          is_read?: boolean
+          linked_task_id?: string | null
+          linked_ticket_id?: string | null
+          message_id: string
+          received_at?: string | null
+          subject?: string | null
+          to_address?: string | null
+          user_id: string
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          company_id?: string
+          created_at?: string
+          from_address?: string | null
+          from_name?: string | null
+          id?: string
+          is_read?: boolean
+          linked_task_id?: string | null
+          linked_ticket_id?: string | null
+          message_id?: string
+          received_at?: string | null
+          subject?: string | null
+          to_address?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "synced_emails_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "synced_emails_linked_ticket_id_fkey"
+            columns: ["linked_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_comments: {
         Row: {
           content: string
@@ -8160,6 +8352,62 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_imap_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          folder: string
+          id: string
+          imap_host: string
+          imap_password_encrypted: string
+          imap_port: number
+          imap_use_ssl: boolean
+          imap_username: string
+          is_active: boolean
+          last_sync_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          folder?: string
+          id?: string
+          imap_host: string
+          imap_password_encrypted: string
+          imap_port?: number
+          imap_use_ssl?: boolean
+          imap_username: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          folder?: string
+          id?: string
+          imap_host?: string
+          imap_password_encrypted?: string
+          imap_port?: number
+          imap_use_ssl?: boolean
+          imap_username?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_imap_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

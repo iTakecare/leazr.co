@@ -20,7 +20,8 @@ import {
   Mail,
   Truck,
   CheckSquare,
-  Warehouse
+  Warehouse,
+  Headset
 } from "lucide-react";
 import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
@@ -129,6 +130,13 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         label: "Chat Admin", 
         href: `${basePrefix}/admin/chat`, 
         moduleSlug: "chat" 
+      },
+      { 
+        icon: Headset, 
+        label: "Support", 
+        href: `${basePrefix}/admin/support`, 
+        moduleSlug: "support",
+        alwaysVisible: true 
       },
       { 
         icon: Settings, 

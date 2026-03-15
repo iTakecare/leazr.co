@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, MapPin, Phone, Mail, Send } from 'lucide-react';
+import { MessageSquare, MapPin, Phone, Mail, Send, Loader2 } from 'lucide-react';
 import LandingHeader from '@/components/layout/LandingHeader';
 import Footer from '@/components/layout/Footer';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -27,10 +29,28 @@ const ContactPage = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // TODO: Implement form submission logic
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from('contact_submissions').insert({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || null,
+        company_name: formData.company.trim() || null,
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+      });
+      if (error) throw error;
+      toast.success('Message envoyé avec succès !');
+      setFormData({ name: '', email: '', company: '', phone: '', subject: '', message: '' });
+    } catch (err: any) {
+      toast.error('Erreur lors de l\'envoi. Veuillez réessayer.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -133,9 +153,9 @@ const ContactPage = () => {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
-                    <Send className="mr-2 h-5 w-5" />
-                    Envoyer le message
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" size="lg" disabled={submitting}>
+                    {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
+                    {submitting ? 'Envoi en cours...' : 'Envoyer le message'}
                   </Button>
                 </form>
               </CardContent>
