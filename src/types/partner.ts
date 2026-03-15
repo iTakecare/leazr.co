@@ -101,6 +101,7 @@ export interface CreatePartnerData {
   slug: string;
   description?: string;
   logo_url?: string;
+  hero_image_url?: string;
   website_url?: string;
   is_active?: boolean;
 }
