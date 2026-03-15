@@ -48,6 +48,7 @@ const SupportTicketsList = () => {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [ticketToDelete, setTicketToDelete] = useState<any>(null);
   const [newTicket, setNewTicket] = useState({ subject: "", description: "", priority: "medium" });
 
   const { data: tickets, isLoading } = useQuery({
