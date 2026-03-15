@@ -42,6 +42,7 @@ const PartnerManager: React.FC = () => {
     slug: "",
     description: "",
     logo_url: "",
+    hero_image_url: "",
     website_url: "",
     is_active: true,
   });
