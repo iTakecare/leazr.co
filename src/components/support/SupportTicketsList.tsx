@@ -151,6 +151,7 @@ const SupportTicketsList = () => {
                   <TableHead>Priorité</TableHead>
                    <TableHead>Statut</TableHead>
                    <TableHead className="w-12"></TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tickets.map((ticket: any) => (
@@ -173,6 +174,19 @@ const SupportTicketsList = () => {
                       <Badge className={statusColors[ticket.status]} variant="secondary">
                         {statusLabels[ticket.status]}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTicketToDelete(ticket);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
