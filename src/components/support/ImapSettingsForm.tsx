@@ -39,7 +39,7 @@ const ImapSettingsForm = () => {
   });
   const [hasExisting, setHasExisting] = useState(false);
 
-  const { isLoading } = useQuery({
+  const { data: existingSettings, isLoading } = useQuery({
     queryKey: ["imap-settings", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -48,23 +48,26 @@ const ImapSettingsForm = () => {
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
-      if (data) {
-        setForm({
-          imap_host: data.imap_host,
-          imap_port: data.imap_port,
-          imap_username: data.imap_username,
-          imap_password: "",
-          imap_use_ssl: data.imap_use_ssl,
-          folder: data.folder,
-          is_active: data.is_active,
-          sync_days: (data as any).sync_days || 7,
-        });
-        setHasExisting(true);
-      }
       return data;
     },
     enabled: !!user,
   });
+
+  React.useEffect(() => {
+    if (existingSettings) {
+      setForm({
+        imap_host: existingSettings.imap_host,
+        imap_port: existingSettings.imap_port,
+        imap_username: existingSettings.imap_username,
+        imap_password: "",
+        imap_use_ssl: existingSettings.imap_use_ssl,
+        folder: existingSettings.folder,
+        is_active: existingSettings.is_active,
+        sync_days: (existingSettings as any).sync_days || 7,
+      });
+      setHasExisting(true);
+    }
+  }, [existingSettings]);
 
   const saveSettings = useMutation({
     mutationFn: async () => {
