@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { toast } from "sonner";
 import { getClientById } from "@/services/clientService";
 import { Client } from "@/types/client";

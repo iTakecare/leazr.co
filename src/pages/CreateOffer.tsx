@@ -13,6 +13,7 @@ import { getLeasers } from "@/services/leaserService";
 import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2, ArrowLeft, Package, AlertCircle } from "lucide-react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";

@@ -29,6 +29,7 @@ import { receiveToStock } from "@/services/stockService";
 import { exportEquipmentOrdersToExcel } from "@/services/equipmentOrderExportService";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
+import WaveLoader from "@/components/ui/WaveLoader";
 
 // Inline editable price component
 const EditablePrice: React.FC<{
