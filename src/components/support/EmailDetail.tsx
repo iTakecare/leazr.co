@@ -1,15 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useTaskMutations } from "@/hooks/useTasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Ticket, CheckSquare, Sparkles, Loader2, User, MessageSquare, Trash2 } from "lucide-react";
+import { ArrowLeft, Ticket, CheckSquare, Sparkles, Loader2, User, MessageSquare, Trash2, Link } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
+import TaskDialog from "@/components/tasks/TaskDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import ClientSearchInput from "@/components/tasks/ClientSearchInput";
 
 interface EmailDetailProps {
   email: any;
@@ -34,6 +38,12 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
   const { companyId } = useMultiTenant();
   const queryClient = useQueryClient();
+  const { create: createTask } = useTaskMutations();
+
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [linkClientDialogOpen, setLinkClientDialogOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string>(email.linked_client_id || '');
+  const [selectedClientName, setSelectedClientName] = useState<string>('');
 
   // Mark as read on mount
   React.useEffect(() => {
@@ -68,26 +78,6 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
     },
   });
 
-  const createTaskFromEmail = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase
-        .from("tasks")
-        .insert({
-          company_id: companyId!,
-          title: email.subject || "Tâche depuis email",
-          description: `Email de: ${email.from_name || ""} <${email.from_address}>\n\n${email.body_text || ""}`,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      await supabase.from("synced_emails").update({ linked_task_id: data.id }).eq("id", email.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["synced-emails"] });
-      toast.success("Tâche créée depuis cet email");
-    },
-  });
-
   const analyzeEmail = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("analyze-email", {
@@ -108,6 +98,57 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
 
   const aiSuggestions = email.ai_suggestions as any;
   const hasAnalysis = !!email.ai_analyzed_at;
+
+  // Build description for pre-filled task
+  const buildTaskDescription = () => {
+    const parts: string[] = [];
+    parts.push(`Email de : ${email.from_name || ""} <${email.from_address}>`);
+    if (aiSuggestions?.summary) {
+      parts.push(`\nRésumé IA : ${aiSuggestions.summary}`);
+    }
+    if (email.body_text) {
+      parts.push(`\n---\n${email.body_text.substring(0, 500)}`);
+    }
+    return parts.join("\n");
+  };
+
+  const handleTaskCreated = async (data: any) => {
+    createTask.mutate(data, {
+      onSuccess: async (task: any) => {
+        // Link task to email
+        if (task?.id) {
+          await supabase.from("synced_emails").update({ linked_task_id: task.id }).eq("id", email.id);
+          queryClient.invalidateQueries({ queryKey: ["synced-emails"] });
+        }
+      },
+    });
+    setTaskDialogOpen(false);
+  };
+
+  const handleLinkClient = async () => {
+    if (!selectedClientId) return;
+    const { error } = await supabase
+      .from("synced_emails")
+      .update({ linked_client_id: selectedClientId })
+      .eq("id", email.id);
+    if (error) {
+      toast.error("Erreur lors de la liaison");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["synced-emails"] });
+    toast.success(`Email lié au client ${selectedClientName || ''}`);
+    setLinkClientDialogOpen(false);
+  };
+
+  const handleOpenTaskDialog = () => setTaskDialogOpen(true);
+  const handleOpenLinkClient = () => setLinkClientDialogOpen(true);
+
+  const handleSuggestedAction = (action: any) => {
+    if (action.action === "create_ticket") createTicketFromEmail.mutate();
+    else if (action.action === "create_task") handleOpenTaskDialog();
+    else if (action.action === "link_client") handleOpenLinkClient();
+    else toast.info(action.label);
+  };
 
   return (
     <div className="space-y-4">
@@ -141,11 +182,19 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => createTaskFromEmail.mutate()}
+              onClick={handleOpenTaskDialog}
               disabled={!!email.linked_task_id}
             >
               <CheckSquare className="h-4 w-4 mr-2" />
               {email.linked_task_id ? "Tâche liée" : "Créer une tâche"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenLinkClient}
+            >
+              <Link className="h-4 w-4 mr-2" />
+              {email.linked_client_id ? "Client lié" : "Lier à un client"}
             </Button>
             <Button
               variant="outline"
@@ -228,11 +277,7 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
                           variant="outline"
                           size="sm"
                           className="text-xs"
-                          onClick={() => {
-                            if (action.action === "create_ticket") createTicketFromEmail.mutate();
-                            else if (action.action === "create_task") createTaskFromEmail.mutate();
-                            else toast.info(action.label);
-                          }}
+                          onClick={() => handleSuggestedAction(action)}
                           disabled={
                             (action.action === "create_ticket" && !!email.linked_ticket_id) ||
                             (action.action === "create_task" && !!email.linked_task_id)
@@ -264,6 +309,44 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Task creation modal - pre-filled */}
+      <TaskDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        task={null}
+        onSubmit={handleTaskCreated}
+        defaultTitle={email.subject || "Tâche depuis email"}
+        defaultClientId={aiSuggestions?.matched_client_id || ""}
+        defaultClientName={aiSuggestions?.matched_client_name || ""}
+      />
+
+      {/* Client linking modal */}
+      <Dialog open={linkClientDialogOpen} onOpenChange={setLinkClientDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Lier cet email à un client
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <ClientSearchInput
+              value={selectedClientId}
+              onChange={(clientId, clientName) => {
+                setSelectedClientId(clientId);
+                setSelectedClientName(clientName || '');
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkClientDialogOpen(false)}>Annuler</Button>
+            <Button onClick={handleLinkClient} disabled={!selectedClientId}>
+              Lier au client
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
