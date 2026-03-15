@@ -1,31 +1,25 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Plan : Mettre à jour `public/catalog-api-documentation.txt`
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Problème
+Le fichier téléchargeable par les utilisateurs est `public/catalog-api-documentation.txt`. C'est lui qui est affiché dans ta capture d'écran. Je n'ai mis à jour que les fichiers internes (`catalog-skeleton/`), pas ce fichier public.
 
-## Endpoints API ajoutés
+### Solution
+Mettre à jour `public/catalog-api-documentation.txt` :
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+1. **Version et date** (lignes 5-6) :
+   - `VERSION : 2026.4`
+   - `DATE : 15 mars 2026 — Image hero partenaires & génération IA`
 
-## Documentation
+2. **Nouvelle section "NOUVEAUTES VERSION 2026.4"** (après ligne 7, avant la section 2026.3) :
+   - Champ `hero_image_url` ajouté aux endpoints partenaires
+   - Génération IA d'images hero via Edge Function `generate-partner-hero`
+   - Scraping du site web du partenaire pour contexte visuel
+   - Upload manuel ou génération automatique depuis l'admin
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+### Fichier modifié
+| Fichier | Action |
+|---------|--------|
+| `public/catalog-api-documentation.txt` | Bump version 2026.4, ajouter section nouveautés hero_image_url |
 
-## Tables
-
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
