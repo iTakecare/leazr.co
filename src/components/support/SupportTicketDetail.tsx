@@ -1,11 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -30,6 +31,7 @@ const priorityLabels: Record<string, string> = {
 
 const SupportTicketDetail = ({ ticket, onBack }: SupportTicketDetailProps) => {
   const queryClient = useQueryClient();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const updateTicket = useMutation({
     mutationFn: async (updates: Record<string, string>) => {
@@ -45,12 +47,41 @@ const SupportTicketDetail = ({ ticket, onBack }: SupportTicketDetailProps) => {
     },
   });
 
+  const deleteTicket = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("support_tickets")
+        .delete()
+        .eq("id", ticket.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
+      toast.success("Ticket supprimé");
+      onBack();
+    },
+    onError: () => {
+      toast.error("Erreur lors de la suppression");
+    },
+  });
+
   return (
     <div className="space-y-4">
-      <Button variant="ghost" onClick={onBack}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Retour aux tickets
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Retour aux tickets
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Supprimer
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>
@@ -109,6 +140,26 @@ const SupportTicketDetail = ({ ticket, onBack }: SupportTicketDetailProps) => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce ticket ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le ticket "{ticket.subject}" sera définitivement supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTicket.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
