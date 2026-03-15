@@ -1,31 +1,30 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Problème : la sauvegarde IMAP ne fonctionne pas
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Causes identifiées
 
-## Endpoints API ajoutés
+1. **Gestion d'erreur silencieuse** : `supabase.functions.invoke()` ne met l'erreur dans `error` que pour les erreurs réseau/CORS. Si l'edge function retourne un status 400 avec `{ error: "message" }`, le SDK met la réponse dans `data` (pas `error`). Le code actuel ne vérifie pas `data.error`, donc l'échec est silencieux — le toast success ne s'affiche pas, mais le toast error non plus.
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+2. **Colonne `imap_password_encrypted NOT NULL`** : Lors du premier insert, si le mot de passe est fourni, l'edge function le convertit en base64. Mais si pour une raison quelconque le champ est vide, l'upsert échoue car la colonne est `NOT NULL`.
 
-## Documentation
+3. **CORS headers incomplets** : Il manque les headers `x-supabase-client-platform`, etc. dans les CORS de l'edge function, ce qui peut bloquer l'appel preflight.
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+### Corrections
 
-## Tables
+**1. Edge function `sync-imap-emails/index.ts`** :
+- Mettre à jour les CORS headers avec tous les headers requis
+- Ajouter du logging pour le debug
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
+**2. Frontend `ImapSettingsForm.tsx`** :
+- Corriger le `mutationFn` pour vérifier `data.error` en plus de `error`
+- Ajouter un log console pour debug
+
+**3. Migration SQL** :
+- Rendre `imap_password_encrypted` nullable (pour permettre l'upsert sans mot de passe lors d'une mise à jour)
+
+### Fichiers modifiés
+- `supabase/functions/sync-imap-emails/index.ts` — CORS + logging
+- `src/components/support/ImapSettingsForm.tsx` — meilleure gestion d'erreur
+- Migration SQL — `ALTER COLUMN imap_password_encrypted DROP NOT NULL`
+
