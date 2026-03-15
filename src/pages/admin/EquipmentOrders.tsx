@@ -253,19 +253,34 @@ const EquipmentOrders: React.FC = () => {
     }
   };
 
+  const uniqueClients = useMemo(() => {
+    const clientMap = new Map<string, string>();
+    items.forEach(item => {
+      if (item.client_name) {
+        clientMap.set(item.client_name, item.client_name);
+      }
+    });
+    return Array.from(clientMap.values()).sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
   const filteredItems = items.filter(item => {
-    // For items with units, check if any unit matches the filter
+    // Status filter
     if (item.units && item.units.length > 0 && statusFilters.length > 0) {
       const hasMatchingUnit = item.units.some(u => statusFilters.includes(u.order_status as OrderStatus));
       if (!hasMatchingUnit) return false;
     } else if (statusFilters.length > 0 && !item.units) {
       if (!statusFilters.includes(item.order_status as OrderStatus)) return false;
     }
+    // Supplier filter
     if (supplierFilter !== 'all') {
       if (item.units && item.units.length > 0) {
         const hasMatchingSupplier = item.units.some(u => u.supplier_id === supplierFilter);
         if (!hasMatchingSupplier && item.supplier_id !== supplierFilter) return false;
       } else if (item.supplier_id !== supplierFilter) return false;
+    }
+    // Client filter
+    if (clientFilter !== 'all') {
+      if (item.client_name !== clientFilter) return false;
     }
     return true;
   });
