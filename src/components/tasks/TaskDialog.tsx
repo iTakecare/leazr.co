@@ -120,7 +120,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSubmit, defaultClientId, defau
         setOffers([]);
       }
     }
-  }, [task, open, defaultTitle, defaultClientId, defaultOfferId]);
+  }, [task, open, defaultTitle, defaultDescription, defaultClientId, defaultOfferId]);
 
   // Load client dossiers when client changes
   useEffect(() => {

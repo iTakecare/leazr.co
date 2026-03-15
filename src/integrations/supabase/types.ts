@@ -7943,7 +7943,8 @@ export type Database = {
           id: string
           is_hidden: boolean | null
           is_read: boolean
-          linked_client_id: string | null
+          linked_contract_id: string | null
+          linked_offer_id: string | null
           linked_task_id: string | null
           linked_ticket_id: string | null
           message_id: string
@@ -7965,7 +7966,8 @@ export type Database = {
           id?: string
           is_hidden?: boolean | null
           is_read?: boolean
-          linked_client_id?: string | null
+          linked_contract_id?: string | null
+          linked_offer_id?: string | null
           linked_task_id?: string | null
           linked_ticket_id?: string | null
           message_id: string
@@ -7987,7 +7989,8 @@ export type Database = {
           id?: string
           is_hidden?: boolean | null
           is_read?: boolean
-          linked_client_id?: string | null
+          linked_contract_id?: string | null
+          linked_offer_id?: string | null
           linked_task_id?: string | null
           linked_ticket_id?: string | null
           message_id?: string
@@ -8005,10 +8008,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "synced_emails_linked_client_id_fkey"
-            columns: ["linked_client_id"]
+            foreignKeyName: "synced_emails_linked_contract_id_fkey"
+            columns: ["linked_contract_id"]
             isOneToOne: false
-            referencedRelation: "clients"
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "synced_emails_linked_offer_id_fkey"
+            columns: ["linked_offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
           {
