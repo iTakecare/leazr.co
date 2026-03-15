@@ -720,8 +720,10 @@ const CatalogApiSettings = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {endpoints.map((endpoint, index) => (
-                  <div key={index} className="border rounded-lg p-4">
+                {endpoints.map((endpoint, index) => {
+                  const isNew = endpoint.path.includes('next-reference') || endpoint.path.includes('create-product-request');
+                  return (
+                  <div key={index} className={`border rounded-lg p-4 ${isNew ? 'border-emerald-300 bg-emerald-50/30' : ''}`}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <Badge 
@@ -734,6 +736,11 @@ const CatalogApiSettings = () => {
                           {endpoint.path}
                           {endpoint.params && <span className="text-muted-foreground">{endpoint.params}</span>}
                         </code>
+                        {isNew && (
+                          <Badge className="bg-emerald-500 text-white border-emerald-600 text-[10px] px-1.5 py-0">
+                            NOUVEAU
+                          </Badge>
+                        )}
                       </div>
                       <Button
                         size="sm"
