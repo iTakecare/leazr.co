@@ -1,26 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Plan : Supprimer l'email de confirmation client, garder la création de compte
+## Statut
 
-### Problème
-L'email de confirmation (récapitulatif de demande) est envoyé systématiquement au client (lignes 630-649), même quand aucun compte n'est créé. Cet email fait doublon avec celui d'iTakecare.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-### Modification
+## Endpoints API ajoutés
 
-**Fichier** : `supabase/functions/create-product-request/index.ts` (lignes 563-650)
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-Restructurer le bloc "ENVOI D'EMAIL AU CLIENT" :
+## Documentation
 
-1. **Conserver** la récupération SMTP, company info, et le bloc `if (data.create_client_account)` (lignes 604-628) — création de compte + génération du template `generateClientAccountEmail` avec lien mot de passe
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-2. **Déplacer** l'envoi Resend (lignes 630-649) **à l'intérieur** du bloc `if (data.create_client_account)`, juste après la génération du `htmlContent` avec `generateClientAccountEmail` — l'email n'est envoyé **que** si un compte a été créé avec succès et le lien de mot de passe a été généré
+## Tables
 
-3. **Supprimer** les lignes 592-601 qui génèrent le template `generateClientConfirmationEmail` (le récapitulatif générique) — ce template ne sera plus utilisé ici
-
-4. **Conserver** intégralement la section "NOTIFICATION AUX ADMINISTRATEURS" (ligne 652+)
-
-### Résultat
-- Compte créé → email avec lien mot de passe envoyé ✓
-- Pas de création de compte → aucun email client envoyé ✓
-- Notification admin → toujours envoyée ✓
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`

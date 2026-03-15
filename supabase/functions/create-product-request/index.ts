@@ -589,17 +589,6 @@ serve(async (req) => {
         .from('email_templates').select('subject, html_content')
         .eq('type', 'product_request').eq('company_id', targetCompanyId).single();
       
-      let subject = `🎉 Bienvenue sur ${platformCompanyName} - Confirmation de votre demande`;
-      let htmlContent = generateClientConfirmationEmail({
-        companyLogo, platformCompanyName, clientName, companyName,
-        summaryItemsHtml, dateStr, timeStr
-      });
-
-      if (emailTemplate?.html_content) {
-        subject = emailTemplate.subject || subject;
-        htmlContent = emailTemplate.html_content;
-      }
-
       // Création de compte client si demandé
       if (data.create_client_account) {
         try {
@@ -617,35 +606,38 @@ serve(async (req) => {
 
           if (!passwordLinkError) {
             const passwordLink = passwordLinkData?.properties?.action_link || '';
-            htmlContent = generateClientAccountEmail({
+            const subject = `🎉 Bienvenue sur ${platformCompanyName} - Votre compte a été créé`;
+            const htmlContent = generateClientAccountEmail({
               companyLogo, platformCompanyName, clientName, companyName,
               passwordLink, summaryItemsHtml, dateStr, timeStr
             });
+
+            // Envoi email uniquement pour la création de compte
+            const globalResendKey = Deno.env.get('ITAKECARE_RESEND_API');
+            const resendApiKey = globalResendKey || smtpSettings.resend_api_key;
+            
+            if (resendApiKey) {
+              const resend = new Resend(resendApiKey);
+              const fromName = globalResendKey ? "iTakecare" : getFromName(smtpSettings);
+              const fromEmail = globalResendKey ? "noreply@itakecare.be" : getFromEmail(smtpSettings);
+              const from = `${fromName} <${fromEmail}>`;
+              
+              const emailResult = await resend.emails.send({
+                from, to: clientEmail, subject, html: htmlContent, text: stripHtml(htmlContent),
+              });
+              
+              if (emailResult.error) {
+                console.error("Erreur Resend:", emailResult.error);
+              } else {
+                console.log("Email compte client envoyé:", emailResult.data);
+              }
+            }
           }
         } catch (accountError) {
           console.error("Erreur création compte:", accountError);
         }
-      }
-
-      // Envoi email client
-      const globalResendKey = Deno.env.get('ITAKECARE_RESEND_API');
-      const resendApiKey = globalResendKey || smtpSettings.resend_api_key;
-      
-      if (resendApiKey) {
-        const resend = new Resend(resendApiKey);
-        const fromName = globalResendKey ? "iTakecare" : getFromName(smtpSettings);
-        const fromEmail = globalResendKey ? "noreply@itakecare.be" : getFromEmail(smtpSettings);
-        const from = `${fromName} <${fromEmail}>`;
-        
-        const emailResult = await resend.emails.send({
-          from, to: clientEmail, subject, html: htmlContent, text: stripHtml(htmlContent),
-        });
-        
-        if (emailResult.error) {
-          console.error("Erreur Resend:", emailResult.error);
-        } else {
-          console.log("Email client envoyé:", emailResult.data);
-        }
+      } else {
+        console.log("Pas de création de compte demandée, aucun email client envoyé");
       }
     }
 
