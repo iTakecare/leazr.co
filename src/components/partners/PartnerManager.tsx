@@ -108,7 +108,7 @@ const PartnerManager: React.FC = () => {
 
   const openCreate = () => {
     setEditingPartner(null);
-    setForm({ name: "", slug: "", description: "", logo_url: "", website_url: "", is_active: true });
+    setForm({ name: "", slug: "", description: "", logo_url: "", hero_image_url: "", website_url: "", is_active: true });
     setDialogOpen(true);
   };
 
