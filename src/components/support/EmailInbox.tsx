@@ -120,6 +120,7 @@ const EmailInbox = () => {
                 <TableHead>Sujet</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Lié à</TableHead>
+                <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
