@@ -7941,6 +7941,7 @@ export type Database = {
           from_address: string | null
           from_name: string | null
           id: string
+          is_hidden: boolean | null
           is_read: boolean
           linked_task_id: string | null
           linked_ticket_id: string | null
@@ -7961,6 +7962,7 @@ export type Database = {
           from_address?: string | null
           from_name?: string | null
           id?: string
+          is_hidden?: boolean | null
           is_read?: boolean
           linked_task_id?: string | null
           linked_ticket_id?: string | null
@@ -7981,6 +7983,7 @@ export type Database = {
           from_address?: string | null
           from_name?: string | null
           id?: string
+          is_hidden?: boolean | null
           is_read?: boolean
           linked_task_id?: string | null
           linked_ticket_id?: string | null
