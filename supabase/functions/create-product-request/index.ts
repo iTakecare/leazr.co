@@ -330,25 +330,39 @@ serve(async (req) => {
       console.log(`📊 data.total: ${data.total}€, services externes: ${externalServicesTotal}€, mensualité équipements correcte: ${correctMonthlyTotal}€`);
       
       if (Math.abs(correctMonthlyTotal - totalMonthlyPayment) > 0.01) {
-        console.log(`⚠️ Correction mensualité: ${totalMonthlyPayment}€ → ${correctMonthlyTotal}€ (ratio: ${(correctMonthlyTotal / totalMonthlyPayment).toFixed(4)})`);
-        const ratio = correctMonthlyTotal / totalMonthlyPayment;
+        console.log(`⚠️ Correction mensualité: ${totalMonthlyPayment}€ → ${correctMonthlyTotal}€`);
         
-        let redistributedTotal = 0;
-        for (let i = 0; i < equipmentCalculations.length; i++) {
-          const corrected = Math.round(equipmentCalculations[i].monthlyPrice * ratio * 100) / 100;
-          equipmentCalculations[i].monthlyPrice = corrected;
-          redistributedTotal += corrected * equipmentCalculations[i].quantity;
-        }
+        // Redistribution proportionnelle au prix d'achat (marges homogènes)
+        const totalPurchase = equipmentCalculations.reduce(
+          (sum: number, item: any) => sum + item.purchasePrice * item.quantity, 0
+        );
         
-        // Ajustement du reste sur la dernière ligne
-        const remainder = Math.round((correctMonthlyTotal - redistributedTotal) * 100) / 100;
-        if (Math.abs(remainder) > 0 && equipmentCalculations.length > 0) {
-          const last = equipmentCalculations[equipmentCalculations.length - 1];
-          last.monthlyPrice = Math.round((last.monthlyPrice + remainder / last.quantity) * 100) / 100;
+        if (totalPurchase > 0) {
+          let redistributedTotal = 0;
+          for (let i = 0; i < equipmentCalculations.length; i++) {
+            const item = equipmentCalculations[i];
+            const weight = (item.purchasePrice * item.quantity) / totalPurchase;
+            // Mensualité unitaire = part proportionnelle du total / quantité
+            item.monthlyPrice = Math.round((correctMonthlyTotal * weight / item.quantity) * 100) / 100;
+            redistributedTotal += item.monthlyPrice * item.quantity;
+          }
+          // Ajustement du reste d'arrondi sur la dernière ligne
+          const remainder = Math.round((correctMonthlyTotal - redistributedTotal) * 100) / 100;
+          if (Math.abs(remainder) > 0 && equipmentCalculations.length > 0) {
+            const last = equipmentCalculations[equipmentCalculations.length - 1];
+            last.monthlyPrice = Math.round((last.monthlyPrice + remainder / last.quantity) * 100) / 100;
+          }
+        } else {
+          // Fallback : répartition égale si pas de prix d'achat
+          const totalQty = equipmentCalculations.reduce((s: number, i: any) => s + i.quantity, 0);
+          const equalShare = Math.round((correctMonthlyTotal / totalQty) * 100) / 100;
+          equipmentCalculations.forEach((item: any) => {
+            item.monthlyPrice = equalShare;
+          });
         }
         
         totalMonthlyPayment = correctMonthlyTotal;
-        console.log(`✅ Mensualité corrigée: ${totalMonthlyPayment}€`);
+        console.log(`✅ Mensualité corrigée: ${totalMonthlyPayment}€ (redistribution par prix d'achat)`);
       }
     }
 
