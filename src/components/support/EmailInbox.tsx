@@ -38,6 +38,7 @@ const EmailInbox = () => {
         .from("synced_emails")
         .select("*")
         .eq("user_id", user!.id)
+        .eq("is_hidden", false)
         .order("received_at", { ascending: false })
         .limit(100);
       if (error) throw error;
