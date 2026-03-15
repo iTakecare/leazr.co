@@ -25,8 +25,11 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const prompt = `Create a professional, modern hero banner image for a business partner page. The partner is "${partner_name}"${partner_description ? `. Description: ${partner_description}` : ''}. 
-Style: Clean, corporate, modern gradient background with subtle geometric patterns or abstract tech elements. Use professional blue-teal tones (#33638e to #4ab6c4). The image should work as a wide hero banner (16:9 ratio). Do NOT include any text in the image. High quality, polished, minimalist business aesthetic.`;
+    const prompt = `Create a professional hero banner image (16:9 ratio) for a business partner page.
+Partner: "${partner_name}".
+${partner_description ? `The image MUST visually represent the following description: "${partner_description}". Create a scene or illustration that directly relates to the partner's activity, services, or industry described above.` : ''}
+Style: Modern, professional, high quality. Use a color palette that fits the described activity, with blue-teal (#33638e, #4ab6c4) as accent colors.
+Do NOT include any text in the image. Polished, clean aesthetic.`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
