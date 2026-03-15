@@ -1,6 +1,27 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Resend } from "npm:resend@2.0.0";
 
+// Normalize VAT/enterprise numbers to uniform format (e.g. BE0123456789)
+function normalizeVatNumber(raw: string): string {
+  if (!raw) return '';
+  // Remove all separators: dots, dashes, spaces, colons
+  let cleaned = raw.replace(/[\s.\-:]/g, '').toUpperCase();
+  // Extract country prefix if present (2 letters followed by digits)
+  let prefix = '';
+  const match = cleaned.match(/^([A-Z]{2})(\d+)$/);
+  if (match) {
+    prefix = match[1];
+    cleaned = match[2];
+  }
+  // Default to BE if no prefix
+  if (!prefix) prefix = 'BE';
+  // Pad with leading zero if needed (Belgian numbers are 10 digits)
+  if (prefix === 'BE' && cleaned.length === 9) {
+    cleaned = '0' + cleaned;
+  }
+  return `${prefix}${cleaned}`;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
