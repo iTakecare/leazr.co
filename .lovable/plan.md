@@ -1,34 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Plan : Améliorer le prompt de génération hero pour refléter la description
+## Statut
 
-### Problème actuel
-Le prompt actuel génère des images génériques (fond bleu-teal avec motifs géométriques) sans vraiment exploiter le contenu de la description du partenaire. La description est mentionnée en passant mais le style imposé ("blue-teal tones, geometric patterns") écrase tout contexte métier.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-### Solution
-Réécrire le prompt dans `supabase/functions/generate-partner-hero/index.ts` pour que la description du partenaire soit le sujet principal de l'image, pas juste un détail secondaire.
+## Endpoints API ajoutés
 
-### Nouveau prompt (ligne 28-29)
-Le prompt sera restructuré pour :
-- Analyser la description du partenaire et en faire le thème visuel principal
-- Représenter visuellement le secteur d'activité, les services ou produits décrits
-- Garder le style professionnel et bannière 16:9 sans texte
-- Utiliser la palette bleu-teal comme accent, pas comme contrainte principale
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-Exemple de nouveau prompt :
-```
-Create a professional hero banner image (16:9 ratio) for a business partner page.
-Partner: "{partner_name}".
-The image MUST visually represent the following description: "{partner_description}".
-Create a scene or illustration that directly relates to the partner's activity, services, or industry described above.
-Style: Modern, professional, high quality. Use a color palette that fits the described activity, with blue-teal (#33638e, #4ab6c4) as accent colors.
-Do NOT include any text in the image. Polished, clean aesthetic.
-```
+## Documentation
 
-### Fichier modifié
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/generate-partner-hero/index.ts` | Réécrire le prompt (lignes 28-29) |
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-Redéployer la fonction `generate-partner-hero` après modification.
+## Tables
 
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
