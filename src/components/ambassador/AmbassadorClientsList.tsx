@@ -158,7 +158,7 @@ const AmbassadorClientsList = ({
           </TableHeader>
           <TableBody>
             {clients.map((client) => (
-              <TableRow key={client.id}>
+              <TableRow key={client.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewClient(client)}>
                 <TableCell className="font-medium">{client.name}</TableCell>
                 <TableCell>{client.email || '-'}</TableCell>
                 <TableCell>{client.company || '-'}</TableCell>
