@@ -766,7 +766,8 @@ const CatalogApiSettings = () => {
                       </pre>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
