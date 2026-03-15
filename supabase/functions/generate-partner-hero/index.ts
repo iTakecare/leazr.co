@@ -6,28 +6,108 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function scrapeWebsite(url: string, apiKey: string): Promise<string | null> {
+  try {
+    const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+    console.log('[GENERATE-PARTNER-HERO] Scraping website:', formattedUrl);
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'user',
+            content: `Visit this website and provide a concise summary (max 200 words) of what this company does, their main products/services, their industry, and any visual identity elements (colors, style). URL: ${formattedUrl}`
+          }
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "summarize_website",
+            description: "Summarize a company website",
+            parameters: {
+              type: "object",
+              properties: {
+                summary: { type: "string", description: "Concise summary of the company's activity, products, services and industry" },
+                industry: { type: "string", description: "The main industry or sector" },
+                visual_style: { type: "string", description: "Visual identity keywords (colors, mood, style)" }
+              },
+              required: ["summary", "industry"],
+              additionalProperties: false
+            }
+          }
+        }],
+        tool_choice: { type: "function", function: { name: "summarize_website" } }
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[GENERATE-PARTNER-HERO] Website scrape failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      const parsed = JSON.parse(toolCall.function.arguments);
+      const parts = [parsed.summary, parsed.industry && `Industry: ${parsed.industry}`, parsed.visual_style && `Visual style: ${parsed.visual_style}`].filter(Boolean);
+      return parts.join('. ');
+    }
+
+    // Fallback to text content
+    const content = data.choices?.[0]?.message?.content;
+    return content || null;
+  } catch (error) {
+    console.error('[GENERATE-PARTNER-HERO] Website scrape error:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { partner_name, partner_description } = await req.json();
+    const { partner_name, partner_description, website_url } = await req.json();
     
     if (!partner_name) {
       throw new Error('partner_name is required');
     }
 
-    console.log('[GENERATE-PARTNER-HERO] Generating for:', partner_name);
+    console.log('[GENERATE-PARTNER-HERO] Generating for:', partner_name, '| website:', website_url);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
+    // Scrape website if URL provided
+    let websiteContext = '';
+    if (website_url) {
+      const scraped = await scrapeWebsite(website_url, LOVABLE_API_KEY);
+      if (scraped) {
+        websiteContext = scraped;
+        console.log('[GENERATE-PARTNER-HERO] Website context:', websiteContext.substring(0, 200));
+      }
+    }
+
+    const contextParts = [];
+    if (partner_description) {
+      contextParts.push(`Partner description: "${partner_description}"`);
+    }
+    if (websiteContext) {
+      contextParts.push(`Website analysis: ${websiteContext}`);
+    }
+
     const prompt = `Create a professional hero banner image (16:9 ratio) for a business partner page.
 Partner: "${partner_name}".
-${partner_description ? `The image MUST visually represent the following description: "${partner_description}". Create a scene or illustration that directly relates to the partner's activity, services, or industry described above.` : ''}
+${contextParts.length > 0 ? `\nContext about this partner:\n${contextParts.join('\n')}\n\nThe image MUST visually represent the partner's actual activity, products, services, and industry based on the context above. Create a realistic scene or illustration that directly relates to what this company actually does.` : ''}
 Style: Modern, professional, high quality. Use a color palette that fits the described activity, with blue-teal (#33638e, #4ab6c4) as accent colors.
 Do NOT include any text in the image. Polished, clean aesthetic.`;
 
