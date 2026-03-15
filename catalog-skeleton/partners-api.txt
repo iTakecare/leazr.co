@@ -1,5 +1,8 @@
 # API Partenaires & Prestataires Externes
 
+> Version : 1.1.0 | Dernière mise à jour : 2026-03-15
+> Changelog : Ajout du champ `hero_image_url` sur les partenaires
+
 ## Endpoints Partenaires
 
 ### GET /v1/{companyId}/partners
