@@ -15,6 +15,7 @@ Liste tous les partenaires actifs.
       "slug": "nom-du-partenaire",
       "description": "Texte de présentation",
       "logo_url": "https://...",
+      "hero_image_url": "https://...",
       "website_url": "https://...",
       "is_active": true,
       "created_at": "2025-01-01T00:00:00Z"
@@ -35,6 +36,7 @@ Détail d'un partenaire par ID ou slug.
     "slug": "nom-du-partenaire",
     "description": "Texte de présentation...",
     "logo_url": "https://...",
+    "hero_image_url": "https://...",
     "website_url": "https://...",
     "is_active": true,
     "created_at": "2025-01-01T00:00:00Z",

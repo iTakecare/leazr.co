@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, Loader2, X, Package, Link, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Loader2, X, Package, Link, Copy, Sparkles, ImageIcon } from "lucide-react";
 import { cleanFileUpload } from "@/services/cleanFileUploadService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,14 +31,18 @@ const PartnerManager: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingHero, setIsUploadingHero] = useState(false);
+  const [isGeneratingHero, setIsGeneratingHero] = useState(false);
   const [managingPacksPartner, setManagingPacksPartner] = useState<Partner | null>(null);
   const [managingProvidersPartner, setManagingProvidersPartner] = useState<Partner | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<CreatePartnerData>({
     name: "",
     slug: "",
     description: "",
     logo_url: "",
+    hero_image_url: "",
     website_url: "",
     is_active: true,
   });
@@ -104,7 +108,7 @@ const PartnerManager: React.FC = () => {
 
   const openCreate = () => {
     setEditingPartner(null);
-    setForm({ name: "", slug: "", description: "", logo_url: "", website_url: "", is_active: true });
+    setForm({ name: "", slug: "", description: "", logo_url: "", hero_image_url: "", website_url: "", is_active: true });
     setDialogOpen(true);
   };
 
@@ -115,6 +119,7 @@ const PartnerManager: React.FC = () => {
       slug: partner.slug,
       description: partner.description || "",
       logo_url: partner.logo_url || "",
+      hero_image_url: partner.hero_image_url || "",
       website_url: partner.website_url || "",
       is_active: partner.is_active,
     });
@@ -321,6 +326,94 @@ const PartnerManager: React.FC = () => {
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Upload...</>
                     ) : (
                       <><Upload className="mr-2 h-4 w-4" /> {form.logo_url ? "Changer" : "Télécharger"}</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label>Image Hero (bannière)</Label>
+              <div className="mt-1 space-y-2">
+                {form.hero_image_url && (
+                  <div className="relative w-full h-32 border rounded overflow-hidden bg-muted">
+                    <img src={form.hero_image_url} alt="Hero" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                      onClick={() => setForm(prev => ({ ...prev, hero_image_url: "" }))}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={heroFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingHero(true);
+                      try {
+                        const url = await cleanFileUpload(file, "site-settings", "partners/heroes");
+                        if (url) {
+                          setForm(prev => ({ ...prev, hero_image_url: url }));
+                        }
+                      } finally {
+                        setIsUploadingHero(false);
+                        if (heroFileInputRef.current) heroFileInputRef.current.value = "";
+                      }
+                    }}
+                    disabled={isUploadingHero || isGeneratingHero}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => heroFileInputRef.current?.click()}
+                    disabled={isUploadingHero || isGeneratingHero}
+                  >
+                    {isUploadingHero ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Upload...</>
+                    ) : (
+                      <><ImageIcon className="mr-2 h-4 w-4" /> Télécharger</>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      if (!form.name.trim()) {
+                        toast.error("Entrez un nom de partenaire d'abord");
+                        return;
+                      }
+                      setIsGeneratingHero(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('generate-partner-hero', {
+                          body: { partner_name: form.name, partner_description: form.description },
+                        });
+                        if (error) throw error;
+                        if (data?.imageUrl) {
+                          setForm(prev => ({ ...prev, hero_image_url: data.imageUrl }));
+                          toast.success("Image hero générée avec succès");
+                        } else {
+                          throw new Error(data?.error || "Erreur lors de la génération");
+                        }
+                      } catch (err: any) {
+                        toast.error(err.message || "Erreur lors de la génération de l'image");
+                      } finally {
+                        setIsGeneratingHero(false);
+                      }
+                    }}
+                    disabled={isUploadingHero || isGeneratingHero}
+                  >
+                    {isGeneratingHero ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Génération...</>
+                    ) : (
+                      <><Sparkles className="mr-2 h-4 w-4" /> Générer avec IA</>
                     )}
                   </Button>
                 </div>

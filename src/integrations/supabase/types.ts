@@ -6023,6 +6023,7 @@ export type Database = {
           company_id: string
           created_at: string
           description: string | null
+          hero_image_url: string | null
           id: string
           is_active: boolean
           logo_url: string | null
@@ -6035,6 +6036,7 @@ export type Database = {
           company_id: string
           created_at?: string
           description?: string | null
+          hero_image_url?: string | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
@@ -6047,6 +6049,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           description?: string | null
+          hero_image_url?: string | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
