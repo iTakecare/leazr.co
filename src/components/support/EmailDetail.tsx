@@ -31,7 +31,7 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
   autre: "Autre",
 };
 
-const EmailDetail = ({ email, onBack }: EmailDetailProps) => {
+const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
   const { companyId } = useMultiTenant();
   const queryClient = useQueryClient();
 
