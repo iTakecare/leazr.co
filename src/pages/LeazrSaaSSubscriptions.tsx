@@ -1,5 +1,6 @@
 
 import React from 'react';
+import WaveLoader from "@/components/ui/WaveLoader";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
