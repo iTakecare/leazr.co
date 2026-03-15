@@ -31,9 +31,12 @@ const PartnerManager: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingHero, setIsUploadingHero] = useState(false);
+  const [isGeneratingHero, setIsGeneratingHero] = useState(false);
   const [managingPacksPartner, setManagingPacksPartner] = useState<Partner | null>(null);
   const [managingProvidersPartner, setManagingProvidersPartner] = useState<Partner | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<CreatePartnerData>({
     name: "",
     slug: "",
