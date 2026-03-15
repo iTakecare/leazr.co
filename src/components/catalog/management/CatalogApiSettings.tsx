@@ -686,9 +686,9 @@ const CatalogApiSettings = () => {
                   <li>• <strong>Packs personnalisables</strong> - Options par catégorie (tablette, périphérique...) avec choix de produits</li>
                   <li>• <strong>Prestataires externes</strong> - Services tiers (téléphonie, etc.) liés aux partenaires avec souscription directe</li>
                 </ul>
-              </div>
-              
-              <div className="bg-violet-50 border border-violet-200 p-3 rounded-lg mt-4">
+               </div>
+               
+               <div className="bg-violet-50 border border-violet-200 p-3 rounded-lg mt-4">
                 <h4 className="font-medium text-violet-900 mb-2">📦 Demandes partenaires & services externes (v2026.3)</h4>
                 <p className="text-sm text-violet-700 mb-2">
                   L'endpoint <code className="bg-violet-100 px-1 rounded">create-product-request</code> supporte maintenant les champs partenaire et services externes :
@@ -700,11 +700,30 @@ const CatalogApiSettings = () => {
                   <li>• Chaque service : <code className="bg-violet-100 px-1 rounded">provider_name</code>, <code className="bg-violet-100 px-1 rounded">product_name</code>, <code className="bg-violet-100 px-1 rounded">price_htva</code>, <code className="bg-violet-100 px-1 rounded">billing_period</code> (monthly/yearly/one_time), <code className="bg-violet-100 px-1 rounded">quantity</code></li>
                 </ul>
               </div>
+              
+              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-emerald-900 mb-2">🆕 Numéros de dossier séquentiels (v2026.3)</h4>
+                <p className="text-sm text-emerald-700 mb-2">
+                  Nouveau endpoint pour générer des numéros de dossier au format <code className="bg-emerald-100 px-1 rounded">ITC-YYYY-OFF-XXXX</code> :
+                </p>
+                <ul className="text-sm text-emerald-700 space-y-1">
+                  <li>• <strong>POST</strong> <code className="bg-emerald-100 px-1 rounded">partners/{'{slug}'}/next-reference</code> — Génère et réserve le prochain numéro</li>
+                  <li>• Le numéro est <strong>séquentiel et unique</strong> — chaque appel incrémente le compteur</li>
+                  <li>• Inclure le numéro dans le champ <code className="bg-emerald-100 px-1 rounded">reference_number</code> de <code className="bg-emerald-100 px-1 rounded">create-product-request</code></li>
+                  <li>• Si <code className="bg-emerald-100 px-1 rounded">reference_number</code> n'est pas fourni, un numéro est généré automatiquement</li>
+                </ul>
+                <div className="mt-2 bg-emerald-100 p-2 rounded text-xs font-mono text-emerald-900">
+                  curl -X POST "{baseApiUrl}/partners/slug/next-reference" -H "x-api-key: VOTRE_CLE"<br/>
+                  → {`{ "reference_number": "ITC-2026-OFF-9976" }`}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {endpoints.map((endpoint, index) => (
-                  <div key={index} className="border rounded-lg p-4">
+                {endpoints.map((endpoint, index) => {
+                  const isNew = endpoint.path.includes('next-reference') || endpoint.path.includes('create-product-request');
+                  return (
+                  <div key={index} className={`border rounded-lg p-4 ${isNew ? 'border-emerald-300 bg-emerald-50/30' : ''}`}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <Badge 
@@ -717,6 +736,11 @@ const CatalogApiSettings = () => {
                           {endpoint.path}
                           {endpoint.params && <span className="text-muted-foreground">{endpoint.params}</span>}
                         </code>
+                        {isNew && (
+                          <Badge className="bg-emerald-500 text-white border-emerald-600 text-[10px] px-1.5 py-0">
+                            NOUVEAU
+                          </Badge>
+                        )}
                       </div>
                       <Button
                         size="sm"
@@ -742,7 +766,8 @@ const CatalogApiSettings = () => {
                       </pre>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

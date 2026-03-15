@@ -1,29 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Problème identifié
+## Statut
 
-Deux problèmes concrets :
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-1. **`catalog-skeleton/partners-api.txt` n'a pas été mis à jour** — Ce fichier est téléchargeable via le bouton "Télécharger" dans l'interface et fait partie du ZIP des fichiers skeleton. Il ne contient aucune mention de `next-reference` ni du format `ITC-YYYY-OFF-XXXX`.
+## Endpoints API ajoutés
 
-2. **Visibilité dans l'interface** — Les endpoints `POST next-reference` et `POST create-product-request` sont en fin de liste, noyés parmi les GET. Pas de section dédiée ni de badge "NOUVEAU" pour les repérer.
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-## Modifications
+## Documentation
 
-### 1. Mettre à jour `catalog-skeleton/partners-api.txt`
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-Ajouter une section complète après les endpoints `GET /providers/{id}/products` :
+## Tables
 
-- `POST /v1/{companyId}/partners/{slug}/next-reference` — documentation complète avec format, réponse JSON, et flux d'utilisation en 3 étapes
-- Documenter le champ `reference_number` dans le payload de `create-product-request`
-- Ajouter un exemple curl complet
-
-### 2. Améliorer la visibilité dans `CatalogApiSettings.tsx`
-
-- Ajouter un badge `NOUVEAU` (ou couleur distincte) sur les endpoints POST `next-reference` et `create-product-request` dans la liste des endpoints
-- Optionnel : regrouper visuellement les endpoints par section (Catalogue, Partenaires, Demandes) au lieu d'une liste plate
-
-### Fichiers modifiés
-- `catalog-skeleton/partners-api.txt` — ajouter documentation next-reference + reference_number
-- `src/components/catalog/management/CatalogApiSettings.tsx` — badge "NOUVEAU" sur les 2 endpoints POST
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`

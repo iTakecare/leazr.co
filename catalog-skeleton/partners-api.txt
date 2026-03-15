@@ -228,6 +228,86 @@ Produits/services d'un prestataire.
 
 ---
 
+## Endpoint de génération de numéro de dossier
+
+### POST /v1/{companyId}/partners/{slug}/next-reference
+Génère et réserve le prochain numéro de dossier séquentiel au format `ITC-YYYY-OFF-XXXX`.
+Chaque appel incrémente le compteur — le numéro est **réservé** dès la génération.
+
+**Réponse :**
+```json
+{
+  "reference_number": "ITC-2026-OFF-9976"
+}
+```
+
+**Exemple curl :**
+```bash
+curl -X POST \
+  "https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/{companyId}/partners/{slug}/next-reference" \
+  -H "x-api-key: VOTRE_CLE_API" \
+  -H "Content-Type: application/json"
+```
+
+---
+
+## Création de demande (create-product-request)
+
+### POST /functions/v1/create-product-request
+Crée une demande de devis/commande. Le champ `reference_number` permet d'utiliser un numéro de dossier pré-généré via `next-reference`.
+
+**Champs liés au numéro de dossier :**
+
+| Champ              | Type   | Description |
+|--------------------|--------|-------------|
+| `reference_number` | string | Numéro de dossier au format `ITC-YYYY-OFF-XXXX` (optionnel). Si absent, un numéro séquentiel est généré automatiquement. |
+| `partner_slug`     | string | Slug du partenaire (ex: "the-pod") |
+| `partner_name`     | string | Nom d'affichage du partenaire |
+
+**Exemple de payload :**
+```json
+{
+  "products": [{ "product_id": "uuid", "variant_id": "uuid", "quantity": 2, "unit_price": 25.99 }],
+  "contact_info": { "first_name": "Jean", "last_name": "Dupont", "email": "jean@example.com" },
+  "company_info": { "company_name": "Acme SA", "vat_number": "BE0123456789" },
+  "reference_number": "ITC-2026-OFF-9976",
+  "partner_slug": "the-pod",
+  "partner_name": "The Pod",
+  "external_services": [
+    { "provider_name": "Proximus", "product_name": "Mobile Pro", "price_htva": 9.99, "billing_period": "monthly", "quantity": 1 }
+  ]
+}
+```
+
+---
+
+## Flux d'intégration recommandé (site externe)
+
+```typescript
+// Étape 1 : Générer le numéro de dossier
+const { reference_number } = await fetch(
+  `${API_URL}/v1/${companyId}/partners/${slug}/next-reference`,
+  { method: 'POST', headers: { 'x-api-key': API_KEY } }
+).then(r => r.json())
+
+// Étape 2 : Afficher le numéro au client (ex: "Votre dossier : ITC-2026-OFF-9976")
+
+// Étape 3 : Soumettre la demande avec le numéro
+await fetch(`${API_URL_BASE}/functions/v1/create-product-request`, {
+  method: 'POST',
+  headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    reference_number, // Numéro pré-généré
+    partner_slug: slug,
+    products: [...],
+    contact_info: {...},
+    company_info: {...}
+  })
+})
+```
+
+---
+
 ## Utilisation type pour une page partenaire
 
 ```typescript
@@ -271,3 +351,4 @@ const { provider_cards } = await fetch(`${API_URL}/v1/${companyId}/partners/nom-
 - `allowed_product_ids` contient des **variant price IDs** (UUIDs de `product_variant_prices`), pas des product IDs directs
 - L'API filtre automatiquement : un produit n'apparaît dans `allowed_products` que s'il a au moins une variante sélectionnée
 - Les `product_variant_prices` retournés sont limités aux seules variantes présentes dans `allowed_product_ids`
+- Le `reference_number` au format `ITC-YYYY-OFF-XXXX` est séquentiel et unique — chaque appel à `next-reference` réserve le numéro suivant
