@@ -42,8 +42,12 @@ const EmailInbox = () => {
         body: { user_id: user!.id },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       queryClient.invalidateQueries({ queryKey: ["synced-emails"] });
-      toast.success(`Synchronisation terminée${data?.count ? ` — ${data.count} nouveaux emails` : ""}`);
+      let msg = `Synchronisation terminée — ${data?.count || 0} nouveaux emails`;
+      if (data?.skipped) msg += `, ${data.skipped} déjà synchronisés`;
+      if (data?.timedOut) msg += " (interrompue, relancez pour continuer)";
+      toast.success(msg);
     } catch (err: any) {
       toast.error("Erreur de synchronisation : " + (err.message || "Erreur inconnue"));
     } finally {

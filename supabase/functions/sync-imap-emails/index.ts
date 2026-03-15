@@ -8,6 +8,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const MAX_NEW_EMAILS = 20;
+const SAFETY_TIMEOUT_MS = 45000; // 45s safety timeout
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -63,6 +66,8 @@ serve(async (req) => {
     // ── Sync emails ──
     if (!user_id) throw new Error("user_id is required");
 
+    const startTime = Date.now();
+
     const { data: imapSettings, error: settingsError } = await supabase
       .from("user_imap_settings")
       .select("*")
@@ -83,7 +88,6 @@ serve(async (req) => {
 
     console.log("[sync-imap-emails] Connecting to", imapSettings.imap_host, "port", imapSettings.imap_port, "sync_days:", syncDays);
 
-    // Connect with ImapFlow
     const client = new ImapFlow({
       host: imapSettings.imap_host,
       port: imapSettings.imap_port,
@@ -104,6 +108,8 @@ serve(async (req) => {
     }
 
     let syncedCount = 0;
+    let skippedCount = 0;
+    let timedOut = false;
 
     try {
       const lock = await client.getMailboxLock(imapSettings.folder || "INBOX");
@@ -111,31 +117,67 @@ serve(async (req) => {
       try {
         const sinceDate = new Date(Date.now() - syncDays * 24 * 60 * 60 * 1000);
 
-        // Search messages since the configured period
-        const messages = client.fetch(
-          { since: sinceDate },
-          { envelope: true, source: true, uid: true }
-        );
+        // Step 1: Fetch only envelopes (metadata) — fast
+        console.log("[sync-imap-emails] Fetching envelopes since", sinceDate.toISOString());
+        const envelopes: Array<{ uid: number; messageId: string; envelope: any }> = [];
 
-        let count = 0;
-        for await (const msg of messages) {
-          if (count >= 100) break; // Limit to 100 messages
-          count++;
+        for await (const msg of client.fetch(
+          { since: sinceDate },
+          { envelope: true, uid: true }
+        )) {
+          if (Date.now() - startTime > SAFETY_TIMEOUT_MS) {
+            console.log("[sync-imap-emails] Safety timeout reached during envelope fetch");
+            timedOut = true;
+            break;
+          }
+          const messageId = msg.envelope?.messageId || `uid-${msg.uid}`;
+          envelopes.push({ uid: msg.uid, messageId, envelope: msg.envelope });
+        }
+
+        console.log("[sync-imap-emails] Found", envelopes.length, "envelopes");
+
+        // Step 2: Check which message_ids already exist in DB
+        const messageIds = envelopes.map(e => e.messageId);
+        const { data: existingEmails } = await supabase
+          .from("synced_emails")
+          .select("message_id")
+          .eq("user_id", user_id)
+          .in("message_id", messageIds);
+
+        const existingSet = new Set((existingEmails || []).map((e: any) => e.message_id));
+        const newEnvelopes = envelopes.filter(e => !existingSet.has(e.messageId));
+        skippedCount = envelopes.length - newEnvelopes.length;
+
+        console.log("[sync-imap-emails] New emails to fetch:", newEnvelopes.length, "| Already synced:", skippedCount);
+
+        // Step 3: Fetch full source only for new emails, limited batch
+        const toFetch = newEnvelopes.slice(0, MAX_NEW_EMAILS);
+
+        for (let i = 0; i < toFetch.length; i++) {
+          if (Date.now() - startTime > SAFETY_TIMEOUT_MS) {
+            console.log("[sync-imap-emails] Safety timeout reached at email", i + 1, "/", toFetch.length);
+            timedOut = true;
+            break;
+          }
+
+          const env = toFetch[i];
+          console.log("[sync-imap-emails] Processing", i + 1, "/", toFetch.length, "UID:", env.uid);
 
           try {
-            const parsed = await simpleParser(msg.source);
+            // Fetch full source for this single message
+            const fullMsg = await client.fetchOne(env.uid, { source: true }, { uid: true });
+            const parsed = await simpleParser(fullMsg.source);
 
             const fromAddress = parsed.from?.value?.[0]?.address || "";
             const fromName = parsed.from?.value?.[0]?.name || null;
             const toAddress = parsed.to?.value?.[0]?.address || null;
-            const messageId = parsed.messageId || `uid-${msg.uid}-${Date.now()}`;
             const receivedAt = parsed.date ? parsed.date.toISOString() : null;
 
             const { error: insertError } = await supabase.from("synced_emails").upsert(
               {
                 user_id,
                 company_id: imapSettings.company_id,
-                message_id: messageId,
+                message_id: env.messageId,
                 from_address: fromAddress,
                 from_name: fromName,
                 to_address: toAddress,
@@ -150,7 +192,7 @@ serve(async (req) => {
             if (!insertError) syncedCount++;
             else console.error("[sync-imap-emails] Insert error:", insertError.message);
           } catch (parseErr: any) {
-            console.error("[sync-imap-emails] Parse error for UID", msg.uid, ":", parseErr.message);
+            console.error("[sync-imap-emails] Parse error for UID", env.uid, ":", parseErr.message);
           }
         }
       } finally {
@@ -166,9 +208,11 @@ serve(async (req) => {
       .update({ last_sync_at: new Date().toISOString() })
       .eq("id", imapSettings.id);
 
-    console.log("[sync-imap-emails] Synced", syncedCount, "emails");
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log("[sync-imap-emails] Done in", elapsed, "s — Synced:", syncedCount, "| Skipped:", skippedCount, "| Timed out:", timedOut);
+
     return new Response(
-      JSON.stringify({ success: true, count: syncedCount }),
+      JSON.stringify({ success: true, count: syncedCount, skipped: skippedCount, timedOut }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
