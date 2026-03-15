@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { ImapFlow } from "npm:imapflow@1.0.171";
-import { simpleParser } from "npm:mailparser@3.7.2";
+import { ImapFlow } from "npm:imapflow@1.0.162";
+import { simpleParser } from "npm:mailparser@3.6.9";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
