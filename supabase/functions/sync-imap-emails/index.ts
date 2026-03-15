@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_NEW_EMAILS = 20;
+const MAX_NEW_EMAILS = 100;
 const SAFETY_TIMEOUT_MS = 45000; // 45s safety timeout
 
 serve(async (req) => {
