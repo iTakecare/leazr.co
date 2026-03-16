@@ -3264,6 +3264,66 @@ export type Database = {
           },
         ]
       }
+      equipment_locations: {
+        Row: {
+          address: string | null
+          city: string | null
+          client_id: string
+          company_id: string
+          country: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          location_name: string | null
+          postal_code: string | null
+          site_name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          client_id: string
+          company_id: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_name?: string | null
+          postal_code?: string | null
+          site_name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          client_id?: string
+          company_id?: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_name?: string | null
+          postal_code?: string | null
+          site_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_locations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_maintenance: {
         Row: {
           company_id: string
@@ -5632,6 +5692,7 @@ export type Database = {
           previous_status: string | null
           products_to_be_determined: boolean | null
           remarks: string | null
+          renewal_source_contract_id: string | null
           request_date: string | null
           signature_data: string | null
           signed_at: string | null
@@ -5693,6 +5754,7 @@ export type Database = {
           previous_status?: string | null
           products_to_be_determined?: boolean | null
           remarks?: string | null
+          renewal_source_contract_id?: string | null
           request_date?: string | null
           signature_data?: string | null
           signed_at?: string | null
@@ -5754,6 +5816,7 @@ export type Database = {
           previous_status?: string | null
           products_to_be_determined?: boolean | null
           remarks?: string | null
+          renewal_source_contract_id?: string | null
           request_date?: string | null
           signature_data?: string | null
           signed_at?: string | null
@@ -5802,6 +5865,13 @@ export type Database = {
             columns: ["pack_id"]
             isOneToOne: false
             referencedRelation: "product_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_renewal_source_contract_id_fkey"
+            columns: ["renewal_source_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
           {
@@ -7859,14 +7929,58 @@ export type Database = {
           },
         ]
       }
+      support_knowledge_base: {
+        Row: {
+          category: string
+          company_id: string
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          company_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          company_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_knowledge_base_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
+          ai_conversation_context: string | null
           assigned_to: string | null
+          category: string | null
           client_id: string | null
           company_id: string
           contact_submission_id: string | null
           created_at: string
           created_by: string | null
+          created_by_client: boolean | null
           description: string | null
           email_id: string | null
           id: string
@@ -7876,12 +7990,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_conversation_context?: string | null
           assigned_to?: string | null
+          category?: string | null
           client_id?: string | null
           company_id: string
           contact_submission_id?: string | null
           created_at?: string
           created_by?: string | null
+          created_by_client?: boolean | null
           description?: string | null
           email_id?: string | null
           id?: string
@@ -7891,12 +8008,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_conversation_context?: string | null
           assigned_to?: string | null
+          category?: string | null
           client_id?: string | null
           company_id?: string
           contact_submission_id?: string | null
           created_at?: string
           created_by?: string | null
+          created_by_client?: boolean | null
           description?: string | null
           email_id?: string | null
           id?: string
@@ -9575,6 +9695,7 @@ export type Database = {
           previous_status: string | null
           products_to_be_determined: boolean | null
           remarks: string | null
+          renewal_source_contract_id: string | null
           request_date: string | null
           signature_data: string | null
           signed_at: string | null

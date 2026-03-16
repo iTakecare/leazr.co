@@ -10,6 +10,7 @@ interface RecentActivity {
   description: string;
   date: string;
   status?: string;
+  workflow_status?: string;
 }
 
 interface ClientStats {
@@ -182,7 +183,7 @@ export const useClientData = () => {
         const activities: RecentActivity[] = [];
 
         const { data: offers } = await services.offers.query()
-          .select('id, client_name, status, created_at, equipment_description')
+          .select('id, client_name, status, workflow_status, created_at, equipment_description')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
           .limit(3);
@@ -195,6 +196,7 @@ export const useClientData = () => {
             description: parseEquipmentTitle(offer.equipment_description) || 'Équipement non spécifié',
             date: offer.created_at,
             status: offer.status,
+            workflow_status: offer.workflow_status,
           });
         });
 

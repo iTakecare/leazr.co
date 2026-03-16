@@ -14,6 +14,7 @@ import ClientCartRequestPage from "@/pages/ClientCartRequestPage";
 import ClientCatalogPage from "@/pages/ClientCatalogPage";
 import ClientProductDetailPage from "@/pages/ClientProductDetailPage";
 import ClientContractDetailPage from "@/pages/ClientContractDetailPage";
+import AIChatWidget from "@/components/client/AIChatWidget";
 
 const ClientRoutes = () => {
   return (
@@ -33,11 +34,11 @@ const ClientRoutes = () => {
           <Route path="panier/demande" element={<ClientCartRequestPage />} />
           <Route path="support" element={<ClientSupportPage />} />
           <Route path="settings" element={<ClientSettingsPage />} />
-          {/* Redirection par défaut vers le dashboard */}
           <Route path="" element={<ClientDashboard />} />
           <Route path="*" element={<ClientDashboard />} />
         </Routes>
       </main>
+      <AIChatWidget />
     </div>
   );
 };
