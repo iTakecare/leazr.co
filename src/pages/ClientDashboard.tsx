@@ -157,7 +157,7 @@ const ClientDashboard = () => {
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-white">{getGreeting()}, {displayName} 👋</h1>
               <p className="mt-1 text-white/70 text-sm md:text-base">
-                Voici un aperçu de votre espace de financement
+                Bienvenue dans l'espace de gestion de vos contrats
               </p>
             </div>
             <div className="flex gap-3">
@@ -351,7 +351,8 @@ const ClientDashboard = () => {
             ) : (
               <div className="text-center py-10 text-muted-foreground">
                 <Package className="h-10 w-10 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">Aucune activité récente</p>
+                <p className="text-sm font-medium">Vous n'avez pas encore d'activité</p>
+                <p className="text-xs mt-1">Vos contrats et demandes apparaîtront ici.</p>
               </div>
             )}
           </CardContent>
