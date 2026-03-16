@@ -421,10 +421,22 @@ const CompanyDashboard = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Nombre</p>
-                    <p className="text-xl font-bold text-foreground">{realizedStats?.count || 0}</p>
-                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-center p-3 rounded-lg bg-muted cursor-help">
+                          <p className="text-xs text-muted-foreground">Nombre</p>
+                          <p className="text-xl font-bold text-foreground">{realizedStats?.count || 0}</p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-sm">
+                        <div className="space-y-1">
+                          <p>{realizedStats?.leasing_count || 0} factures leasing</p>
+                          <p>{realizedStats?.self_leasing_count || 0} contrats self-leasing</p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <div className="text-center p-3 rounded-lg bg-muted">
                     <p className="text-xs text-muted-foreground">Marge</p>
                     <p className="text-lg font-bold text-foreground">{formatCurrency(Number(realizedStats?.total_margin || 0))}</p>
