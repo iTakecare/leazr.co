@@ -113,6 +113,13 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
       filtered = filtered.filter(product => product.category === filters.selectedCategory);
     }
     
+    // Brand filter
+    if (filters.selectedBrands.length > 0) {
+      filtered = filtered.filter(product => 
+        product.brand && filters.selectedBrands.includes(product.brand)
+      );
+    }
+    
     // Sort products
     filtered.sort((a, b) => {
       let comparison = 0;
