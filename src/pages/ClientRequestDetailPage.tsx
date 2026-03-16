@@ -21,7 +21,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useClientOffers } from "@/hooks/useClientOffers";
 import { RequestHeroSection } from "@/components/client/RequestHeroSection";
-import { RequestStatusTimeline } from "@/components/client/RequestStatusTimeline";
+import ClientWorkflowStepper from "@/components/client/ClientWorkflowStepper";
 
 import { DetailedEquipmentSection } from "@/components/client/DetailedEquipmentSection";
 import { DocumentUploadSection } from "@/components/client/DocumentUploadSection";
