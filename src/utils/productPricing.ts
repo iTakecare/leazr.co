@@ -69,10 +69,12 @@ export const getProductPrice = (
       }
       
       // Le champ pour le prix d'achat s'appelle 'price' dans product_variant_prices
-      if (matchingCombo.price && matchingCombo.price > 0) {
-        const parsed = typeof matchingCombo.price === 'number' ? 
-                      matchingCombo.price : 
-                      parseFloat(String(matchingCombo.price) || '0');
+      // Also support 'purchase_price' field for future compatibility
+      const comboPurchasePrice = matchingCombo.price || (matchingCombo as any).purchase_price;
+      if (comboPurchasePrice && comboPurchasePrice > 0) {
+        const parsed = typeof comboPurchasePrice === 'number' ? 
+                      comboPurchasePrice : 
+                      parseFloat(String(comboPurchasePrice) || '0');
         if (!isNaN(parsed)) purchasePrice = parsed;
       }
       
