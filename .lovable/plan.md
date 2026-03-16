@@ -1,70 +1,47 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+# Problème : Les demandes client n'ont pas de prix d'achat
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+## Diagnostic
 
-## Endpoints API ajoutés
+En analysant le flux complet, voici la chaîne de problèmes :
 
-| Endpoint | Description |
+### 1. **`createClientRequest` ne passe pas `product_id` ni `image_url` aux équipements**
+Le code dans `clientRequests.ts` (ligne 127-135) construit l'objet `equipment` sans `product_id` ni `image_url`, contrairement au flux public (edge function) qui les inclut. Cela empêche le lien entre l'équipement et le produit catalogue.
+
+### 2. **Le prix d'achat dépend de `variant_combination_prices` dans le produit**
+La fonction `getProductPrice` cherche le `price` (= prix d'achat) dans `product.variant_combination_prices`. Or, après sérialisation/désérialisation localStorage du panier, ces données sont présentes mais la correspondance des clés `selectedOptions` peut échouer (clés internes comme `variant_id`, `selected_variant_id` polluent la comparaison dans `Object.entries(selectedOptions).every(...)`).
+
+### 3. **Pas de `selling_price` ni de `coefficient` par équipement**
+L'objet equipment ne transmet ni `selling_price` ni `coefficient`, ce qui donne des colonnes P.V. et Marge à 0 dans l'admin.
+
+## Plan de correction
+
+### Étape 1 : Nettoyer les `selectedOptions` avant la recherche de prix
+**Fichier : `src/utils/productPricing.ts`**
+- Filtrer les clés internes (`variant_id`, `selected_variant_id`) des `selectedOptions` avant de faire la comparaison avec `variant_combination_prices.attributes`. Ces clés ne sont pas des attributs produit et cassent le matching.
+
+### Étape 2 : Enrichir l'équipement avec `product_id`, `image_url`, `selling_price`
+**Fichier : `src/services/offers/clientRequests.ts`**
+- Ajouter `product_id: item.product.id` dans l'objet equipment.
+- Ajouter `image_url: item.product.image_url` pour l'affichage dans l'admin.
+- Calculer et passer `selling_price` (= prix de vente unitaire = purchase_price + margin).
+- Passer le `coefficient` calculé.
+
+### Étape 3 : S'assurer que `getProductPrice` utilise aussi `purchase_price` du variant combo
+**Fichier : `src/utils/productPricing.ts`**
+- En plus de `combo.price`, vérifier `combo.purchase_price` (le champ existe en DB mais n'est pas peuplé actuellement — il faut quand même le supporter pour le futur).
+- Les données actuelles stockent le prix d'achat dans `combo.price` (confirmé en DB : `price: 900`, `purchase_price: nil`). Ce mapping est déjà correct.
+
+### Étape 4 : Aligner le flux client avec le flux public pour la complétude
+**Fichier : `src/components/checkout/ClientRequestSummary.tsx`**
+- S'assurer que `cartItemsWithPricing` passe les bonnes données au service, en nettoyant les `selectedOptions` des clés internes.
+
+### Résumé des fichiers modifiés
+
+| Fichier | Modification |
 |---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+| `src/utils/productPricing.ts` | Filtrer `variant_id`/`selected_variant_id` des options avant matching |
+| `src/services/offers/clientRequests.ts` | Ajouter `product_id`, `image_url`, `selling_price`, `coefficient` à l'equipment |
+| `src/components/checkout/ClientRequestSummary.tsx` | Nettoyer les `selectedOptions` avant passage au service |
 
-## Documentation
-
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
-
-## Tables
-
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
-- `software_catalog`, `software_deployments`, `mdm_configurations`
-
----
-
-# Plan : Déploiement logiciel à distance (MDM)
-
-## Statut
-
-- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
-- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
-- ✅ Phase 3 — Table `software_deployments` + suivi statut
-- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
-- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
-
-## MDM recommandé : Fleet (FleetDM)
-
-| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
-|---|---|---|---|
-| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
-| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
-| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
-| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
-| Open-source | ✅ MIT | ✅ | ✅ |
-
-### Intégration technique
-
-1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
-2. **Déployer l'agent `fleetd`** sur les machines clientes
-3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
-4. L'edge function existante route les appels vers Fleet automatiquement
-
-### Composants
-
-| Fichier | Rôle |
-|---|---|
-| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
-| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
-| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
-| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
