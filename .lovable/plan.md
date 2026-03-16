@@ -1,70 +1,55 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
+Objectif: corriger définitivement les prix d’achat à 0 pour les demandes issues du catalogue client, y compris celles déjà créées.
 
-## Statut
+Constat validé (sur l’offre `ecd2326d-d843-4dd1-8b54-dc5ca5a9fdd3`)
+- L’offre est de type `web_request` (flux Edge Function `create-product-request`), pas `client_request`.
+- Les lignes `offer_equipment` ont `purchase_price = 0`, `product_id` présent, `monthly_payment` correct.
+- Les logs Edge montrent que le frontend envoie bien `purchase_price` (ex: 1179) mais **sans `variant_id`**.
+- Dans l’Edge Function, sans `variant_id`, le fallback lit `products.price` (0 pour produits à variantes) ⇒ prix d’achat final à 0.
+- L’enrichissement actuel (`enrichEquipmentPurchasePrices`) ne récupère pas ce cas quand les attributs sont absents.
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+Plan d’implémentation
+1) Corriger le payload frontend (source du problème)
+- Fichier: `src/services/requestInfoService.ts`
+- Ajouter une résolution de `variant_id` côté frontend quand absent:
+  - depuis `item.selectedOptions` (clé interne si présente),
+  - sinon en matchant `selectedOptions` avec `item.product.variant_combination_prices[].attributes`,
+  - en comparaison tolérante (trim + case-insensitive).
+- Envoyer aussi `selected_attributes` (copie nettoyée des options) dans chaque `products[]` pour fallback serveur.
+- Résultat attendu: l’Edge Function récupère le vrai prix DB via `product_variant_prices.id`.
 
-## Endpoints API ajoutés
+2) Rendre l’Edge Function robuste même si le frontend ne fournit pas `variant_id`
+- Fichier: `supabase/functions/create-product-request/index.ts`
+- Si `variant_id` absent:
+  - tenter de retrouver la variante via `selected_attributes` (si fourni),
+  - sinon fallback par correspondance `monthly_price` unitaire (et éventuellement `purchase_price` payload) dans `product_variant_prices` pour ce `product_id`.
+- Utiliser ensuite ce variant trouvé comme source vérité pour `price` et `attributes`.
+- Garder un log explicite du mode de résolution (`variant_id`, `selected_attributes`, `monthly_match`, `fallback_payload`).
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+3) Corriger l’affichage des offres déjà cassées (backward fix)
+- Fichier: `src/services/offers/offerEquipment.ts`
+- Étendre `enrichEquipmentPurchasePrices`:
+  - quand `purchase_price=0`, `product_id` présent, **et pas d’attributs**:
+    - calculer mensualité unitaire = `monthly_payment / quantity`,
+    - chercher dans `product_variant_prices` de ce produit la ligne avec `monthly_price` correspondante,
+    - appliquer `price` trouvé comme `purchase_price`.
+- Ainsi, les anciennes demandes s’affichent correctement sans attendre une recréation.
 
-## Documentation
+4) Backfill DB optionnel mais recommandé (pour figer les données)
+- Ajouter une migration SQL de correction des `offer_equipment.purchase_price = 0`:
+  - match via `product_id` + `monthly_payment/quantity` sur `product_variant_prices.monthly_price`,
+  - update uniquement si un match unique est trouvé.
+- Cela évite de recalculer à chaque lecture.
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+Validation (à faire après implémentation)
+- Test E2E flux catalogue client (inline request steps) avec variantes:
+  - vérifier en DB: `offer_equipment.purchase_price > 0`, `variant_id` (si colonne), attributs présents.
+  - vérifier en admin: colonnes P.A unitaire/total correctes, marge cohérente.
+- Re-tester l’offre existante `ecd2326d-...`:
+  - affichage admin corrigé immédiatement via enrichissement (même sans recréation).
+- Vérifier qu’aucune régression sur flux public/partenaire (site internet).
 
-## Tables
-
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
-- `software_catalog`, `software_deployments`, `mdm_configurations`
-
----
-
-# Plan : Déploiement logiciel à distance (MDM)
-
-## Statut
-
-- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
-- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
-- ✅ Phase 3 — Table `software_deployments` + suivi statut
-- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
-- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
-
-## MDM recommandé : Fleet (FleetDM)
-
-| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
-|---|---|---|---|
-| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
-| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
-| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
-| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
-| Open-source | ✅ MIT | ✅ | ✅ |
-
-### Intégration technique
-
-1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
-2. **Déployer l'agent `fleetd`** sur les machines clientes
-3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
-4. L'edge function existante route les appels vers Fleet automatiquement
-
-### Composants
-
-| Fichier | Rôle |
-|---|---|
-| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
-| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
-| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
-| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
+Détails techniques (non-fonctionnels)
+- Garder la convention existante: `monthly_payment` = total ligne, `selling_price` = unitaire.
+- Conserver la priorité des prix réels variante (`price` / `purchase_price`) sur les fallbacks.
+- Éviter toute dépendance à des clés internes uniquement (`variant_id`) en ajoutant un fallback déterministe basé sur attributs/mensualité.
