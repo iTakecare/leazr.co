@@ -143,15 +143,15 @@ const ClientWorkflowStepper: React.FC<ClientWorkflowStepperProps> = ({
   }
 
   return (
-    <div className="w-full bg-card rounded-lg border border-border p-6">
+    <div className="w-full bg-card rounded-lg border border-border p-4">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-6">
-        <GitBranch className="w-5 h-5 text-primary" />
-        <h3 className="text-lg font-semibold">Suivi de votre demande</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <GitBranch className="w-4 h-4 text-primary" />
+        <h3 className="text-base font-semibold">Suivi de votre demande</h3>
       </div>
 
       {/* Stepper horizontal */}
-      <div className="relative flex items-start gap-0 overflow-x-auto pt-4 pb-6 px-2 scrollbar-thin">
+      <div className="relative flex items-start gap-0 overflow-x-auto pt-3 pb-4 px-1 scrollbar-thin">
         {activeSteps.map((step, index) => {
           const Icon = step.icon;
           const isActive = index === currentIndex;
@@ -161,11 +161,11 @@ const ClientWorkflowStepper: React.FC<ClientWorkflowStepperProps> = ({
           return (
             <React.Fragment key={step.key}>
               {/* Step column */}
-              <div className="flex flex-col items-center relative min-w-[120px]">
+              <div className="flex flex-col items-center relative min-w-[90px]">
                 {/* Step box - read-only, no click */}
                 <div
                   className={cn(
-                    "relative flex flex-col items-center p-4 rounded-xl border-2 transition-all min-w-[140px] min-h-[120px] justify-center",
+                    "relative flex flex-col items-center p-2 rounded-xl border-2 transition-all min-w-[100px] min-h-[80px] justify-center",
                     isCompleted && "border-primary/40 bg-card",
                     isActive && "border-orange-400 shadow-lg bg-card",
                     isUpcoming && "border-muted bg-card"
@@ -173,12 +173,12 @@ const ClientWorkflowStepper: React.FC<ClientWorkflowStepperProps> = ({
                 >
                   {/* Badge position */}
                   {isCompleted ? (
-                    <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm bg-green-500 text-white">
+                    <div className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm bg-green-500 text-white">
                       <Check className="w-3 h-3" />
                     </div>
                   ) : (
                     <div className={cn(
-                      "absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm",
+                      "absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm",
                       isActive && "bg-orange-500 text-white",
                       isUpcoming && "bg-muted text-muted-foreground border border-border"
                     )}>
@@ -188,13 +188,13 @@ const ClientWorkflowStepper: React.FC<ClientWorkflowStepperProps> = ({
 
                   {/* Icon */}
                   <div className={cn(
-                    "p-3 rounded-lg",
+                    "p-2 rounded-lg",
                     isCompleted && "bg-primary/10",
                     isActive && "bg-orange-50",
                     isUpcoming && "bg-muted"
                   )}>
                     <Icon className={cn(
-                      "w-8 h-8",
+                      "w-5 h-5",
                       isCompleted && "text-primary",
                       isActive && "text-orange-500",
                       isUpcoming && "text-muted-foreground"
@@ -204,7 +204,7 @@ const ClientWorkflowStepper: React.FC<ClientWorkflowStepperProps> = ({
 
                 {/* Step label */}
                 <span className={cn(
-                  "mt-3 text-sm font-medium text-center max-w-[120px]",
+                  "mt-2 text-xs font-medium text-center max-w-[90px]",
                   isActive && "text-foreground",
                   isCompleted && "text-foreground",
                   isUpcoming && "text-muted-foreground"
@@ -216,7 +216,7 @@ const ClientWorkflowStepper: React.FC<ClientWorkflowStepperProps> = ({
                 <Badge 
                   variant="secondary"
                   className={cn(
-                    "mt-2 text-xs font-medium",
+                    "mt-1.5 text-[10px] font-medium px-1.5 py-0",
                     isCompleted && "bg-green-100 text-green-600 border-green-200",
                     isActive && "bg-orange-100 text-orange-600 border-orange-200",
                     isUpcoming && "bg-muted text-muted-foreground border-border"
@@ -228,9 +228,9 @@ const ClientWorkflowStepper: React.FC<ClientWorkflowStepperProps> = ({
 
               {/* Dashed arrow connector */}
               {index < activeSteps.length - 1 && (
-                <div className="flex items-center self-start mt-14 px-2">
-                  <div className="w-8 border-t-2 border-dashed border-muted-foreground/30"></div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground/30 -ml-1" />
+                <div className="flex items-center self-start mt-10 px-1">
+                  <div className="w-6 border-t-2 border-dashed border-muted-foreground/30"></div>
+                  <ChevronRight className="w-3 h-3 text-muted-foreground/30 -ml-1" />
                 </div>
               )}
             </React.Fragment>

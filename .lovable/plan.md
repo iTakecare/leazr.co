@@ -1,33 +1,70 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-# Réduire la taille du stepper détail + Utiliser MiniWorkflowStepper sur le dashboard
+## Statut
 
-## Problème
-1. **Page détail** : Les cartes du `ClientWorkflowStepper` sont trop grandes (140px min, icônes 8x8, padding p-4)
-2. **Dashboard** : Le "Suivi détaillé" utilise un stepper statique hardcodé (`WORKFLOW_STEPS` avec 8 étapes fixes) au lieu du `MiniWorkflowStepper` dynamique qui charge les vraies étapes du workflow
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-## Modifications
+## Endpoints API ajoutés
 
-### 1. `src/components/client/ClientWorkflowStepper.tsx` — Réduire les dimensions
-- Cartes : `min-w-[140px] min-h-[120px] p-4` → `min-w-[100px] min-h-[80px] p-2`
-- Colonnes : `min-w-[120px]` → `min-w-[90px]`
-- Icônes : `w-8 h-8` → `w-5 h-5`, padding `p-3` → `p-2`
-- Badges numérotés : `w-6 h-6` → `w-5 h-5`
-- Labels : `text-sm` → `text-xs`, `max-w-[120px]` → `max-w-[90px]`
-- Connecteur : `mt-14` → `mt-10`
-- Header : `mb-6` → `mb-4`, padding container `p-6` → `p-4`
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-### 2. `src/pages/ClientDashboard.tsx` — Remplacer le stepper statique par `MiniWorkflowStepper`
-- Importer `MiniWorkflowStepper` depuis `@/components/client/MiniWorkflowStepper`
-- Dans la section "Suivi détaillé", remplacer le rendu inline des `WORKFLOW_STEPS` par :
-  ```tsx
-  <MiniWorkflowStepper
-    currentStatus={offer.workflow_status || offer.status || 'draft'}
-    offerType={offer.type}
-    workflowTemplateId={offer.workflow_template_id}
-    companyId={offer.company_id}
-  />
-  ```
-- Supprimer les constantes `WORKFLOW_STEPS`, `WORKFLOW_STATUS_MAP` et `getStepIndex` devenues inutiles
-- S'assurer que `pendingOffers` expose `workflow_template_id` et `company_id` (déjà présents via `useClientOffers`)
+## Documentation
 
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+
+## Tables
+
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
+- `software_catalog`, `software_deployments`, `mdm_configurations`
+
+---
+
+# Plan : Déploiement logiciel à distance (MDM)
+
+## Statut
+
+- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
+- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
+- ✅ Phase 3 — Table `software_deployments` + suivi statut
+- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
+- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
+
+## MDM recommandé : Fleet (FleetDM)
+
+| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
+|---|---|---|---|
+| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
+| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
+| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
+| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
+| Open-source | ✅ MIT | ✅ | ✅ |
+
+### Intégration technique
+
+1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
+2. **Déployer l'agent `fleetd`** sur les machines clientes
+3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
+4. L'edge function existante route les appels vers Fleet automatiquement
+
+### Composants
+
+| Fichier | Rôle |
+|---|---|
+| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
+| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
+| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
+| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
