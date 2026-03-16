@@ -20,6 +20,7 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
   const [filters, setFilters] = useState<PublicSimplifiedFilterState>({
     searchQuery: searchParams.get('search') || '',
     selectedCategory: searchParams.get('category'),
+    selectedBrands: searchParams.get('brands')?.split(',').filter(Boolean) || [],
     sortBy: (searchParams.get('sortBy') as PublicSimplifiedFilterState['sortBy']) || 'newest',
     sortOrder: (searchParams.get('sortOrder') as PublicSimplifiedFilterState['sortOrder']) || 'desc'
   });
