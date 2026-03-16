@@ -51,6 +51,9 @@ const AIChatWidget = () => {
       });
 
       if (!resp.ok || !resp.body) {
+        if (resp.status === 404) throw new Error("__404__");
+        if (resp.status === 429) throw new Error("__429__");
+        if (resp.status === 402) throw new Error("__402__");
         const err = await resp.json().catch(() => ({ error: "Erreur" }));
         throw new Error(err.error || "Erreur de connexion");
       }
@@ -93,9 +96,22 @@ const AIChatWidget = () => {
         }
       }
     } catch (e: any) {
+      let errorMsg: string;
+      const msg = e?.message || "";
+      if (msg === "__404__" || (e instanceof TypeError && msg.includes("fetch"))) {
+        errorMsg = "L'assistant IA n'est pas disponible pour le moment. Veuillez réessayer plus tard ou ouvrir un ticket de support.";
+      } else if (msg === "__429__") {
+        errorMsg = "L'assistant est temporairement surchargé. Merci de patienter quelques instants avant de réessayer.";
+      } else if (msg === "__402__") {
+        errorMsg = "Le service IA est momentanément indisponible. Contactez le support.";
+      } else if (e instanceof TypeError) {
+        errorMsg = "Impossible de contacter le serveur. Vérifiez votre connexion internet.";
+      } else {
+        errorMsg = `Désolé, une erreur est survenue: ${msg}. Vous pouvez ouvrir un ticket de support.`;
+      }
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `Désolé, une erreur est survenue: ${e.message}. Vous pouvez ouvrir un ticket de support.` },
+        { role: "assistant", content: errorMsg },
       ]);
     } finally {
       setIsLoading(false);
