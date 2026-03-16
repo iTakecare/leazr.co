@@ -19,6 +19,8 @@ import PermissionProfilesManager from '@/components/settings/PermissionProfilesM
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
+import SoftwareCatalogManager from '@/components/settings/SoftwareCatalogManager';
+import MDMConfigSection from '@/components/settings/MDMConfigSection';
 
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
 import HistoricalContractsImport from '@/components/settings/HistoricalContractsImport';
