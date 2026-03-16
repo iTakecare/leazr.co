@@ -309,45 +309,6 @@ const ClientSupportPage = () => {
         </motion.div>
       )}
 
-      {/* Contact info */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-0 shadow-sm rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Informations de Contact</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-muted/50 flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Mail className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm mb-1">Email</h4>
-                  <p className="text-xs text-muted-foreground">support@itakecare.be</p>
-                </div>
-              </div>
-              <div className="p-4 rounded-xl bg-muted/50 flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Phone className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm mb-1">Téléphone</h4>
-                  <p className="text-xs text-muted-foreground">+32 (0)10 23 45 67</p>
-                </div>
-              </div>
-              <div className="p-4 rounded-xl bg-muted/50 flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Clock className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm mb-1">Horaires</h4>
-                  <p className="text-xs text-muted-foreground">Lun - Ven : 9h - 18h</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
     </motion.div>
   );
 };
