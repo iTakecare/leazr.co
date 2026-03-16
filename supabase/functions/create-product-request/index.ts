@@ -498,7 +498,10 @@ serve(async (req) => {
       leaser_id: leaserId,
       dossier_number: dossierNumber,
       partner_slug: data.partner_slug || null,
-      partner_name: data.partner_name || null
+      partner_name: data.partner_name || null,
+      workflow_template_id: offerType === 'web_request' ? 'f6e29d41-ef40-4253-ab08-e23060da47da' 
+        : offerType === 'custom_pack_request' ? 'bf15a91e-39bb-4207-8a90-0c7e8624c052'
+        : null
     };
 
     const { error: offerError } = await supabaseAdmin.from('offers').insert(offerData);
