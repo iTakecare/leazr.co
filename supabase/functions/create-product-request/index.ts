@@ -567,7 +567,7 @@ serve(async (req) => {
         margin: finalMargin,
         coefficient: coefficient,
         duration: product.duration || 36,
-        product_id: calc.productId || null,
+        product_id: calc.productFound ? calc.productId : null,
         variant_id: calc.variantId || null,
         custom_pack_id: customPackDbId,
         pack_discount_percentage: calc.packDiscountPercentage || null,
