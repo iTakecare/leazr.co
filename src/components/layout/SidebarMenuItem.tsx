@@ -98,7 +98,7 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick, variant 
                 </>
               )}
               {collapsed && item.badge && (
-                <Badge className={cn("absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-4 h-4 p-0 flex items-center justify-center text-[10px]", colors.badgeCollapsed)}>
+                <Badge className="absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-4 h-4 p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-red-500 animate-pulse">
                   {item.badge}
                 </Badge>
               )}
