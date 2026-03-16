@@ -1544,6 +1544,7 @@ NOUVELLES FONCTIONNALITÉS :
 - Options personnalisables : Enrichies avec produits complets
 - Demandes partenaires : Operationnel (partner_slug, partner_name)
 - Services externes : Table offer_external_services active
-- Documentation : A jour version 2026.3
+- MDM : Endpoints complets (appareils, logiciels, profils, enrôlement, commandes)
+- Documentation : A jour version 2026.5
 
-Documentation technique - Version 2026.3 (14 mars 2026)
+Documentation technique - Version 2026.5 (16 mars 2026)
