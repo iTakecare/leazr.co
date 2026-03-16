@@ -243,7 +243,8 @@ export const useClientData = () => {
       try {
         const activities: RecentActivity[] = [];
 
-        const { data: offers } = await services.offers.query()
+        const { data: offers } = await supabase
+          .from('offers')
           .select('id, client_name, status, workflow_status, created_at, equipment_description, type, workflow_template_id, company_id')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
