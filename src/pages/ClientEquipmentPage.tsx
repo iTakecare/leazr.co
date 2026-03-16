@@ -127,8 +127,6 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     quantity: eq.quantity || 1,
     monthlyPayment: eq.monthly_payment || null,
   }));
-    }];
-  });
 
   const filteredEquipment = allEquipment.filter(
     (e) =>
