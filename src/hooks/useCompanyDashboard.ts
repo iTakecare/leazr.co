@@ -21,6 +21,8 @@ export interface MonthlyFinancialData {
 export interface ContractStatistics {
   status: string;
   count: number;
+  leasing_count?: number;
+  self_leasing_count?: number;
   total_revenue: number;
   total_purchases: number;
   total_margin: number;
@@ -309,6 +311,8 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       return {
         status: 'realized',
         count: totalCount,
+        leasing_count: invoices?.length || 0,
+        self_leasing_count: selfLeasingCount,
         total_revenue: totalRevenue,
         total_purchases: totalPurchases,
         total_margin: totalRevenue - totalPurchases

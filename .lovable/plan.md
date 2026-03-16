@@ -1,33 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Plan : Ajouter un tooltip de décomposition sur la carte "Contrats Réalisés"
+## Statut
 
-### Modifications
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-**1. `src/hooks/useCompanyDashboard.ts`** (~ligne 309-315)
+## Endpoints API ajoutés
 
-Ajouter les sous-compteurs dans l'objet retourné par la query `realizedStats` :
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-```typescript
-return {
-  status: 'realized',
-  count: totalCount,
-  leasing_count: invoices?.length || 0,      // NEW
-  self_leasing_count: selfLeasingCount,       // NEW
-  total_revenue: totalRevenue,
-  total_purchases: totalPurchases,
-  total_margin: totalRevenue - totalPurchases
-};
-```
+## Documentation
 
-Mettre à jour l'interface `ContractStatistics` pour inclure `leasing_count?: number` et `self_leasing_count?: number`.
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-**2. `src/components/dashboard/CompanyDashboard.tsx`** (~ligne 414-426)
+## Tables
 
-Envelopper la cellule "Nombre" dans un `Tooltip` (déjà disponible via `@/components/ui/tooltip`) qui affiche au survol la décomposition :
-
-- `{realizedStats.leasing_count} factures leasing`
-- `{realizedStats.self_leasing_count} contrats self-leasing`
-
-Le tooltip apparaîtra au survol du bloc "Nombre" avec le total.
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
