@@ -1,28 +1,31 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Problème
+## Statut
 
-La `ClientSidebar` a un fond **blanc** (`bg-white/95`), mais le composant `SidebarMenuItem` utilise des couleurs de texte conçues pour un fond **sombre** :
-- Inactif : `text-sidebar-foreground/70` (blanc cassé) + `hover:text-white`
-- Actif : `bg-primary/20 text-white`
-- Icônes : `text-sidebar-foreground/70` (blanc cassé)
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-Résultat : texte blanc sur fond blanc = invisible.
+## Endpoints API ajoutés
 
-## Solution
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-Modifier `SidebarMenuItem.tsx` pour accepter une prop `variant` (`"dark" | "light"`) et adapter les couleurs en conséquence. La `ClientSidebar` passera `variant="light"`, la `Sidebar` admin gardera le comportement actuel (`"dark"` par défaut).
+## Documentation
 
-### Fichiers modifiés
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-**1. `src/components/layout/SidebarMenuItem.tsx`**
-- Ajouter prop `variant?: "dark" | "light"` (défaut `"dark"`)
-- Variante `light` :
-  - Inactif : `text-gray-700 hover:bg-gray-100 hover:text-gray-900`
-  - Actif : `bg-primary/10 text-primary`
-  - Icônes inactives : `text-gray-500`, actives : `text-primary`
-  - Badge : `bg-primary/10 text-primary`
+## Tables
 
-**2. `src/components/layout/ClientSidebar.tsx`**
-- Passer `variant="light"` à chaque `<SidebarMenuItem>`.
-
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
