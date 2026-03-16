@@ -46,7 +46,7 @@ const AIChatWidget = () => {
         body: JSON.stringify({
           messages: [...messages, userMsg],
           clientId: clientData?.id,
-          companyId: clientData?.company_id,
+          companyId: (clientData as any)?.company_id,
         }),
       });
 
