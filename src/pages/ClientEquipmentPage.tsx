@@ -119,6 +119,27 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     );
   }
 
+  // Detect equipment category from title
+  const detectCategory = (title: string): string => {
+    const t = title.toLowerCase();
+    if (t.includes("macbook") || t.includes("laptop") || t.includes("portable") || t.includes("pc") || t.includes("ordinateur") || t.includes("desktop") || t.includes("thinkpad") || t.includes("dell") || t.includes("hp ") || t.includes("lenovo")) return "informatique";
+    if (t.includes("iphone") || t.includes("samsung") || t.includes("téléphone") || t.includes("telephone") || t.includes("smartphone") || t.includes("galaxy") || t.includes("pixel")) return "telephonie";
+    if (t.includes("écran") || t.includes("ecran") || t.includes("monitor") || t.includes("asus") || t.includes("lg ") || t.includes("display")) return "ecrans";
+    if (t.includes("imprimante") || t.includes("scanner") || t.includes("printer")) return "impression";
+    if (t.includes("tablette") || t.includes("ipad") || t.includes("tab")) return "tablettes";
+    return "autre";
+  };
+
+  const categoryLabels: Record<string, string> = {
+    all: "Tous les types",
+    informatique: "Informatique",
+    telephonie: "Téléphonie",
+    ecrans: "Écrans / Moniteurs",
+    impression: "Impression",
+    tablettes: "Tablettes",
+    autre: "Autre",
+  };
+
   // Build flat equipment list from contract_equipment data
   const allEquipment = contractEquipmentRaw.map((eq: any) => ({
     id: eq.id,
@@ -128,13 +149,18 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     contractId: eq.contract_id,
     quantity: eq.quantity || 1,
     monthlyPayment: eq.monthly_payment || null,
+    category: detectCategory(eq.title || ""),
   }));
+
+  // Collect present categories for the filter
+  const presentCategories = Array.from(new Set(allEquipment.map((e) => e.category)));
 
   const filteredEquipment = allEquipment.filter(
     (e) =>
-      e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.serial.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.contractRef.toLowerCase().includes(searchQuery.toLowerCase())
+      (categoryFilter === "all" || e.category === categoryFilter) &&
+      (e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       e.serial.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       e.contractRef.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
