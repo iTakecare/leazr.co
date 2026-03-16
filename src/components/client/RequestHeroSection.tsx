@@ -5,6 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
+const getOfferTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    'client_request': 'Demande client',
+    'web_request': 'Demande en ligne',
+    'partner_request': 'Offre partenaire',
+    'ambassador_offer': 'Offre ambassadeur',
+    'custom_pack_request': 'Pack personnalisé',
+    'purchase_request': "Demande d'achat",
+    'self_leasing': 'Auto-financement',
+  };
+  return labels[type] || type;
+};
+
 interface RequestHeroSectionProps {
   offer: any;
   statusInfo: {
