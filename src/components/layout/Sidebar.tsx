@@ -40,6 +40,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const { settings, loading: settingsLoading } = useSiteSettings();
   const { hasModuleAccess } = useModuleAccess();
   const { unreadCount: taskUnreadCount } = useTaskNotifications();
+  const { unreadCount: supportUnreadCount } = useTicketReplyNotifications({ role: "admin" });
   const { preferences, updateSidebarCollapsed } = useUserPreferences();
   const location = useLocation();
   
