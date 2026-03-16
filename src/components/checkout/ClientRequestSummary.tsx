@@ -336,6 +336,96 @@ const ClientRequestSummary: React.FC = () => {
           </div>
         </div>
         
+        {/* Software Selection Section */}
+        {softwareCatalog.length > 0 && (
+          <div className="bg-card rounded-lg border overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <Monitor className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold">Logiciels souhaités</h2>
+                {selectedSoftwareIds.length > 0 && (
+                  <Badge variant="secondary">
+                    {selectedSoftwareIds.length} sélectionné{selectedSoftwareIds.length > 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-4">
+                Sélectionnez les logiciels que vous souhaitez installer sur vos équipements.
+              </p>
+              
+              <div className="space-y-4">
+                {Object.entries(softwareByCategory).map(([category, softwares]: [string, any[]]) => (
+                  <div key={category}>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">{category}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                      {softwares.map((sw: any) => (
+                        <label
+                          key={sw.id}
+                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            selectedSoftwareIds.includes(sw.id)
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:bg-muted/50'
+                          }`}
+                        >
+                          <Checkbox
+                            checked={selectedSoftwareIds.includes(sw.id)}
+                            onCheckedChange={() => toggleSoftware(sw.id)}
+                          />
+                          <div className="flex items-center gap-2 min-w-0">
+                            {sw.icon_url && (
+                              <img src={sw.icon_url} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+                            )}
+                            <span className="text-sm font-medium truncate">{sw.name}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <Separator className="my-4" />
+              
+              <div className="space-y-2">
+                <Label htmlFor="other-software">Autres logiciels souhaités</Label>
+                <Input
+                  id="other-software"
+                  placeholder="Ex: Antivirus Kaspersky, AutoCAD, Adobe Photoshop..."
+                  value={otherSoftware}
+                  onChange={(e) => setOtherSoftware(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Indiquez ici les logiciels non listés que vous souhaitez installer.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Free-text software input when no catalog */}
+        {softwareCatalog.length === 0 && (
+          <div className="bg-card rounded-lg border overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Monitor className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold">Logiciels souhaités</h2>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="other-software-free">Logiciels à installer sur vos équipements</Label>
+                <Input
+                  id="other-software-free"
+                  placeholder="Ex: Microsoft Office, Chrome, Slack, Antivirus..."
+                  value={otherSoftware}
+                  onChange={(e) => setOtherSoftware(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Indiquez les logiciels que vous souhaitez installer sur vos équipements.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Message Section */}
         <div className="bg-card rounded-lg border overflow-hidden">
           <div className="p-6">
