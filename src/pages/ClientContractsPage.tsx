@@ -162,8 +162,8 @@ const ClientContractsPage = () => {
                           {[contract.leaser_name, contract.contract_number].filter(Boolean).join(' - ') || 'Contrat'}
                         </CardTitle>
                         <CardDescription>
-                          {contract.contract_number ? `N° ${contract.contract_number} · ` : ""}
-                          Créé le {new Date(contract.created_at).toLocaleDateString('fr-FR')}
+                          {formatEquipmentDescription(contract.equipment_description)}
+                          {' · '}Créé le {new Date(contract.created_at).toLocaleDateString('fr-FR')}
                         </CardDescription>
                       </div>
                     </div>
