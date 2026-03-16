@@ -137,11 +137,9 @@ const enrichEquipmentImages = async (equipment: OfferEquipment[], offerId: strin
  */
 const enrichEquipmentPurchasePrices = async (equipment: OfferEquipment[], offerId: string): Promise<OfferEquipment[]> => {
   try {
-    // Filtrer les équipements avec purchase_price à 0
     const needsEnrichment = equipment.filter(item => !item.purchase_price || item.purchase_price === 0);
     if (needsEnrichment.length === 0) return equipment;
 
-    // Récupérer le company_id de l'offre
     const { data: offer } = await supabase
       .from('offers')
       .select('company_id')
@@ -154,54 +152,72 @@ const enrichEquipmentPurchasePrices = async (equipment: OfferEquipment[], offerI
       equipment.map(async (item) => {
         if (item.purchase_price && item.purchase_price > 0) return item;
 
-        // Si on a un product_id, chercher directement
-        if (item.product_id) {
-          // D'abord chercher dans product_variant_prices avec les attributs
-          const attrs = item.attributes || [];
-          if (attrs.length > 0) {
-            const { data: variantPrices } = await supabase
-              .from('product_variant_prices')
-              .select('price, purchase_price')
-              .eq('product_id', item.product_id);
+        const productId = item.product_id;
 
-            if (variantPrices && variantPrices.length > 0) {
-              // Trouver la variante correspondant aux attributs
+        if (productId) {
+          // Récupérer toutes les variantes du produit en une seule requête
+          const { data: variantPrices } = await supabase
+            .from('product_variant_prices')
+            .select('id, price, purchase_price, monthly_price, attributes')
+            .eq('product_id', productId);
+
+          if (variantPrices && variantPrices.length > 0) {
+            // 1) Matching par attributs si disponibles
+            const attrs = item.attributes || [];
+            if (attrs.length > 0) {
               const attrMap: Record<string, string> = {};
               attrs.forEach(a => { attrMap[a.key] = a.value; });
 
               for (const vp of variantPrices) {
                 const vpAttrs = (vp as any).attributes;
                 if (vpAttrs && typeof vpAttrs === 'object') {
-                  const matches = Object.entries(attrMap).every(([k, v]) => vpAttrs[k] === v);
+                  const matches = Object.entries(attrMap).every(([k, v]) => 
+                    String(vpAttrs[k] || '').trim().toLowerCase() === String(v).trim().toLowerCase()
+                  );
                   if (matches) {
                     const price = vp.purchase_price || vp.price || 0;
                     if (price > 0) {
-                      console.log(`✅ Enriched purchase_price for "${item.title}" via variant: ${price}€`);
+                      console.log(`✅ Enriched "${item.title}" via attributes: ${price}€`);
                       return { ...item, purchase_price: price };
                     }
                   }
                 }
               }
             }
+
+            // 2) Matching par monthly_price si pas d'attributs ou pas de match
+            if (item.monthly_payment && item.monthly_payment > 0) {
+              const unitMonthly = item.monthly_payment / (item.quantity || 1);
+              const match = variantPrices.find(vp => 
+                vp.monthly_price && Math.abs(vp.monthly_price - unitMonthly) < 0.02
+              );
+              if (match) {
+                const price = match.purchase_price || match.price || 0;
+                if (price > 0) {
+                  console.log(`✅ Enriched "${item.title}" via monthly_price match (${unitMonthly}€): ${price}€`);
+                  return { ...item, purchase_price: price };
+                }
+              }
+            }
           }
 
-          // Fallback: prix du produit parent
+          // 3) Fallback: prix du produit parent
           const { data: product } = await supabase
             .from('products')
             .select('price, purchase_price')
-            .eq('id', item.product_id)
+            .eq('id', productId)
             .single();
 
           if (product) {
             const price = product.purchase_price || product.price || 0;
             if (price > 0) {
-              console.log(`✅ Enriched purchase_price for "${item.title}" via product: ${price}€`);
+              console.log(`✅ Enriched "${item.title}" via product: ${price}€`);
               return { ...item, purchase_price: price };
             }
           }
         }
 
-        // Sinon, chercher par titre dans le catalogue
+        // 4) Recherche par titre dans le catalogue
         const { data: products } = await supabase
           .from('products')
           .select('id, price, purchase_price')
@@ -211,35 +227,28 @@ const enrichEquipmentPurchasePrices = async (equipment: OfferEquipment[], offerI
 
         if (products && products.length > 0) {
           const p = products[0];
-          // Chercher aussi dans les variant prices
           const { data: variantPrices } = await supabase
             .from('product_variant_prices')
-            .select('price, purchase_price')
+            .select('price, purchase_price, monthly_price')
             .eq('product_id', p.id);
 
-          if (variantPrices && variantPrices.length > 0) {
-            const attrs = item.attributes || [];
-            const attrMap: Record<string, string> = {};
-            attrs.forEach(a => { attrMap[a.key] = a.value; });
-
-            for (const vp of variantPrices) {
-              const vpAttrs = (vp as any).attributes;
-              if (vpAttrs && typeof vpAttrs === 'object' && Object.keys(attrMap).length > 0) {
-                const matches = Object.entries(attrMap).every(([k, v]) => vpAttrs[k] === v);
-                if (matches) {
-                  const price = vp.purchase_price || vp.price || 0;
-                  if (price > 0) {
-                    console.log(`✅ Enriched purchase_price for "${item.title}" via title+variant: ${price}€`);
-                    return { ...item, purchase_price: price };
-                  }
-                }
+          if (variantPrices && variantPrices.length > 0 && item.monthly_payment) {
+            const unitMonthly = item.monthly_payment / (item.quantity || 1);
+            const match = variantPrices.find(vp => 
+              vp.monthly_price && Math.abs(vp.monthly_price - unitMonthly) < 0.02
+            );
+            if (match) {
+              const price = match.purchase_price || match.price || 0;
+              if (price > 0) {
+                console.log(`✅ Enriched "${item.title}" via title+monthly match: ${price}€`);
+                return { ...item, purchase_price: price };
               }
             }
           }
 
           const price = p.purchase_price || p.price || 0;
           if (price > 0) {
-            console.log(`✅ Enriched purchase_price for "${item.title}" via title search: ${price}€`);
+            console.log(`✅ Enriched "${item.title}" via title search: ${price}€`);
             return { ...item, purchase_price: price };
           }
         }

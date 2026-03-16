@@ -61,7 +61,45 @@ export const createProductRequest = async (data: ProductRequestData, cartItems?:
       products: cartItems && cartItems.length > 0
         ? cartItems.map(item => {
             const priceData = item.price || { monthlyPrice: 0, purchasePrice: 0 };
-            const variantId = item.selectedOptions?.variant_id || item.selectedOptions?.selected_variant_id || item.product?.selected_variant_id;
+            // Résolution du variant_id: d'abord les clés internes
+            let variantId = item.selectedOptions?.variant_id || item.selectedOptions?.selected_variant_id || item.product?.selected_variant_id;
+            
+            // Si pas de variant_id, essayer de le résoudre via variant_combination_prices
+            if (!variantId && item.product?.variant_combination_prices && item.selectedOptions) {
+              const selectedAttrs = { ...item.selectedOptions };
+              // Supprimer les clés internes
+              delete selectedAttrs.variant_id;
+              delete selectedAttrs.selected_variant_id;
+              
+              const selectedKeys = Object.keys(selectedAttrs);
+              if (selectedKeys.length > 0) {
+                for (const combo of item.product.variant_combination_prices) {
+                  if (combo.attributes && typeof combo.attributes === 'object') {
+                    const allMatch = selectedKeys.every(key => {
+                      const selVal = String(selectedAttrs[key]).trim().toLowerCase();
+                      const comboVal = String(combo.attributes[key] || '').trim().toLowerCase();
+                      return selVal === comboVal;
+                    });
+                    if (allMatch) {
+                      variantId = combo.id;
+                      console.log(`✅ Resolved variant_id from combination_prices: ${variantId}`);
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            
+            // Préparer selected_attributes nettoyées pour fallback serveur
+            const selectedAttributes: Record<string, string> = {};
+            if (item.selectedOptions) {
+              Object.entries(item.selectedOptions).forEach(([k, v]) => {
+                if (k !== 'variant_id' && k !== 'selected_variant_id' && v) {
+                  selectedAttributes[k] = String(v);
+                }
+              });
+            }
+            
             return {
               product_id: item.product?.id || uuidv4(),
               ...(variantId ? { variant_id: variantId } : {}),
@@ -71,6 +109,7 @@ export const createProductRequest = async (data: ProductRequestData, cartItems?:
               monthly_payment: priceData.monthlyPrice || 0,
               product_name: item.product?.name || 'Demande de leasing',
               duration: item.duration || data.duration || 36,
+              ...(Object.keys(selectedAttributes).length > 0 ? { selected_attributes: selectedAttributes } : {}),
             };
           })
         : [{

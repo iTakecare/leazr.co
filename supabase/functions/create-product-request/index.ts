@@ -218,9 +218,12 @@ serve(async (req) => {
       let attributes = {};
       let variantMonthlyPrice = 0;
       let productMonthlyPrice = 0;
+      let resolvedVariantId = product.variant_id || null;
+      let priceResolutionMethod = 'none';
 
       console.log(`🔍 Récupération des prix depuis DB Leazr pour ${productName}`);
       
+      // 1) Résolution directe par variant_id
       if (product.variant_id) {
         const { data: variantData, error: variantError } = await supabaseAdmin
           .from('product_variant_prices')
@@ -232,12 +235,79 @@ serve(async (req) => {
           price = variantData.price || 0;
           attributes = variantData.attributes || {};
           variantMonthlyPrice = variantData.monthly_price || 0;
-          console.log(`✅ Prix récupérés de product_variant_prices: achat=${price}€, mensuel=${variantMonthlyPrice}€`);
+          priceResolutionMethod = 'variant_id';
+          console.log(`✅ [variant_id] Prix: achat=${price}€, mensuel=${variantMonthlyPrice}€`);
         } else {
-          console.log("⚠️ Variante non trouvée, fallback sur products");
+          console.log("⚠️ Variante non trouvée par ID, tentative fallback");
         }
       }
       
+      // 2) Fallback: résolution par selected_attributes
+      if (price === 0 && product.selected_attributes && Object.keys(product.selected_attributes).length > 0) {
+        console.log(`🔍 Tentative résolution par selected_attributes:`, product.selected_attributes);
+        const { data: allVariants } = await supabaseAdmin
+          .from('product_variant_prices')
+          .select('id, price, attributes, monthly_price')
+          .eq('product_id', product.product_id)
+          .eq('is_active', true);
+        
+        if (allVariants && allVariants.length > 0) {
+          const selAttrs = product.selected_attributes;
+          const selKeys = Object.keys(selAttrs);
+          
+          for (const v of allVariants) {
+            const vAttrs = v.attributes as Record<string, string> || {};
+            const allMatch = selKeys.every(k => {
+              const selVal = String(selAttrs[k]).trim().toLowerCase();
+              const vVal = String(vAttrs[k] || '').trim().toLowerCase();
+              return selVal === vVal;
+            });
+            if (allMatch) {
+              price = v.price || 0;
+              attributes = vAttrs;
+              variantMonthlyPrice = v.monthly_price || 0;
+              resolvedVariantId = v.id;
+              priceResolutionMethod = 'selected_attributes';
+              console.log(`✅ [selected_attributes] Variante trouvée: id=${v.id}, achat=${price}€, mensuel=${variantMonthlyPrice}€`);
+              break;
+            }
+          }
+        }
+      }
+      
+      // 3) Fallback: résolution par monthly_price matching
+      if (price === 0 && product.unit_price && product.unit_price > 0) {
+        console.log(`🔍 Tentative résolution par monthly_price matching: ${product.unit_price}€`);
+        const { data: allVariants } = await supabaseAdmin
+          .from('product_variant_prices')
+          .select('id, price, attributes, monthly_price')
+          .eq('product_id', product.product_id)
+          .eq('is_active', true);
+        
+        if (allVariants && allVariants.length > 0) {
+          // Chercher une correspondance exacte de monthly_price
+          const match = allVariants.find(v => 
+            v.monthly_price && Math.abs(v.monthly_price - product.unit_price) < 0.01
+          );
+          if (match) {
+            price = match.price || 0;
+            attributes = match.attributes as Record<string, string> || {};
+            variantMonthlyPrice = match.monthly_price || 0;
+            resolvedVariantId = match.id;
+            priceResolutionMethod = 'monthly_match';
+            console.log(`✅ [monthly_match] Variante trouvée: id=${match.id}, achat=${price}€, mensuel=${variantMonthlyPrice}€`);
+          }
+        }
+      }
+      
+      // 4) Fallback: utiliser purchase_price du payload si fourni
+      if (price === 0 && product.purchase_price && product.purchase_price > 0) {
+        price = product.purchase_price;
+        priceResolutionMethod = 'fallback_payload';
+        console.log(`✅ [fallback_payload] Utilisation du purchase_price du payload: ${price}€`);
+      }
+      
+      // 5) Dernier fallback: prix du produit parent
       if (price === 0) {
         const { data: productPrices } = await supabaseAdmin
           .from('products')
@@ -247,8 +317,11 @@ serve(async (req) => {
         
         price = productPrices?.price || 0;
         productMonthlyPrice = productPrices?.monthly_price || 0;
-        console.log(`✅ Prix récupérés de products (fallback): achat=${price}€, mensuel=${productMonthlyPrice}€`);
+        if (price > 0) priceResolutionMethod = 'product_fallback';
+        console.log(`✅ [product_fallback] Prix: achat=${price}€, mensuel=${productMonthlyPrice}€`);
       }
+      
+      console.log(`📊 Résolution prix pour "${productName}": méthode=${priceResolutionMethod}, achat=${price}€`);
 
       let monthlyPrice = 0;
 
