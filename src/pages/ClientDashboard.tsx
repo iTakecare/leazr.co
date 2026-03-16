@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import MiniWorkflowStepper from "@/components/client/MiniWorkflowStepper";
+import DocumentAlertBanner from "@/components/client/DocumentAlertBanner";
 
 
 
