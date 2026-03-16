@@ -183,6 +183,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         .select('id, amount, contract_id, invoice_date')
         .eq('company_id', companyId)
         .eq('invoice_type', 'leasing')
+        .is('credit_note_id', null)
         .gte('invoice_date', `${year}-01-01`)
         .lte('invoice_date', `${year}-12-31`);
 
