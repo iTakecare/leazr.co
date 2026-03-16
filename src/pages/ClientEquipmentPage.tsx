@@ -195,8 +195,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                 </Card>
               ) : (
                 contracts.map((contract) => {
-                  let items: any[] = [];
-                  try { items = JSON.parse(contract.equipment_description || "[]"); } catch { items = []; }
+                  const items = contract.items;
                   return (
                     <Card key={contract.id} className="border-0 shadow-sm rounded-2xl">
                       <CardHeader className="pb-2">
@@ -211,14 +210,14 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {Array.isArray(items) && items.length > 0 ? (
+                        {items.length > 0 ? (
                           <div className="space-y-2">
-                            {items.map((item: any, idx: number) => (
-                              <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                            {items.map((item: any) => (
+                              <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                                 <div className="flex items-center gap-3">
                                   <Cpu className="h-4 w-4 text-muted-foreground" />
                                   <div>
-                                    <p className="text-sm font-medium">{item.title || item.name || "Équipement"}</p>
+                                    <p className="text-sm font-medium">{item.title || "Équipement"}</p>
                                     <p className="text-xs text-muted-foreground">
                                       {item.serial_number ? `S/N: ${item.serial_number}` : "Pas de N° de série"}
                                       {item.quantity > 1 && ` · Qté: ${item.quantity}`}
@@ -234,8 +233,8 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                                   className="gap-1 text-xs"
                                   onClick={() => {
                                     setSelectedEquipment({
-                                      id: `${contract.id}-${idx}`,
-                                      name: item.title || item.name || "Équipement",
+                                      id: item.id,
+                                      name: item.title || "Équipement",
                                       contractRef: contract.tracking_number || contract.id.slice(0, 8),
                                     });
                                     setDeployWizardOpen(true);
@@ -247,7 +246,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                             ))}
                           </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground">{contract.equipment_description || "Aucun détail d'équipement"}</p>
+                          <p className="text-sm text-muted-foreground">Aucun équipement assigné</p>
                         )}
                       </CardContent>
                     </Card>
