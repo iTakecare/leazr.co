@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import MiniWorkflowStepper from "@/components/client/MiniWorkflowStepper";
+import DocumentAlertBanner from "@/components/client/DocumentAlertBanner";
 
 
 
@@ -148,6 +149,16 @@ const ClientDashboard = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* ── Document Alert Banners ── */}
+      {notifications.filter(n => n.urgent).length > 0 && (
+        <motion.div variants={itemVariants}>
+          <DocumentAlertBanner
+            alerts={notifications.filter(n => n.urgent)}
+            onNavigate={navigateToClient}
+          />
+        </motion.div>
+      )}
 
       {/* ── KPIs ── */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
