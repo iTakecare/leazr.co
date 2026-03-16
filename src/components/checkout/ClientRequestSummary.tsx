@@ -104,23 +104,38 @@ const ClientRequestSummary: React.FC = () => {
     const coefficient = totalPurchasePrice > 0 ? (cartTotal * 100) / totalPurchasePrice : 2.8;
     const financedAmount = totalPurchasePrice + (totalPurchasePrice * 0.15); // Purchase price + 15% margin
     
-    const requestData = {
+      // Build remarks with software info
+      let remarks = message || '';
+      const selectedSoftwareNames = softwareCatalog
+        .filter((sw: any) => selectedSoftwareIds.includes(sw.id))
+        .map((sw: any) => sw.name);
+      if (selectedSoftwareNames.length > 0) {
+        remarks += (remarks ? '\n\n' : '') + 'Logiciels souhaités : ' + selectedSoftwareNames.join(', ');
+      }
+      if (otherSoftware.trim()) {
+        remarks += (remarks ? '\n' : '') + 'Autres logiciels demandés : ' + otherSoftware.trim();
+      }
+      if (!remarks) {
+        remarks = "Demande envoyée depuis l'espace client";
+      }
+
+      const requestData = {
       type: 'client_request',
       workflow_template_id: 'f6e29d41-ef40-4253-ab08-e23060da47da',
       client_name: clientData.name || 'Client',
       client_email: clientData.email || '',
       client_contact_email: clientData.email || '',
       equipment_description: equipmentDescription,
-      amount: Number(totalPurchasePrice) || 0, // Total purchase price
-      monthly_payment: Number(cartTotal) || 0, // Total monthly payment
-      financed_amount: Number(financedAmount) || 0, // Purchase price + margin
+      amount: Number(totalPurchasePrice) || 0,
+      monthly_payment: Number(cartTotal) || 0,
+      financed_amount: Number(financedAmount) || 0,
       coefficient: Number(coefficient.toFixed(2)) || 2.8,
-      margin: Number(financedAmount - totalPurchasePrice) || 0, // Actual margin
+      margin: Number(financedAmount - totalPurchasePrice) || 0,
       status: 'pending',
       workflow_status: 'draft',
       company_id: companyId,
       client_id: clientData.id || null,
-      remarks: message || 'Demande envoyée depuis l\'espace client'
+      remarks
     };
 
     // Prepare cart items with pricing for equipment creation
