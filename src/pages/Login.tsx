@@ -12,6 +12,7 @@ import PageTransition from '@/components/layout/PageTransition';
 import Logo from '@/components/layout/Logo';
 import { getCompanySlugForUser } from '@/services/companySlugService';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
+import itakecareHero from '@/assets/itakecare-hero.jpg';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -324,7 +325,7 @@ const Login = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center" 
           style={{ 
-            backgroundImage: "url('https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80')",
+            backgroundImage: `url('${companyBranding ? itakecareHero : "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"}')`,
             filter: "brightness(0.8) blur(1px)"
           }}
         ></div>
