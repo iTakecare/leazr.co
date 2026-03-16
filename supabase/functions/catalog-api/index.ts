@@ -1799,57 +1799,101 @@ async function getProviderProducts(supabase: any, companyId: string, providerId:
 // MDM ENDPOINTS - Devices
 // ============================================
 
+// Helper: get all contract IDs belonging to a company
+async function getCompanyContractIds(supabase: any, companyId: string) {
+  const { data: contracts, error } = await supabase
+    .from('contracts')
+    .select('id')
+    .eq('company_id', companyId)
+  if (error) throw error
+  return (contracts || []).map((c: any) => c.id)
+}
+
 async function getDevices(supabase: any, companyId: string, searchParams: URLSearchParams) {
+  const contractIds = await getCompanyContractIds(supabase, companyId)
+  if (contractIds.length === 0) return { devices: [], pagination: { page: 1, limit: 50 } }
+
   let query = supabase
     .from('contract_equipment')
-    .select('id, equipment_description, serial_number, status, assigned_to, notes, created_at, updated_at, contract_id')
-    .eq('company_id', companyId)
+    .select('id, title, serial_number, individual_serial_number, order_status, quantity, purchase_price, monthly_payment, created_at, updated_at, contract_id, collaborator_id, supplier_id, is_individual')
+    .in('contract_id', contractIds)
 
   const status = searchParams.get('status')
   const type = searchParams.get('type')
   const page = parseInt(searchParams.get('page') || '1')
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
 
-  if (status) query = query.eq('status', status)
-  if (type) query = query.ilike('equipment_description', `%${type}%`)
+  if (status) query = query.eq('order_status', status)
+  if (type) query = query.ilike('title', `%${type}%`)
 
   query = query.range((page - 1) * limit, page * limit - 1).order('created_at', { ascending: false })
 
   const { data, error } = await query
   if (error) throw error
-  return { devices: data || [], pagination: { page, limit } }
+
+  const devices = (data || []).map((d: any) => ({
+    id: d.id,
+    equipment_description: d.title,
+    serial_number: d.serial_number || d.individual_serial_number,
+    status: d.order_status || 'unknown',
+    quantity: d.quantity,
+    purchase_price: d.purchase_price,
+    monthly_payment: d.monthly_payment,
+    contract_id: d.contract_id,
+    collaborator_id: d.collaborator_id,
+    supplier_id: d.supplier_id,
+    is_individual: d.is_individual,
+    created_at: d.created_at,
+    updated_at: d.updated_at,
+  }))
+
+  return { devices, pagination: { page, limit } }
 }
 
 async function getDevice(supabase: any, companyId: string, deviceId: string) {
+  const contractIds = await getCompanyContractIds(supabase, companyId)
+  if (contractIds.length === 0) throw new Error('Device not found')
+
   const { data, error } = await supabase
     .from('contract_equipment')
-    .select('*')
-    .eq('company_id', companyId)
+    .select('*, collaborators(name, email, department)')
+    .in('contract_id', contractIds)
     .eq('id', deviceId)
     .single()
 
   if (error) throw error
-  return { device: data }
+  return { device: { ...data, equipment_description: data.title, status: data.order_status || 'unknown' } }
 }
 
 async function updateDevice(supabase: any, companyId: string, deviceId: string, body: any) {
+  const contractIds = await getCompanyContractIds(supabase, companyId)
+  if (contractIds.length === 0) throw new Error('Device not found')
+
+  const { data: existing } = await supabase
+    .from('contract_equipment')
+    .select('id')
+    .in('contract_id', contractIds)
+    .eq('id', deviceId)
+    .single()
+  if (!existing) throw new Error('Device not found')
+
   const allowedFields: Record<string, any> = {}
   if (body.serial_number !== undefined) allowedFields.serial_number = body.serial_number
-  if (body.status !== undefined) allowedFields.status = body.status
-  if (body.notes !== undefined) allowedFields.notes = body.notes
-  if (body.assigned_to !== undefined) allowedFields.assigned_to = body.assigned_to
+  if (body.individual_serial_number !== undefined) allowedFields.individual_serial_number = body.individual_serial_number
+  if (body.order_status !== undefined) allowedFields.order_status = body.order_status
+  if (body.purchase_notes !== undefined) allowedFields.purchase_notes = body.purchase_notes
+  if (body.order_reference !== undefined) allowedFields.order_reference = body.order_reference
   allowedFields.updated_at = new Date().toISOString()
 
   const { data, error } = await supabase
     .from('contract_equipment')
     .update(allowedFields)
-    .eq('company_id', companyId)
     .eq('id', deviceId)
     .select()
     .single()
 
   if (error) throw error
-  return { device: data }
+  return { device: { ...data, equipment_description: data.title, status: data.order_status } }
 }
 
 async function getDeviceSoftware(supabase: any, companyId: string, deviceId: string) {
