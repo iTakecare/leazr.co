@@ -44,7 +44,7 @@ const getOfferTypeLabel = (type: string) => {
 };
 
 const ClientRequestDetailPage = () => {
-  const { id } = useParams();
+  const { id, slug } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { offers, loading, error } = useClientOffers(user?.email);
