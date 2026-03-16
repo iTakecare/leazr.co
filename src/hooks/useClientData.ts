@@ -157,7 +157,8 @@ export const useClientData = () => {
         const notifs: ClientNotification[] = [];
 
         // Contracts to sign
-        const { data: toSign } = await services.contracts.query()
+        const { data: toSign } = await supabase
+          .from('contracts')
           .select('id, equipment_description')
           .eq('client_id', clientId)
           .eq('status', 'contract_sent');
