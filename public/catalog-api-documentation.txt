@@ -212,6 +212,8 @@ PERMISSIONS PAR CLÉ API :
 - environmental: Données environnementales
 - suppliers: Lecture des fournisseurs
 - suppliers_write: Écriture sur les fournisseurs
+- mdm: Lecture MDM (appareils, logiciels, déploiements, profils, commandes)
+- mdm_write: Écriture MDM (déploiement, commandes, profils, enrôlement)
 
 NOTE : Les endpoints partenaires (GET /partners, GET /partners/{slug})
 sont publics et ne nécessitent pas de clé API.
