@@ -145,7 +145,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     id: eq.id,
     name: eq.title || "Équipement",
     serial: eq.serial_number || "—",
-    contractRef: eq.contracts?.tracking_number || eq.contract_id?.slice(0, 8) || "—",
+    contractRef: eq.contracts?.contract_number || eq.contract_id?.slice(0, 8) || "—",
     contractId: eq.contract_id,
     quantity: eq.quantity || 1,
     monthlyPayment: eq.monthly_payment || null,
