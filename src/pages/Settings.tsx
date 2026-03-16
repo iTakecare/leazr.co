@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, Users, Zap, MessageCircle, Shield, MapPin, GitBranch, Upload, FolderOpen } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, Users, Zap, MessageCircle, Shield, MapPin, GitBranch, Upload, FolderOpen, Package } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 
@@ -19,6 +19,8 @@ import PermissionProfilesManager from '@/components/settings/PermissionProfilesM
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
+import SoftwareCatalogManager from '@/components/settings/SoftwareCatalogManager';
+import MDMConfigSection from '@/components/settings/MDMConfigSection';
 
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
 import HistoricalContractsImport from '@/components/settings/HistoricalContractsImport';
@@ -100,7 +102,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isUserBroker ? 'grid-cols-10' : 'grid-cols-12'}`}>
+        <TabsList className={`grid w-full ${isUserBroker ? 'grid-cols-11' : 'grid-cols-13'}`}>
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -149,6 +151,10 @@ const Settings: React.FC = () => {
               Chat
             </TabsTrigger>
           )}
+          <TabsTrigger value="software" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Logiciels
+          </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
             Abonnement
@@ -224,6 +230,13 @@ const Settings: React.FC = () => {
             <ChatSettings />
           </TabsContent>
         )}
+
+        <TabsContent value="software" className="mt-6">
+          <div className="space-y-6">
+            <SoftwareCatalogManager />
+            <MDMConfigSection />
+          </div>
+        </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
           <TrialAwareSubscriptionCard />

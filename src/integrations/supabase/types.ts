@@ -4726,6 +4726,47 @@ export type Database = {
           },
         ]
       }
+      mdm_configurations: {
+        Row: {
+          api_url: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_connected: boolean
+          last_tested_at: string | null
+          mdm_type: string
+          updated_at: string
+        }
+        Insert: {
+          api_url?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_connected?: boolean
+          last_tested_at?: string | null
+          mdm_type?: string
+          updated_at?: string
+        }
+        Update: {
+          api_url?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_connected?: boolean
+          last_tested_at?: string | null
+          mdm_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdm_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menus_cms: {
         Row: {
           created_at: string
@@ -7499,6 +7540,119 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      software_catalog: {
+        Row: {
+          category: string
+          company_id: string
+          created_at: string
+          description: string | null
+          icon_url: string | null
+          id: string
+          is_active: boolean
+          name: string
+          package_url: string | null
+          platform: string
+          silent_install_command: string | null
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          category?: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          package_url?: string | null
+          platform?: string
+          silent_install_command?: string | null
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          category?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          package_url?: string | null
+          platform?: string
+          silent_install_command?: string | null
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_catalog_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_deployments: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          equipment_id: string
+          error_message: string | null
+          id: string
+          initiated_at: string
+          initiated_by: string | null
+          software_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          equipment_id: string
+          error_message?: string | null
+          id?: string
+          initiated_at?: string
+          initiated_by?: string | null
+          software_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          equipment_id?: string
+          error_message?: string | null
+          id?: string
+          initiated_at?: string
+          initiated_by?: string | null
+          software_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_deployments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_deployments_software_id_fkey"
+            columns: ["software_id"]
+            isOneToOne: false
+            referencedRelation: "software_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       steps_cms: {
         Row: {

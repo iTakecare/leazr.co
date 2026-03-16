@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download } from "lucide-react";
 import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import LocationManager from "@/components/equipment/LocationManager";
+import SoftwareDeploymentWizard from "@/components/equipment/SoftwareDeploymentWizard";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +25,8 @@ const itemVariants = {
 const ClientEquipmentPage = () => {
   const { clientData, loading, error } = useClientData();
   const [searchQuery, setSearchQuery] = useState("");
+  const [deployWizardOpen, setDeployWizardOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
 
   // Fetch contracts with equipment
   const { data: contracts = [] } = useQuery({
@@ -208,6 +212,21 @@ const ClientEquipmentPage = () => {
                                 {item.monthly_payment && (
                                   <span className="text-xs text-muted-foreground">{Number(item.monthly_payment).toFixed(2)} €/mois</span>
                                 )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="gap-1 text-xs"
+                                  onClick={() => {
+                                    setSelectedEquipment({
+                                      id: `${contract.id}-${idx}`,
+                                      name: item.title || item.name || "Équipement",
+                                      contractRef: contract.tracking_number || contract.id.slice(0, 8),
+                                    });
+                                    setDeployWizardOpen(true);
+                                  }}
+                                >
+                                  <Download className="h-3 w-3" /> Installer
+                                </Button>
                               </div>
                             ))}
                           </div>
@@ -252,6 +271,7 @@ const ClientEquipmentPage = () => {
                           <th className="text-left text-xs font-medium text-muted-foreground p-3">N° Série</th>
                           <th className="text-left text-xs font-medium text-muted-foreground p-3">Contrat</th>
                           <th className="text-left text-xs font-medium text-muted-foreground p-3">Qté</th>
+                          <th className="text-left text-xs font-medium text-muted-foreground p-3">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -268,6 +288,19 @@ const ClientEquipmentPage = () => {
                               <Badge variant="outline" className="text-xs">{eq.contractRef}</Badge>
                             </td>
                             <td className="p-3 text-sm text-muted-foreground">{eq.quantity}</td>
+                            <td className="p-3">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1 text-xs"
+                                onClick={() => {
+                                  setSelectedEquipment({ id: eq.id, name: eq.name, contractRef: eq.contractRef });
+                                  setDeployWizardOpen(true);
+                                }}
+                              >
+                                <Download className="h-3 w-3" /> Installer
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -315,6 +348,14 @@ const ClientEquipmentPage = () => {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      {selectedEquipment && (
+        <SoftwareDeploymentWizard
+          open={deployWizardOpen}
+          onOpenChange={setDeployWizardOpen}
+          equipment={selectedEquipment}
+        />
+      )}
     </motion.div>
   );
 };
