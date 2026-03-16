@@ -7,6 +7,62 @@ DATE : 16 mars 2026 — Endpoints MDM complets (appareils, logiciels, profils, e
 STATUT : Prêt pour production
 
 ===========================================
+   NOUVEAUTES VERSION 2026.5
+===========================================
+
+Endpoints MDM complets pour intégration avec un système MDM externe.
+Gestion des appareils, déploiement logiciel, profils de configuration,
+enrôlement et commandes à distance.
+
+NOUVELLES FONCTIONNALITES :
+
+1. **Appareils (Devices)**
+   - GET /devices : Liste des équipements avec filtres
+   - GET /devices/{id} : Détail d'un appareil
+   - PATCH /devices/{id} : Mise à jour (serial, statut, notes)
+   - GET /devices/{id}/software : Logiciels déployés
+   - GET /devices/{id}/history : Historique des mouvements
+   - GET /devices/{id}/status : État enrichi (inventaire + profils)
+
+2. **Catalogue logiciels (Software)**
+   - GET /software : Catalogue des logiciels actifs
+   - GET /software/{id} : Détail d'un logiciel
+
+3. **Déploiements (Deployments)**
+   - POST /devices/{id}/deploy : Déployer des logiciels
+   - GET /deployments : Liste des déploiements
+   - GET /deployments/{id} : Détail d'un déploiement
+   - PATCH /deployments/{id} : Webhook callback (MDM → Leazr)
+
+4. **Profils de configuration (MDM Profiles)**
+   - GET /mdm-profiles : Liste des profils
+   - GET /mdm-profiles/{id} : Détail avec payload
+   - POST /mdm-profiles : Créer un profil (wifi, vpn, restriction...)
+   - POST /devices/{id}/assign-profile : Assigner un profil
+   - DELETE /devices/{id}/profiles/{profileId} : Retirer un profil
+
+5. **Enrôlement (Enrollment)**
+   - POST /enrollment/token : Générer un token d'enrôlement
+   - POST /enrollment/register : Callback enregistrement appareil
+   - GET /enrollment/pending : Tokens en attente
+
+6. **Commandes à distance (Commands)**
+   - POST /devices/{id}/command : Envoyer une commande (lock, wipe, restart...)
+   - GET /commands : Liste des commandes
+   - GET /commands/{id} : Détail d'une commande
+   - PATCH /commands/{id} : Webhook callback statut commande
+
+7. **Nouvelles permissions API**
+   - `mdm` : lecture (appareils, logiciels, déploiements, profils, commandes)
+   - `mdm_write` : écriture (déploiement, commandes, profils, enrôlement)
+
+8. **Nouvelles tables**
+   - `mdm_profiles` : Profils de configuration
+   - `mdm_device_profiles` : Association appareil ↔ profil
+   - `mdm_enrollment_tokens` : Tokens d'enrôlement
+   - `mdm_commands` : Commandes envoyées aux appareils
+
+===========================================
    NOUVEAUTES VERSION 2026.4
 ===========================================
 
