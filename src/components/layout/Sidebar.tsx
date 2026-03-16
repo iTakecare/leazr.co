@@ -28,6 +28,7 @@ import SidebarUserSection from "./SidebarUserSection";
 import SidebarMenuItem from "./SidebarMenuItem";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
 import { useTaskNotifications } from "@/hooks/useTaskNotifications";
+import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
 
 interface SidebarProps {
   className?: string;
@@ -39,6 +40,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const { settings, loading: settingsLoading } = useSiteSettings();
   const { hasModuleAccess } = useModuleAccess();
   const { unreadCount: taskUnreadCount } = useTaskNotifications();
+  const { unreadCount: supportUnreadCount } = useTicketReplyNotifications({ role: "admin" });
   const { preferences, updateSidebarCollapsed } = useUserPreferences();
   const location = useLocation();
   
@@ -136,7 +138,8 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         label: "Support", 
         href: `${basePrefix}/admin/support`, 
         moduleSlug: "support",
-        alwaysVisible: true 
+        alwaysVisible: true,
+        badge: supportUnreadCount > 0 ? String(supportUnreadCount) : undefined
       },
       { 
         icon: Settings, 
@@ -151,7 +154,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       if (item.alwaysVisible) return true;
       return hasModuleAccess(item.moduleSlug);
     });
-  }, [companySlug, hasModuleAccess, taskUnreadCount]);
+  }, [companySlug, hasModuleAccess, taskUnreadCount, supportUnreadCount]);
 
   const isActive = useCallback((href: string) => location.pathname === href, [location.pathname]);
   

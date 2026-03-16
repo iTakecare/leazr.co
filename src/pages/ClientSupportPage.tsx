@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClientData } from "@/hooks/useClientData";
+import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -333,6 +334,13 @@ const ClientTicketDetail = ({ ticket, onBack, clientName }: ClientTicketDetailPr
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { clientData } = useClientData();
+  const { markRepliesAsRead } = useTicketReplyNotifications({ role: "client", clientId: clientData?.id });
+
+  // Mark admin replies as read when opening the ticket
+  useEffect(() => {
+    markRepliesAsRead(ticket.id);
+  }, [ticket.id, markRepliesAsRead]);
 
   const statusConf = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.open;
   const StatusIcon = statusConf.icon;

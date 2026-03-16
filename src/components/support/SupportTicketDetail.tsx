@@ -1,6 +1,7 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,12 @@ const SupportTicketDetail = ({ ticket, onBack }: SupportTicketDetailProps) => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { markRepliesAsRead } = useTicketReplyNotifications({ role: "admin" });
+
+  // Mark client replies as read when opening the ticket
+  useEffect(() => {
+    markRepliesAsRead(ticket.id);
+  }, [ticket.id, markRepliesAsRead]);
 
   // Fetch replies
   const { data: replies = [], isLoading: repliesLoading } = useQuery({

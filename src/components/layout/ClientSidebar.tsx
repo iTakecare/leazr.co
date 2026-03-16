@@ -6,6 +6,8 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useLocation } from "react-router-dom";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useClientRequestsCount } from "@/hooks/useClientRequests";
+import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
+import { useClientData } from "@/hooks/useClientData";
 import { 
   LayoutDashboard,
   FileText,
@@ -37,6 +39,8 @@ const ClientSidebar = memo(({ className, onLinkClick }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { count: requestsCount } = useClientRequestsCount();
+  const { clientData } = useClientData();
+  const { unreadCount: supportUnreadCount } = useTicketReplyNotifications({ role: "client", clientId: clientData?.id });
 
   // Mémoriser les éléments de menu
   const menuItems = useMemo(() => [
@@ -52,9 +56,9 @@ const ClientSidebar = memo(({ className, onLinkClick }: SidebarProps) => {
     },
     { icon: Package, label: "Catalogue", href: "products", color: "violet" },
     { icon: Download, label: "Logiciels", href: "software", color: "cyan" },
-    { icon: HelpCircle, label: "Support", href: "support", color: "pink" },
+    { icon: HelpCircle, label: "Support", href: "support", color: "pink", badge: supportUnreadCount > 0 ? supportUnreadCount.toString() : undefined },
     { icon: Settings, label: "Paramètres", href: "settings", color: "gray" },
-  ], [requestsCount]);
+  ], [requestsCount, supportUnreadCount]);
 
   // Mémoriser la fonction isActive
   const isActive = useCallback((href: string) => {
