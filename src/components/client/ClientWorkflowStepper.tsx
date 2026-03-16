@@ -151,7 +151,7 @@ const ClientWorkflowStepper: React.FC<ClientWorkflowStepperProps> = ({
       </div>
 
       {/* Stepper horizontal */}
-      <div className="relative flex items-start justify-center gap-0 overflow-x-auto pt-4 pb-6">
+      <div className="relative flex items-start gap-0 overflow-x-auto pt-4 pb-6 px-2 scrollbar-thin">
         {activeSteps.map((step, index) => {
           const Icon = step.icon;
           const isActive = index === currentIndex;
