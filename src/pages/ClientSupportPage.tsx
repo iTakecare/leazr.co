@@ -41,42 +41,45 @@ const ClientSupportPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ subject: "", category: "technical", description: "" });
 
+  const clientId = clientData?.id;
+  const companyId = (clientData as any)?.company_id;
+
   // Fetch client tickets
   const { data: tickets = [], isLoading: ticketsLoading } = useQuery({
-    queryKey: ["client-tickets", clientData?.id],
+    queryKey: ["client-tickets", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("support_tickets")
         .select("*")
-        .eq("client_id", clientData!.id)
+        .eq("client_id", clientId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!clientData?.id,
+    enabled: !!clientId,
   });
 
   // Fetch FAQ from knowledge base
   const { data: faqArticles = [] } = useQuery({
-    queryKey: ["client-faq", clientData?.company_id],
+    queryKey: ["client-faq", companyId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("support_knowledge_base")
         .select("*")
-        .eq("company_id", clientData!.company_id)
+        .eq("company_id", companyId!)
         .eq("is_active", true)
         .order("category");
       if (error) throw error;
       return data;
     },
-    enabled: !!clientData?.company_id,
+    enabled: !!companyId,
   });
 
   const createTicket = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("support_tickets").insert({
-        client_id: clientData!.id,
-        company_id: clientData!.company_id,
+        client_id: clientId!,
+        company_id: companyId!,
         subject: form.subject,
         category: form.category,
         description: form.description,

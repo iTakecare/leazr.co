@@ -309,7 +309,7 @@ const ClientEquipmentPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4">
-                <LocationManager clientId={clientData.id} companyId={clientData.company_id} />
+                <LocationManager clientId={clientData.id} companyId={(clientData as any).company_id} />
               </CardContent>
             </Card>
           </TabsContent>

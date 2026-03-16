@@ -70,7 +70,7 @@ const LocationManager: React.FC<LocationManagerProps> = ({ clientId, companyId }
   });
 
   // Group by site
-  const grouped = locations.reduce<Record<string, typeof locations>>((acc, loc) => {
+  const grouped = (locations as any[]).reduce<Record<string, any[]>>((acc, loc) => {
     if (!acc[loc.site_name]) acc[loc.site_name] = [];
     acc[loc.site_name].push(loc);
     return acc;
