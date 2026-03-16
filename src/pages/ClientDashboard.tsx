@@ -7,12 +7,13 @@ import { useClientData } from "@/hooks/useClientData";
 import {
   CreditCard, Package, FileText, Clock, Settings, Eye,
   AlertCircle, Bell, ArrowRight, Plus, Headphones,
-  CalendarClock, CheckCircle2, CircleDot, Circle,
+  CalendarClock,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import MiniWorkflowStepper from "@/components/client/MiniWorkflowStepper";
 
 
 
