@@ -102,7 +102,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isUserBroker ? 'grid-cols-10' : 'grid-cols-12'}`}>
+        <TabsList className={`grid w-full ${isUserBroker ? 'grid-cols-11' : 'grid-cols-13'}`}>
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
