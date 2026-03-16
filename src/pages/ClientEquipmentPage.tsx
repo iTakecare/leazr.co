@@ -351,6 +351,15 @@ const ClientEquipmentPage = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Software Tab */}
+          <TabsContent value="software">
+            <ClientSoftwareTab
+              clientId={clientData.id}
+              companyId={(clientData as any).company_id}
+              equipment={allEquipment}
+            />
+          </TabsContent>
         </Tabs>
       </motion.div>
 
