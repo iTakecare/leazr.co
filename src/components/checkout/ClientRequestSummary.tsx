@@ -4,6 +4,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { useClientData } from '@/hooks/useClientData';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
@@ -11,8 +13,10 @@ import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { createClientRequest } from '@/services/offers/clientRequests';
 import { formatCurrency } from '@/utils/formatters';
 import { getProductPrice } from '@/utils/productPricing';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Check, User, Mail, Building, Package, Euro, Loader2, Send } from 'lucide-react';
+import { Check, User, Mail, Building, Package, Euro, Loader2, Send, Monitor } from 'lucide-react';
 
 const ClientRequestSummary: React.FC = () => {
   const { navigateToClient } = useRoleNavigation();
