@@ -1794,3 +1794,466 @@ async function getProviderProducts(supabase: any, companyId: string, providerId:
   if (error) throw error
   return { products: products || [] }
 }
+
+// ============================================
+// MDM ENDPOINTS - Devices
+// ============================================
+
+async function getDevices(supabase: any, companyId: string, searchParams: URLSearchParams) {
+  let query = supabase
+    .from('contract_equipment')
+    .select('id, equipment_description, serial_number, status, assigned_to, notes, created_at, updated_at, contract_id')
+    .eq('company_id', companyId)
+
+  const status = searchParams.get('status')
+  const type = searchParams.get('type')
+  const page = parseInt(searchParams.get('page') || '1')
+  const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
+
+  if (status) query = query.eq('status', status)
+  if (type) query = query.ilike('equipment_description', `%${type}%`)
+
+  query = query.range((page - 1) * limit, page * limit - 1).order('created_at', { ascending: false })
+
+  const { data, error } = await query
+  if (error) throw error
+  return { devices: data || [], pagination: { page, limit } }
+}
+
+async function getDevice(supabase: any, companyId: string, deviceId: string) {
+  const { data, error } = await supabase
+    .from('contract_equipment')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('id', deviceId)
+    .single()
+
+  if (error) throw error
+  return { device: data }
+}
+
+async function updateDevice(supabase: any, companyId: string, deviceId: string, body: any) {
+  const allowedFields: Record<string, any> = {}
+  if (body.serial_number !== undefined) allowedFields.serial_number = body.serial_number
+  if (body.status !== undefined) allowedFields.status = body.status
+  if (body.notes !== undefined) allowedFields.notes = body.notes
+  if (body.assigned_to !== undefined) allowedFields.assigned_to = body.assigned_to
+  allowedFields.updated_at = new Date().toISOString()
+
+  const { data, error } = await supabase
+    .from('contract_equipment')
+    .update(allowedFields)
+    .eq('company_id', companyId)
+    .eq('id', deviceId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return { device: data }
+}
+
+async function getDeviceSoftware(supabase: any, companyId: string, deviceId: string) {
+  const { data, error } = await supabase
+    .from('software_deployments')
+    .select('id, software_id, status, initiated_at, completed_at, error_message, software_catalog(id, name, version, platform, category)')
+    .eq('company_id', companyId)
+    .eq('equipment_id', deviceId)
+    .order('initiated_at', { ascending: false })
+
+  if (error) throw error
+  return { deployments: data || [] }
+}
+
+async function getDeviceHistory(supabase: any, companyId: string, deviceId: string) {
+  const { data, error } = await supabase
+    .from('equipment_tracking')
+    .select('*')
+    .eq('equipment_id', deviceId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return { history: data || [] }
+}
+
+async function getDeviceStatus(supabase: any, companyId: string, deviceId: string) {
+  const { data: device } = await supabase
+    .from('contract_equipment')
+    .select('id, equipment_description, serial_number, status, notes, updated_at')
+    .eq('company_id', companyId)
+    .eq('id', deviceId)
+    .single()
+
+  const { data: lastCommand } = await supabase
+    .from('mdm_commands')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('equipment_id', deviceId)
+    .eq('command_type', 'inventory')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const { data: profiles } = await supabase
+    .from('mdm_device_profiles')
+    .select('id, profile_id, status, applied_at, mdm_profiles(name, profile_type)')
+    .eq('company_id', companyId)
+    .eq('equipment_id', deviceId)
+
+  return {
+    device: device || null,
+    last_inventory: lastCommand?.result || null,
+    last_inventory_at: lastCommand?.completed_at || null,
+    profiles_applied: (profiles || []).filter((p: any) => p.status === 'applied').length,
+    profiles: profiles || []
+  }
+}
+
+// ============================================
+// MDM ENDPOINTS - Software Catalog
+// ============================================
+
+async function getSoftwareCatalog(supabase: any, companyId: string, searchParams: URLSearchParams) {
+  let query = supabase
+    .from('software_catalog')
+    .select('id, name, version, platform, category, description, silent_install_command, is_active, created_at')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+
+  const platform = searchParams.get('platform')
+  const category = searchParams.get('category')
+  if (platform) query = query.eq('platform', platform)
+  if (category) query = query.eq('category', category)
+
+  query = query.order('name')
+  const { data, error } = await query
+  if (error) throw error
+  return { software: data || [] }
+}
+
+async function getSoftwareDetail(supabase: any, companyId: string, softwareId: string) {
+  const { data, error } = await supabase
+    .from('software_catalog')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('id', softwareId)
+    .single()
+
+  if (error) throw error
+  return { software: data }
+}
+
+// ============================================
+// MDM ENDPOINTS - Deployments
+// ============================================
+
+async function deploySoftwareToDevice(supabase: any, companyId: string, deviceId: string, body: any) {
+  const { software_ids, initiated_by } = body
+  if (!software_ids?.length) throw new Error('software_ids required')
+
+  const deployments = software_ids.map((swId: string) => ({
+    company_id: companyId,
+    equipment_id: deviceId,
+    software_id: swId,
+    status: 'pending',
+    initiated_by: initiated_by || null,
+    initiated_at: new Date().toISOString(),
+  }))
+
+  const { data, error } = await supabase
+    .from('software_deployments')
+    .insert(deployments)
+    .select()
+
+  if (error) throw error
+  return { deployments: data }
+}
+
+async function getDeployments(supabase: any, companyId: string, searchParams: URLSearchParams) {
+  let query = supabase
+    .from('software_deployments')
+    .select('id, equipment_id, software_id, status, initiated_by, initiated_at, completed_at, error_message, software_catalog(name, version)')
+    .eq('company_id', companyId)
+
+  const status = searchParams.get('status')
+  const equipmentId = searchParams.get('equipment_id')
+  if (status) query = query.eq('status', status)
+  if (equipmentId) query = query.eq('equipment_id', equipmentId)
+
+  query = query.order('initiated_at', { ascending: false }).limit(100)
+  const { data, error } = await query
+  if (error) throw error
+  return { deployments: data || [] }
+}
+
+async function getDeploymentDetail(supabase: any, companyId: string, deploymentId: string) {
+  const { data, error } = await supabase
+    .from('software_deployments')
+    .select('*, software_catalog(name, version, platform)')
+    .eq('company_id', companyId)
+    .eq('id', deploymentId)
+    .single()
+
+  if (error) throw error
+  return { deployment: data }
+}
+
+async function updateDeploymentStatus(supabase: any, companyId: string, deploymentId: string, body: any) {
+  const allowedFields: Record<string, any> = {}
+  if (body.status) allowedFields.status = body.status
+  if (body.error_message !== undefined) allowedFields.error_message = body.error_message
+  if (['success', 'failed'].includes(body.status)) {
+    allowedFields.completed_at = new Date().toISOString()
+  }
+
+  const { data, error } = await supabase
+    .from('software_deployments')
+    .update(allowedFields)
+    .eq('company_id', companyId)
+    .eq('id', deploymentId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return { deployment: data }
+}
+
+// ============================================
+// MDM ENDPOINTS - Profiles
+// ============================================
+
+async function getMdmProfiles(supabase: any, companyId: string, searchParams: URLSearchParams) {
+  let query = supabase
+    .from('mdm_profiles')
+    .select('id, name, description, profile_type, platform, is_active, created_at, updated_at')
+    .eq('company_id', companyId)
+
+  const profileType = searchParams.get('type')
+  const platform = searchParams.get('platform')
+  if (profileType) query = query.eq('profile_type', profileType)
+  if (platform) query = query.eq('platform', platform)
+
+  query = query.order('name')
+  const { data, error } = await query
+  if (error) throw error
+  return { profiles: data || [] }
+}
+
+async function getMdmProfile(supabase: any, companyId: string, profileId: string) {
+  const { data, error } = await supabase
+    .from('mdm_profiles')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('id', profileId)
+    .single()
+
+  if (error) throw error
+  return { profile: data }
+}
+
+async function createMdmProfile(supabase: any, companyId: string, body: any) {
+  const { name, description, profile_type, payload, platform, is_active } = body
+  if (!name || !profile_type) throw new Error('name and profile_type required')
+
+  const { data, error } = await supabase
+    .from('mdm_profiles')
+    .insert({
+      company_id: companyId,
+      name,
+      description: description || null,
+      profile_type,
+      payload: payload || {},
+      platform: platform || 'all',
+      is_active: is_active !== false,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return { profile: data }
+}
+
+async function assignProfileToDevice(supabase: any, companyId: string, deviceId: string, body: any) {
+  const { profile_id } = body
+  if (!profile_id) throw new Error('profile_id required')
+
+  const { data, error } = await supabase
+    .from('mdm_device_profiles')
+    .insert({
+      company_id: companyId,
+      equipment_id: deviceId,
+      profile_id,
+      status: 'pending',
+    })
+    .select('*, mdm_profiles(name, profile_type)')
+    .single()
+
+  if (error) throw error
+  return { assignment: data }
+}
+
+async function removeProfileFromDevice(supabase: any, companyId: string, deviceId: string, profileId: string) {
+  const { data, error } = await supabase
+    .from('mdm_device_profiles')
+    .update({ status: 'removed', updated_at: new Date().toISOString() })
+    .eq('company_id', companyId)
+    .eq('equipment_id', deviceId)
+    .eq('profile_id', profileId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return { removed: true, assignment: data }
+}
+
+// ============================================
+// MDM ENDPOINTS - Enrollment
+// ============================================
+
+async function createEnrollmentToken(supabase: any, companyId: string, body: any) {
+  const { equipment_id, description, expires_in_days } = body
+
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + (expires_in_days || 7))
+
+  const { data, error } = await supabase
+    .from('mdm_enrollment_tokens')
+    .insert({
+      company_id: companyId,
+      equipment_id: equipment_id || null,
+      description: description || null,
+      expires_at: expiresAt.toISOString(),
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return { token: data }
+}
+
+async function registerEnrolledDevice(supabase: any, companyId: string, body: any) {
+  const { token, device_info } = body
+  if (!token) throw new Error('token required')
+
+  const { data: tokenData, error: tokenError } = await supabase
+    .from('mdm_enrollment_tokens')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('token', token)
+    .eq('is_used', false)
+    .single()
+
+  if (tokenError || !tokenData) throw new Error('Invalid or expired enrollment token')
+  if (new Date(tokenData.expires_at) < new Date()) throw new Error('Enrollment token expired')
+
+  await supabase
+    .from('mdm_enrollment_tokens')
+    .update({ is_used: true, used_at: new Date().toISOString() })
+    .eq('id', tokenData.id)
+
+  if (tokenData.equipment_id && device_info) {
+    const updateFields: Record<string, any> = { updated_at: new Date().toISOString() }
+    if (device_info.serial_number) updateFields.serial_number = device_info.serial_number
+    if (device_info.notes) updateFields.notes = device_info.notes
+
+    await supabase
+      .from('contract_equipment')
+      .update(updateFields)
+      .eq('id', tokenData.equipment_id)
+      .eq('company_id', companyId)
+  }
+
+  return {
+    enrolled: true,
+    equipment_id: tokenData.equipment_id,
+    device_info: device_info || null,
+  }
+}
+
+async function getPendingEnrollments(supabase: any, companyId: string) {
+  const { data, error } = await supabase
+    .from('mdm_enrollment_tokens')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_used', false)
+    .gte('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return { pending_tokens: data || [] }
+}
+
+// ============================================
+// MDM ENDPOINTS - Commands
+// ============================================
+
+async function sendDeviceCommand(supabase: any, companyId: string, deviceId: string, body: any) {
+  const { command_type, payload, initiated_by } = body
+  if (!command_type) throw new Error('command_type required')
+
+  const { data, error } = await supabase
+    .from('mdm_commands')
+    .insert({
+      company_id: companyId,
+      equipment_id: deviceId,
+      command_type,
+      payload: payload || {},
+      status: 'pending',
+      initiated_by: initiated_by || null,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return { command: data }
+}
+
+async function getCommands(supabase: any, companyId: string, searchParams: URLSearchParams) {
+  let query = supabase
+    .from('mdm_commands')
+    .select('*')
+    .eq('company_id', companyId)
+
+  const status = searchParams.get('status')
+  const equipmentId = searchParams.get('equipment_id')
+  const commandType = searchParams.get('type')
+  if (status) query = query.eq('status', status)
+  if (equipmentId) query = query.eq('equipment_id', equipmentId)
+  if (commandType) query = query.eq('command_type', commandType)
+
+  query = query.order('created_at', { ascending: false }).limit(100)
+  const { data, error } = await query
+  if (error) throw error
+  return { commands: data || [] }
+}
+
+async function getCommandDetail(supabase: any, companyId: string, commandId: string) {
+  const { data, error } = await supabase
+    .from('mdm_commands')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('id', commandId)
+    .single()
+
+  if (error) throw error
+  return { command: data }
+}
+
+async function updateCommandStatus(supabase: any, companyId: string, commandId: string, body: any) {
+  const allowedFields: Record<string, any> = { updated_at: new Date().toISOString() }
+  if (body.status) allowedFields.status = body.status
+  if (body.result !== undefined) allowedFields.result = body.result
+  if (body.error_message !== undefined) allowedFields.error_message = body.error_message
+  if (body.status === 'sent') allowedFields.sent_at = new Date().toISOString()
+  if (['completed', 'failed'].includes(body.status)) allowedFields.completed_at = new Date().toISOString()
+
+  const { data, error } = await supabase
+    .from('mdm_commands')
+    .update(allowedFields)
+    .eq('company_id', companyId)
+    .eq('id', commandId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return { command: data }
+}
