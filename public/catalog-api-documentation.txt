@@ -2,8 +2,8 @@
    DOCUMENTATION API CATALOG LOVABLE 
 ===========================================
 
-VERSION : 2026.4  
-DATE : 15 mars 2026 — Image hero partenaires & génération IA
+VERSION : 2026.5  
+DATE : 16 mars 2026 — Endpoints MDM complets (appareils, logiciels, profils, enrôlement, commandes)
 STATUT : Prêt pour production
 
 ===========================================
