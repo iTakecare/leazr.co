@@ -146,7 +146,7 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
         contract_equipment(id, monthly_payment, quantity)
       `)
       .eq('id', contractId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("❌ Erreur lors de la récupération du contrat:", error);
