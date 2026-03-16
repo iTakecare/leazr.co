@@ -505,6 +505,21 @@ Deno.serve(async (req) => {
         break
       }
 
+      case 'contracts': {
+        if (!keyData.permissions.catalog && !keyData.permissions.mdm && !keyData.permissions.mdm_write) {
+          return new Response(
+            JSON.stringify({ error: 'Permission denied: catalog or mdm required' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        if (subPaths.length > 0) {
+          data = await getContractDetail(supabaseAdmin, companyId, subPaths[0])
+        } else {
+          data = await getContracts(supabaseAdmin, companyId, url.searchParams)
+        }
+        break
+      }
+
       case 'commands': {
         if (!keyData.permissions.mdm && !keyData.permissions.mdm_write) {
           return new Response(
