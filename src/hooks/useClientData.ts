@@ -30,6 +30,11 @@ interface ClientNotification {
   description: string;
   actionLabel?: string;
   actionHref?: string;
+  urgent?: boolean;
+  documentsList?: string[];
+  documentCount?: number;
+  offerId?: string;
+  dossierNumber?: string;
 }
 
 export const useClientData = () => {
