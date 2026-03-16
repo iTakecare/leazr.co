@@ -1,70 +1,48 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Pré-remplir la base de connaissances avec des articles par défaut
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Approche
 
-## Endpoints API ajoutés
+Ajouter un bouton "Pré-remplir avec des articles par défaut" dans le `KnowledgeBaseManager` qui insère en masse ~20 articles couvrant les 4 catégories. Les articles sont définis en dur dans un fichier de constantes et insérés via Supabase avec le `company_id` de l'admin connecté.
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+### Articles prévus
 
-## Documentation
+**Général (5 articles)**
+- Qu'est-ce que le leasing informatique ?
+- Comment fonctionne iTakecare ?
+- Avantages du leasing vs achat
+- Quels types d'équipements peut-on financer ?
+- Comment contacter le support ?
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+**Contrats (6 articles)**
+- Comment signer un contrat ?
+- Quelle est la durée d'un contrat de leasing ?
+- Comment résilier ou modifier un contrat ?
+- Que se passe-t-il à la fin du contrat ?
+- Comment consulter mes contrats en cours ?
+- Qu'est-ce que l'apport initial (down payment) ?
 
-## Tables
+**Équipements (5 articles)**
+- Comment demander un nouvel équipement ?
+- Comment signaler une panne ou un problème ?
+- Marques et modèles disponibles
+- Renouvellement d'équipement
+- Suivi et inventaire de mes équipements
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
-- `software_catalog`, `software_deployments`, `mdm_configurations`
+**Facturation (4 articles)**
+- Comment sont calculées les mensualités ?
+- Où consulter mes factures ?
+- Que faire en cas d'impayé ?
+- Comment modifier mes coordonnées de facturation ?
 
----
+### Fichiers impactés
 
-# Plan : Déploiement logiciel à distance (MDM)
+1. **`src/constants/defaultKnowledgeBaseArticles.ts`** (nouveau) — tableau de ~20 articles `{ title, content, category }` avec du contenu riche en markdown
+2. **`src/components/support/KnowledgeBaseManager.tsx`** — ajout d'un bouton "Pré-remplir" visible uniquement quand la base est vide, qui appelle `supabase.from('support_knowledge_base').insert(articles)` avec le `company_id` courant
 
-## Statut
+### Détails techniques
+- Pas de migration SQL, pas d'edge function — insertion directe via le client Supabase (l'admin a déjà les droits RLS)
+- Le bouton est conditionnel : affiché uniquement si `articles.length === 0`
+- Après insertion, invalidation du cache React Query pour rafraîchir la liste
 
-- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
-- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
-- ✅ Phase 3 — Table `software_deployments` + suivi statut
-- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
-- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
-
-## MDM recommandé : Fleet (FleetDM)
-
-| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
-|---|---|---|---|
-| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
-| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
-| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
-| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
-| Open-source | ✅ MIT | ✅ | ✅ |
-
-### Intégration technique
-
-1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
-2. **Déployer l'agent `fleetd`** sur les machines clientes
-3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
-4. L'edge function existante route les appels vers Fleet automatiquement
-
-### Composants
-
-| Fichier | Rôle |
-|---|---|
-| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
-| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
-| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
-| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
