@@ -33,8 +33,13 @@ export const createClientRequest = async (data: any, cartItems?: any[]) => {
       }
     }
 
-    // Get leaser to calculate proper coefficient
-    const leaser = await getLeaserById(defaultLeaserId);
+    // Get leaser to calculate proper coefficient (may fail for client users due to RLS)
+    let leaser = null;
+    try {
+      leaser = await getLeaserById(defaultLeaserId);
+    } catch (leaserError) {
+      console.warn("Could not fetch leaser, using default coefficient:", leaserError);
+    }
     
     // Calculate totals from cart items with proper leaser coefficient
     let totalPurchasePrice = 0;
