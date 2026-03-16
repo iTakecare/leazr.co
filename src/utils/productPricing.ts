@@ -42,12 +42,18 @@ export const getProductPrice = (
   }
 
   // 1. Try to get price from variant combination prices (highest priority)
-  if (product.variant_combination_prices && product.variant_combination_prices.length > 0 && selectedOptions) {
-    console.log(`getProductPrice: Found ${product.variant_combination_prices.length} variant combinations`);
+  // Filter out internal keys that are not product attributes
+  const internalKeys = ['variant_id', 'selected_variant_id'];
+  const cleanedOptions = selectedOptions 
+    ? Object.fromEntries(Object.entries(selectedOptions).filter(([key]) => !internalKeys.includes(key)))
+    : undefined;
+
+  if (product.variant_combination_prices && product.variant_combination_prices.length > 0 && cleanedOptions && Object.keys(cleanedOptions).length > 0) {
+    console.log(`getProductPrice: Found ${product.variant_combination_prices.length} variant combinations, cleaned options:`, cleanedOptions);
     
     const matchingCombo = product.variant_combination_prices.find(combo => {
       if (!combo.attributes) return false;
-      return Object.entries(selectedOptions).every(([key, value]) => 
+      return Object.entries(cleanedOptions).every(([key, value]) => 
         combo.attributes[key] === value
       );
     });
