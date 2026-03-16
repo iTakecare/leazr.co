@@ -286,7 +286,29 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
         />
         
         <Container className="py-6 max-w-[1320px]">
-          <div className="space-y-8">
+          <div className="space-y-6">
+
+            {/* Category Cards and Brand Filter - only in grid view */}
+            {viewMode === 'grid' && (
+              <div className="space-y-4">
+                <CatalogCategoryCards
+                  categories={categories}
+                  selectedCategory={filters.selectedCategory}
+                  onCategorySelect={(cat) => updateFilter('selectedCategory', cat)}
+                />
+                <CatalogBrandFilter
+                  brands={brands}
+                  selectedBrands={filters.selectedBrands}
+                  onBrandToggle={(brand) => {
+                    const current = filters.selectedBrands;
+                    const updated = current.includes(brand)
+                      ? current.filter(b => b !== brand)
+                      : [...current, brand];
+                    updateFilter('selectedBrands', updated);
+                  }}
+                />
+              </div>
+            )}
 
             {/* Main Content - full width */}
             <div className="space-y-6">
