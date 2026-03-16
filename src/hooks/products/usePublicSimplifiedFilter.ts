@@ -154,7 +154,8 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
   const hasActiveFilters = useMemo(() => {
     return !!(
       filters.searchQuery ||
-      filters.selectedCategory
+      filters.selectedCategory ||
+      filters.selectedBrands.length > 0
     );
   }, [filters]);
 
