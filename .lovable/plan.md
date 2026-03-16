@@ -1,70 +1,55 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+# Bannière d'alerte documents demandés sur le dashboard client
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+## Objectif
+Quand une demande en cours a des documents requis (statut `internal_docs_requested` ou `info_requested` avec des `offer_upload_links` actifs), afficher une bannière colorée en haut du dashboard client avec le détail des documents à fournir, cliquable pour rediriger vers la demande.
 
-## Endpoints API ajoutés
+## Modifications
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+### 1. `src/hooks/useClientData.ts` — Ajouter la détection des documents demandés
 
-## Documentation
+Dans `fetchNotifications`, ajouter une requête pour les offres du client ayant un statut `internal_docs_requested` ou `info_requested` :
+- Récupérer les offres concernées avec leur `dossier_number` et `equipment_description`
+- Pour chaque offre, récupérer les `offer_upload_links` non expirés pour lister les `requested_documents`
+- Créer des notifications de type `'warning'` avec :
+  - `title`: "📄 Documents requis"
+  - `description`: le détail des documents (ex: "Bilan financier, Carte d'identité - Recto...")
+  - `actionHref`: `requests/{offer_id}` pour redirection directe
+  - Un nouveau champ optionnel `urgent: true` pour distinguer les alertes bannière
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+### 2. `ClientNotification` interface — Ajouter champs
 
-## Tables
+```typescript
+interface ClientNotification {
+  // ... existants
+  urgent?: boolean;
+  documentCount?: number;
+  offerId?: string;
+}
+```
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
-- `software_catalog`, `software_deployments`, `mdm_configurations`
+### 3. `src/pages/ClientDashboard.tsx` — Bannière en haut
 
----
+Avant le bloc des stats (juste après le welcome banner), insérer une bannière conditionnelle :
+- Filtrer les notifications avec `urgent === true`
+- Pour chaque alerte urgente, afficher une bannière avec :
+  - Fond dégradé orange/ambre avec bordure gauche colorée
+  - Icône `FileWarning` animée (bounce subtil)
+  - Titre : "Action requise — Documents à fournir"
+  - Description : nombre de documents + liste tronquée
+  - Bouton "Voir la demande →" cliquable
+  - Animation d'entrée avec framer-motion
+- Si plusieurs demandes avec docs requis : empiler les bannières
 
-# Plan : Déploiement logiciel à distance (MDM)
+## Rendu visuel attendu
 
-## Statut
+```text
+┌─────────────────────────────────────────────────────┐
+│ 🟠 ⚠️ Action requise — Documents à fournir         │
+│ 4 documents demandés pour votre demande ITC-...-9981│
+│ Bilan financier, Bilan provisoire, Carte d'id...    │
+│                               [Fournir les docs →]  │
+└─────────────────────────────────────────────────────┘
+```
 
-- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
-- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
-- ✅ Phase 3 — Table `software_deployments` + suivi statut
-- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
-- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
-
-## MDM recommandé : Fleet (FleetDM)
-
-| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
-|---|---|---|---|
-| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
-| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
-| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
-| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
-| Open-source | ✅ MIT | ✅ | ✅ |
-
-### Intégration technique
-
-1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
-2. **Déployer l'agent `fleetd`** sur les machines clientes
-3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
-4. L'edge function existante route les appels vers Fleet automatiquement
-
-### Composants
-
-| Fichier | Rôle |
-|---|---|
-| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
-| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
-| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
-| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
