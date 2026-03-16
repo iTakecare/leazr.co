@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, Users, Zap, MessageCircle, Shield, MapPin, GitBranch, Upload, FolderOpen } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, Users, Zap, MessageCircle, Shield, MapPin, GitBranch, Upload, FolderOpen, Package } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 
