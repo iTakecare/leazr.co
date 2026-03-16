@@ -168,6 +168,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         case 'monthly_payment':
           comparison = (a.monthly_payment || 0) - (b.monthly_payment || 0);
           break;
+        case 'financed_amount':
+          comparison = ((a as any).financed_amount || 0) - ((b as any).financed_amount || 0);
+          break;
         case 'start_date':
           const aStart = a.contract_start_date ? new Date(a.contract_start_date).getTime() : 0;
           const bStart = b.contract_start_date ? new Date(b.contract_start_date).getTime() : 0;
