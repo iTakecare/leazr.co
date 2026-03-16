@@ -11,6 +11,9 @@ interface RecentActivity {
   date: string;
   status?: string;
   workflow_status?: string;
+  workflow_template_id?: string;
+  company_id?: string;
+  offer_type?: string;
 }
 
 interface ClientStats {
