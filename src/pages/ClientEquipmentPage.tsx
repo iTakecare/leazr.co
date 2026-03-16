@@ -148,7 +148,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Tabs defaultValue="by-contract" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="by-contract" className="gap-2">
               <FileText className="h-4 w-4" />
