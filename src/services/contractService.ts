@@ -544,7 +544,7 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
       .select(`
         *, 
         clients(name, email, company),
-        offers(dossier_number, down_payment, coefficient, financed_amount),
+        offers!contracts_offer_id_fkey(dossier_number, down_payment, coefficient, financed_amount),
         contract_equipment(id, title, monthly_payment, quantity),
         leasers(logo_url)
       `)
