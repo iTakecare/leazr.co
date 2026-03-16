@@ -122,12 +122,18 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
   // Detect equipment category from title
   const detectCategory = (title: string): string => {
     const t = title.toLowerCase();
-    if (t.includes("macbook") || t.includes("laptop") || t.includes("portable") || t.includes("pc") || t.includes("ordinateur") || t.includes("desktop") || t.includes("thinkpad") || t.includes("dell") || t.includes("hp ") || t.includes("lenovo")) return "informatique";
+    if (t.includes("macbook") || t.includes("laptop") || t.includes("portable") || t.includes("pc") || t.includes("ordinateur") || t.includes("desktop") || t.includes("thinkpad") || t.includes("dell") || t.includes("hp ") || t.includes("lenovo") || t.includes("mac mini") || t.includes("mac pro") || t.includes("mac studio") || t.includes("imac")) return "informatique";
     if (t.includes("iphone") || t.includes("samsung") || t.includes("téléphone") || t.includes("telephone") || t.includes("smartphone") || t.includes("galaxy") || t.includes("pixel")) return "telephonie";
-    if (t.includes("écran") || t.includes("ecran") || t.includes("monitor") || t.includes("asus") || t.includes("lg ") || t.includes("display")) return "ecrans";
+    if (t.includes("écran") || t.includes("ecran") || t.includes("monitor") || t.includes("display")) return "ecrans";
     if (t.includes("imprimante") || t.includes("scanner") || t.includes("printer")) return "impression";
     if (t.includes("tablette") || t.includes("ipad") || t.includes("tab")) return "tablettes";
     return "autre";
+  };
+
+  // Only PCs, Macs, tablets and smartphones can have software installed
+  const canInstallSoftware = (title: string): boolean => {
+    const cat = detectCategory(title);
+    return ["informatique", "telephonie", "tablettes"].includes(cat);
   };
 
   const categoryLabels: Record<string, string> = {
