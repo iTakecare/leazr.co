@@ -74,7 +74,8 @@ export const useClientData = () => {
 
         if (!client) {
           // Fallback: search by email
-          const { data: clientByEmail, error: emailError } = await services.clients.query()
+          const { data: clientByEmail, error: emailError } = await supabase
+            .from('clients')
             .select('*, has_custom_catalog')
             .eq('email', user.email)
             .maybeSingle();
