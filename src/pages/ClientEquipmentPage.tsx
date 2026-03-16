@@ -288,6 +288,19 @@ const ClientEquipmentPage = () => {
                               <Badge variant="outline" className="text-xs">{eq.contractRef}</Badge>
                             </td>
                             <td className="p-3 text-sm text-muted-foreground">{eq.quantity}</td>
+                            <td className="p-3">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1 text-xs"
+                                onClick={() => {
+                                  setSelectedEquipment({ id: eq.id, name: eq.name, contractRef: eq.contractRef });
+                                  setDeployWizardOpen(true);
+                                }}
+                              >
+                                <Download className="h-3 w-3" /> Installer
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
