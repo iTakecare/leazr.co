@@ -1,0 +1,1 @@
+UPDATE api_keys SET permissions = permissions || '{"mdm": true, "mdm_write": true}'::jsonb WHERE api_key = 'lzr_f8d13250f11442cc9b40041f38ace498';
