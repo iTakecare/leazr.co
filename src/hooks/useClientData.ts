@@ -180,6 +180,45 @@ export const useClientData = () => {
           });
         });
 
+        // Offers with documents requested (info_requested / internal_docs_requested)
+        const { data: docsRequested } = await services.offers.query()
+          .select('id, dossier_number, equipment_description, workflow_status')
+          .eq('client_id', clientId)
+          .in('workflow_status', ['info_requested', 'internal_docs_requested']);
+
+        if (docsRequested && docsRequested.length > 0) {
+          // Fetch upload links for these offers
+          const offerIds = docsRequested.map(o => o.id);
+          const { data: uploadLinks } = await supabase
+            .from('offer_upload_links')
+            .select('offer_id, requested_documents')
+            .in('offer_id', offerIds)
+            .gt('expires_at', new Date().toISOString())
+            .is('used_at', null);
+
+          for (const offer of docsRequested) {
+            const links = (uploadLinks || []).filter(l => l.offer_id === offer.id);
+            const allDocs = links.flatMap(l => l.requested_documents || []);
+            const uniqueDocs = [...new Set(allDocs)];
+
+            notifs.push({
+              id: `docs-${offer.id}`,
+              type: 'warning',
+              title: '📄 Documents requis',
+              description: uniqueDocs.length > 0
+                ? uniqueDocs.join(', ')
+                : 'Des documents sont nécessaires pour poursuivre votre demande',
+              actionLabel: 'Fournir les documents',
+              actionHref: `requests`,
+              urgent: true,
+              documentsList: uniqueDocs,
+              documentCount: uniqueDocs.length,
+              offerId: offer.id,
+              dossierNumber: offer.dossier_number || undefined,
+            });
+          }
+        }
+
         setNotifications(notifs);
       } catch (err) {
         console.error('Erreur notifications:', err);
