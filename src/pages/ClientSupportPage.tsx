@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClientData } from "@/hooks/useClientData";
+import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
