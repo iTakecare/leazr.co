@@ -140,6 +140,32 @@ const ClientSupportPage = () => {
         </div>
       </motion.div>
 
+      {/* Contact rapide - bandeau visible */}
+      <motion.div variants={itemVariants}>
+        <div className="flex flex-wrap items-center gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/10">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Phone className="h-4 w-4 text-primary" />
+            </div>
+            <span className="font-medium">+32 (0)10 23 45 67</span>
+          </div>
+          <div className="h-5 w-px bg-border hidden sm:block" />
+          <div className="flex items-center gap-2 text-sm">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Mail className="h-4 w-4 text-primary" />
+            </div>
+            <span className="font-medium">support@itakecare.be</span>
+          </div>
+          <div className="h-5 w-px bg-border hidden sm:block" />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Clock className="h-4 w-4 text-primary" />
+            </div>
+            <span>Lun - Ven : 9h - 18h</span>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Ticket creation form */}
       {showForm && (
         <motion.div variants={itemVariants}>
