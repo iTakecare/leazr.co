@@ -285,14 +285,30 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
           {/* By Equipment View */}
           <TabsContent value="by-equipment">
             <div className="space-y-4">
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un équipement..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 rounded-xl"
-                />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative max-w-sm flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher un équipement..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 rounded-xl"
+                  />
+                </div>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[200px] rounded-xl gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{categoryLabels.all}</SelectItem>
+                    {presentCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {categoryLabels[cat] || cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {filteredEquipment.length === 0 ? (
