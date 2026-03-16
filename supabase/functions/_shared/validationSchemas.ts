@@ -89,7 +89,7 @@ export const passwordResetRequestSchema = z.object({
 const customPackItemSchema = z.object({
   product_id: uuidSchema,
   quantity: z.number().int().positive().max(1000, 'Quantité trop élevée'),
-  variant_id: uuidSchema.optional()
+  variant_id: uuidSchema.nullable().optional().transform(val => val === null ? undefined : val)
 });
 
 // Schéma pour un pack personnalisé
