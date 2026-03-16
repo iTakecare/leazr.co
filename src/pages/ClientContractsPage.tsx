@@ -182,7 +182,11 @@ const ClientContractsPage = () => {
                     </div>
                     <div className="p-3 rounded-xl bg-muted/50">
                       <p className="text-xs font-medium text-muted-foreground">Statut livraison</p>
-                      <p className="text-sm font-medium">{contract.delivery_status || 'En attente'}</p>
+                      <p className="text-sm font-medium">
+                        {contract.delivery_status 
+                          ? ({ en_attente: 'En attente', expedie: 'Expédié', livre: 'Livré', delivered: 'Livré' }[contract.delivery_status] || contract.delivery_status)
+                          : (contract.status === 'active' ? 'Livré' : 'En attente')}
+                      </p>
                     </div>
                     <div className="flex items-end space-x-2">
                       <Button
