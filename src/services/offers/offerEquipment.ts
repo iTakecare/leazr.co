@@ -395,9 +395,11 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
           const processed = await fetchEquipmentWithDetails(migratedData || []);
           console.log("🔥 EQUIPMENT SERVICE - Final migrated equipment:", processed.length, "items");
           
-          // Fallback: enrichir les images manquantes en cherchant par titre dans le catalogue
-          const enriched = await enrichEquipmentImages(processed, offerId);
-          return enriched;
+           // Fallback: enrichir les images manquantes en cherchant par titre dans le catalogue
+           const withImages = await enrichEquipmentImages(processed, offerId);
+           // Enrichir les prix d'achat manquants depuis le catalogue
+           const enriched = await enrichEquipmentPurchasePrices(withImages, offerId);
+           return enriched;
         } else {
           console.warn("🔥 EQUIPMENT SERVICE - Migration failed");
         }
