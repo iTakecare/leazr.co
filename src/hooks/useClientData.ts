@@ -113,7 +113,7 @@ export const useClientData = () => {
         const { data: activeContracts } = await services.contracts.query()
           .select('id, monthly_payment, end_date')
           .eq('client_id', clientId)
-          .eq('status', 'active');
+          .in('status', ['active', 'signed', 'contract_sent', 'equipment_ordered', 'delivered']);
 
         const totalMonthly = (activeContracts || []).reduce((sum, c) => sum + (c.monthly_payment || 0), 0);
         const activeEquipment = (activeContracts || []).length;
