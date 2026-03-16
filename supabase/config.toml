@@ -254,3 +254,6 @@ verify_jwt = false
 
 [functions.mdm-deploy-software]
 verify_jwt = false
+
+[functions.notify-ticket-reply]
+verify_jwt = true
