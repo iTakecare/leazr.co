@@ -101,6 +101,24 @@ const KnowledgeBaseManager = () => {
     setDialogOpen(true);
   };
 
+  const prefillArticles = useMutation({
+    mutationFn: async () => {
+      const rows = defaultKnowledgeBaseArticles.map((a) => ({
+        company_id: companyId!,
+        title: a.title,
+        content: a.content,
+        category: a.category,
+      }));
+      const { error } = await supabase.from("support_knowledge_base").insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["knowledge-base"] });
+      toast.success(`${defaultKnowledgeBaseArticles.length} articles ajoutés avec succès`);
+    },
+    onError: () => toast.error("Erreur lors du pré-remplissage"),
+  });
+
   const filtered = articles.filter(
     (a) =>
       a.title.toLowerCase().includes(search.toLowerCase()) ||
