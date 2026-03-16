@@ -117,32 +117,16 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     );
   }
 
-  // Parse equipment from contracts for flat view
-  const allEquipment = contracts.flatMap((contract) => {
-    try {
-      const items = JSON.parse(contract.equipment_description || "[]");
-      if (Array.isArray(items)) {
-        return items.map((item: any, idx: number) => ({
-          id: `${contract.id}-${idx}`,
-          name: item.title || item.name || "Équipement",
-          serial: item.serial_number || "—",
-          contractRef: contract.tracking_number || contract.id.slice(0, 8),
-          contractId: contract.id,
-          quantity: item.quantity || 1,
-          monthlyPayment: item.monthly_payment || null,
-        }));
-      }
-    } catch {
-      // Not JSON
-    }
-    return [{
-      id: contract.id,
-      name: contract.equipment_description || "Équipement",
-      serial: "—",
-      contractRef: contract.tracking_number || contract.id.slice(0, 8),
-      contractId: contract.id,
-      quantity: 1,
-      monthlyPayment: contract.monthly_payment,
+  // Build flat equipment list from contract_equipment data
+  const allEquipment = contractEquipmentRaw.map((eq: any) => ({
+    id: eq.id,
+    name: eq.title || "Équipement",
+    serial: eq.serial_number || "—",
+    contractRef: eq.contracts?.tracking_number || eq.contract_id?.slice(0, 8) || "—",
+    contractId: eq.contract_id,
+    quantity: eq.quantity || 1,
+    monthlyPayment: eq.monthly_payment || null,
+  }));
     }];
   });
 
