@@ -39,6 +39,8 @@ const ClientSidebar = memo(({ className, onLinkClick }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { count: requestsCount } = useClientRequestsCount();
+  const { clientData } = useClientData();
+  const { unreadCount: supportUnreadCount } = useTicketReplyNotifications({ role: "client", clientId: clientData?.id });
 
   // Mémoriser les éléments de menu
   const menuItems = useMemo(() => [
