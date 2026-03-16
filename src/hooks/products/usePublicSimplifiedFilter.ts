@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 export interface PublicSimplifiedFilterState {
   searchQuery: string;
   selectedCategory: string | null;
+  selectedBrands: string[];
   sortBy: 'name' | 'price' | 'brand' | 'newest';
   sortOrder: 'asc' | 'desc';
 }
