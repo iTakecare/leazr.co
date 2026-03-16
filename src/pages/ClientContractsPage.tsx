@@ -25,7 +25,7 @@ const ClientContractsPage = () => {
   const { user } = useAuth();
   const { navigateToClient } = useRoleNavigation();
   const { clientData } = useClientData();
-  const { contracts, loading, error } = useClientContracts(user?.email);
+  const { contracts, loading, error } = useClientContracts(user?.email, clientData?.id);
   const [renewalContract, setRenewalContract] = useState<any>(null);
 
   const formatAmount = (amount: number) => {

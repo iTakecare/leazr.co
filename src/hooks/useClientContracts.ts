@@ -63,11 +63,9 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
 
       // Apply filters based on available parameters
       if (idToUse) {
-        // If clientId is provided, filter by client_id
         console.log("Filtering contracts by client_id:", idToUse);
         query = query.eq('client_id', idToUse);
       } else if (clientEmail) {
-        // If only email is provided, filter by client using client related info
         const { data: clientData } = await services.clients.query()
           .select('id')
           .eq('email', clientEmail)
@@ -76,7 +74,17 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
         if (clientData?.id) {
           console.log("Found client ID from email:", clientData.id);
           query = query.eq('client_id', clientData.id);
+        } else {
+          console.warn("No client found for email, returning empty");
+          setContracts([]);
+          setLoading(false);
+          return;
         }
+      } else {
+        console.warn("No client ID or email provided, returning empty");
+        setContracts([]);
+        setLoading(false);
+        return;
       }
 
       const { data, error } = await query;
