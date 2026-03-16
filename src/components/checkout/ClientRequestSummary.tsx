@@ -68,7 +68,8 @@ const ClientRequestSummary: React.FC = () => {
     const financedAmount = totalPurchasePrice + (totalPurchasePrice * 0.15); // Purchase price + 15% margin
     
     const requestData = {
-      type: 'client_request',
+      type: 'web_request',
+      workflow_template_id: 'f6e29d41-ef40-4253-ab08-e23060da47da',
       client_name: clientData.name || 'Client',
       client_email: clientData.email || '',
       client_contact_email: clientData.email || '',
