@@ -21,6 +21,8 @@ export interface MonthlyFinancialData {
 export interface ContractStatistics {
   status: string;
   count: number;
+  leasing_count?: number;
+  self_leasing_count?: number;
   total_revenue: number;
   total_purchases: number;
   total_margin: number;
