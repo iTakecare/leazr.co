@@ -378,7 +378,7 @@ serve(async (req) => {
         productName,
         productId: productFound ? product.product_id : null,
         productFound,
-        variantId: product.variant_id,
+        variantId: resolvedVariantId,
         quantity: product.quantity,
         purchasePrice: price,
         monthlyPrice,
