@@ -32,8 +32,17 @@ const CollaboratorCreationDialog: React.FC<CollaboratorCreationDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
       toast.error('Le nom est obligatoire');
+      return;
+    }
+    if (/^\d+$/.test(trimmedName)) {
+      toast.error('Le nom ne peut pas être uniquement des chiffres');
+      return;
+    }
+    if (trimmedName.length < 2) {
+      toast.error('Le nom doit contenir au moins 2 caractères');
       return;
     }
 
