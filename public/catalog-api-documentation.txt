@@ -2,9 +2,65 @@
    DOCUMENTATION API CATALOG LOVABLE 
 ===========================================
 
-VERSION : 2026.4  
-DATE : 15 mars 2026 — Image hero partenaires & génération IA
+VERSION : 2026.5  
+DATE : 16 mars 2026 — Endpoints MDM complets (appareils, logiciels, profils, enrôlement, commandes)
 STATUT : Prêt pour production
+
+===========================================
+   NOUVEAUTES VERSION 2026.5
+===========================================
+
+Endpoints MDM complets pour intégration avec un système MDM externe.
+Gestion des appareils, déploiement logiciel, profils de configuration,
+enrôlement et commandes à distance.
+
+NOUVELLES FONCTIONNALITES :
+
+1. **Appareils (Devices)**
+   - GET /devices : Liste des équipements avec filtres
+   - GET /devices/{id} : Détail d'un appareil
+   - PATCH /devices/{id} : Mise à jour (serial, statut, notes)
+   - GET /devices/{id}/software : Logiciels déployés
+   - GET /devices/{id}/history : Historique des mouvements
+   - GET /devices/{id}/status : État enrichi (inventaire + profils)
+
+2. **Catalogue logiciels (Software)**
+   - GET /software : Catalogue des logiciels actifs
+   - GET /software/{id} : Détail d'un logiciel
+
+3. **Déploiements (Deployments)**
+   - POST /devices/{id}/deploy : Déployer des logiciels
+   - GET /deployments : Liste des déploiements
+   - GET /deployments/{id} : Détail d'un déploiement
+   - PATCH /deployments/{id} : Webhook callback (MDM → Leazr)
+
+4. **Profils de configuration (MDM Profiles)**
+   - GET /mdm-profiles : Liste des profils
+   - GET /mdm-profiles/{id} : Détail avec payload
+   - POST /mdm-profiles : Créer un profil (wifi, vpn, restriction...)
+   - POST /devices/{id}/assign-profile : Assigner un profil
+   - DELETE /devices/{id}/profiles/{profileId} : Retirer un profil
+
+5. **Enrôlement (Enrollment)**
+   - POST /enrollment/token : Générer un token d'enrôlement
+   - POST /enrollment/register : Callback enregistrement appareil
+   - GET /enrollment/pending : Tokens en attente
+
+6. **Commandes à distance (Commands)**
+   - POST /devices/{id}/command : Envoyer une commande (lock, wipe, restart...)
+   - GET /commands : Liste des commandes
+   - GET /commands/{id} : Détail d'une commande
+   - PATCH /commands/{id} : Webhook callback statut commande
+
+7. **Nouvelles permissions API**
+   - `mdm` : lecture (appareils, logiciels, déploiements, profils, commandes)
+   - `mdm_write` : écriture (déploiement, commandes, profils, enrôlement)
+
+8. **Nouvelles tables**
+   - `mdm_profiles` : Profils de configuration
+   - `mdm_device_profiles` : Association appareil ↔ profil
+   - `mdm_enrollment_tokens` : Tokens d'enrôlement
+   - `mdm_commands` : Commandes envoyées aux appareils
 
 ===========================================
    NOUVEAUTES VERSION 2026.4
@@ -103,17 +159,18 @@ NOUVELLES FONCTIONNALITÉS :
    SOMMAIRE
 ===========================================
 
-1. VUE D'ENSEMBLE
-2. AUTHENTIFICATION
-3. SÉCURITÉ ET FILTRAGE
-4. ENDPOINTS DE LECTURE (GET)
-5. ENDPOINTS D'ÉCRITURE (PATCH)
-6. GESTION DES FOURNISSEURS
-7. ÉCOSYSTÈME PARTENAIRES - NOUVEAU
-8. STRUCTURES DE DONNÉES
-9. GESTION DES ERREURS
-10. EXEMPLES D'IMPLÉMENTATION
-11. BASE DE DONNÉES REQUISE
+ 1. VUE D'ENSEMBLE
+ 2. AUTHENTIFICATION
+ 3. SÉCURITÉ ET FILTRAGE
+ 4. ENDPOINTS DE LECTURE (GET)
+ 5. ENDPOINTS D'ÉCRITURE (PATCH)
+ 6. GESTION DES FOURNISSEURS
+ 7. ÉCOSYSTÈME PARTENAIRES
+ 8. MDM — GESTION DES APPAREILS
+ 9. STRUCTURES DE DONNÉES
+10. GESTION DES ERREURS
+11. EXEMPLES D'IMPLÉMENTATION
+12. BASE DE DONNÉES REQUISE
 
 ===========================================
    1. VUE D'ENSEMBLE
@@ -155,6 +212,8 @@ PERMISSIONS PAR CLÉ API :
 - environmental: Données environnementales
 - suppliers: Lecture des fournisseurs
 - suppliers_write: Écriture sur les fournisseurs
+- mdm: Lecture MDM (appareils, logiciels, déploiements, profils, commandes)
+- mdm_write: Écriture MDM (déploiement, commandes, profils, enrôlement)
 
 NOTE : Les endpoints partenaires (GET /partners, GET /partners/{slug})
 sont publics et ne nécessitent pas de clé API.
@@ -649,7 +708,280 @@ NOTE : Si `reference_number` n'est pas fourni dans create-product-request,
 un numéro séquentiel est généré automatiquement côté serveur.
 
 ===========================================
-   8. STRUCTURES DE DONNÉES
+   8. MDM — GESTION DES APPAREILS
+===========================================
+
+Permissions requises : `mdm` (lecture) ou `mdm_write` (écriture)
+
+## 8.1 LISTE DES APPAREILS
+```
+GET /catalog-api/v1/{companySlug}/devices
+```
+Paramètres : status, type, page (défaut 1), limit (défaut 50, max 100)
+
+RÉPONSE :
+```json
+{
+  "devices": [
+    {
+      "id": "uuid",
+      "equipment_description": "MacBook Pro 14\"",
+      "serial_number": "C02X...",
+      "status": "active",
+      "assigned_to": "Jean Dupont",
+      "notes": null,
+      "contract_id": "uuid",
+      "created_at": "2026-01-15T10:00:00Z",
+      "updated_at": "2026-03-10T14:30:00Z"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 50 }
+}
+```
+
+## 8.2 DÉTAIL D'UN APPAREIL
+```
+GET /catalog-api/v1/{companySlug}/devices/{id}
+```
+
+## 8.3 MISE À JOUR D'UN APPAREIL
+```
+PATCH /catalog-api/v1/{companySlug}/devices/{id}
+```
+Permission : mdm_write
+
+BODY :
+```json
+{
+  "serial_number": "NEW_SERIAL",
+  "status": "maintenance",
+  "notes": "En réparation",
+  "assigned_to": "Marie Martin"
+}
+```
+
+## 8.4 LOGICIELS DÉPLOYÉS SUR UN APPAREIL
+```
+GET /catalog-api/v1/{companySlug}/devices/{id}/software
+```
+
+RÉPONSE :
+```json
+{
+  "deployments": [
+    {
+      "id": "uuid",
+      "software_id": "uuid",
+      "status": "success",
+      "initiated_at": "2026-03-10T10:00:00Z",
+      "completed_at": "2026-03-10T10:05:00Z",
+      "software_catalog": {
+        "id": "uuid",
+        "name": "Google Chrome",
+        "version": "122.0",
+        "platform": "macos",
+        "category": "browser"
+      }
+    }
+  ]
+}
+```
+
+## 8.5 HISTORIQUE DES MOUVEMENTS
+```
+GET /catalog-api/v1/{companySlug}/devices/{id}/history
+```
+
+## 8.6 ÉTAT ENRICHI D'UN APPAREIL
+```
+GET /catalog-api/v1/{companySlug}/devices/{id}/status
+```
+
+RÉPONSE :
+```json
+{
+  "device": { "id": "uuid", "equipment_description": "...", "serial_number": "..." },
+  "last_inventory": { "os": "macOS 15.3", "storage_free_gb": 120 },
+  "last_inventory_at": "2026-03-15T08:00:00Z",
+  "profiles_applied": 3,
+  "profiles": [
+    {
+      "id": "uuid",
+      "profile_id": "uuid",
+      "status": "applied",
+      "applied_at": "2026-03-01T12:00:00Z",
+      "mdm_profiles": { "name": "WiFi Corporate", "profile_type": "wifi" }
+    }
+  ]
+}
+```
+
+## 8.7 CATALOGUE LOGICIELS
+```
+GET /catalog-api/v1/{companySlug}/software
+GET /catalog-api/v1/{companySlug}/software/{id}
+```
+Paramètres : platform, category
+
+## 8.8 DÉPLOIEMENT DE LOGICIELS
+```
+POST /catalog-api/v1/{companySlug}/devices/{id}/deploy
+```
+Permission : mdm_write
+
+BODY :
+```json
+{
+  "software_ids": ["uuid1", "uuid2"],
+  "initiated_by": "uuid-user-id"
+}
+```
+
+## 8.9 LISTE ET DÉTAIL DES DÉPLOIEMENTS
+```
+GET /catalog-api/v1/{companySlug}/deployments
+GET /catalog-api/v1/{companySlug}/deployments/{id}
+```
+Paramètres : status (pending|installing|success|failed), equipment_id
+
+## 8.10 CALLBACK DÉPLOIEMENT (WEBHOOK)
+```
+PATCH /catalog-api/v1/{companySlug}/deployments/{id}
+```
+Votre MDM met à jour le statut d'un déploiement.
+
+BODY :
+```json
+{
+  "status": "success",
+  "error_message": null
+}
+```
+Note : `completed_at` est auto-rempli pour les statuts `success` et `failed`.
+
+## 8.11 PROFILS DE CONFIGURATION
+```
+GET /catalog-api/v1/{companySlug}/mdm-profiles
+GET /catalog-api/v1/{companySlug}/mdm-profiles/{id}
+```
+Paramètres : type (wifi|vpn|restriction|email|certificate|custom), platform
+
+## 8.12 CRÉER UN PROFIL
+```
+POST /catalog-api/v1/{companySlug}/mdm-profiles
+```
+Permission : mdm_write
+
+BODY :
+```json
+{
+  "name": "VPN Office",
+  "description": "Connexion VPN bureau",
+  "profile_type": "vpn",
+  "platform": "macos",
+  "payload": {
+    "vpn_type": "IKEv2",
+    "server": "vpn.example.com",
+    "remote_id": "vpn.example.com"
+  }
+}
+```
+
+## 8.13 ASSIGNER / RETIRER UN PROFIL
+```
+POST /catalog-api/v1/{companySlug}/devices/{id}/assign-profile
+DELETE /catalog-api/v1/{companySlug}/devices/{id}/profiles/{profileId}
+```
+Permission : mdm_write
+
+BODY (assign) : `{ "profile_id": "uuid" }`
+
+## 8.14 ENRÔLEMENT
+```
+POST /catalog-api/v1/{companySlug}/enrollment/token
+POST /catalog-api/v1/{companySlug}/enrollment/register
+GET  /catalog-api/v1/{companySlug}/enrollment/pending
+```
+Permission : mdm_write
+
+### Générer un token
+```json
+{
+  "equipment_id": "uuid",
+  "description": "MacBook RH",
+  "expires_in_days": 7
+}
+```
+
+### Enregistrer un appareil (callback)
+```json
+{
+  "token": "a1b2c3d4e5f6...",
+  "device_info": {
+    "serial_number": "C02X...",
+    "notes": "MacBook Pro M3"
+  }
+}
+```
+
+## 8.15 COMMANDES À DISTANCE
+```
+POST /catalog-api/v1/{companySlug}/devices/{id}/command
+```
+Permission : mdm_write
+
+BODY :
+```json
+{
+  "command_type": "lock",
+  "payload": { "message": "Appareil verrouillé par l'admin" },
+  "initiated_by": "uuid-user-id"
+}
+```
+
+Types : lock, wipe, restart, shutdown, script, notification, update_os, inventory
+
+## 8.16 LISTE ET DÉTAIL DES COMMANDES
+```
+GET /catalog-api/v1/{companySlug}/commands
+GET /catalog-api/v1/{companySlug}/commands/{id}
+```
+Paramètres : status, equipment_id, type
+
+## 8.17 CALLBACK COMMANDE (WEBHOOK)
+```
+PATCH /catalog-api/v1/{companySlug}/commands/{id}
+```
+
+BODY :
+```json
+{
+  "status": "completed",
+  "result": { "battery": 85, "os_version": "macOS 15.3" },
+  "error_message": null
+}
+```
+Statuts : pending, sent, acknowledged, completed, failed, cancelled
+
+## 8.18 WORKFLOWS D'INTÉGRATION MDM
+
+### Installation logiciel
+1. `POST /devices/{id}/deploy` → crée des deployments "pending"
+2. Votre MDM récupère les pending et installe
+3. `PATCH /deployments/{id}` → callback avec status "success"/"failed"
+
+### Enrôlement
+1. `POST /enrollment/token` → générer un token
+2. L'agent MDM s'enregistre avec `POST /enrollment/register`
+3. Le device est associé automatiquement
+
+### Commande distante
+1. `POST /devices/{id}/command` → crée une commande "pending"
+2. Votre MDM récupère et exécute
+3. `PATCH /commands/{id}` → callback avec status + result
+
+===========================================
+   9. STRUCTURES DE DONNÉES
 ===========================================
 
 ## PARTENAIRE (NOUVEAU)
@@ -1045,13 +1377,100 @@ CREATE TABLE product_supplier_prices (
   "packs": true,
   "environmental": true,
   "suppliers": true,
-  "suppliers_write": true
+  "suppliers_write": true,
+  "mdm": true,
+  "mdm_write": true
 }
+```
+
+## TABLES MDM v2026.5
+
+### mdm_profiles
+```sql
+CREATE TABLE mdm_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  profile_type TEXT NOT NULL DEFAULT 'custom',
+  payload JSONB NOT NULL DEFAULT '{}',
+  platform TEXT NOT NULL DEFAULT 'all',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+### mdm_device_profiles
+```sql
+CREATE TABLE mdm_device_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  equipment_id UUID NOT NULL,
+  profile_id UUID NOT NULL REFERENCES mdm_profiles(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending',
+  applied_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(equipment_id, profile_id)
+);
+```
+
+### mdm_enrollment_tokens
+```sql
+CREATE TABLE mdm_enrollment_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  equipment_id UUID,
+  token TEXT NOT NULL UNIQUE,
+  description TEXT,
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '7 days'),
+  is_used BOOLEAN NOT NULL DEFAULT false,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+### mdm_commands
+```sql
+CREATE TABLE mdm_commands (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  equipment_id UUID NOT NULL,
+  command_type TEXT NOT NULL,
+  payload JSONB DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending',
+  result JSONB,
+  error_message TEXT,
+  initiated_by UUID,
+  sent_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 ```
 
 ===========================================
    HISTORIQUE DES VERSIONS
 ===========================================
+
+## Version 2026.5 - 16 mars 2026
+**Endpoints MDM complets pour intégration externe**
+
+NOUVELLES FONCTIONNALITES :
+- ✅ GET /devices, GET /devices/{id}, PATCH /devices/{id}
+- ✅ GET /devices/{id}/software, /history, /status
+- ✅ GET /software, GET /software/{id}
+- ✅ POST /devices/{id}/deploy
+- ✅ GET /deployments, PATCH /deployments/{id} (webhook callback)
+- ✅ GET /mdm-profiles, POST /mdm-profiles
+- ✅ POST /devices/{id}/assign-profile, DELETE /devices/{id}/profiles/{id}
+- ✅ POST /enrollment/token, POST /enrollment/register, GET /enrollment/pending
+- ✅ POST /devices/{id}/command, GET /commands, PATCH /commands/{id}
+- ✅ Nouvelles permissions : mdm, mdm_write
+- ✅ Tables : mdm_profiles, mdm_device_profiles, mdm_enrollment_tokens, mdm_commands
+
 
 ## Version 2026.2 - 14 mars 2026
 **Options personnalisables enrichies & UI admin**
@@ -1125,6 +1544,7 @@ NOUVELLES FONCTIONNALITÉS :
 - Options personnalisables : Enrichies avec produits complets
 - Demandes partenaires : Operationnel (partner_slug, partner_name)
 - Services externes : Table offer_external_services active
-- Documentation : A jour version 2026.3
+- MDM : Endpoints complets (appareils, logiciels, profils, enrôlement, commandes)
+- Documentation : A jour version 2026.5
 
-Documentation technique - Version 2026.3 (14 mars 2026)
+Documentation technique - Version 2026.5 (16 mars 2026)
