@@ -38,6 +38,12 @@ const SupportTicketDetail = ({ ticket, onBack }: SupportTicketDetailProps) => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { markRepliesAsRead } = useTicketReplyNotifications({ role: "admin" });
+
+  // Mark client replies as read when opening the ticket
+  useEffect(() => {
+    markRepliesAsRead(ticket.id);
+  }, [ticket.id, markRepliesAsRead]);
 
   // Fetch replies
   const { data: replies = [], isLoading: repliesLoading } = useQuery({
