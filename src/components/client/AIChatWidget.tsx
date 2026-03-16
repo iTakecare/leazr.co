@@ -51,6 +51,9 @@ const AIChatWidget = () => {
       });
 
       if (!resp.ok || !resp.body) {
+        if (resp.status === 404) throw new Error("__404__");
+        if (resp.status === 429) throw new Error("__429__");
+        if (resp.status === 402) throw new Error("__402__");
         const err = await resp.json().catch(() => ({ error: "Erreur" }));
         throw new Error(err.error || "Erreur de connexion");
       }
