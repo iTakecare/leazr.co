@@ -4,6 +4,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { useClientData } from '@/hooks/useClientData';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
@@ -11,8 +13,10 @@ import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { createClientRequest } from '@/services/offers/clientRequests';
 import { formatCurrency } from '@/utils/formatters';
 import { getProductPrice } from '@/utils/productPricing';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Check, User, Mail, Building, Package, Euro, Loader2, Send } from 'lucide-react';
+import { Check, User, Mail, Building, Package, Euro, Loader2, Send, Monitor } from 'lucide-react';
 
 const ClientRequestSummary: React.FC = () => {
   const { navigateToClient } = useRoleNavigation();
@@ -21,6 +25,39 @@ const ClientRequestSummary: React.FC = () => {
   const { companyId } = useMultiTenant();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [selectedSoftwareIds, setSelectedSoftwareIds] = useState<string[]>([]);
+  const [otherSoftware, setOtherSoftware] = useState('');
+  
+  // Load software catalog for the company
+  const { data: softwareCatalog = [] } = useQuery({
+    queryKey: ['software-catalog-checkout', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from('software_catalog')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .order('category', { ascending: true });
+      if (error) { console.error('Error loading software catalog:', error); return []; }
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+  
+  const toggleSoftware = (id: string) => {
+    setSelectedSoftwareIds(prev => 
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
+  };
+  
+  // Group software by category
+  const softwareByCategory = softwareCatalog.reduce((acc: Record<string, any[]>, sw: any) => {
+    const cat = sw.category || 'Autre';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(sw);
+    return acc;
+  }, {});
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,23 +104,38 @@ const ClientRequestSummary: React.FC = () => {
     const coefficient = totalPurchasePrice > 0 ? (cartTotal * 100) / totalPurchasePrice : 2.8;
     const financedAmount = totalPurchasePrice + (totalPurchasePrice * 0.15); // Purchase price + 15% margin
     
-    const requestData = {
+      // Build remarks with software info
+      let remarks = message || '';
+      const selectedSoftwareNames = softwareCatalog
+        .filter((sw: any) => selectedSoftwareIds.includes(sw.id))
+        .map((sw: any) => sw.name);
+      if (selectedSoftwareNames.length > 0) {
+        remarks += (remarks ? '\n\n' : '') + 'Logiciels souhaités : ' + selectedSoftwareNames.join(', ');
+      }
+      if (otherSoftware.trim()) {
+        remarks += (remarks ? '\n' : '') + 'Autres logiciels demandés : ' + otherSoftware.trim();
+      }
+      if (!remarks) {
+        remarks = "Demande envoyée depuis l'espace client";
+      }
+
+      const requestData = {
       type: 'client_request',
       workflow_template_id: 'f6e29d41-ef40-4253-ab08-e23060da47da',
       client_name: clientData.name || 'Client',
       client_email: clientData.email || '',
       client_contact_email: clientData.email || '',
       equipment_description: equipmentDescription,
-      amount: Number(totalPurchasePrice) || 0, // Total purchase price
-      monthly_payment: Number(cartTotal) || 0, // Total monthly payment
-      financed_amount: Number(financedAmount) || 0, // Purchase price + margin
+      amount: Number(totalPurchasePrice) || 0,
+      monthly_payment: Number(cartTotal) || 0,
+      financed_amount: Number(financedAmount) || 0,
       coefficient: Number(coefficient.toFixed(2)) || 2.8,
-      margin: Number(financedAmount - totalPurchasePrice) || 0, // Actual margin
+      margin: Number(financedAmount - totalPurchasePrice) || 0,
       status: 'pending',
       workflow_status: 'draft',
       company_id: companyId,
       client_id: clientData.id || null,
-      remarks: message || 'Demande envoyée depuis l\'espace client'
+      remarks
     };
 
     // Prepare cart items with pricing for equipment creation
@@ -284,6 +336,96 @@ const ClientRequestSummary: React.FC = () => {
           </div>
         </div>
         
+        {/* Software Selection Section */}
+        {softwareCatalog.length > 0 && (
+          <div className="bg-card rounded-lg border overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <Monitor className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold">Logiciels souhaités</h2>
+                {selectedSoftwareIds.length > 0 && (
+                  <Badge variant="secondary">
+                    {selectedSoftwareIds.length} sélectionné{selectedSoftwareIds.length > 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-4">
+                Sélectionnez les logiciels que vous souhaitez installer sur vos équipements.
+              </p>
+              
+              <div className="space-y-4">
+                {Object.entries(softwareByCategory).map(([category, softwares]: [string, any[]]) => (
+                  <div key={category}>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">{category}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                      {softwares.map((sw: any) => (
+                        <label
+                          key={sw.id}
+                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            selectedSoftwareIds.includes(sw.id)
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:bg-muted/50'
+                          }`}
+                        >
+                          <Checkbox
+                            checked={selectedSoftwareIds.includes(sw.id)}
+                            onCheckedChange={() => toggleSoftware(sw.id)}
+                          />
+                          <div className="flex items-center gap-2 min-w-0">
+                            {sw.icon_url && (
+                              <img src={sw.icon_url} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+                            )}
+                            <span className="text-sm font-medium truncate">{sw.name}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <Separator className="my-4" />
+              
+              <div className="space-y-2">
+                <Label htmlFor="other-software">Autres logiciels souhaités</Label>
+                <Input
+                  id="other-software"
+                  placeholder="Ex: Antivirus Kaspersky, AutoCAD, Adobe Photoshop..."
+                  value={otherSoftware}
+                  onChange={(e) => setOtherSoftware(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Indiquez ici les logiciels non listés que vous souhaitez installer.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Free-text software input when no catalog */}
+        {softwareCatalog.length === 0 && (
+          <div className="bg-card rounded-lg border overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Monitor className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold">Logiciels souhaités</h2>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="other-software-free">Logiciels à installer sur vos équipements</Label>
+                <Input
+                  id="other-software-free"
+                  placeholder="Ex: Microsoft Office, Chrome, Slack, Antivirus..."
+                  value={otherSoftware}
+                  onChange={(e) => setOtherSoftware(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Indiquez les logiciels que vous souhaitez installer sur vos équipements.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Message Section */}
         <div className="bg-card rounded-lg border overflow-hidden">
           <div className="p-6">

@@ -1,43 +1,70 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-# Logiciels : le client choisit ses logiciels
+## Statut
 
-## Contexte
-Actuellement, le catalogue de logiciels est géré uniquement par l'admin (dans Paramètres > Logiciels). Le client peut déjà sélectionner et déployer des logiciels sur ses machines via l'onglet "Logiciels" de la page Équipements. Cependant, deux points manquent :
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-1. **Lors de la demande d'équipement** (panier → demande) : le client ne peut pas indiquer les logiciels souhaités pour ses futurs équipements.
-2. **Le catalogue peut être vide** si l'admin n'a rien configuré — il faudrait un mécanisme de "demande libre" de logiciels.
+## Endpoints API ajoutés
 
-## Plan
-
-### 1. Ajouter une étape de sélection de logiciels dans le formulaire de demande client
-
-**Fichier : `src/components/checkout/ClientRequestSummary.tsx`**
-
-- Ajouter une section "Logiciels souhaités" entre le récapitulatif du panier et le champ de message.
-- Charger le `software_catalog` actif pour la company. Afficher les logiciels sous forme de cases à cocher groupées par catégorie (comme dans le `SoftwareDeploymentWizard`).
-- Ajouter un champ texte libre "Autres logiciels souhaités" pour que le client puisse demander des logiciels non listés dans le catalogue.
-- Stocker la sélection dans le champ `remarks` de la demande (en enrichissant le texte existant) et/ou dans un nouveau champ JSON dédié si la table `offers` le permet.
-
-### 2. Enregistrer les logiciels demandés avec la demande
-
-**Fichier : `src/services/offers/clientRequests.ts`** (ou équivalent)
-
-- Ajouter les `software_ids` sélectionnés et le texte libre de logiciels supplémentaires dans les données envoyées avec la demande.
-- Stocker ces informations dans le champ `remarks` de la demande, en les formatant clairement (ex: "Logiciels demandés : Chrome, Slack, Teams | Autres : Antivirus Kaspersky").
-
-### 3. Améliorer l'onglet Logiciels existant pour le post-livraison
-
-**Fichiers : `src/components/equipment/ClientSoftwareTab.tsx`**
-
-Le fonctionnement actuel est déjà correct pour le post-livraison : le client sélectionne un équipement cible et choisit les logiciels à installer. Aucun changement majeur nécessaire ici, juste s'assurer que le flux est clair et fonctionnel.
-
-### Résumé des modifications
-
-| Fichier | Action |
+| Endpoint | Description |
 |---|---|
-| `src/components/checkout/ClientRequestSummary.tsx` | Ajouter section de sélection de logiciels + champ libre |
-| `src/services/offers/clientRequests.ts` | Inclure les logiciels dans les données de la demande |
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-Pas de migration DB nécessaire — les logiciels demandés seront stockés dans le champ `remarks` existant de la table `offers`.
+## Documentation
 
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+
+## Tables
+
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
+- `software_catalog`, `software_deployments`, `mdm_configurations`
+
+---
+
+# Plan : Déploiement logiciel à distance (MDM)
+
+## Statut
+
+- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
+- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
+- ✅ Phase 3 — Table `software_deployments` + suivi statut
+- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
+- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
+
+## MDM recommandé : Fleet (FleetDM)
+
+| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
+|---|---|---|---|
+| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
+| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
+| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
+| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
+| Open-source | ✅ MIT | ✅ | ✅ |
+
+### Intégration technique
+
+1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
+2. **Déployer l'agent `fleetd`** sur les machines clientes
+3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
+4. L'edge function existante route les appels vers Fleet automatiquement
+
+### Composants
+
+| Fichier | Rôle |
+|---|---|
+| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
+| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
+| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
+| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
