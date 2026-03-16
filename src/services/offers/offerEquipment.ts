@@ -345,7 +345,9 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
       console.log("🔥 EQUIPMENT SERVICE - Processed equipment:", processed.length, "items");
       
       // Fallback: enrichir les images manquantes en cherchant par titre dans le catalogue
-      const enriched = await enrichEquipmentImages(processed, offerId);
+      const withImages = await enrichEquipmentImages(processed, offerId);
+      // Enrichir les prix d'achat manquants depuis le catalogue
+      const enriched = await enrichEquipmentPurchasePrices(withImages, offerId);
       return enriched;
     }
 
