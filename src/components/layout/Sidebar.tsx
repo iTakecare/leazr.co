@@ -138,7 +138,8 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         label: "Support", 
         href: `${basePrefix}/admin/support`, 
         moduleSlug: "support",
-        alwaysVisible: true 
+        alwaysVisible: true,
+        badge: supportUnreadCount > 0 ? String(supportUnreadCount) : undefined
       },
       { 
         icon: Settings, 
