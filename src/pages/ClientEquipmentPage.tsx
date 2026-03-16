@@ -261,7 +261,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                                     setSelectedEquipment({
                                       id: item.id,
                                       name: item.title || "Équipement",
-                                      contractRef: contract.tracking_number || contract.id.slice(0, 8),
+                                      contractRef: contract.contract_number || contract.id.slice(0, 8),
                                     });
                                     setDeployWizardOpen(true);
                                   }}
