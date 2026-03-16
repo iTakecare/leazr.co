@@ -1,59 +1,70 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-# Éviter les doublons clients dans l'Edge Function `create-product-request`
+## Statut
 
-## Problème
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-L'Edge Function `create-product-request` (lignes 410-458) crée **systématiquement un nouveau client** à chaque demande, même si un client avec le même email existe déjà. Cela génère des doublons dans la table `clients`.
+## Endpoints API ajoutés
 
-Le flux depuis l'espace client (`ClientRequestSummary` → `createClientRequest`) n'a pas ce problème car il passe directement le `client_id` existant. Le problème concerne uniquement le flux public (site web / partenaires).
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-## Correction
+## Documentation
 
-**Fichier : `supabase/functions/create-product-request/index.ts`**
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-Remplacer la création aveugle du client (lignes 410-458) par une logique "find or create" :
+## Tables
 
-1. **Chercher un client existant** par email + company_id :
-```typescript
-let clientId: string;
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
+- `software_catalog`, `software_deployments`, `mdm_configurations`
 
-// Chercher un client existant avec cet email dans cette company
-const { data: existingClient } = await supabaseAdmin
-  .from('clients')
-  .select('id')
-  .eq('email', clientEmail)
-  .eq('company_id', targetCompanyId)
-  .maybeSingle();
+---
 
-if (existingClient) {
-  clientId = existingClient.id;
-  console.log(`✅ Client existant trouvé: ${clientId}`);
-  
-  // Mettre à jour les infos du client existant (phone, address, etc.)
-  await supabaseAdmin.from('clients').update({
-    phone: clientPhone || undefined,
-    vat_number: clientVatNumber || undefined,
-    address: clientAddress || undefined,
-    city: clientCity || undefined,
-    postal_code: clientPostalCode || undefined,
-    // ... autres champs non-vides
-  }).eq('id', clientId);
-} else {
-  clientId = crypto.randomUUID();
-  // Insérer le nouveau client (code existant)
-  const { error } = await supabaseAdmin.from('clients').insert({ id: clientId, ... });
-  if (error) throw new Error(`Erreur client: ${error.message}`);
-}
-```
+# Plan : Déploiement logiciel à distance (MDM)
 
-2. Supprimer la ligne `const clientId = crypto.randomUUID();` (ligne 412) et la rendre conditionnelle.
+## Statut
 
-3. Le reste du code (création de l'offre, équipements) utilise déjà `clientId` — aucun autre changement nécessaire.
+- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
+- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
+- ✅ Phase 3 — Table `software_deployments` + suivi statut
+- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
+- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
 
-## Détails techniques
+## MDM recommandé : Fleet (FleetDM)
 
-- La recherche se fait par `email` + `company_id` pour éviter les collisions multi-tenant.
-- Si le client existe, on met à jour uniquement les champs non-vides (pour ne pas écraser des données existantes avec des valeurs vides).
-- Redéploiement de l'Edge Function requis après modification.
+| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
+|---|---|---|---|
+| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
+| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
+| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
+| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
+| Open-source | ✅ MIT | ✅ | ✅ |
 
+### Intégration technique
+
+1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
+2. **Déployer l'agent `fleetd`** sur les machines clientes
+3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
+4. L'edge function existante route les appels vers Fleet automatiquement
+
+### Composants
+
+| Fichier | Rôle |
+|---|---|
+| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
+| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
+| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
+| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |

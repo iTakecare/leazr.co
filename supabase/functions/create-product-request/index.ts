@@ -409,11 +409,9 @@ serve(async (req) => {
 
     // Génération d'un ID unique pour la demande
     const requestId = crypto.randomUUID();
-    const clientId = crypto.randomUUID();
     
     let dossierNumber = data.reference_number;
     if (!dossierNumber) {
-      // Générer un numéro séquentiel via la séquence PostgreSQL
       const { data: seqNumber, error: seqError } = await supabaseAdmin.rpc('get_next_dossier_number');
       if (seqError || !seqNumber) {
         console.warn('⚠️ Fallback dossier number (sequence error):', seqError);
@@ -428,34 +426,69 @@ serve(async (req) => {
 
     const equipmentDescription = equipmentList.join(', ');
 
-    // Création du client
-    const clientData = {
-      id: clientId,
-      name: clientName,
-      email: clientEmail,
-      company: clientCompany,
-      phone: clientPhone,
-      vat_number: clientVatNumber || '',
-      address: clientAddress,
-      city: clientCity,
-      postal_code: clientPostalCode,
-      country: clientCountry,
-      billing_address: clientAddress,
-      billing_city: clientCity,
-      billing_postal_code: clientPostalCode,
-      billing_country: clientCountry,
-      delivery_address: deliveryAddress,
-      delivery_city: deliveryCity,
-      delivery_postal_code: deliveryPostalCode,
-      delivery_country: deliveryCountry,
-      delivery_same_as_billing: deliverySameAsBilling,
-      status: 'active',
-      contact_name: clientName,
-      company_id: targetCompanyId
-    };
+    // Find or create client (éviter les doublons)
+    let clientId: string;
+    const { data: existingClient } = await supabaseAdmin
+      .from('clients')
+      .select('id')
+      .eq('email', clientEmail)
+      .eq('company_id', targetCompanyId)
+      .maybeSingle();
 
-    const { error: clientError } = await supabaseAdmin.from('clients').insert(clientData);
-    if (clientError) throw new Error(`Erreur client: ${clientError.message}`);
+    if (existingClient) {
+      clientId = existingClient.id;
+      console.log(`✅ Client existant trouvé: ${clientId}`);
+      
+      // Mettre à jour les infos non-vides du client existant
+      const updateData: Record<string, unknown> = {};
+      if (clientName) updateData.name = clientName;
+      if (clientCompany) updateData.company = clientCompany;
+      if (clientPhone) updateData.phone = clientPhone;
+      if (clientVatNumber) updateData.vat_number = clientVatNumber;
+      if (clientAddress) { updateData.address = clientAddress; updateData.billing_address = clientAddress; }
+      if (clientCity) { updateData.city = clientCity; updateData.billing_city = clientCity; }
+      if (clientPostalCode) { updateData.postal_code = clientPostalCode; updateData.billing_postal_code = clientPostalCode; }
+      if (clientCountry) { updateData.country = clientCountry; updateData.billing_country = clientCountry; }
+      if (deliveryAddress) updateData.delivery_address = deliveryAddress;
+      if (deliveryCity) updateData.delivery_city = deliveryCity;
+      if (deliveryPostalCode) updateData.delivery_postal_code = deliveryPostalCode;
+      if (deliveryCountry) updateData.delivery_country = deliveryCountry;
+      updateData.delivery_same_as_billing = deliverySameAsBilling;
+      updateData.contact_name = clientName;
+
+      if (Object.keys(updateData).length > 0) {
+        await supabaseAdmin.from('clients').update(updateData).eq('id', clientId);
+      }
+    } else {
+      clientId = crypto.randomUUID();
+      console.log(`🆕 Création nouveau client: ${clientId}`);
+      const clientData = {
+        id: clientId,
+        name: clientName,
+        email: clientEmail,
+        company: clientCompany,
+        phone: clientPhone,
+        vat_number: clientVatNumber || '',
+        address: clientAddress,
+        city: clientCity,
+        postal_code: clientPostalCode,
+        country: clientCountry,
+        billing_address: clientAddress,
+        billing_city: clientCity,
+        billing_postal_code: clientPostalCode,
+        billing_country: clientCountry,
+        delivery_address: deliveryAddress,
+        delivery_city: deliveryCity,
+        delivery_postal_code: deliveryPostalCode,
+        delivery_country: deliveryCountry,
+        delivery_same_as_billing: deliverySameAsBilling,
+        status: 'active',
+        contact_name: clientName,
+        company_id: targetCompanyId
+      };
+      const { error: clientError } = await supabaseAdmin.from('clients').insert(clientData);
+      if (clientError) throw new Error(`Erreur client: ${clientError.message}`);
+    }
 
     // Déterminer le leaser
     const { data: leaserIdData } = await supabaseAdmin
