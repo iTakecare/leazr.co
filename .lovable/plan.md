@@ -1,31 +1,22 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Plan : Exclure les factures créditées du comptage "Contrats Réalisés" et "Ventes Directes"
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Problème
 
-## Endpoints API ajoutés
+Dans `useCompanyDashboard.ts`, les requêtes pour les statistiques **"Contrats Réalisés"** (ligne 181) et **"Ventes Directes"** (ligne 331) récupèrent **toutes** les factures sans exclure celles ayant reçu une note de crédit. Quand une facture est créditée puis qu'une nouvelle facture est émise pour la remplacer, les deux sont comptées — d'où un double comptage en nombre et en CA.
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+### Solution
 
-## Documentation
+Ajouter un filtre `.is('credit_note_id', null)` sur les deux requêtes de factures dans `useCompanyDashboard.ts` pour exclure les factures qui ont été créditées (celles ayant un `credit_note_id` renseigné).
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+### Fichier modifié
 
-## Tables
+**`src/hooks/useCompanyDashboard.ts`** — 2 modifications :
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
+1. **Requête "Contrats Réalisés"** (~ligne 181-187) : ajouter `.is('credit_note_id', null)` après le filtre `invoice_type = 'leasing'`
+
+2. **Requête "Ventes Directes"** (~ligne 331-337) : ajouter `.is('credit_note_id', null)` après le filtre `invoice_type = 'purchase'`
+
+Cela garantit que seules les factures non-créditées sont comptabilisées dans le nombre de contrats et le CA. La fonction SQL `get_monthly_financial_data` n'a pas besoin de changement car elle gère déjà les notes de crédit séparément dans sa CTE `credit_notes_cte`.
+
