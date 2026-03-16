@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download } from "lucide-react";
 import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import LocationManager from "@/components/equipment/LocationManager";
+import SoftwareDeploymentWizard from "@/components/equipment/SoftwareDeploymentWizard";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
