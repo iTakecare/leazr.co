@@ -202,9 +202,10 @@ serve(async (req) => {
         .eq('id', product.product_id)
         .single();
       
-      const productName = productError 
-        ? "Produit inconnu" 
-        : (productInfo?.name || "Produit inconnu");
+      const productFound = !productError && !!productInfo;
+      const productName = productFound 
+        ? (productInfo?.name || product.product_name || "Produit inconnu")
+        : (product.product_name || "Produit inconnu");
       
       if (productError) {
         console.warn("⚠️ Produit non trouvé dans la DB:", product.product_id);
