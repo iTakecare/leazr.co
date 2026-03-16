@@ -46,7 +46,7 @@ export interface RequestInfoData {
  * Crée une demande de produit (offre) à partir du catalogue public
  * Transforme les données plates en format structuré attendu par l'edge function
  */
-export const createProductRequest = async (data: ProductRequestData) => {
+export const createProductRequest = async (data: ProductRequestData, cartItems?: any[]) => {
   try {
     console.log("Creating product request with data:", data);
     
