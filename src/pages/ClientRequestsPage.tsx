@@ -8,39 +8,19 @@ import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { motion } from "framer-motion";
 import MiniWorkflowStepper from "@/components/client/MiniWorkflowStepper";
 
-const WORKFLOW_STEPS = [
-  { key: "draft", label: "Soumise" },
-  { key: "internal_review", label: "En analyse" },
-  { key: "internal_approved", label: "Approuvée" },
-  { key: "leaser_scoring", label: "Scoring" },
-  { key: "offer_send", label: "Offre envoyée" },
-  { key: "accepted", label: "Acceptée" },
-  { key: "contract_sent", label: "Contrat envoyé" },
-  { key: "contract_signed", label: "Signé" },
-];
-
-const WORKFLOW_STATUS_MAP: Record<string, string> = {
-  draft: "draft",
-  submitted: "draft",
-  internal_review: "internal_review",
-  internal_docs_requested: "internal_review",
-  internal_approved: "internal_approved",
-  leaser_introduced: "leaser_scoring",
-  leaser_scoring: "leaser_scoring",
-  offer_send: "offer_send",
-  offer_validation: "offer_send",
-  accepted: "accepted",
-  contract_sent: "contract_sent",
-  contrat_pret: "contract_sent",
-  contract_signed: "contract_signed",
+const getOfferTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    'client_request': 'Demande client',
+    'web_request': 'Demande en ligne',
+    'partner_request': 'Offre partenaire',
+    'ambassador_offer': 'Offre ambassadeur',
+    'custom_pack_request': 'Pack personnalisé',
+    'purchase_request': "Demande d'achat",
+    'self_leasing': 'Auto-financement',
+  };
+  return labels[type] || type;
 };
 
-function getStepIndex(workflowStatus?: string, offerStatus?: string): number {
-  const status = workflowStatus || offerStatus || "draft";
-  const mappedKey = WORKFLOW_STATUS_MAP[status] || "draft";
-  const idx = WORKFLOW_STEPS.findIndex((s) => s.key === mappedKey);
-  return idx >= 0 ? idx : 0;
-}
 
 const containerVariants = {
   hidden: { opacity: 0 },
