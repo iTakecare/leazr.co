@@ -349,6 +349,182 @@ Deno.serve(async (req) => {
         data = await getCustomizations(supabaseAdmin, companyId, keyData.permissions)
         break
 
+      // ============================================
+      // MDM ENDPOINTS
+      // ============================================
+
+      case 'devices': {
+        if (!keyData.permissions.mdm && !keyData.permissions.mdm_write) {
+          return new Response(
+            JSON.stringify({ error: 'Permission denied: mdm required' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        if (subPaths.length > 0) {
+          const deviceId = subPaths[0]
+          if (subPaths[1] === 'software') {
+            data = await getDeviceSoftware(supabaseAdmin, companyId, deviceId)
+          } else if (subPaths[1] === 'history') {
+            data = await getDeviceHistory(supabaseAdmin, companyId, deviceId)
+          } else if (subPaths[1] === 'deploy' && req.method === 'POST') {
+            if (!keyData.permissions.mdm_write) {
+              return new Response(
+                JSON.stringify({ error: 'Permission denied: mdm_write required' }),
+                { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+            const body = await req.json()
+            data = await deploySoftwareToDevice(supabaseAdmin, companyId, deviceId, body)
+          } else if (subPaths[1] === 'assign-profile' && req.method === 'POST') {
+            if (!keyData.permissions.mdm_write) {
+              return new Response(
+                JSON.stringify({ error: 'Permission denied: mdm_write required' }),
+                { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+            const body = await req.json()
+            data = await assignProfileToDevice(supabaseAdmin, companyId, deviceId, body)
+          } else if (subPaths[1] === 'profiles' && subPaths[2] && req.method === 'DELETE') {
+            if (!keyData.permissions.mdm_write) {
+              return new Response(
+                JSON.stringify({ error: 'Permission denied: mdm_write required' }),
+                { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+            data = await removeProfileFromDevice(supabaseAdmin, companyId, deviceId, subPaths[2])
+          } else if (subPaths[1] === 'command' && req.method === 'POST') {
+            if (!keyData.permissions.mdm_write) {
+              return new Response(
+                JSON.stringify({ error: 'Permission denied: mdm_write required' }),
+                { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+            const body = await req.json()
+            data = await sendDeviceCommand(supabaseAdmin, companyId, deviceId, body)
+          } else if (subPaths[1] === 'status') {
+            data = await getDeviceStatus(supabaseAdmin, companyId, deviceId)
+          } else if (req.method === 'PATCH') {
+            if (!keyData.permissions.mdm_write) {
+              return new Response(
+                JSON.stringify({ error: 'Permission denied: mdm_write required' }),
+                { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+            const body = await req.json()
+            data = await updateDevice(supabaseAdmin, companyId, deviceId, body)
+          } else {
+            data = await getDevice(supabaseAdmin, companyId, deviceId)
+          }
+        } else {
+          data = await getDevices(supabaseAdmin, companyId, url.searchParams)
+        }
+        break
+      }
+
+      case 'software': {
+        if (!keyData.permissions.mdm && !keyData.permissions.mdm_write) {
+          return new Response(
+            JSON.stringify({ error: 'Permission denied: mdm required' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        if (subPaths.length > 0) {
+          data = await getSoftwareDetail(supabaseAdmin, companyId, subPaths[0])
+        } else {
+          data = await getSoftwareCatalog(supabaseAdmin, companyId, url.searchParams)
+        }
+        break
+      }
+
+      case 'deployments': {
+        if (!keyData.permissions.mdm && !keyData.permissions.mdm_write) {
+          return new Response(
+            JSON.stringify({ error: 'Permission denied: mdm required' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        if (subPaths.length > 0) {
+          if (req.method === 'PATCH') {
+            // Webhook callback: MDM updates deployment status
+            const body = await req.json()
+            data = await updateDeploymentStatus(supabaseAdmin, companyId, subPaths[0], body)
+          } else {
+            data = await getDeploymentDetail(supabaseAdmin, companyId, subPaths[0])
+          }
+        } else {
+          data = await getDeployments(supabaseAdmin, companyId, url.searchParams)
+        }
+        break
+      }
+
+      case 'mdm-profiles': {
+        if (!keyData.permissions.mdm && !keyData.permissions.mdm_write) {
+          return new Response(
+            JSON.stringify({ error: 'Permission denied: mdm required' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        if (req.method === 'POST') {
+          if (!keyData.permissions.mdm_write) {
+            return new Response(
+              JSON.stringify({ error: 'Permission denied: mdm_write required' }),
+              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+          const body = await req.json()
+          data = await createMdmProfile(supabaseAdmin, companyId, body)
+        } else if (subPaths.length > 0) {
+          data = await getMdmProfile(supabaseAdmin, companyId, subPaths[0])
+        } else {
+          data = await getMdmProfiles(supabaseAdmin, companyId, url.searchParams)
+        }
+        break
+      }
+
+      case 'enrollment': {
+        if (!keyData.permissions.mdm_write) {
+          return new Response(
+            JSON.stringify({ error: 'Permission denied: mdm_write required' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        if (subPaths[0] === 'token' && req.method === 'POST') {
+          const body = await req.json()
+          data = await createEnrollmentToken(supabaseAdmin, companyId, body)
+        } else if (subPaths[0] === 'register' && req.method === 'POST') {
+          const body = await req.json()
+          data = await registerEnrolledDevice(supabaseAdmin, companyId, body)
+        } else if (subPaths[0] === 'pending') {
+          data = await getPendingEnrollments(supabaseAdmin, companyId)
+        } else {
+          return new Response(
+            JSON.stringify({ error: 'Endpoint not found' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        break
+      }
+
+      case 'commands': {
+        if (!keyData.permissions.mdm && !keyData.permissions.mdm_write) {
+          return new Response(
+            JSON.stringify({ error: 'Permission denied: mdm required' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        if (subPaths.length > 0) {
+          if (req.method === 'PATCH') {
+            const body = await req.json()
+            data = await updateCommandStatus(supabaseAdmin, companyId, subPaths[0], body)
+          } else {
+            data = await getCommandDetail(supabaseAdmin, companyId, subPaths[0])
+          }
+        } else {
+          data = await getCommands(supabaseAdmin, companyId, url.searchParams)
+        }
+        break
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Endpoint not found' }), 
