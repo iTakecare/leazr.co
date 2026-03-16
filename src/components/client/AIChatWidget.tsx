@@ -166,25 +166,43 @@ const AIChatWidget = () => {
                   <p className="text-xs mt-1">Posez une question sur vos contrats, équipements...</p>
                 </div>
               )}
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${
-                      msg.role === "user"
-                        ? "bg-blue-600 text-white rounded-br-md"
-                        : "bg-muted rounded-bl-md"
-                    }`}
-                  >
-                    {msg.role === "assistant" ? (
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      msg.content
-                    )}
+              {messages.map((msg, i) => {
+                const showTicketButton = msg.role === "assistant" && 
+                  /ticket|support|aide humaine|pas dans mes données|je ne dispose pas|impossible de répondre|contacte[rz]/i.test(msg.content);
+                return (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${
+                        msg.role === "user"
+                          ? "bg-blue-600 text-white rounded-br-md"
+                          : "bg-muted rounded-bl-md"
+                      }`}
+                    >
+                      {msg.role === "assistant" ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          {showTicketButton && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-2 gap-1.5 rounded-xl text-xs"
+                              onClick={() => {
+                                setIsOpen(false);
+                                navigateToClient('support');
+                              }}
+                            >
+                              <TicketPlus className="h-3.5 w-3.5" />
+                              Ouvrir un ticket
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        msg.content
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="flex justify-start">
                   <div className="bg-muted px-3 py-2 rounded-2xl rounded-bl-md">
