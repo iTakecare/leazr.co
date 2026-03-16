@@ -4729,6 +4729,62 @@ export type Database = {
           },
         ]
       }
+      mdm_commands: {
+        Row: {
+          command_type: string
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          equipment_id: string
+          error_message: string | null
+          id: string
+          initiated_by: string | null
+          payload: Json | null
+          result: Json | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          command_type: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          equipment_id: string
+          error_message?: string | null
+          id?: string
+          initiated_by?: string | null
+          payload?: Json | null
+          result?: Json | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          command_type?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          equipment_id?: string
+          error_message?: string | null
+          id?: string
+          initiated_by?: string | null
+          payload?: Json | null
+          result?: Json | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdm_commands_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mdm_configurations: {
         Row: {
           api_url: string | null
@@ -4765,6 +4821,148 @@ export type Database = {
             foreignKeyName: "mdm_configurations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdm_device_profiles: {
+        Row: {
+          applied_at: string | null
+          company_id: string
+          created_at: string
+          equipment_id: string
+          id: string
+          profile_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          company_id: string
+          created_at?: string
+          equipment_id: string
+          id?: string
+          profile_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          company_id?: string
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          profile_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdm_device_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdm_device_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "mdm_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdm_enrollment_tokens: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          equipment_id: string | null
+          expires_at: string
+          id: string
+          is_used: boolean
+          token: string
+          updated_at: string
+          used_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          equipment_id?: string | null
+          expires_at?: string
+          id?: string
+          is_used?: boolean
+          token?: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          equipment_id?: string | null
+          expires_at?: string
+          id?: string
+          is_used?: boolean
+          token?: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdm_enrollment_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdm_profiles: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          payload: Json
+          platform: string
+          profile_type: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          payload?: Json
+          platform?: string
+          profile_type?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          payload?: Json
+          platform?: string
+          profile_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdm_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
