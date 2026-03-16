@@ -202,9 +202,10 @@ serve(async (req) => {
         .eq('id', product.product_id)
         .single();
       
-      const productName = productError 
-        ? "Produit inconnu" 
-        : (productInfo?.name || "Produit inconnu");
+      const productFound = !productError && !!productInfo;
+      const productName = productFound 
+        ? (productInfo?.name || product.product_name || "Produit inconnu")
+        : (product.product_name || "Produit inconnu");
       
       if (productError) {
         console.warn("⚠️ Produit non trouvé dans la DB:", product.product_id);
@@ -302,7 +303,8 @@ serve(async (req) => {
       
       equipmentCalculations.push({
         productName,
-        productId: product.product_id,
+        productId: productFound ? product.product_id : null,
+        productFound,
         variantId: product.variant_id,
         quantity: product.quantity,
         purchasePrice: price,
@@ -565,7 +567,7 @@ serve(async (req) => {
         margin: finalMargin,
         coefficient: coefficient,
         duration: product.duration || 36,
-        product_id: calc.productId || null,
+        product_id: calc.productFound ? calc.productId : null,
         variant_id: calc.variantId || null,
         custom_pack_id: customPackDbId,
         pack_discount_percentage: calc.packDiscountPercentage || null,
