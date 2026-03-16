@@ -6,6 +6,8 @@ import Container from "@/components/layout/Container";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
 import InlinePublicProductDetail from "@/components/catalog/public/InlinePublicProductDetail";
+import CatalogCategoryCards from "@/components/catalog/public/CatalogCategoryCards";
+import CatalogBrandFilter from "@/components/catalog/public/CatalogBrandFilter";
 import InlinePublicCart from "@/components/catalog/public/InlinePublicCart";
 import InlineRequestSteps from "@/components/catalog/public/InlineRequestSteps";
 import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
