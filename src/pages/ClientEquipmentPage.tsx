@@ -228,7 +228,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-sm font-medium flex items-center gap-2">
                             <FileText className="h-4 w-4 text-primary" />
-                            Contrat {contract.tracking_number || contract.id.slice(0, 8)}
+                            Contrat {contract.contract_number || contract.id.slice(0, 8)}
                           </CardTitle>
                           <Badge variant="outline" className="text-xs">
                             {contract.monthly_payment ? `${contract.monthly_payment.toFixed(2)} €/mois` : "—"}
