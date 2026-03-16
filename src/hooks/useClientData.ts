@@ -196,6 +196,7 @@ export const useClientData = () => {
             description: parseEquipmentTitle(offer.equipment_description) || 'Équipement non spécifié',
             date: offer.created_at,
             status: offer.status,
+            workflow_status: offer.workflow_status,
           });
         });
 
