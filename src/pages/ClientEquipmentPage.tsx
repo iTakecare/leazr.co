@@ -51,7 +51,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
   });
 
   // Group by contract for "Par contrat" tab
-  const contractsMap = new Map<string, { id: string; client_name: string; status: string; tracking_number: string | null; monthly_payment: number | null; items: any[] }>();
+  const contractsMap = new Map<string, { id: string; client_name: string; status: string; contract_number: string | null; monthly_payment: number | null; items: any[] }>();
   contractEquipmentRaw.forEach((eq: any) => {
     const c = eq.contracts;
     if (!contractsMap.has(c.id)) {
@@ -59,7 +59,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
         id: c.id,
         client_name: c.client_name,
         status: c.status,
-        tracking_number: c.tracking_number,
+        contract_number: c.contract_number,
         monthly_payment: c.monthly_payment,
         items: [],
       });
