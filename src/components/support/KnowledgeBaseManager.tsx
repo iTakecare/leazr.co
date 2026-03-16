@@ -183,7 +183,19 @@ const KnowledgeBaseManager = () => {
         <Card className="border-0 shadow-sm rounded-2xl">
           <CardContent className="py-12 text-center">
             <BookOpen className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
-            <p className="text-muted-foreground text-sm">Aucun article dans la base de connaissances</p>
+            <p className="text-muted-foreground text-sm mb-4">Aucun article dans la base de connaissances</p>
+            {articles.length === 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => prefillArticles.mutate()}
+                disabled={prefillArticles.isPending}
+              >
+                <Sparkles className="h-4 w-4" />
+                {prefillArticles.isPending ? "Ajout en cours..." : `Pré-remplir avec ${defaultKnowledgeBaseArticles.length} articles par défaut`}
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
