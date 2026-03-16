@@ -154,7 +154,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       if (item.alwaysVisible) return true;
       return hasModuleAccess(item.moduleSlug);
     });
-  }, [companySlug, hasModuleAccess, taskUnreadCount]);
+  }, [companySlug, hasModuleAccess, taskUnreadCount, supportUnreadCount]);
 
   const isActive = useCallback((href: string) => location.pathname === href, [location.pathname]);
   
