@@ -124,7 +124,22 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
 
       console.log("Submitting request with data:", requestData);
       
-      const result = await createProductRequest(requestData);
+      // Préparer les items du panier avec les prix pour passer les vrais product IDs
+      const cartItemsWithPrices = items.map(item => {
+        const priceData = getProductPrice(item.product, item.selectedOptions);
+        return {
+          product: item.product,
+          quantity: item.quantity,
+          duration: item.duration,
+          selectedOptions: item.selectedOptions,
+          price: {
+            monthlyPrice: priceData.monthlyPrice,
+            purchasePrice: priceData.purchasePrice,
+          },
+        };
+      });
+      
+      const result = await createProductRequest(requestData, cartItemsWithPrices);
       
       clearCart();
       

@@ -68,7 +68,10 @@ const ClientRequestsPage = () => {
     try {
       const equipmentData = JSON.parse(description);
       if (Array.isArray(equipmentData) && equipmentData.length > 0) {
-        const titles = equipmentData.map(item => item.title).filter(Boolean);
+        const titles = equipmentData
+          .map(item => item.title || item.product_name || item.name)
+          .filter(Boolean)
+          .filter(t => t !== 'Produit inconnu');
         if (titles.length > 0) {
           return titles.length > 1
             ? `${titles[0]} et ${titles.length - 1} autre(s)`
@@ -76,6 +79,17 @@ const ClientRequestsPage = () => {
         }
       }
     } catch {
+      // Not JSON, check for "Produit inconnu" in plain text
+      if (description.includes('Produit inconnu')) {
+        // Extract product names from the description lines (format: "Name - Prix: ...")
+        const lines = description.split('\n').filter(Boolean);
+        const names = lines.map(line => line.split(' - ')[0]?.trim()).filter(Boolean);
+        if (names.length > 0) {
+          return names.length > 1
+            ? `${names[0]} et ${names.length - 1} autre(s)`
+            : names[0];
+        }
+      }
       return description;
     }
     return description;
