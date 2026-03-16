@@ -61,9 +61,10 @@ export const createProductRequest = async (data: ProductRequestData, cartItems?:
       products: cartItems && cartItems.length > 0
         ? cartItems.map(item => {
             const priceData = item.price || { monthlyPrice: 0, purchasePrice: 0 };
+            const variantId = item.selectedOptions?.variant_id || item.selectedOptions?.selected_variant_id || item.product?.selected_variant_id;
             return {
               product_id: item.product?.id || uuidv4(),
-              variant_id: item.selectedOptions?.variant_id || null,
+              ...(variantId ? { variant_id: variantId } : {}),
               quantity: item.quantity || 1,
               unit_price: priceData.monthlyPrice || 0,
               purchase_price: priceData.purchasePrice || 0,
@@ -123,8 +124,14 @@ export const createProductRequest = async (data: ProductRequestData, cartItems?:
     
     if (error) {
       console.error("Erreur lors de l'appel à la fonction Edge:", error);
-      toast.error("Échec de création de la demande: " + error.message);
-      throw new Error(`Échec de création de la demande: ${error.message}`);
+      // Try to extract validation details from response
+      let errorMsg = error.message;
+      if (responseData?.details && Array.isArray(responseData.details)) {
+        const fields = responseData.details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+        errorMsg = `Données invalides: ${fields}`;
+      }
+      toast.error("Échec de création de la demande: " + errorMsg);
+      throw new Error(`Échec de création de la demande: ${errorMsg}`);
     }
     
     console.log("Réponse de la fonction Edge:", responseData);

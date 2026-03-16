@@ -1,36 +1,70 @@
 
-Problème identifié avec certitude: l’envoi échoue avant insertion DB, dans l’Edge Function `create-product-request`, à cause de la validation Zod. Le payload envoie `products[].variant_id = null`, alors que le schéma accepte `string` ou `undefined` (pas `null`). C’est exactement l’erreur visible dans les logs Edge (`Expected string, received null`).
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-Plan de correction
+## Statut
 
-1) Corriger la construction du payload côté frontend
-- Fichier: `src/services/requestInfoService.ts`
-- Dans `createProductRequest`, ne plus envoyer `variant_id: null`.
-- Construire `variant_id` de façon sûre:
-  - priorité à une vraie valeur si disponible (`selectedOptions.variant_id`, `selectedOptions.selected_variant_id`, `product.selected_variant_id`, etc.),
-  - sinon **ne pas inclure la clé** `variant_id` dans l’objet produit.
-- Objectif: rendre le payload conforme au schéma Zod actuel.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-2) Rendre la validation backend rétrocompatible (anti-régression)
-- Fichier: `supabase/functions/_shared/validationSchemas.ts`
-- Adapter `variant_id` dans `productItemSchema` (et `customPackItemSchema`) pour tolérer temporairement `null` (ex: nullable + normalisation vers `undefined`).
-- But: éviter qu’un ancien client/front casse encore la fonction même si `null` est envoyé.
+## Endpoints API ajoutés
 
-3) Améliorer le message d’erreur côté UI
-- Fichier: `src/services/requestInfoService.ts`
-- Quand `supabase.functions.invoke` retourne une erreur HTTP, tenter d’extraire les `details` de validation renvoyés par l’Edge Function pour afficher un toast explicite (au lieu du message générique “non-2xx”).
-- But: diagnostic immédiat si une autre clé est invalide.
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-Validation après implémentation
+## Documentation
 
-- Test E2E du parcours exact vu dans la capture: `/itakecare/client/products` → panier inline → étapes Entreprise/Contact/Récapitulatif → “Envoyer ma demande”.
-- Vérifier:
-  - plus de toast d’échec,
-  - création de la demande (offer + équipements),
-  - absence d’erreur Zod dans logs `create-product-request`.
-- Retester aussi le flux public de demande pour confirmer qu’il n’y a pas de régression.
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-Détails techniques (résumé)
-- Cause racine: mismatch strict de type (`null` vs `string|undefined`) sur `variant_id`.
-- Aucune migration SQL/RLS nécessaire pour ce bug précis.
-- Le correctif doit cibler le vrai flux utilisé ici (`RequestSummary` → `createProductRequest`), pas `createClientRequest`.
+## Tables
+
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
+- `software_catalog`, `software_deployments`, `mdm_configurations`
+
+---
+
+# Plan : Déploiement logiciel à distance (MDM)
+
+## Statut
+
+- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
+- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
+- ✅ Phase 3 — Table `software_deployments` + suivi statut
+- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
+- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
+
+## MDM recommandé : Fleet (FleetDM)
+
+| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
+|---|---|---|---|
+| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
+| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
+| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
+| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
+| Open-source | ✅ MIT | ✅ | ✅ |
+
+### Intégration technique
+
+1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
+2. **Déployer l'agent `fleetd`** sur les machines clientes
+3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
+4. L'edge function existante route les appels vers Fleet automatiquement
+
+### Composants
+
+| Fichier | Rôle |
+|---|---|
+| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
+| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
+| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
+| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
