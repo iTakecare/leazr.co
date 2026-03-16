@@ -10,6 +10,7 @@ interface RecentActivity {
   description: string;
   date: string;
   status?: string;
+  workflow_status?: string;
 }
 
 interface ClientStats {
