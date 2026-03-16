@@ -40,7 +40,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
         .select(`
           id, title, quantity, serial_number, monthly_payment, purchase_price,
           collaborator_id, contract_id,
-          contracts!inner(id, client_name, status, tracking_number, monthly_payment, created_at, client_id)
+          contracts!inner(id, client_name, status, tracking_number, contract_number, monthly_payment, created_at, client_id)
         `)
         .eq("contracts.client_id", clientData!.id)
         .in("contracts.status", ["active", "signed", "delivered"]);
