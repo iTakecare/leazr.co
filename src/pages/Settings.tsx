@@ -231,6 +231,13 @@ const Settings: React.FC = () => {
           </TabsContent>
         )}
 
+        <TabsContent value="software" className="mt-6">
+          <div className="space-y-6">
+            <SoftwareCatalogManager />
+            <MDMConfigSection />
+          </div>
+        </TabsContent>
+
         <TabsContent value="subscription" className="mt-6">
           <TrialAwareSubscriptionCard />
         </TabsContent>
