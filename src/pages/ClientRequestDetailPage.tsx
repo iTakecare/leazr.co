@@ -44,7 +44,7 @@ const getOfferTypeLabel = (type: string) => {
 };
 
 const ClientRequestDetailPage = () => {
-  const { id } = useParams();
+  const { id, slug } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { offers, loading, error } = useClientOffers(user?.email);
@@ -336,7 +336,20 @@ const ClientRequestDetailPage = () => {
                   <p className="text-xs text-muted-foreground mb-3">
                     Notre équipe est là pour vous accompagner dans votre demande de financement.
                   </p>
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      const ref = offer?.dossier_number || offer?.id?.slice(0, 8) || '';
+                      const params = new URLSearchParams({
+                        subject: `Demande d'information - Offre ${ref}`,
+                        category: 'other',
+                        description: `Bonjour, je voudrais avoir des informations au sujet de mon offre ${ref}`,
+                      });
+                      navigate(`/${slug}/client/support?${params.toString()}`);
+                    }}
+                  >
                     Contacter le support
                   </Button>
                 </CardContent>

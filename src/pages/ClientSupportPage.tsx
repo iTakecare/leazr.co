@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,22 @@ const ClientSupportPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [form, setForm] = useState({ subject: "", category: "technical", description: "" });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const subject = searchParams.get("subject");
+    const category = searchParams.get("category");
+    const description = searchParams.get("description");
+    if (subject || description) {
+      setForm({
+        subject: subject || "",
+        category: category || "technical",
+        description: description || "",
+      });
+      setShowForm(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   const clientId = clientData?.id;
   const companyId = (clientData as any)?.company_id;
