@@ -1,44 +1,70 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-# Fix: Afficher les équipements réels dans les onglets client
+## Statut
 
-## Problème
-Les onglets "Par contrat", "Par équipement" et "Logiciels" de la page Gestion des Équipements parsent le champ texte `equipment_description` de la table `contracts` au lieu de requêter la table `contract_equipment` qui contient les vrais équipements (ceux visibles dans l'onglet "Assignation"). Résultat : ces onglets affichent "Aucun contrat actif" / "Aucun équipement trouvé" même quand il y a des équipements assignés.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-## Solution
+## Endpoints API ajoutés
 
-### `src/pages/ClientEquipmentPage.tsx`
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-1. **Remplacer la source de données** : Au lieu de parser `equipment_description`, faire une requête sur `contract_equipment` jointe à `contracts` pour récupérer les vrais équipements avec leurs numéros de série, collaborateurs, etc.
+## Documentation
 
-```typescript
-// Nouvelle requête — remplace la requête contracts existante
-const { data: contractEquipment = [] } = useQuery({
-  queryKey: ["client-contract-equipment", clientData?.id],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from("contract_equipment")
-      .select(`
-        id, title, quantity, serial_number, monthly_payment, purchase_price,
-        collaborator_id, contract_id,
-        contracts!inner(id, client_name, status, tracking_number, monthly_payment, start_date, client_id)
-      `)
-      .eq("contracts.client_id", clientData!.id)
-      .eq("contracts.status", "active");
-    if (error) throw error;
-    return data || [];
-  },
-  enabled: !!clientData?.id,
-});
-```
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-2. **Reconstruire `contracts` et `allEquipment` depuis cette data** :
-   - Grouper par `contract_id` pour l'onglet "Par contrat"
-   - Aplatir pour l'onglet "Par équipement" et "Logiciels"
-   - Passer les vrais équipements au `ClientSoftwareTab`
+## Tables
 
-3. **Onglet Logiciels** : Le composant `ClientSoftwareTab` recevra les vrais équipements au lieu d'une liste vide, donc le dropdown "Équipement cible" sera peuplé correctement.
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
+- `software_catalog`, `software_deployments`, `mdm_configurations`
 
-### Pas de changement de schéma ni de RLS
-La policy `clients_can_view_own_contract_equipment` existe déjà et fonctionne.
+---
 
+# Plan : Déploiement logiciel à distance (MDM)
+
+## Statut
+
+- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
+- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
+- ✅ Phase 3 — Table `software_deployments` + suivi statut
+- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
+- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
+
+## MDM recommandé : Fleet (FleetDM)
+
+| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
+|---|---|---|---|
+| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
+| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
+| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
+| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
+| Open-source | ✅ MIT | ✅ | ✅ |
+
+### Intégration technique
+
+1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
+2. **Déployer l'agent `fleetd`** sur les machines clientes
+3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
+4. L'edge function existante route les appels vers Fleet automatiquement
+
+### Composants
+
+| Fichier | Rôle |
+|---|---|
+| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
+| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
+| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
+| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |

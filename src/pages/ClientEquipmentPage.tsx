@@ -29,21 +29,48 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
   const [deployWizardOpen, setDeployWizardOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
 
-  // Fetch contracts with equipment
-  const { data: contracts = [] } = useQuery({
-    queryKey: ["client-contracts-equipment", clientData?.id],
+  // Fetch real equipment from contract_equipment table
+  const { data: contractEquipmentRaw = [] } = useQuery({
+    queryKey: ["client-contract-equipment", clientData?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("contracts")
-        .select("id, client_name, status, equipment_description, monthly_payment, start_date, tracking_number")
-        .eq("client_id", clientData!.id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false });
+        .from("contract_equipment")
+        .select(`
+          id, title, quantity, serial_number, monthly_payment, purchase_price,
+          collaborator_id, contract_id,
+          contracts!inner(id, client_name, status, tracking_number, monthly_payment, created_at, client_id)
+        `)
+        .eq("contracts.client_id", clientData!.id)
+        .in("contracts.status", ["active", "signed", "delivered"]);
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!clientData?.id,
   });
+
+  // Group by contract for "Par contrat" tab
+  const contractsMap = new Map<string, { id: string; client_name: string; status: string; tracking_number: string | null; monthly_payment: number | null; items: any[] }>();
+  contractEquipmentRaw.forEach((eq: any) => {
+    const c = eq.contracts;
+    if (!contractsMap.has(c.id)) {
+      contractsMap.set(c.id, {
+        id: c.id,
+        client_name: c.client_name,
+        status: c.status,
+        tracking_number: c.tracking_number,
+        monthly_payment: c.monthly_payment,
+        items: [],
+      });
+    }
+    contractsMap.get(c.id)!.items.push({
+      id: eq.id,
+      title: eq.title,
+      quantity: eq.quantity || 1,
+      serial_number: eq.serial_number,
+      monthly_payment: eq.monthly_payment,
+    });
+  });
+  const contracts = Array.from(contractsMap.values());
 
   if (loading) {
     return (
@@ -90,34 +117,16 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     );
   }
 
-  // Parse equipment from contracts for flat view
-  const allEquipment = contracts.flatMap((contract) => {
-    try {
-      const items = JSON.parse(contract.equipment_description || "[]");
-      if (Array.isArray(items)) {
-        return items.map((item: any, idx: number) => ({
-          id: `${contract.id}-${idx}`,
-          name: item.title || item.name || "Équipement",
-          serial: item.serial_number || "—",
-          contractRef: contract.tracking_number || contract.id.slice(0, 8),
-          contractId: contract.id,
-          quantity: item.quantity || 1,
-          monthlyPayment: item.monthly_payment || null,
-        }));
-      }
-    } catch {
-      // Not JSON
-    }
-    return [{
-      id: contract.id,
-      name: contract.equipment_description || "Équipement",
-      serial: "—",
-      contractRef: contract.tracking_number || contract.id.slice(0, 8),
-      contractId: contract.id,
-      quantity: 1,
-      monthlyPayment: contract.monthly_payment,
-    }];
-  });
+  // Build flat equipment list from contract_equipment data
+  const allEquipment = contractEquipmentRaw.map((eq: any) => ({
+    id: eq.id,
+    name: eq.title || "Équipement",
+    serial: eq.serial_number || "—",
+    contractRef: eq.contracts?.tracking_number || eq.contract_id?.slice(0, 8) || "—",
+    contractId: eq.contract_id,
+    quantity: eq.quantity || 1,
+    monthlyPayment: eq.monthly_payment || null,
+  }));
 
   const filteredEquipment = allEquipment.filter(
     (e) =>
@@ -184,8 +193,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                 </Card>
               ) : (
                 contracts.map((contract) => {
-                  let items: any[] = [];
-                  try { items = JSON.parse(contract.equipment_description || "[]"); } catch { items = []; }
+                  const items = contract.items;
                   return (
                     <Card key={contract.id} className="border-0 shadow-sm rounded-2xl">
                       <CardHeader className="pb-2">
@@ -200,14 +208,14 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {Array.isArray(items) && items.length > 0 ? (
+                        {items.length > 0 ? (
                           <div className="space-y-2">
-                            {items.map((item: any, idx: number) => (
-                              <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                            {items.map((item: any) => (
+                              <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                                 <div className="flex items-center gap-3">
                                   <Cpu className="h-4 w-4 text-muted-foreground" />
                                   <div>
-                                    <p className="text-sm font-medium">{item.title || item.name || "Équipement"}</p>
+                                    <p className="text-sm font-medium">{item.title || "Équipement"}</p>
                                     <p className="text-xs text-muted-foreground">
                                       {item.serial_number ? `S/N: ${item.serial_number}` : "Pas de N° de série"}
                                       {item.quantity > 1 && ` · Qté: ${item.quantity}`}
@@ -223,8 +231,8 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                                   className="gap-1 text-xs"
                                   onClick={() => {
                                     setSelectedEquipment({
-                                      id: `${contract.id}-${idx}`,
-                                      name: item.title || item.name || "Équipement",
+                                      id: item.id,
+                                      name: item.title || "Équipement",
                                       contractRef: contract.tracking_number || contract.id.slice(0, 8),
                                     });
                                     setDeployWizardOpen(true);
@@ -236,7 +244,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                             ))}
                           </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground">{contract.equipment_description || "Aucun détail d'équipement"}</p>
+                          <p className="text-sm text-muted-foreground">Aucun équipement assigné</p>
                         )}
                       </CardContent>
                     </Card>
