@@ -271,6 +271,7 @@ const ClientEquipmentPage = () => {
                           <th className="text-left text-xs font-medium text-muted-foreground p-3">N° Série</th>
                           <th className="text-left text-xs font-medium text-muted-foreground p-3">Contrat</th>
                           <th className="text-left text-xs font-medium text-muted-foreground p-3">Qté</th>
+                          <th className="text-left text-xs font-medium text-muted-foreground p-3">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
