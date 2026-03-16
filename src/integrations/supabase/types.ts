@@ -8673,6 +8673,8 @@ export type Database = {
           attachments: Json | null
           created_at: string
           id: string
+          is_read_by_admin: boolean | null
+          is_read_by_client: boolean | null
           message: string
           sender_id: string | null
           sender_name: string
@@ -8683,6 +8685,8 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           id?: string
+          is_read_by_admin?: boolean | null
+          is_read_by_client?: boolean | null
           message: string
           sender_id?: string | null
           sender_name: string
@@ -8693,6 +8697,8 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           id?: string
+          is_read_by_admin?: boolean | null
+          is_read_by_client?: boolean | null
           message?: string
           sender_id?: string | null
           sender_name?: string
