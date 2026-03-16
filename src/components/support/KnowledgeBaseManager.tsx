@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, Trash2, BookOpen } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, BookOpen, Sparkles } from "lucide-react";
+import { defaultKnowledgeBaseArticles } from "@/constants/defaultKnowledgeBaseArticles";
 
 const CATEGORIES = [
   { value: "general", label: "Général" },
