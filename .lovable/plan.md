@@ -1,70 +1,34 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+# Remplacer la timeline client par le stepper Leazr (read-only)
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+## Problème
+Le suivi côté client utilise une timeline verticale simpliste (3 étapes statiques : "Demande soumise", "Examen en cours", "Demande approuvée") qui ne reflète pas les vraies étapes du workflow. Côté admin, le `LeazrWorkflowStepper` affiche les étapes réelles du workflow configuré (Brouillon → Analyse interne → Introduit leaser → Résultat leaser → Contrat prêt).
 
-## Endpoints API ajoutés
+## Solution
+Créer un composant `ClientWorkflowStepper` qui reprend le **design visuel** du `LeazrWorkflowStepper` (cartes horizontales, icônes, connecteurs pointillés, badges de statut) mais en **lecture seule** (pas de boutons d'action, pas de clic pour changer le statut).
 
-| Endpoint | Description |
+### Fichiers à modifier
+
+| Fichier | Action |
 |---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+| `src/components/client/ClientWorkflowStepper.tsx` | **Créer** - Version read-only du LeazrWorkflowStepper |
+| `src/pages/ClientRequestDetailPage.tsx` | **Modifier** - Remplacer `RequestStatusTimeline` par `ClientWorkflowStepper` |
 
-## Documentation
+### Détails du `ClientWorkflowStepper`
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+- Reprend la même logique de résolution des étapes que `LeazrWorkflowStepper` :
+  - Utilise `useWorkflowForOfferType` pour charger les étapes réelles du workflow
+  - Utilise le même `getCurrentStepIndex` avec le `statusMapping` hiérarchique
+  - Mêmes icônes par type d'étape (`getStepIcon`)
+- Même rendu visuel : cartes avec bordure orange pour l'étape active, check vert pour les complétées, connecteurs pointillés
+- **Pas de** : boutons d'action, `handleStepClick`, modal email, scores, demande de documents, liens "retour à"
+- Labels client-friendly : "En cours", "Terminée", "À venir"
+- Props : `currentStatus`, `offerType`, `workflowTemplateId`, `companyId`
 
-## Tables
+### Modification de `ClientRequestDetailPage.tsx`
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
-- `software_catalog`, `software_deployments`, `mdm_configurations`
+- Remplacer l'import de `RequestStatusTimeline` par `ClientWorkflowStepper`
+- Passer `offer.workflow_status`, `offer.type`, `offer.workflow_template_id`, `offer.company_id`
+- Retirer la Card wrapper (le stepper a son propre container)
 
----
-
-# Plan : Déploiement logiciel à distance (MDM)
-
-## Statut
-
-- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
-- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
-- ✅ Phase 3 — Table `software_deployments` + suivi statut
-- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
-- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
-
-## MDM recommandé : Fleet (FleetDM)
-
-| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
-|---|---|---|---|
-| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
-| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
-| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
-| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
-| Open-source | ✅ MIT | ✅ | ✅ |
-
-### Intégration technique
-
-1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
-2. **Déployer l'agent `fleetd`** sur les machines clientes
-3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
-4. L'edge function existante route les appels vers Fleet automatiquement
-
-### Composants
-
-| Fichier | Rôle |
-|---|---|
-| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
-| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
-| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
-| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
