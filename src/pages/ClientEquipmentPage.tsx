@@ -29,21 +29,48 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
   const [deployWizardOpen, setDeployWizardOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
 
-  // Fetch contracts with equipment
-  const { data: contracts = [] } = useQuery({
-    queryKey: ["client-contracts-equipment", clientData?.id],
+  // Fetch real equipment from contract_equipment table
+  const { data: contractEquipmentRaw = [] } = useQuery({
+    queryKey: ["client-contract-equipment", clientData?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("contracts")
-        .select("id, client_name, status, equipment_description, monthly_payment, start_date, tracking_number")
-        .eq("client_id", clientData!.id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false });
+        .from("contract_equipment")
+        .select(`
+          id, title, quantity, serial_number, monthly_payment, purchase_price,
+          collaborator_id, contract_id,
+          contracts!inner(id, client_name, status, tracking_number, monthly_payment, created_at, client_id)
+        `)
+        .eq("contracts.client_id", clientData!.id)
+        .in("contracts.status", ["active", "signed", "delivered"]);
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!clientData?.id,
   });
+
+  // Group by contract for "Par contrat" tab
+  const contractsMap = new Map<string, { id: string; client_name: string; status: string; tracking_number: string | null; monthly_payment: number | null; items: any[] }>();
+  contractEquipmentRaw.forEach((eq: any) => {
+    const c = eq.contracts;
+    if (!contractsMap.has(c.id)) {
+      contractsMap.set(c.id, {
+        id: c.id,
+        client_name: c.client_name,
+        status: c.status,
+        tracking_number: c.tracking_number,
+        monthly_payment: c.monthly_payment,
+        items: [],
+      });
+    }
+    contractsMap.get(c.id)!.items.push({
+      id: eq.id,
+      title: eq.title,
+      quantity: eq.quantity || 1,
+      serial_number: eq.serial_number,
+      monthly_payment: eq.monthly_payment,
+    });
+  });
+  const contracts = Array.from(contractsMap.values());
 
   if (loading) {
     return (
