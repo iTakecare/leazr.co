@@ -245,3 +245,9 @@ verify_jwt = false
 
 [functions.generate-partner-hero]
 verify_jwt = true
+
+[functions.suggest-renewal-equipment]
+verify_jwt = false
+
+[functions.client-ai-chat]
+verify_jwt = false
