@@ -265,7 +265,8 @@ export const useClientData = () => {
           });
         });
 
-        const { data: contracts } = await services.contracts.query()
+        const { data: contracts } = await supabase
+          .from('contracts')
           .select('id, client_name, status, created_at, equipment_description')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
