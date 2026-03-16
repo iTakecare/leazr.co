@@ -1,31 +1,17 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Corrections du Dashboard Client
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+Deux corrections simples :
 
-## Endpoints API ajoutés
+### 1. Texte de la bannière
+Ligne 159-161 : Remplacer "Voici un aperçu de votre espace de financement" par **"Bienvenue dans l'espace de gestion de vos contrats"**.
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+### 2. Activité récente - état vide
+Lignes 352-355 : Améliorer le message vide pour qu'il soit plus accueillant et pertinent quand il n'y a ni contrats ni équipements. Remplacer par un message du type "Vous n'avez pas encore d'activité. Vos contrats et demandes apparaîtront ici." avec un bouton CTA pour faire une nouvelle demande ou consulter le catalogue.
 
-## Documentation
+### Fichier modifié
+| Fichier | Modification |
+|---------|-------------|
+| `src/pages/ClientDashboard.tsx` | Texte bannière + état vide activité récente |
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
-
-## Tables
-
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
