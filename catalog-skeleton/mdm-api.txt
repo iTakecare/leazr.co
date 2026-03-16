@@ -1,0 +1,456 @@
+===============================================
+ LEAZR CATALOG API — MDM ENDPOINTS
+ Version: 2026.3
+ Dernière mise à jour: 2026-03-16
+===============================================
+
+Base URL: https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/{company}
+Auth: Header x-api-key (avec permission "mdm" ou "mdm_write")
+
+Permissions requises:
+- "mdm" : lecture seule (GET)
+- "mdm_write" : écriture (POST, PATCH, DELETE)
+
+===============================================
+CHANGELOG
+===============================================
+
+v2026.3 (2026-03-16)
+- Ajout initial des endpoints MDM complets
+- Devices, Software, Deployments, Profiles, Enrollment, Commands
+
+===============================================
+1. APPAREILS (DEVICES)
+===============================================
+
+GET /v1/{company}/devices
+  Liste des équipements
+  Query params: status, type, page (default 1), limit (default 50, max 100)
+
+  Réponse:
+  {
+    "devices": [
+      {
+        "id": "uuid",
+        "equipment_description": "MacBook Pro 14\"",
+        "serial_number": "C02X...",
+        "status": "active",
+        "assigned_to": "Jean Dupont",
+        "notes": null,
+        "contract_id": "uuid",
+        "created_at": "2026-01-15T10:00:00Z",
+        "updated_at": "2026-03-10T14:30:00Z"
+      }
+    ],
+    "pagination": { "page": 1, "limit": 50 }
+  }
+
+---
+
+GET /v1/{company}/devices/{id}
+  Détail d'un appareil
+
+  Réponse:
+  {
+    "device": { ...tous les champs de contract_equipment... }
+  }
+
+---
+
+PATCH /v1/{company}/devices/{id}
+  Permission: mdm_write
+  Mise à jour partielle
+
+  Body:
+  {
+    "serial_number": "NEW_SERIAL",
+    "status": "maintenance",
+    "notes": "En réparation",
+    "assigned_to": "Marie Martin"
+  }
+
+  Réponse: { "device": { ...updated... } }
+
+---
+
+GET /v1/{company}/devices/{id}/software
+  Logiciels déployés sur cet appareil
+
+  Réponse:
+  {
+    "deployments": [
+      {
+        "id": "uuid",
+        "software_id": "uuid",
+        "status": "success",
+        "initiated_at": "2026-03-10T10:00:00Z",
+        "completed_at": "2026-03-10T10:05:00Z",
+        "error_message": null,
+        "software_catalog": {
+          "id": "uuid",
+          "name": "Google Chrome",
+          "version": "122.0",
+          "platform": "macos",
+          "category": "browser"
+        }
+      }
+    ]
+  }
+
+---
+
+GET /v1/{company}/devices/{id}/history
+  Historique des mouvements (via equipment_tracking)
+
+  Réponse:
+  { "history": [ ...tracking entries... ] }
+
+---
+
+GET /v1/{company}/devices/{id}/status
+  État enrichi : infos appareil + dernier inventaire + profils
+
+  Réponse:
+  {
+    "device": { "id": "uuid", "equipment_description": "...", ... },
+    "last_inventory": { "os": "macOS 15.3", "storage_free_gb": 120, ... },
+    "last_inventory_at": "2026-03-15T08:00:00Z",
+    "profiles_applied": 3,
+    "profiles": [
+      {
+        "id": "uuid",
+        "profile_id": "uuid",
+        "status": "applied",
+        "applied_at": "2026-03-01T12:00:00Z",
+        "mdm_profiles": { "name": "WiFi Corporate", "profile_type": "wifi" }
+      }
+    ]
+  }
+
+===============================================
+2. CATALOGUE LOGICIELS (SOFTWARE)
+===============================================
+
+GET /v1/{company}/software
+  Query params: platform, category
+
+  Réponse:
+  {
+    "software": [
+      {
+        "id": "uuid",
+        "name": "Slack",
+        "version": "4.38",
+        "platform": "macos",
+        "category": "communication",
+        "description": "Messaging app",
+        "silent_install_command": "installer -pkg Slack.pkg -target /",
+        "is_active": true,
+        "created_at": "2026-01-01T00:00:00Z"
+      }
+    ]
+  }
+
+---
+
+GET /v1/{company}/software/{id}
+  Détail complet d'un logiciel
+
+  Réponse: { "software": { ...all fields... } }
+
+===============================================
+3. DÉPLOIEMENTS (DEPLOYMENTS)
+===============================================
+
+POST /v1/{company}/devices/{id}/deploy
+  Permission: mdm_write
+  Déployer des logiciels sur un appareil
+
+  Body:
+  {
+    "software_ids": ["uuid1", "uuid2"],
+    "initiated_by": "uuid-user-id"
+  }
+
+  Réponse:
+  {
+    "deployments": [
+      {
+        "id": "uuid",
+        "equipment_id": "uuid",
+        "software_id": "uuid1",
+        "status": "pending",
+        "initiated_at": "2026-03-16T15:00:00Z"
+      }
+    ]
+  }
+
+---
+
+GET /v1/{company}/deployments
+  Query params: status (pending|installing|success|failed), equipment_id
+
+  Réponse:
+  {
+    "deployments": [
+      {
+        "id": "uuid",
+        "equipment_id": "uuid",
+        "software_id": "uuid",
+        "status": "success",
+        "initiated_by": "uuid",
+        "initiated_at": "...",
+        "completed_at": "...",
+        "software_catalog": { "name": "Chrome", "version": "122" }
+      }
+    ]
+  }
+
+---
+
+GET /v1/{company}/deployments/{id}
+  Détail d'un déploiement
+
+---
+
+PATCH /v1/{company}/deployments/{id}
+  **WEBHOOK CALLBACK** — Votre MDM met à jour le statut
+
+  Body:
+  {
+    "status": "success",
+    "error_message": null
+  }
+
+  Statuts acceptés: pending, installing, success, failed
+  Note: completed_at est auto-rempli pour success/failed
+
+  Réponse: { "deployment": { ...updated... } }
+
+===============================================
+4. PROFILS DE CONFIGURATION (MDM-PROFILES)
+===============================================
+
+GET /v1/{company}/mdm-profiles
+  Query params: type (wifi|vpn|restriction|email|certificate|custom), platform
+
+  Réponse:
+  {
+    "profiles": [
+      {
+        "id": "uuid",
+        "name": "WiFi Corporate",
+        "description": "Réseau bureau principal",
+        "profile_type": "wifi",
+        "platform": "all",
+        "is_active": true,
+        "created_at": "...",
+        "updated_at": "..."
+      }
+    ]
+  }
+
+---
+
+GET /v1/{company}/mdm-profiles/{id}
+  Détail avec payload complet
+
+  Réponse:
+  {
+    "profile": {
+      "id": "uuid",
+      "name": "WiFi Corporate",
+      "profile_type": "wifi",
+      "payload": {
+        "ssid": "CorpWiFi",
+        "security_type": "WPA2-Enterprise",
+        "eap_type": "PEAP",
+        "auto_join": true
+      },
+      "platform": "all",
+      ...
+    }
+  }
+
+---
+
+POST /v1/{company}/mdm-profiles
+  Permission: mdm_write
+  Créer un profil
+
+  Body:
+  {
+    "name": "VPN Office",
+    "description": "Connexion VPN bureau",
+    "profile_type": "vpn",
+    "platform": "macos",
+    "payload": {
+      "vpn_type": "IKEv2",
+      "server": "vpn.example.com",
+      "remote_id": "vpn.example.com"
+    }
+  }
+
+---
+
+POST /v1/{company}/devices/{id}/assign-profile
+  Permission: mdm_write
+  Assigner un profil à un appareil
+
+  Body: { "profile_id": "uuid" }
+
+  Réponse:
+  {
+    "assignment": {
+      "id": "uuid",
+      "equipment_id": "uuid",
+      "profile_id": "uuid",
+      "status": "pending",
+      "mdm_profiles": { "name": "WiFi Corporate", "profile_type": "wifi" }
+    }
+  }
+
+---
+
+DELETE /v1/{company}/devices/{id}/profiles/{profileId}
+  Permission: mdm_write
+  Retirer un profil (status → "removed")
+
+  Réponse: { "removed": true, "assignment": { ... } }
+
+===============================================
+5. ENRÔLEMENT (ENROLLMENT)
+===============================================
+
+POST /v1/{company}/enrollment/token
+  Permission: mdm_write
+  Générer un token d'enrôlement
+
+  Body:
+  {
+    "equipment_id": "uuid",          // optionnel, pré-assigner
+    "description": "MacBook RH",     // optionnel
+    "expires_in_days": 7             // défaut: 7
+  }
+
+  Réponse:
+  {
+    "token": {
+      "id": "uuid",
+      "token": "a1b2c3d4e5f6...",
+      "equipment_id": "uuid",
+      "expires_at": "2026-03-23T15:00:00Z",
+      "is_used": false
+    }
+  }
+
+---
+
+POST /v1/{company}/enrollment/register
+  Permission: mdm_write
+  **CALLBACK** — Enregistrer un appareil enrôlé
+
+  Body:
+  {
+    "token": "a1b2c3d4e5f6...",
+    "device_info": {
+      "serial_number": "C02X...",
+      "notes": "MacBook Pro M3"
+    }
+  }
+
+  Réponse:
+  {
+    "enrolled": true,
+    "equipment_id": "uuid",
+    "device_info": { ... }
+  }
+
+---
+
+GET /v1/{company}/enrollment/pending
+  Permission: mdm_write
+  Tokens en attente (non utilisés, non expirés)
+
+  Réponse:
+  { "pending_tokens": [ ... ] }
+
+===============================================
+6. COMMANDES (COMMANDS)
+===============================================
+
+POST /v1/{company}/devices/{id}/command
+  Permission: mdm_write
+  Envoyer une commande à un appareil
+
+  Body:
+  {
+    "command_type": "lock",
+    "payload": { "message": "Appareil verrouillé par l'admin" },
+    "initiated_by": "uuid-user-id"
+  }
+
+  Types: lock, wipe, restart, shutdown, script, notification, update_os, inventory
+
+  Réponse: { "command": { "id": "uuid", "status": "pending", ... } }
+
+---
+
+GET /v1/{company}/commands
+  Query params: status, equipment_id, type
+
+  Réponse: { "commands": [ ... ] }
+
+---
+
+GET /v1/{company}/commands/{id}
+  Détail d'une commande
+
+---
+
+PATCH /v1/{company}/commands/{id}
+  **WEBHOOK CALLBACK** — MDM met à jour le statut de la commande
+
+  Body:
+  {
+    "status": "completed",
+    "result": { "battery": 85, "os_version": "macOS 15.3" },
+    "error_message": null
+  }
+
+  Statuts: pending, sent, acknowledged, completed, failed, cancelled
+  Note: sent_at auto-rempli pour "sent", completed_at pour "completed"/"failed"
+
+  Réponse: { "command": { ...updated... } }
+
+===============================================
+CODES D'ERREUR
+===============================================
+
+401 — API key manquante ou invalide
+403 — Permission insuffisante (mdm ou mdm_write requis)
+404 — Ressource non trouvée
+429 — Rate limit dépassé (100 req/h)
+500 — Erreur serveur
+
+===============================================
+NOTES D'INTÉGRATION
+===============================================
+
+1. Workflow typique d'installation logiciel:
+   POST /devices/{id}/deploy → crée des deployments "pending"
+   Votre MDM récupère les pending et installe
+   PATCH /deployments/{id} → callback avec status "success"/"failed"
+
+2. Workflow enrôlement:
+   POST /enrollment/token → générer un token
+   L'agent MDM s'enregistre avec POST /enrollment/register
+   Le device est associé automatiquement
+
+3. Workflow commande:
+   POST /devices/{id}/command → crée une commande "pending"
+   Votre MDM récupère et exécute
+   PATCH /commands/{id} → callback avec status + result
+
+4. Pour le statut temps réel:
+   GET /devices/{id}/status → combine device info + dernier inventaire + profils
