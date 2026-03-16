@@ -186,7 +186,7 @@ export const useClientData = () => {
         const activities: RecentActivity[] = [];
 
         const { data: offers } = await services.offers.query()
-          .select('id, client_name, status, workflow_status, created_at, equipment_description')
+          .select('id, client_name, status, workflow_status, created_at, equipment_description, type, workflow_template_id, company_id')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
           .limit(3);
@@ -200,6 +200,9 @@ export const useClientData = () => {
             date: offer.created_at,
             status: offer.status,
             workflow_status: offer.workflow_status,
+            workflow_template_id: offer.workflow_template_id,
+            company_id: offer.company_id,
+            offer_type: offer.type,
           });
         });
 

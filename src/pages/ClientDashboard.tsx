@@ -244,7 +244,7 @@ const ClientDashboard = () => {
                     <p className="text-sm font-medium mb-4 truncate">{offer.description}</p>
                     <MiniWorkflowStepper
                       currentStatus={offer.workflow_status || offer.status || 'draft'}
-                      offerType={offer.type}
+                      offerType={offer.offer_type}
                       workflowTemplateId={offer.workflow_template_id}
                       companyId={offer.company_id}
                     />
