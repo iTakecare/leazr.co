@@ -334,6 +334,13 @@ const ClientTicketDetail = ({ ticket, onBack, clientName }: ClientTicketDetailPr
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { clientData } = useClientData();
+  const { markRepliesAsRead } = useTicketReplyNotifications({ role: "client", clientId: clientData?.id });
+
+  // Mark admin replies as read when opening the ticket
+  useEffect(() => {
+    markRepliesAsRead(ticket.id);
+  }, [ticket.id, markRepliesAsRead]);
 
   const statusConf = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.open;
   const StatusIcon = statusConf.icon;
