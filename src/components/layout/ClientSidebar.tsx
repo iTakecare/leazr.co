@@ -139,6 +139,7 @@ const ClientSidebar = memo(({ className, onLinkClick }: SidebarProps) => {
               isActive={(href) => isActive(href)}
               collapsed={isCollapsed}
               onLinkClick={() => handleNavigation(item.href)}
+              variant="light"
             />
           ))}
         </ul>
