@@ -60,12 +60,27 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
     }).sort((a, b) => a.label.localeCompare(b.label));
   }, [products]);
 
+  // Get brands from products
+  const brands = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    const brandsMap = new Map<string, number>();
+    products.forEach(product => {
+      if (product.brand) {
+        brandsMap.set(product.brand, (brandsMap.get(product.brand) || 0) + 1);
+      }
+    });
+    return Array.from(brandsMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [products]);
+
   // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams();
     
     if (filters.searchQuery) params.set('search', filters.searchQuery);
     if (filters.selectedCategory) params.set('category', filters.selectedCategory);
+    if (filters.selectedBrands.length > 0) params.set('brands', filters.selectedBrands.join(','));
     if (filters.sortBy !== 'newest') params.set('sortBy', filters.sortBy);
     if (filters.sortOrder !== 'desc') params.set('sortOrder', filters.sortOrder);
     
