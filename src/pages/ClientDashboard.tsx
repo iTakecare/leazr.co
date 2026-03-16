@@ -150,6 +150,16 @@ const ClientDashboard = () => {
         </div>
       </motion.div>
 
+      {/* ── Document Alert Banners ── */}
+      {notifications.filter(n => n.urgent).length > 0 && (
+        <motion.div variants={itemVariants}>
+          <DocumentAlertBanner
+            alerts={notifications.filter(n => n.urgent)}
+            onNavigate={navigateToClient}
+          />
+        </motion.div>
+      )}
+
       {/* ── KPIs ── */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => (

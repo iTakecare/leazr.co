@@ -200,7 +200,7 @@ export const useClientData = () => {
           for (const offer of docsRequested) {
             const links = (uploadLinks || []).filter(l => l.offer_id === offer.id);
             const allDocs = links.flatMap(l => l.requested_documents || []);
-            const uniqueDocs = [...new Set(allDocs)];
+            const uniqueDocs = [...new Set(allDocs)] as string[];
 
             notifs.push({
               id: `docs-${offer.id}`,
