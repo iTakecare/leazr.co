@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download } from "lucide-react";
+import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download, Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import LocationManager from "@/components/equipment/LocationManager";
@@ -26,6 +27,7 @@ const itemVariants = {
 const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: string }) => {
   const { clientData, loading, error } = useClientData();
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [deployWizardOpen, setDeployWizardOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
 
@@ -117,6 +119,27 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     );
   }
 
+  // Detect equipment category from title
+  const detectCategory = (title: string): string => {
+    const t = title.toLowerCase();
+    if (t.includes("macbook") || t.includes("laptop") || t.includes("portable") || t.includes("pc") || t.includes("ordinateur") || t.includes("desktop") || t.includes("thinkpad") || t.includes("dell") || t.includes("hp ") || t.includes("lenovo")) return "informatique";
+    if (t.includes("iphone") || t.includes("samsung") || t.includes("téléphone") || t.includes("telephone") || t.includes("smartphone") || t.includes("galaxy") || t.includes("pixel")) return "telephonie";
+    if (t.includes("écran") || t.includes("ecran") || t.includes("monitor") || t.includes("asus") || t.includes("lg ") || t.includes("display")) return "ecrans";
+    if (t.includes("imprimante") || t.includes("scanner") || t.includes("printer")) return "impression";
+    if (t.includes("tablette") || t.includes("ipad") || t.includes("tab")) return "tablettes";
+    return "autre";
+  };
+
+  const categoryLabels: Record<string, string> = {
+    all: "Tous les types",
+    informatique: "Informatique",
+    telephonie: "Téléphonie",
+    ecrans: "Écrans / Moniteurs",
+    impression: "Impression",
+    tablettes: "Tablettes",
+    autre: "Autre",
+  };
+
   // Build flat equipment list from contract_equipment data
   const allEquipment = contractEquipmentRaw.map((eq: any) => ({
     id: eq.id,
@@ -126,13 +149,18 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     contractId: eq.contract_id,
     quantity: eq.quantity || 1,
     monthlyPayment: eq.monthly_payment || null,
+    category: detectCategory(eq.title || ""),
   }));
+
+  // Collect present categories for the filter
+  const presentCategories: string[] = Array.from(new Set(allEquipment.map((e) => e.category)));
 
   const filteredEquipment = allEquipment.filter(
     (e) =>
-      e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.serial.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.contractRef.toLowerCase().includes(searchQuery.toLowerCase())
+      (categoryFilter === "all" || e.category === categoryFilter) &&
+      (e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       e.serial.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       e.contractRef.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -257,14 +285,30 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
           {/* By Equipment View */}
           <TabsContent value="by-equipment">
             <div className="space-y-4">
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un équipement..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 rounded-xl"
-                />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative max-w-sm flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher un équipement..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 rounded-xl"
+                  />
+                </div>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[200px] rounded-xl gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{categoryLabels.all}</SelectItem>
+                    {presentCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {categoryLabels[cat] || cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {filteredEquipment.length === 0 ? (
