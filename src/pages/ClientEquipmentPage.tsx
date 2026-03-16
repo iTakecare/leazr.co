@@ -348,6 +348,14 @@ const ClientEquipmentPage = () => {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      {selectedEquipment && (
+        <SoftwareDeploymentWizard
+          open={deployWizardOpen}
+          onOpenChange={setDeployWizardOpen}
+          equipment={selectedEquipment}
+        />
+      )}
     </motion.div>
   );
 };
