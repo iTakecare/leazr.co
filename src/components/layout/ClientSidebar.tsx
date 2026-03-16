@@ -56,9 +56,9 @@ const ClientSidebar = memo(({ className, onLinkClick }: SidebarProps) => {
     },
     { icon: Package, label: "Catalogue", href: "products", color: "violet" },
     { icon: Download, label: "Logiciels", href: "software", color: "cyan" },
-    { icon: HelpCircle, label: "Support", href: "support", color: "pink" },
+    { icon: HelpCircle, label: "Support", href: "support", color: "pink", badge: supportUnreadCount > 0 ? supportUnreadCount.toString() : undefined },
     { icon: Settings, label: "Paramètres", href: "settings", color: "gray" },
-  ], [requestsCount]);
+  ], [requestsCount, supportUnreadCount]);
 
   // Mémoriser la fonction isActive
   const isActive = useCallback((href: string) => {
