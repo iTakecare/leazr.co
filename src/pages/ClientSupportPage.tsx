@@ -164,7 +164,7 @@ const ClientSupportPage = () => {
             <div className="p-1.5 rounded-lg bg-primary/10">
               <Phone className="h-4 w-4 text-primary" />
             </div>
-            <span className="font-medium">+32 (0)10 23 45 67</span>
+            <span className="font-medium">+32 (0)71 49 16 85</span>
           </div>
           <div className="h-5 w-px bg-border hidden sm:block" />
           <div className="flex items-center gap-2 text-sm">
