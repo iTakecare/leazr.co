@@ -1377,13 +1377,100 @@ CREATE TABLE product_supplier_prices (
   "packs": true,
   "environmental": true,
   "suppliers": true,
-  "suppliers_write": true
+  "suppliers_write": true,
+  "mdm": true,
+  "mdm_write": true
 }
+```
+
+## TABLES MDM v2026.5
+
+### mdm_profiles
+```sql
+CREATE TABLE mdm_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  profile_type TEXT NOT NULL DEFAULT 'custom',
+  payload JSONB NOT NULL DEFAULT '{}',
+  platform TEXT NOT NULL DEFAULT 'all',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+### mdm_device_profiles
+```sql
+CREATE TABLE mdm_device_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  equipment_id UUID NOT NULL,
+  profile_id UUID NOT NULL REFERENCES mdm_profiles(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending',
+  applied_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(equipment_id, profile_id)
+);
+```
+
+### mdm_enrollment_tokens
+```sql
+CREATE TABLE mdm_enrollment_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  equipment_id UUID,
+  token TEXT NOT NULL UNIQUE,
+  description TEXT,
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '7 days'),
+  is_used BOOLEAN NOT NULL DEFAULT false,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+### mdm_commands
+```sql
+CREATE TABLE mdm_commands (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  equipment_id UUID NOT NULL,
+  command_type TEXT NOT NULL,
+  payload JSONB DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending',
+  result JSONB,
+  error_message TEXT,
+  initiated_by UUID,
+  sent_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 ```
 
 ===========================================
    HISTORIQUE DES VERSIONS
 ===========================================
+
+## Version 2026.5 - 16 mars 2026
+**Endpoints MDM complets pour intégration externe**
+
+NOUVELLES FONCTIONNALITES :
+- ✅ GET /devices, GET /devices/{id}, PATCH /devices/{id}
+- ✅ GET /devices/{id}/software, /history, /status
+- ✅ GET /software, GET /software/{id}
+- ✅ POST /devices/{id}/deploy
+- ✅ GET /deployments, PATCH /deployments/{id} (webhook callback)
+- ✅ GET /mdm-profiles, POST /mdm-profiles
+- ✅ POST /devices/{id}/assign-profile, DELETE /devices/{id}/profiles/{id}
+- ✅ POST /enrollment/token, POST /enrollment/register, GET /enrollment/pending
+- ✅ POST /devices/{id}/command, GET /commands, PATCH /commands/{id}
+- ✅ Nouvelles permissions : mdm, mdm_write
+- ✅ Tables : mdm_profiles, mdm_device_profiles, mdm_enrollment_tokens, mdm_commands
+
 
 ## Version 2026.2 - 14 mars 2026
 **Options personnalisables enrichies & UI admin**
