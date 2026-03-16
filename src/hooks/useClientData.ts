@@ -175,7 +175,8 @@ export const useClientData = () => {
         });
 
         // Offers approved but not yet converted
-        const { data: approved } = await services.offers.query()
+        const { data: approved } = await supabase
+          .from('offers')
           .select('id, equipment_description')
           .eq('client_id', clientId)
           .eq('status', 'approved')
