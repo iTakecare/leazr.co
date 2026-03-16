@@ -182,6 +182,7 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
     resetFilters,
     filteredProducts,
     categories,
+    brands,
     hasActiveFilters,
     resultsCount: filteredProducts.length
   };
