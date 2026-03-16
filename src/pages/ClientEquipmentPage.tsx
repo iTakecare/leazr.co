@@ -212,6 +212,21 @@ const ClientEquipmentPage = () => {
                                 {item.monthly_payment && (
                                   <span className="text-xs text-muted-foreground">{Number(item.monthly_payment).toFixed(2)} €/mois</span>
                                 )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="gap-1 text-xs"
+                                  onClick={() => {
+                                    setSelectedEquipment({
+                                      id: `${contract.id}-${idx}`,
+                                      name: item.title || item.name || "Équipement",
+                                      contractRef: contract.tracking_number || contract.id.slice(0, 8),
+                                    });
+                                    setDeployWizardOpen(true);
+                                  }}
+                                >
+                                  <Download className="h-3 w-3" /> Installer
+                                </Button>
                               </div>
                             ))}
                           </div>
