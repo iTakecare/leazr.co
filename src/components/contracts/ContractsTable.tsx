@@ -353,6 +353,14 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 className="text-right"
               />
               <SortableTableHead
+                column="financed_amount"
+                label="Montant financé"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+                className="text-right"
+              />
+              <SortableTableHead
                 column="start_date"
                 label="Date début"
                 currentSort={sortColumn}
