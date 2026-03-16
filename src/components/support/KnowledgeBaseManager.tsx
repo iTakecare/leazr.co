@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, Trash2, BookOpen } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, BookOpen, Sparkles } from "lucide-react";
+import { defaultKnowledgeBaseArticles } from "@/constants/defaultKnowledgeBaseArticles";
 
 const CATEGORIES = [
   { value: "general", label: "Général" },
@@ -100,6 +101,24 @@ const KnowledgeBaseManager = () => {
     setDialogOpen(true);
   };
 
+  const prefillArticles = useMutation({
+    mutationFn: async () => {
+      const rows = defaultKnowledgeBaseArticles.map((a) => ({
+        company_id: companyId!,
+        title: a.title,
+        content: a.content,
+        category: a.category,
+      }));
+      const { error } = await supabase.from("support_knowledge_base").insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["knowledge-base"] });
+      toast.success(`${defaultKnowledgeBaseArticles.length} articles ajoutés avec succès`);
+    },
+    onError: () => toast.error("Erreur lors du pré-remplissage"),
+  });
+
   const filtered = articles.filter(
     (a) =>
       a.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -164,7 +183,19 @@ const KnowledgeBaseManager = () => {
         <Card className="border-0 shadow-sm rounded-2xl">
           <CardContent className="py-12 text-center">
             <BookOpen className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
-            <p className="text-muted-foreground text-sm">Aucun article dans la base de connaissances</p>
+            <p className="text-muted-foreground text-sm mb-4">Aucun article dans la base de connaissances</p>
+            {articles.length === 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => prefillArticles.mutate()}
+                disabled={prefillArticles.isPending}
+              >
+                <Sparkles className="h-4 w-4" />
+                {prefillArticles.isPending ? "Ajout en cours..." : `Pré-remplir avec ${defaultKnowledgeBaseArticles.length} articles par défaut`}
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
