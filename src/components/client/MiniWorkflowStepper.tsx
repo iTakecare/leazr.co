@@ -2,6 +2,7 @@ import React from "react";
 import { CheckCircle2, CircleDot, Circle } from "lucide-react";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import { useWorkflowSteps } from "@/hooks/workflows/useWorkflowSteps";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { OfferType } from "@/types/workflow";
 
 interface MiniWorkflowStepperProps {
@@ -42,6 +43,7 @@ const MiniWorkflowStepper: React.FC<MiniWorkflowStepperProps> = ({
   workflowTemplateId,
   companyId,
 }) => {
+  const isMobile = useIsMobile();
   const { steps: templateSteps, loading: templateLoading } = useWorkflowSteps(workflowTemplateId);
   const { steps: defaultSteps, loading: defaultLoading } = useWorkflowForOfferType(
     companyId,
@@ -55,7 +57,6 @@ const MiniWorkflowStepper: React.FC<MiniWorkflowStepperProps> = ({
     .filter(s => s.is_visible)
     .sort((a, b) => a.step_order - b.step_order);
 
-  // Resolve current step index
   const getCurrentIndex = () => {
     let idx = steps.findIndex(s => s.step_key === currentStatus);
     if (idx === -1) {
@@ -79,6 +80,34 @@ const MiniWorkflowStepper: React.FC<MiniWorkflowStepperProps> = ({
 
   const currentIdx = getCurrentIndex();
 
+  // ── Mobile: compact progress bar with current label ──
+  if (isMobile) {
+    const progress = steps.length > 1 ? (currentIdx / (steps.length - 1)) * 100 : 100;
+    const currentStep = steps[currentIdx];
+
+    return (
+      <div className="space-y-1.5">
+        {/* Progress bar */}
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-300"
+            style={{ width: `${Math.max(progress, 8)}%` }}
+          />
+        </div>
+        {/* Label row */}
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-semibold text-primary truncate">
+            {currentStep?.step_label}
+          </span>
+          <span className="text-[10px] text-muted-foreground shrink-0 ml-1">
+            {currentIdx + 1}/{steps.length}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Desktop: inline dot stepper ──
   return (
     <div className="flex items-center gap-0.5 overflow-x-auto pb-1">
       {steps.map((step, i) => {
