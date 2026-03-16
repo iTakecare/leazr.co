@@ -25,6 +25,39 @@ const ClientRequestSummary: React.FC = () => {
   const { companyId } = useMultiTenant();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [selectedSoftwareIds, setSelectedSoftwareIds] = useState<string[]>([]);
+  const [otherSoftware, setOtherSoftware] = useState('');
+  
+  // Load software catalog for the company
+  const { data: softwareCatalog = [] } = useQuery({
+    queryKey: ['software-catalog-checkout', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from('software_catalog')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .order('category', { ascending: true });
+      if (error) { console.error('Error loading software catalog:', error); return []; }
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+  
+  const toggleSoftware = (id: string) => {
+    setSelectedSoftwareIds(prev => 
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
+  };
+  
+  // Group software by category
+  const softwareByCategory = softwareCatalog.reduce((acc: Record<string, any[]>, sw: any) => {
+    const cat = sw.category || 'Autre';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(sw);
+    return acc;
+  }, {});
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
