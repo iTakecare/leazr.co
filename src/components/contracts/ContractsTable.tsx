@@ -60,7 +60,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
 
-type SortColumn = 'date' | 'client' | 'leaser' | 'monthly_payment' | 'start_date' | 'end_date' | 'status';
+type SortColumn = 'date' | 'client' | 'leaser' | 'monthly_payment' | 'financed_amount' | 'start_date' | 'end_date' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 interface ContractsTableProps {
@@ -167,6 +167,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
           break;
         case 'monthly_payment':
           comparison = (a.monthly_payment || 0) - (b.monthly_payment || 0);
+          break;
+        case 'financed_amount':
+          comparison = ((a as any).financed_amount || 0) - ((b as any).financed_amount || 0);
           break;
         case 'start_date':
           const aStart = a.contract_start_date ? new Date(a.contract_start_date).getTime() : 0;
@@ -350,6 +353,14 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 className="text-right"
               />
               <SortableTableHead
+                column="financed_amount"
+                label="Montant financé"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+                className="text-right"
+              />
+              <SortableTableHead
                 column="start_date"
                 label="Date début"
                 currentSort={sortColumn}
@@ -400,6 +411,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {formatCurrency(contract.monthly_payment)}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatCurrency((contract as any).financed_amount || 0)}
                 </TableCell>
                 <TableCell>
                   {contract.contract_start_date ? (
