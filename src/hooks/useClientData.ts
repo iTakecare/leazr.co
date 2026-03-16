@@ -57,7 +57,8 @@ export const useClientData = () => {
 
       try {
         // Fetch client by user_id
-        const { data: client, error: clientError } = await services.clients.query()
+        const { data: client, error: clientError } = await supabase
+          .from('clients')
           .select('*, has_custom_catalog')
           .eq('user_id', user.id)
           .maybeSingle();
