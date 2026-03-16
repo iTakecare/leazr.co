@@ -84,7 +84,7 @@ export const RequestHeroSection: React.FC<RequestHeroSectionProps> = ({
                   Demande de financement
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Référence #{offer.id.slice(0, 8)}
+                  Référence #{offer.dossier_number || offer.id.slice(0, 8)}
                 </p>
               </div>
             </div>
