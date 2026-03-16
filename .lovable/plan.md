@@ -1,70 +1,57 @@
 
-# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Statut
+## Enrichir le contexte client dans l'assistant IA
 
-- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
-- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
-- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
-- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
+### Problème
 
-## Endpoints API ajoutés
+L'Edge Function `client-ai-chat` récupère les contrats et demandes mais ne transmet que des infos minimales au modèle IA :
+- Contrats : juste `status` et `monthly_payment`
+- Demandes : juste `status` et `monthly_payment`
+- Aucun détail sur les équipements (`offer_equipment`), dates, descriptions
+- Le system prompt ne dit pas à l'IA d'utiliser ces données de façon précise
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/{company}/partners` | Liste des partenaires actifs |
-| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
-| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
-| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
-| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
-| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
-| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
+Résultat : l'IA donne des réponses génériques au lieu de citer les vraies données du client.
 
-## Documentation
+### Solution
 
-- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
-- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+**Fichier : `supabase/functions/client-ai-chat/index.ts`**
 
-## Tables
+1. **Enrichir la requête contrats** : ajouter `client_name, equipment_description, tracking_number, delivery_status` et formater avec les détails (dates, équipement, montant)
 
-- `partners`, `partner_packs`, `partner_pack_options`
-- `external_providers`, `external_provider_products`, `partner_provider_links`
-- `software_catalog`, `software_deployments`, `mdm_configurations`
+2. **Enrichir la requête demandes** : joindre `offer_equipment(title, quantity, monthly_payment, purchase_price)` pour avoir le détail des équipements par demande, et ajouter `created_at, type, amount`
 
----
+3. **Ajouter les factures** : requêter `invoices` liées au client pour donner l'info sur les paiements
 
-# Plan : Déploiement logiciel à distance (MDM)
+4. **Améliorer le system prompt** : instruire l'IA de répondre avec les données exactes du client, citer les montants, statuts, équipements par leur nom, et ne jamais inventer de données
 
-## Statut
+### Détail du contexte enrichi
 
-- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
-- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
-- ✅ Phase 3 — Table `software_deployments` + suivi statut
-- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
-- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
+```text
+Contrats du client:
+- Contrat #ABC (actif) : MacBook Pro 16" - 125€/mois - du 01/03/2025 au 01/03/2028
 
-## MDM recommandé : Fleet (FleetDM)
+Demandes en cours:
+- Demande #DEF (en validation) créée le 15/03/2026 :
+  · 2x Dell Latitude 5540 - 89€/mois
+  · 1x Écran Dell 27" - 25€/mois
+  Total: 203€/mois
 
-| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
-|---|---|---|---|
-| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
-| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
-| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
-| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
-| Open-source | ✅ MIT | ✅ | ✅ |
+Factures:
+- Facture #001 - 125€ - payée le 01/03/2026
+```
 
-### Intégration technique
+### System prompt amélioré
 
-1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
-2. **Déployer l'agent `fleetd`** sur les machines clientes
-3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
-4. L'edge function existante route les appels vers Fleet automatiquement
+```text
+Tu es l'assistant IA du portail client iTakecare. Tu as accès aux données 
+réelles du client ci-dessous. Quand le client pose une question sur ses 
+contrats, demandes ou factures, réponds avec les données exactes (montants, 
+dates, noms d'équipements). Ne donne JAMAIS de réponse générique si tu as 
+les données. Si une information n'est pas dans tes données, dis-le 
+clairement et propose d'ouvrir un ticket de support.
+```
 
-### Composants
+### Fichiers impactés
+1. `supabase/functions/client-ai-chat/index.ts` — enrichir les requêtes DB et le system prompt
+2. Redéploiement de l'Edge Function
 
-| Fichier | Rôle |
-|---|---|
-| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
-| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
-| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
-| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
