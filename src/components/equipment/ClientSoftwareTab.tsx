@@ -146,7 +146,7 @@ const ClientSoftwareTab: React.FC<ClientSoftwareTabProps> = ({ clientId, company
             <div key={category} className="space-y-2">
               <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{category}</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {items.map(sw => (
+                {(items as any[]).map(sw => (
                   <Card key={sw.id} className="border-0 shadow-sm rounded-2xl hover:shadow-md transition-shadow">
                     <CardContent className="p-4 flex items-start gap-3">
                       <div className="h-10 w-10 rounded-xl bg-muted/60 flex items-center justify-center shrink-0">

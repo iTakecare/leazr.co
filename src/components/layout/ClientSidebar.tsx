@@ -12,6 +12,7 @@ import {
   Laptop,
   Clock,
   Package,
+  Download,
   Menu, 
   X,
   ChevronRight,
