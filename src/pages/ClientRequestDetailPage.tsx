@@ -21,7 +21,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useClientOffers } from "@/hooks/useClientOffers";
 import { RequestHeroSection } from "@/components/client/RequestHeroSection";
-import { RequestStatusTimeline } from "@/components/client/RequestStatusTimeline";
+import ClientWorkflowStepper from "@/components/client/ClientWorkflowStepper";
 
 import { DetailedEquipmentSection } from "@/components/client/DetailedEquipmentSection";
 import { DocumentUploadSection } from "@/components/client/DocumentUploadSection";
@@ -166,22 +166,12 @@ const ClientRequestDetailPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    Suivi de votre demande
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-              <RequestStatusTimeline
-                currentStatus={mapWorkflowStatusToClientStatus(offer.workflow_status, offer.status)}
-                workflowStatus={offer.workflow_status}
-                createdAt={offer.created_at}
-                signedAt={offer.signed_at}
+              <ClientWorkflowStepper
+                currentStatus={offer.workflow_status || offer.status || 'draft'}
+                offerType={offer.type}
+                workflowTemplateId={offer.workflow_template_id}
+                companyId={offer.company_id}
               />
-                </CardContent>
-              </Card>
             </motion.div>
 
 

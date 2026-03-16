@@ -25,6 +25,8 @@ export interface ClientOffer {
   equipment_data?: any[];
   is_purchase?: boolean;
   dossier_number?: string;
+  workflow_template_id?: string;
+  company_id?: string;
 }
 
 export const useClientOffers = (clientEmail?: string, clientId?: string | null) => {
