@@ -110,10 +110,15 @@ export const useClientData = () => {
     const fetchClientStats = async (clientId: string) => {
       try {
         // Active contracts + sum monthly payments
-        const { data: activeContracts } = await services.contracts.query()
+        const { data: activeContracts, error: contractsError } = await supabase
+          .from('contracts')
           .select('id, monthly_payment, end_date')
           .eq('client_id', clientId)
           .in('status', ['active', 'signed', 'contract_sent', 'equipment_ordered', 'delivered']);
+
+        if (contractsError) {
+          console.error('Erreur requête contrats stats:', contractsError);
+        }
 
         const totalMonthly = (activeContracts || []).reduce((sum, c) => sum + (c.monthly_payment || 0), 0);
         const activeEquipment = (activeContracts || []).length;
@@ -126,10 +131,15 @@ export const useClientData = () => {
         const nextRenewal = futureEnds.length > 0 ? futureEnds[0] : null;
 
         // Pending offers count
-        const { count: pendingCount } = await services.offers.query()
+        const { count: pendingCount, error: offersError } = await supabase
+          .from('offers')
           .select('id', { count: 'exact', head: true })
           .eq('client_id', clientId)
           .in('status', ['pending', 'sent']);
+
+        if (offersError) {
+          console.error('Erreur requête offres stats:', offersError);
+        }
 
         setClientStats({
           totalMonthly,
