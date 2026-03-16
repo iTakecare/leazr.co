@@ -298,24 +298,24 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                 </div>
 
                  {/* Tabs for Products and Packs with Cart Icon */}
-                 <div className="flex border-b border-gray-200 justify-between items-center">
-                   <div className="flex">
+                 <div className="flex border-b border-border justify-between items-center">
+                   <div className="flex gap-1">
                      <button
                        onClick={() => setActiveTab('products')}
-                       className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                       className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
                          activeTab === 'products'
-                           ? 'border-[#4ab6c4] text-[#4ab6c4]'
-                           : 'border-transparent text-gray-500 hover:text-gray-700'
+                           ? 'bg-primary text-primary-foreground'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                        }`}
                      >
                        Produits ({products.length})
                      </button>
                      <button
                        onClick={() => setActiveTab('packs')}
-                       className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                       className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
                          activeTab === 'packs'
-                           ? 'border-[#4ab6c4] text-[#4ab6c4]'
-                           : 'border-transparent text-gray-500 hover:text-gray-700'
+                           ? 'bg-primary text-primary-foreground'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                        }`}
                      >
                        Packs ({packs.length})
