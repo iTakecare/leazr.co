@@ -1,24 +1,23 @@
 import React, { useEffect, useState, useRef } from "react";
+import WaveLoader from "@/components/ui/WaveLoader";
 import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
-import ClientProductGrid from "@/components/catalog/client/ClientProductGrid";
+import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
-import ClientProductDetail from "@/components/catalog/client/ClientProductDetail";
-import { ArrowLeft } from "lucide-react";
-import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
-import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
-import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
-import SortFilter from "@/components/catalog/public/filters/SortFilter";
+import InlinePublicProductDetail from "@/components/catalog/public/InlinePublicProductDetail";
+import InlinePublicCart from "@/components/catalog/public/InlinePublicCart";
+import InlineRequestSteps from "@/components/catalog/public/InlineRequestSteps";
+import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
 import { getPublicProductsOptimized, getPublicPacksOptimized, getClientCustomCatalog } from "@/services/catalogServiceOptimized";
 import { Client } from "@/types/client";
 import { useQuery } from "@tanstack/react-query";
-import { useOptimizedCatalogFilter } from "@/hooks/products/useOptimizedCatalogFilter";
+import { usePublicSimplifiedFilter } from "@/hooks/products/usePublicSimplifiedFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2, ShoppingCart } from "lucide-react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { useParams, useLocation } from "react-router-dom";
 import { CompanyProvider } from "@/context/CompanyContext";
 import { useCart } from "@/context/CartContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useSiteSettingsByCompanyId } from "@/hooks/useSiteSettings";
 
 interface Company {
   id: string;
@@ -39,130 +38,111 @@ interface ClientCatalogAnonymousProps {
 const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company, clientData }) => {
   const queryClient = useQueryClient();
   const location = useLocation();
-  const navigate = useNavigate();
   const { companySlug } = useParams<{ companySlug: string }>();
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const { cartCount } = useCart();
+  const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
+  
+  // State for inline views (same as public catalog)
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'product-detail' | 'cart' | 'request-steps'>('grid');
   
   const companyId = company?.id;
+  const { settings } = useSiteSettingsByCompanyId(companyId);
 
-  // Safari-compatible logging
-  try {
-    console.log('📱 CLIENT CATALOG - Rendering for company:', company?.name || 'undefined');
-  } catch (e) {
-    // Silent fail for Safari compatibility
-  }
-
-  // Clear stale product data when company changes (optimized for Safari)
+  // Clear stale product data when company changes
   const prevCompanyId = useRef<string | null>(null);
   useEffect(() => {
     if (companyId && companyId !== prevCompanyId.current) {
-      // Only invalidate if company actually changed
       queryClient.removeQueries({ queryKey: ['products'], exact: false });
-      // Also invalidate public products cache to ensure fresh data
       queryClient.removeQueries({ queryKey: ['public-products-optimized'], exact: false });
       queryClient.removeQueries({ queryKey: ['client-custom-catalog'], exact: false });
       prevCompanyId.current = companyId;
     }
   }, [companyId, queryClient]);
 
-  // Détecter si le client a un catalogue personnalisé
+  // Detect custom catalog
   const hasCustomCatalog = clientData?.has_custom_catalog === true;
   const clientId = clientData?.id;
 
-  // Optimized products fetch - utilise le catalogue personnalisé si disponible
+  // Products fetch - uses custom catalog if available
   const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
     queryKey: hasCustomCatalog ? ['client-custom-catalog', clientId] : ['public-products-optimized', companyId],
     queryFn: async () => {
-      console.log('📱 CLIENT CATALOG - QueryFn executing with:', {
-        hasCustomCatalog,
-        clientId,
-        companyId
-      });
-      
       const result = hasCustomCatalog && clientId 
         ? await getClientCustomCatalog(clientId) 
         : await getPublicProductsOptimized(companyId!);
-        
-      console.log('📱 CLIENT CATALOG - QueryFn result:', {
-        count: result?.length || 0,
-        firstProducts: result?.slice(0, 2)?.map(p => ({ id: p.id, name: p.name })) || []
-      });
-      
       return result;
     },
     enabled: !!companyId && (hasCustomCatalog ? !!clientId : true),
-    staleTime: 10 * 60 * 1000, // 10 minutes cache
+    staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false
   });
 
-  // Optimized packs fetch
+  // Packs fetch
   const { data: packs = [], isLoading: isLoadingPacks, error: packsError } = useQuery({
     queryKey: ['public-packs-optimized', companyId],
     queryFn: () => getPublicPacksOptimized(companyId!),
     enabled: !!companyId,
-    staleTime: 10 * 60 * 1000, // 10 minutes cache
+    staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false
   });
 
-  // Optimized filter system
+  // Simplified filter system (same as public catalog)
   const {
     filters,
     updateFilter,
     resetFilters,
     filteredProducts,
     categories,
-    brands,
-    priceRange,
     hasActiveFilters,
     resultsCount
-  } = useOptimizedCatalogFilter(products);
+  } = usePublicSimplifiedFilter(products);
 
-  // Simplified resize handler
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setIsMobileFilterOpen(false);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Product selection handlers
+  // Navigation handlers (same as public catalog)
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId);
+    setViewMode('product-detail');
   };
 
-  const handleBackToGrid = () => {
+  const handleBackToCatalog = () => {
     setSelectedProductId(null);
+    setViewMode('grid');
   };
 
-  // Products and packs loading
+  const handleCartClick = () => {
+    setViewMode('cart');
+  };
+
+  const handleRequestQuote = () => {
+    setViewMode('request-steps');
+  };
+
+  const handleBackToCart = () => {
+    setViewMode('cart');
+  };
+
+  const handleRequestCompleted = () => {
+    setViewMode('grid');
+  };
+
+  // Loading
   if (isLoadingProducts || isLoadingPacks) {
-    console.log('📱 CLIENT CATALOG - Showing catalog loading');
     return (
       <div className="min-h-screen bg-white">
-        <Container className="max-w-[1320px] pt-6">
+        <Container className="max-w-[1320px]">
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Chargement du catalogue...</p>
-            </div>
+            <WaveLoader message="Chargement du catalogue..." />
           </div>
         </Container>
       </div>
     );
   }
 
-  // Products or packs error
+  // Error
   if (productsError || packsError) {
-    console.error('📱 CLIENT CATALOG - Catalog error:', productsError || packsError);
     return (
       <div className="min-h-screen bg-white">
-        <Container className="max-w-[1320px] pt-6">
+        <Container className="max-w-[1320px]">
           <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
@@ -176,221 +156,110 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
     );
   }
 
-  // Safari-compatible logging
-  try {
-    console.log('📱 CLIENT CATALOG - Debug info:', {
-      rawProducts: products?.length || 0,
-      filteredProducts: filteredProducts?.length || 0,
-      hasCustomCatalog,
-      companyId,
-      clientId,
-      isLoadingProducts,
-      productsError: productsError?.message
-    });
-  } catch (e) {}
-
   return (
     <CompanyProvider company={company}>
       <div className="min-h-screen bg-white">
-        {/* Hero Banner */}
-        <div className="bg-gradient-to-r from-primary/90 to-primary/60 text-primary-foreground">
-          <Container className="max-w-[1320px] py-10 md:py-14">
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">Notre catalogue</h1>
-            <p className="text-primary-foreground/80 text-sm md:text-base max-w-2xl mb-6">
-              Découvrez notre sélection d'équipements reconditionnés et neufs, disponibles en leasing.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              {[
-                { icon: "♻️", text: "Reconditionné certifié" },
-                { icon: "🛡️", text: "Garantie incluse" },
-                { icon: "🚚", text: "Livraison offerte" },
-              ].map((item) => (
-                <div key={item.text} className="flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
-                  <span>{item.icon}</span>
-                  <span>{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </Container>
-        </div>
-
+        {/* Unified Navigation Bar - identical to public catalog */}
+        <UnifiedNavigationBar
+          company={company}
+          showFilters={viewMode === 'grid'}
+          filters={filters}
+          updateFilter={updateFilter}
+          resetFilters={resetFilters}
+          categories={categories}
+          hasActiveFilters={hasActiveFilters}
+          resultsCount={resultsCount}
+          showCartButton={true}
+          showQuoteButton={true}
+          onCartClick={handleCartClick}
+          onRequestQuote={handleRequestQuote}
+          quoteLink={settings?.quote_request_url}
+        />
+        
         <Container className="py-6 max-w-[1320px]">
-          <div className="space-y-6">
+          <div className="space-y-8">
+            <div className="space-y-6">
 
-            {/* Horizontal category chips */}
-            {categories.length > 0 && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                <button
-                  onClick={() => updateFilter('selectedCategory', '')}
-                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    !filters.selectedCategory
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  Tous ({products.length})
-                </button>
-                {categories.map((cat) => (
+              {/* Custom pricing badge */}
+              {hasCustomCatalog && viewMode === 'grid' && (
+                <div className="flex justify-end">
+                  <div className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-medium rounded-full">
+                    ✨ Prix personnalisés
+                  </div>
+                </div>
+              )}
+
+              {/* Tabs for Products and Packs - identical style to public catalog */}
+              {viewMode === 'grid' && (
+                <div className={`flex ${!(settings?.header_enabled ?? true) ? '' : 'border-b border-gray-200'}`}>
                   <button
-                    key={cat.name}
-                    onClick={() => updateFilter('selectedCategory', cat.name === filters.selectedCategory ? '' : cat.name)}
-                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                      filters.selectedCategory === cat.name
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    onClick={() => setActiveTab('products')}
+                    className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === 'products'
+                        ? 'border-[#4ab6c4] text-[#4ab6c4]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    {cat.translation || cat.name}
+                    Produits ({products.length})
                   </button>
-                ))}
-              </div>
-            )}
-            
-            <div className="flex gap-6">
-              {/* Filter Sidebar */}
-              <PublicFilterSidebar
-                isOpen={isMobileFilterOpen}
-                onClose={() => setIsMobileFilterOpen(false)}
-                filters={filters}
-                updateFilter={updateFilter}
-                resetFilters={resetFilters}
-                categories={categories}
-                brands={brands}
-                priceRange={priceRange}
-                hasActiveFilters={hasActiveFilters}
-                resultsCount={resultsCount}
-              />
-
-              {/* Main Content */}
-              <div className="flex-1 space-y-6">
-                 {/* Header with mobile toggle and sort */}
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <FilterMobileToggle
-                      isOpen={isMobileFilterOpen}
-                      onToggle={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-                      filterCount={
-                        (filters.searchQuery ? 1 : 0) +
-                        (filters.selectedCategory ? 1 : 0) +
-                        filters.selectedBrands.length +
-                         (filters.inStockOnly ? 1 : 0)
-                      }
-                    />
-                     <div className="text-sm text-muted-foreground">
-                       {activeTab === 'products' 
-                         ? `${resultsCount} produit${resultsCount > 1 ? 's' : ''} trouvé${resultsCount > 1 ? 's' : ''}` 
-                         : `${packs.length} pack${packs.length > 1 ? 's' : ''} disponible${packs.length > 1 ? 's' : ''}`
-                       }
-                     </div>
-                     {hasCustomCatalog && activeTab === 'products' && (
-                       <div className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-medium rounded-full">
-                         ✨ Prix personnalisés
-                       </div>
-                     )}
-                  </div>
-
-                  <SortFilter
-                    sortBy={filters.sortBy}
-                    sortOrder={filters.sortOrder}
-                    onSortByChange={(value) => updateFilter('sortBy', value)}
-                    onSortOrderChange={(value) => updateFilter('sortOrder', value)}
-                  />
+                  <button
+                    onClick={() => setActiveTab('packs')}
+                    className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === 'packs'
+                        ? 'border-[#4ab6c4] text-[#4ab6c4]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Packs ({packs.length})
+                  </button>
                 </div>
+              )}
 
-                 {/* Tabs for Products and Packs with Cart Icon */}
-                 <div className="flex border-b border-border justify-between items-center">
-                   <div className="flex gap-1">
-                     <button
-                       onClick={() => setActiveTab('products')}
-                       className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
-                         activeTab === 'products'
-                           ? 'bg-primary text-primary-foreground'
-                           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                       }`}
-                     >
-                       Produits ({products.length})
-                     </button>
-                     <button
-                       onClick={() => setActiveTab('packs')}
-                       className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
-                         activeTab === 'packs'
-                           ? 'bg-primary text-primary-foreground'
-                           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                       }`}
-                     >
-                       Packs ({packs.length})
-                     </button>
-                   </div>
-                   
-                     {/* Cart Icon */}
-                      <button
-                        onClick={() => navigate(`/${companySlug}/client/panier`)}
-                        className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
-                      >
-                      <ShoppingCart className="h-6 w-6" />
-                      {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                          {cartCount}
-                        </span>
-                      )}
-                    </button>
-                 </div>
-
-                  {activeTab === 'products' && (
-                    <>
-                      {selectedProductId ? (
-                        /* Product Detail View */
-                        <div className="space-y-4">
-                          <button
-                            onClick={handleBackToGrid}
-                            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <ArrowLeft className="h-4 w-4" />
-                            Retour au catalogue
-                          </button>
-                          <ClientProductDetail
-                            companyId={company.id}
-                            companySlug={company.slug}
-                            productId={selectedProductId}
-                            clientId={clientId || ""}
-                            company={company}
-                            onBackToCatalog={handleBackToGrid}
-                          />
-                        </div>
-                      ) : (
-                        /* Product Grid View */
-                        <>
-                          {/* Active Filter Badges */}
-                          <FilterBadges
-                            searchQuery={filters.searchQuery}
-                            selectedCategory={filters.selectedCategory}
-                            selectedBrands={filters.selectedBrands}
-                            inStockOnly={filters.inStockOnly}
-                            categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
-                            onRemoveSearch={() => updateFilter('searchQuery', '')}
-                            onRemoveCategory={() => updateFilter('selectedCategory', '')}
-                            onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
-                            onRemoveStock={() => updateFilter('inStockOnly', false)}
-                            onClearAll={resetFilters}
-                          />
-
-                          {/* Client Product Grid */}
-                          <ClientProductGrid 
-                            products={filteredProducts || []} 
-                            onProductSelect={handleProductSelect}
-                          />
-                        </>
-                      )}
-                    </>
+              {activeTab === 'products' && (
+                <>
+                  {/* Product Grid or Detail View */}
+                  {viewMode === 'grid' && (
+                    <PublicProductGrid 
+                      products={filteredProducts || []}
+                      onProductSelect={handleProductSelect}
+                    />
                   )}
+                  
+                  {viewMode === 'product-detail' && selectedProductId && (
+                    <InlinePublicProductDetail
+                      companyId={company.id}
+                      companySlug={companySlug || company.slug}
+                      productId={selectedProductId}
+                      company={company}
+                      onBackToCatalog={handleBackToCatalog}
+                      onProductSelect={handleProductSelect}
+                    />
+                  )}
+                </>
+              )}
 
-                 {activeTab === 'packs' && (
-                   <div className="space-y-6">
-                     {/* Pack Grid */}
-                     <PublicPackGrid packs={packs || []} companySlug={companySlug} />
-                   </div>
-                 )}
-              </div>
+              {activeTab === 'packs' && viewMode === 'grid' && (
+                <div className="space-y-6">
+                  <PublicPackGrid packs={packs || []} companySlug={companySlug} />
+                </div>
+              )}
+
+              {/* Cart View */}
+              {viewMode === 'cart' && (
+                <InlinePublicCart
+                  onBackToCatalog={handleBackToCatalog}
+                  onRequestQuote={handleRequestQuote}
+                />
+              )}
+
+              {/* Request Steps View */}
+              {viewMode === 'request-steps' && (
+                <InlineRequestSteps
+                  companyId={company?.id}
+                  onBackToCart={handleBackToCart}
+                  onRequestCompleted={handleRequestCompleted}
+                />
+              )}
             </div>
           </div>
         </Container>
