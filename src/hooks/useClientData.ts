@@ -40,7 +40,7 @@ interface ClientNotification {
 
 export const useClientData = () => {
   const { user } = useAuth();
-  const { services } = useMultiTenant();
+  
   const [clientData, setClientData] = useState<Client | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [clientStats, setClientStats] = useState<ClientStats>({ totalMonthly: 0, activeEquipment: 0, pendingRequests: 0, nextRenewal: null });
