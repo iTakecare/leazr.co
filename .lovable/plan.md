@@ -1,40 +1,70 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Fix "Produit inconnu" dans les demandes
+## Statut
 
-### Cause racine
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-Dans `src/services/requestInfoService.ts` (ligne 62), la fonction `createProductRequest` génère un `product_id: uuidv4()` — un UUID aléatoire qui ne correspond à aucun produit en base. L'edge function `create-product-request` tente de chercher ce produit, échoue, et utilise "Produit inconnu" comme nom par défaut. Ce nom est ensuite stocké dans `equipment_description` et dans `offer_equipment.title`.
+## Endpoints API ajoutés
 
-### Solution
+| Endpoint | Description |
+|---|---|
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
-**Fichier 1 : `src/services/requestInfoService.ts`**
-- Remplacer le tableau `products` monolithique par un tableau mappé depuis les items du panier
-- Passer les vrais `product_id` (depuis `item.product.id`), `variant_id` (depuis `selectedOptions`), quantité et prix unitaire de chaque item
-- Ajouter un paramètre `cartItems` à `createProductRequest` et à l'interface `ProductRequestData`
+## Documentation
 
-**Fichier 2 : `src/components/checkout/RequestSummary.tsx`**
-- Passer les items du panier à `createProductRequest` pour qu'il puisse extraire les vrais IDs produits
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
 
-**Fichier 3 : `src/pages/ClientRequestsPage.tsx`**  
-- Améliorer `formatEquipmentDescription` pour aussi chercher les titres dans `offer_equipment` si le texte brut n'est pas exploitable
-- Alternative plus simple : joindre `offer_equipment` dans la requête `useClientOffers` et l'utiliser en priorité pour le titre
+## Tables
 
-### Détail technique
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
+- `software_catalog`, `software_deployments`, `mdm_configurations`
 
-```text
-Avant:  products: [{ product_id: uuidv4(), quantity: totalQty, ... }]
-Après:  products: items.map(item => ({ 
-          product_id: item.product.id, 
-          variant_id: findVariantId(item),
-          quantity: item.quantity, 
-          unit_price: monthlyPrice,
-          purchase_price: purchasePrice 
-        }))
-```
+---
 
-### Fichiers impactés
-1. `src/services/requestInfoService.ts` — passer les vrais product IDs au lieu de UUID aléatoires
-2. `src/components/checkout/RequestSummary.tsx` — transmettre les items du panier à la fonction
-3. `src/pages/ClientRequestsPage.tsx` — fallback sur `offer_equipment` pour l'affichage du titre
+# Plan : Déploiement logiciel à distance (MDM)
 
+## Statut
+
+- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
+- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
+- ✅ Phase 3 — Table `software_deployments` + suivi statut
+- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
+- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
+
+## MDM recommandé : Fleet (FleetDM)
+
+| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
+|---|---|---|---|
+| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
+| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
+| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
+| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
+| Open-source | ✅ MIT | ✅ | ✅ |
+
+### Intégration technique
+
+1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
+2. **Déployer l'agent `fleetd`** sur les machines clientes
+3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
+4. L'edge function existante route les appels vers Fleet automatiquement
+
+### Composants
+
+| Fichier | Rôle |
+|---|---|
+| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
+| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
+| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
+| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |

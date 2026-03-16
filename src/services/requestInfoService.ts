@@ -46,7 +46,7 @@ export interface RequestInfoData {
  * Crée une demande de produit (offre) à partir du catalogue public
  * Transforme les données plates en format structuré attendu par l'edge function
  */
-export const createProductRequest = async (data: ProductRequestData) => {
+export const createProductRequest = async (data: ProductRequestData, cartItems?: any[]) => {
   try {
     console.log("Creating product request with data:", data);
     
@@ -57,16 +57,30 @@ export const createProductRequest = async (data: ProductRequestData) => {
     
     // Transformer les données plates en format structuré attendu par l'edge function
     const structuredData: any = {
-      // Le champ products est obligatoire - créer un item générique à partir de la description
-      products: [{
-        product_id: uuidv4(), // ID temporaire, l'edge function gère la création
-        quantity: data.quantity || 1,
-        unit_price: data.monthly_payment || 0,
-        purchase_price: data.amount || 0,
-        monthly_payment: data.monthly_payment || 0,
-        product_name: data.equipment_description?.split('\n')[0]?.replace(/^- /, '') || 'Demande de leasing',
-        duration: data.duration || 36,
-      }],
+      // Mapper les vrais produits du panier avec leurs IDs réels
+      products: cartItems && cartItems.length > 0
+        ? cartItems.map(item => {
+            const priceData = item.price || { monthlyPrice: 0, purchasePrice: 0 };
+            return {
+              product_id: item.product?.id || uuidv4(),
+              variant_id: item.selectedOptions?.variant_id || null,
+              quantity: item.quantity || 1,
+              unit_price: priceData.monthlyPrice || 0,
+              purchase_price: priceData.purchasePrice || 0,
+              monthly_payment: priceData.monthlyPrice || 0,
+              product_name: item.product?.name || 'Demande de leasing',
+              duration: item.duration || data.duration || 36,
+            };
+          })
+        : [{
+            product_id: uuidv4(),
+            quantity: data.quantity || 1,
+            unit_price: data.monthly_payment || 0,
+            purchase_price: data.amount || 0,
+            monthly_payment: data.monthly_payment || 0,
+            product_name: data.equipment_description?.split('\n')[0]?.replace(/^- /, '') || 'Demande de leasing',
+            duration: data.duration || 36,
+          }],
       // Format contact_info + company_info (nouveau format)
       contact_info: {
         first_name: data.client_name?.split(' ')[0] || data.client_name || '',
