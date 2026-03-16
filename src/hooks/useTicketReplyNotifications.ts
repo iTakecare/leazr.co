@@ -45,14 +45,14 @@ export const useTicketReplyNotifications = ({ role, clientId }: UseTicketReplyNo
       .channel("ticket-replies-notifications")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "ticket_replies" },
+        { event: "*", schema: "public", table: "ticket_replies" },
         () => {
           fetchUnreadCount();
         }
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "ticket_replies" },
+        { event: "*", schema: "public", table: "support_tickets" },
         () => {
           fetchUnreadCount();
         }
