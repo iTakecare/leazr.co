@@ -124,8 +124,14 @@ export const createProductRequest = async (data: ProductRequestData, cartItems?:
     
     if (error) {
       console.error("Erreur lors de l'appel à la fonction Edge:", error);
-      toast.error("Échec de création de la demande: " + error.message);
-      throw new Error(`Échec de création de la demande: ${error.message}`);
+      // Try to extract validation details from response
+      let errorMsg = error.message;
+      if (responseData?.details && Array.isArray(responseData.details)) {
+        const fields = responseData.details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+        errorMsg = `Données invalides: ${fields}`;
+      }
+      toast.error("Échec de création de la demande: " + errorMsg);
+      throw new Error(`Échec de création de la demande: ${errorMsg}`);
     }
     
     console.log("Réponse de la fonction Edge:", responseData);

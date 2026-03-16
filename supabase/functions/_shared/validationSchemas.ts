@@ -103,7 +103,7 @@ const customPackSchema = z.object({
 // Product request schema - Extended for custom packs support
 const productItemSchema = z.object({
   product_id: uuidSchema,
-  variant_id: uuidSchema.optional(),
+  variant_id: uuidSchema.nullable().optional().transform(val => val === null ? undefined : val),
   quantity: z.number().int().positive().max(1000, 'Quantité trop élevée'),
   purchase_price: z.number().positive().max(1000000, 'Prix d\'achat invalide').optional(),
   monthly_payment: z.number().positive().max(100000, 'Mensualité invalide').optional(),
