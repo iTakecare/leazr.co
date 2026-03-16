@@ -1920,10 +1920,12 @@ async function getDeviceHistory(supabase: any, companyId: string, deviceId: stri
 }
 
 async function getDeviceStatus(supabase: any, companyId: string, deviceId: string) {
+  const contractIds = await getCompanyContractIds(supabase, companyId)
+
   const { data: device } = await supabase
     .from('contract_equipment')
-    .select('id, equipment_description, serial_number, status, notes, updated_at')
-    .eq('company_id', companyId)
+    .select('id, title, serial_number, individual_serial_number, order_status, updated_at')
+    .in('contract_id', contractIds)
     .eq('id', deviceId)
     .single()
 
@@ -1944,7 +1946,7 @@ async function getDeviceStatus(supabase: any, companyId: string, deviceId: strin
     .eq('equipment_id', deviceId)
 
   return {
-    device: device || null,
+    device: device ? { ...device, equipment_description: device.title, status: device.order_status } : null,
     last_inventory: lastCommand?.result || null,
     last_inventory_at: lastCommand?.completed_at || null,
     profiles_applied: (profiles || []).filter((p: any) => p.status === 'applied').length,
