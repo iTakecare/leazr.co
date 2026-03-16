@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, CircleDot, Circle } from "lucide-react";
+import { CheckCircle2, Loader2, Circle } from "lucide-react";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import { useWorkflowSteps } from "@/hooks/workflows/useWorkflowSteps";
 import { useIsMobile } from "@/hooks/use-mobile";
