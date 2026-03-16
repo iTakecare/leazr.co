@@ -151,6 +151,10 @@ const Settings: React.FC = () => {
               Chat
             </TabsTrigger>
           )}
+          <TabsTrigger value="software" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Logiciels
+          </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
             Abonnement
