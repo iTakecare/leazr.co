@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, CircleDot, Circle } from "lucide-react";
+import { CheckCircle2, Loader2, Circle } from "lucide-react";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import { useWorkflowSteps } from "@/hooks/workflows/useWorkflowSteps";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -96,7 +96,11 @@ const MiniWorkflowStepper: React.FC<MiniWorkflowStepperProps> = ({
         </div>
         {/* Label row */}
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-semibold text-primary truncate">
+          <span className="text-[10px] font-semibold text-primary truncate flex items-center gap-1">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+            </span>
             {currentStep?.step_label}
           </span>
           <span className="text-[10px] text-muted-foreground shrink-0 ml-1">
@@ -122,8 +126,8 @@ const MiniWorkflowStepper: React.FC<MiniWorkflowStepperProps> = ({
                   <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                 </div>
               ) : isActive ? (
-                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center animate-pulse">
-                  <CircleDot className="h-3.5 w-3.5 text-primary-foreground" />
+                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 ring-4 ring-primary/20 shadow-md shadow-primary/30 flex items-center justify-center">
+                  <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
                 </div>
               ) : (
                 <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20 flex items-center justify-center">
