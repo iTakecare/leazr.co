@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, AlertCircle, RefreshCw, Calendar } from "lucide-react";
+import { FileText, Download, Eye, AlertCircle, RefreshCw, Calendar, Rocket, PartyPopper, Clock, CheckCircle2, Sparkles, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useClientContracts } from "@/hooks/useClientContracts";
 import { useClientData } from "@/hooks/useClientData";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { motion } from "framer-motion";
-import { differenceInMonths, parseISO, format } from "date-fns";
+import { differenceInMonths, parseISO, format, addMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 import RenewalRequestModal from "@/components/client/RenewalRequestModal";
 
@@ -62,6 +62,10 @@ const ClientContractsPage = () => {
         return <Badge variant="secondary" className="rounded-full">Terminé</Badge>;
       case 'contract_sent':
         return <Badge className="bg-blue-100 text-blue-700 border-0 rounded-full">Contrat envoyé</Badge>;
+      case 'contract_signed':
+        return <Badge className="bg-violet-100 text-violet-700 border-0 rounded-full">✍️ Signé</Badge>;
+      case 'signed':
+        return <Badge className="bg-violet-100 text-violet-700 border-0 rounded-full">✍️ Signé</Badge>;
       case 'equipment_ordered':
         return <Badge className="bg-violet-100 text-violet-700 border-0 rounded-full">Équipement commandé</Badge>;
       case 'pending':
@@ -74,17 +78,30 @@ const ClientContractsPage = () => {
   const getContractTimeline = (contract: any) => {
     const startDate = contract.contract_start_date ? parseISO(contract.contract_start_date) : null;
     const duration = contract.contract_duration || 36;
-    
-    if (!startDate) return null;
 
+    // For signed contracts without start date, use created_at as reference
+    const effectiveStart = startDate || parseISO(contract.created_at);
     const now = new Date();
-    const monthsElapsed = differenceInMonths(now, startDate);
+    const monthsElapsed = differenceInMonths(now, effectiveStart);
     const monthsRemaining = Math.max(0, duration - monthsElapsed);
-    const progress = Math.min(100, Math.round((monthsElapsed / duration) * 100));
+    const progress = Math.min(100, Math.max(0, Math.round((monthsElapsed / duration) * 100)));
     const canRenew = monthsElapsed >= 18;
+    const endDate = addMonths(effectiveStart, duration);
 
-    return { monthsElapsed, monthsRemaining, progress, duration, canRenew, startDate };
+    return { monthsElapsed, monthsRemaining, progress, duration, canRenew, startDate: effectiveStart, endDate };
   };
+
+  // Milestones on the timeline
+  const getMilestones = (duration: number) => [
+    { at: 0, emoji: "🚀", label: "Début" },
+    { at: Math.round(duration * 0.25), emoji: "📦", label: `${Math.round(duration * 0.25)} mois` },
+    { at: 18, emoji: "🔄", label: "Renouvellement possible" },
+    { at: Math.round(duration * 0.75), emoji: "⏳", label: `${Math.round(duration * 0.75)} mois` },
+    { at: duration, emoji: "🎉", label: "Fin" },
+  ];
+
+  const showTimeline = (status: string) =>
+    ['active', 'signed', 'contract_signed', 'equipment_ordered'].includes(status);
 
   if (loading) {
     return (
@@ -130,9 +147,10 @@ const ClientContractsPage = () => {
       <div className="grid gap-4">
         {contracts.map((contract) => {
           const timeline = getContractTimeline(contract);
+          const milestones = getMilestones(timeline.duration);
           return (
             <motion.div key={contract.id} variants={itemVariants}>
-              <Card className="border-0 shadow-sm rounded-2xl hover:shadow-md transition-shadow">
+              <Card className="border-0 shadow-sm rounded-2xl hover:shadow-md transition-shadow overflow-hidden">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -183,57 +201,145 @@ const ClientContractsPage = () => {
                     </div>
                   </div>
 
-                  {/* Contract Timeline */}
-                  {timeline && contract.status === 'active' && (
-                    <div className="p-4 rounded-xl bg-muted/30 space-y-3">
+                  {/* 🎯 Fun Contract Timeline */}
+                  {timeline && showTimeline(contract.status) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2, duration: 0.4 }}
+                      className="relative p-5 rounded-2xl bg-gradient-to-br from-blue-50 via-violet-50 to-pink-50 dark:from-blue-950/30 dark:via-violet-950/30 dark:to-pink-950/30 border border-blue-100/60 dark:border-blue-800/30 space-y-4"
+                    >
+                      {/* Header */}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Progression du contrat
+                        <div className="flex items-center gap-2.5">
+                          <motion.div
+                            animate={{ rotate: [0, 10, -10, 0] }}
+                            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                          >
+                            <Rocket className="h-5 w-5 text-violet-500" />
+                          </motion.div>
+                          <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                            Votre parcours contrat
                           </span>
                         </div>
-                        <span className="text-xs font-medium">
-                          {timeline.monthsRemaining} mois restant{timeline.monthsRemaining > 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      
-                      {/* Progress bar */}
-                      <div className="relative">
-                        <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              timeline.progress >= 75 ? "bg-orange-500" :
-                              timeline.progress >= 50 ? "bg-blue-500" : "bg-emerald-500"
-                            }`}
-                            style={{ width: `${timeline.progress}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between mt-1.5">
-                          <span className="text-[10px] text-muted-foreground">
-                            {format(timeline.startDate, "MMM yyyy", { locale: fr })}
-                          </span>
-                          <span className="text-[10px] font-medium">
-                            {timeline.monthsElapsed}/{timeline.duration} mois
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-white/10 border border-white/50">
+                          <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-xs font-bold text-foreground">
+                            {timeline.monthsRemaining} mois restant{timeline.monthsRemaining > 1 ? "s" : ""}
                           </span>
                         </div>
                       </div>
 
-                      {/* Renewal button */}
-                      {timeline.canRenew && (
-                        <Button
-                          size="sm"
-                          className="w-full gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setRenewalContract(contract);
-                          }}
+                      {/* Timeline track */}
+                      <div className="relative pt-6 pb-2">
+                        {/* Milestone markers */}
+                        <div className="absolute top-0 left-0 right-0 flex justify-between px-1">
+                          {milestones.map((m, i) => {
+                            const pos = (m.at / timeline.duration) * 100;
+                            const isPast = timeline.monthsElapsed >= m.at;
+                            const isCurrent = Math.abs(timeline.monthsElapsed - m.at) <= 1;
+                            return (
+                              <motion.div
+                                key={i}
+                                className="flex flex-col items-center"
+                                style={{ position: 'absolute', left: `${pos}%`, transform: 'translateX(-50%)' }}
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.3 + i * 0.1, type: "spring", stiffness: 200 }}
+                              >
+                                <motion.span
+                                  className="text-lg"
+                                  animate={isCurrent ? { scale: [1, 1.3, 1] } : {}}
+                                  transition={{ repeat: Infinity, duration: 1.5 }}
+                                >
+                                  {m.emoji}
+                                </motion.span>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Track background */}
+                        <div className="h-3 bg-white/60 dark:bg-white/10 rounded-full overflow-hidden shadow-inner">
+                          <motion.div
+                            className="h-full rounded-full bg-gradient-to-r from-blue-500 via-violet-500 to-pink-500 relative"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${timeline.progress}%` }}
+                            transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+                          >
+                            {/* Shine effect */}
+                            <motion.div
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                              animate={{ x: ['-100%', '200%'] }}
+                              transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut", repeatDelay: 3 }}
+                            />
+                          </motion.div>
+                        </div>
+
+                        {/* Current position indicator */}
+                        <motion.div
+                          className="absolute top-[18px]"
+                          style={{ left: `${timeline.progress}%`, transform: 'translateX(-50%)' }}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 1, type: "spring" }}
                         >
-                          <RefreshCw className="h-4 w-4" />
-                          Renouveler mon matériel
-                        </Button>
+                          <motion.div
+                            className="w-5 h-5 rounded-full bg-white border-[3px] border-violet-500 shadow-lg shadow-violet-500/30"
+                            animate={{ boxShadow: ['0 0 0 0 rgba(139,92,246,0.3)', '0 0 0 8px rgba(139,92,246,0)', '0 0 0 0 rgba(139,92,246,0.3)'] }}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                          />
+                        </motion.div>
+
+                        {/* Date labels */}
+                        <div className="flex justify-between mt-3 px-0.5">
+                          <span className="text-[11px] font-medium text-muted-foreground">
+                            {format(timeline.startDate, "MMM yyyy", { locale: fr })}
+                          </span>
+                          <motion.span
+                            className="text-[11px] font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent"
+                            animate={{ opacity: [0.7, 1, 0.7] }}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                          >
+                            {timeline.monthsElapsed}/{timeline.duration} mois · {timeline.progress}%
+                          </motion.span>
+                          <span className="text-[11px] font-medium text-muted-foreground">
+                            {format(timeline.endDate, "MMM yyyy", { locale: fr })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Renewal section */}
+                      {timeline.canRenew && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 1.2 }}
+                        >
+                          <Button
+                            size="sm"
+                            className="w-full gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-violet-600 to-pink-600 hover:from-blue-700 hover:via-violet-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-violet-500/20 h-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRenewalContract(contract);
+                            }}
+                          >
+                            <motion.div animate={{ rotate: [0, 360] }} transition={{ repeat: Infinity, duration: 4, ease: "linear" }}>
+                              <RefreshCw className="h-4 w-4" />
+                            </motion.div>
+                            <span className="font-semibold">Renouveler mon matériel</span>
+                            <Sparkles className="h-4 w-4" />
+                          </Button>
+                        </motion.div>
                       )}
-                    </div>
+
+                      {/* Pre-renewal hint */}
+                      {!timeline.canRenew && timeline.monthsElapsed >= 12 && (
+                        <p className="text-[11px] text-center text-muted-foreground">
+                          🔓 Renouvellement disponible dans {18 - timeline.monthsElapsed} mois
+                        </p>
+                      )}
+                    </motion.div>
                   )}
 
                   {contract.tracking_number && (
