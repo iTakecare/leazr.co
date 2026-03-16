@@ -131,6 +131,10 @@ export const createClientRequest = async (data: any, cartItems?: any[]) => {
             quantity: item.quantity,
             margin: itemMargin,
             monthly_payment: itemMonthlyPayment,
+            selling_price: actualPurchasePrice + itemMargin,
+            coefficient: coefficient,
+            product_id: item.product?.id || null,
+            image_url: item.product?.image_url || null,
             serial_number: null
           };
           

@@ -83,10 +83,10 @@ export const getProductPrice = (
   }
 
   // 2. Try to get price from variants array if available
-  if (monthlyPrice <= 0 && product.variants && product.variants.length > 0 && selectedOptions) {
+  if (monthlyPrice <= 0 && product.variants && product.variants.length > 0 && cleanedOptions && Object.keys(cleanedOptions).length > 0) {
     const matchingVariant = product.variants.find(variant => {
       if (!variant.selected_attributes) return false;
-      return Object.entries(selectedOptions).every(([key, value]) => 
+      return Object.entries(cleanedOptions).every(([key, value]) => 
         variant.selected_attributes?.[key] === value
       );
     });

@@ -87,8 +87,13 @@ const ClientRequestSummary: React.FC = () => {
     };
 
     // Prepare cart items with pricing for equipment creation
+    // Clean selectedOptions to remove internal keys before passing to service
+    const internalKeys = ['variant_id', 'selected_variant_id'];
     const cartItemsWithPricing = items.map(item => ({
       ...item,
+      selectedOptions: item.selectedOptions 
+        ? Object.fromEntries(Object.entries(item.selectedOptions).filter(([key]) => !internalKeys.includes(key)))
+        : undefined,
       price: getProductPrice(item.product, item.selectedOptions)
     }));
 
