@@ -505,6 +505,21 @@ Deno.serve(async (req) => {
         break
       }
 
+      case 'contracts': {
+        if (!keyData.permissions.catalog && !keyData.permissions.mdm && !keyData.permissions.mdm_write) {
+          return new Response(
+            JSON.stringify({ error: 'Permission denied: catalog or mdm required' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        if (subPaths.length > 0) {
+          data = await getContractDetail(supabaseAdmin, companyId, subPaths[0])
+        } else {
+          data = await getContracts(supabaseAdmin, companyId, url.searchParams)
+        }
+        break
+      }
+
       case 'commands': {
         if (!keyData.permissions.mdm && !keyData.permissions.mdm_write) {
           return new Response(
@@ -2302,4 +2317,150 @@ async function updateCommandStatus(supabase: any, companyId: string, commandId: 
 
   if (error) throw error
   return { command: data }
+}
+
+// ============================================
+// CONTRACTS HANDLERS
+// ============================================
+
+async function getContracts(supabase: any, companyId: string, searchParams: URLSearchParams) {
+  const status = searchParams.get('status')
+  const page = parseInt(searchParams.get('page') || '1')
+  const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
+  const offset = (page - 1) * limit
+
+  let query = supabase
+    .from('contracts')
+    .select(`
+      id,
+      client_name,
+      client_id,
+      status,
+      monthly_payment,
+      created_at,
+      contract_number,
+      contract_start_date,
+      contract_end_date,
+      contract_duration,
+      leaser_name,
+      equipment_description,
+      tracking_number,
+      delivery_status
+    `, { count: 'exact' })
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (status) {
+    query = query.eq('status', status)
+  }
+
+  const { data: contracts, error, count } = await query
+
+  if (error) throw error
+
+  // Enrich with client info and device count
+  const enrichedContracts = await Promise.all((contracts || []).map(async (contract: any) => {
+    let clientInfo: any = {}
+    if (contract.client_id) {
+      const { data: client } = await supabase
+        .from('clients')
+        .select('name, email, vat_number, company, phone, contact_name')
+        .eq('id', contract.client_id)
+        .single()
+      if (client) {
+        clientInfo = {
+          client_name: client.name || client.company || contract.client_name,
+          client_email: client.email,
+          client_vat_number: client.vat_number,
+          client_company: client.company,
+          client_phone: client.phone,
+          client_contact_name: client.contact_name,
+        }
+      }
+    }
+
+    // Count devices (contract_equipment)
+    const { count: deviceCount } = await supabase
+      .from('contract_equipment')
+      .select('id', { count: 'exact', head: true })
+      .eq('contract_id', contract.id)
+
+    return {
+      id: contract.id,
+      contract_number: contract.contract_number,
+      client_name: clientInfo.client_name || contract.client_name,
+      client_email: clientInfo.client_email || null,
+      client_vat_number: clientInfo.client_vat_number || null,
+      client_company: clientInfo.client_company || null,
+      client_phone: clientInfo.client_phone || null,
+      client_contact_name: clientInfo.client_contact_name || null,
+      status: contract.status,
+      monthly_payment: contract.monthly_payment,
+      device_count: deviceCount || 0,
+      leaser_name: contract.leaser_name,
+      contract_start_date: contract.contract_start_date,
+      contract_end_date: contract.contract_end_date,
+      contract_duration: contract.contract_duration,
+      delivery_status: contract.delivery_status,
+      tracking_number: contract.tracking_number,
+      created_at: contract.created_at,
+    }
+  }))
+
+  return {
+    contracts: enrichedContracts,
+    pagination: {
+      page,
+      limit,
+      total: count || 0,
+      total_pages: Math.ceil((count || 0) / limit)
+    }
+  }
+}
+
+async function getContractDetail(supabase: any, companyId: string, contractId: string) {
+  const { data: contract, error } = await supabase
+    .from('contracts')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('id', contractId)
+    .single()
+
+  if (error) throw error
+
+  // Get client info
+  let clientInfo: any = {}
+  if (contract.client_id) {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('name, email, vat_number, company, phone, contact_name, address, city, postal_code, country')
+      .eq('id', contract.client_id)
+      .single()
+    if (client) clientInfo = client
+  }
+
+  // Get equipment
+  const { data: equipment } = await supabase
+    .from('contract_equipment')
+    .select('id, title, quantity, serial_number, monthly_payment, purchase_price')
+    .eq('contract_id', contractId)
+
+  return {
+    contract: {
+      ...contract,
+      client_name: clientInfo.name || clientInfo.company || contract.client_name,
+      client_email: clientInfo.email,
+      client_vat_number: clientInfo.vat_number,
+      client_company: clientInfo.company,
+      client_phone: clientInfo.phone,
+      client_contact_name: clientInfo.contact_name,
+      client_address: clientInfo.address,
+      client_city: clientInfo.city,
+      client_postal_code: clientInfo.postal_code,
+      client_country: clientInfo.country,
+      equipment: equipment || [],
+      device_count: (equipment || []).length,
+    }
+  }
 }
