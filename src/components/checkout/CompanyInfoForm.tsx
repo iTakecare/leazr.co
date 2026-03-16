@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Building, Loader2, Search, Mail } from 'lucide-react';
-import { verifyVatNumber } from '@/services/clientService';
+import { Building, Mail } from 'lucide-react';
 import { 
   Select,
   SelectContent,
@@ -52,10 +51,8 @@ const idFormats = {
 };
 
 const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormData, onNext }) => {
-  const [verifying, setVerifying] = useState(false);
   const { toast } = useToast();
   const [country, setCountry] = useState(formData.country || 'BE');
-  const [vatNumberFilled, setVatNumberFilled] = useState(Boolean(formData.vat_number.trim()));
 
   const handleCountryChange = (value: string) => {
     setCountry(value);
@@ -66,102 +63,9 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
     }
   };
 
-  const handleVatNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    updateFormData({ vat_number: value });
-    setVatNumberFilled(value.trim().length > 0);
-  };
-
-  const parseAddressFromVIES = (addressString?: string) => {
-    if (!addressString) return { address: '', city: '', postal_code: '' };
-
-    console.log("Parsing address from VIES:", addressString);
-
-    const lines = addressString.split('\n');
-    let address = '', city = '', postal_code = '';
-
-    if (lines.length > 0) {
-      address = lines[0].trim();
-    }
-
-    if (lines.length > 1) {
-      const cityLine = lines[1].trim();
-      const postalMatch = cityLine.match(/^(\d+)\s+(.+)/);
-      
-      if (postalMatch) {
-        postal_code = postalMatch[1];
-        city = postalMatch[2];
-      } else {
-        city = cityLine;
-      }
-    }
-
-    console.log("Parsed address:", { address, city, postal_code });
-    return { address, city, postal_code };
-  };
-
-  const handleSearchCompany = async () => {
-    if (!formData.vat_number.trim()) {
-      toast({
-        title: "Champ obligatoire",
-        description: `Veuillez entrer votre ${idFormats[country as keyof typeof idFormats].label}`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setVerifying(true);
-    
-    try {
-      const result = await verifyVatNumber(formData.vat_number, country);
-      
-      if (result.valid) {
-        const addressData = parseAddressFromVIES(result.address);
-        
-        updateFormData({
-          company_verified: true,
-          company: result.companyName || formData.company,
-          address: addressData.address,
-          city: addressData.city,
-          postal_code: addressData.postal_code
-        });
-        
-        toast({
-          title: "Entreprise trouvée",
-          description: `Informations récupérées pour ${result.companyName}`,
-          variant: "default"
-        });
-      } else {
-        toast({
-          title: "Entreprise non trouvée",
-          description: result.error || `Le ${idFormats[country as keyof typeof idFormats].label} n'a pas pu être vérifié. Veuillez vérifier et réessayer.`,
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Error verifying business ID:", error);
-      toast({
-        title: "Erreur de recherche",
-        description: `Une erreur est survenue lors de la vérification du ${idFormats[country as keyof typeof idFormats].label}.`,
-        variant: "destructive"
-      });
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const handleVerifyVAT = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.vat_number.trim()) {
-      toast({
-        title: "Champ obligatoire",
-        description: `Veuillez entrer votre ${idFormats[country as keyof typeof idFormats].label}`,
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (!formData.company.trim()) {
       toast({
         title: "Champ obligatoire",
@@ -180,56 +84,13 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
       return;
     }
 
-    if (country === 'BE' && formData.is_vat_exempt) {
-      onNext();
-      return;
-    }
-
-    setVerifying(true);
-    try {
-      const result = await verifyVatNumber(formData.vat_number, country);
-      
-      if (result.valid) {
-        const addressData = parseAddressFromVIES(result.address);
-        
-        updateFormData({
-          company_verified: true,
-          company: result.companyName || formData.company,
-          address: addressData.address,
-          city: addressData.city,
-          postal_code: addressData.postal_code
-        });
-        
-        toast({
-          title: "Vérification réussie",
-          description: `Le ${idFormats[country as keyof typeof idFormats].label} a été vérifié avec succès.`,
-          variant: "default"
-        });
-        
-        onNext();
-      } else {
-        toast({
-          title: "Vérification échouée",
-          description: result.error || `Le ${idFormats[country as keyof typeof idFormats].label} n'a pas pu être vérifié. Veuillez vérifier et réessayer.`,
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Error verifying business ID:", error);
-      toast({
-        title: "Erreur de vérification",
-        description: `Une erreur est survenue lors de la vérification du ${idFormats[country as keyof typeof idFormats].label}.`,
-        variant: "destructive"
-      });
-    } finally {
-      setVerifying(false);
-    }
+    onNext();
   };
 
   const showVatExemptOption = country === 'BE';
 
   return (
-    <form onSubmit={handleVerifyVAT} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-2">Informations de votre entreprise</h2>
         <p className="text-gray-600">Veuillez compléter les informations ci-dessous pour continuer</p>
@@ -254,49 +115,16 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="vat_number">{idFormats[country as keyof typeof idFormats].label} *</Label>
-          <div className="flex space-x-2">
-            <div className="relative flex-1">
-              <Input
-                id="vat_number"
-                placeholder={idFormats[country as keyof typeof idFormats].example}
-                value={formData.vat_number}
-                onChange={handleVatNumberChange}
-                required={true}
-                className="pr-9"
-              />
-            </div>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className={`flex-shrink-0 transition-all ${
-                vatNumberFilled 
-                  ? 'bg-blue-100 border-blue-600 ring-8 ring-blue-300 animate-[pulse_1.5s_ease-in-out_infinite] hover:bg-blue-200 hover:border-blue-700 shadow-lg shadow-blue-200/50' 
-                  : 'border-gray-300'
-              }`}
-              onClick={handleSearchCompany}
-              disabled={verifying || !formData.vat_number.trim()}
-              aria-label="Rechercher l'entreprise"
-            >
-              {verifying ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Search className={`h-6 w-6 ${vatNumberFilled ? 'text-blue-700' : ''}`} />
-              )}
-            </Button>
-          </div>
+          <Label htmlFor="vat_number">{idFormats[country as keyof typeof idFormats].label}</Label>
+          <Input
+            id="vat_number"
+            placeholder={idFormats[country as keyof typeof idFormats].example}
+            value={formData.vat_number}
+            onChange={(e) => updateFormData({ vat_number: e.target.value })}
+          />
           <p className="text-sm text-gray-500">
             Format: {idFormats[country as keyof typeof idFormats].format}
           </p>
-          {vatNumberFilled && (
-            <div className="mt-2 bg-blue-100 border-l-4 border-blue-600 p-3 rounded-md flex items-center shadow-md">
-              <Search className="h-5 w-5 text-blue-600 mr-2 animate-pulse" /> 
-              <p className="text-sm font-medium text-blue-800">
-                Cliquez sur la loupe bleue pour vérifier le numéro d'entreprise
-              </p>
-            </div>
-          )}
         </div>
 
         {showVatExemptOption && (
@@ -327,9 +155,6 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
             />
             <Building className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
-          <p className="text-sm text-gray-500">
-            Sera complété automatiquement après vérification
-          </p>
         </div>
 
         <div className="space-y-2">
@@ -352,17 +177,10 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
       <div className="flex justify-end pt-4">
         <Button 
           type="submit" 
-          disabled={verifying || !formData.vat_number.trim() || !formData.company.trim() || !formData.email?.trim()}
+          disabled={!formData.company.trim() || !formData.email?.trim()}
           className="min-w-[120px]"
         >
-          {verifying ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-              Vérification...
-            </>
-          ) : (
-            'Continuer'
-          )}
+          Continuer
         </Button>
       </div>
     </form>
