@@ -263,17 +263,21 @@ const ClientSupportPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <Accordion type="single" collapsible className="w-full">
                 {faqArticles.map((article: any) => (
-                  <div key={article.id} className="p-4 rounded-xl bg-muted/50 hover:bg-muted/80 transition-colors">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <h4 className="font-medium text-sm">{article.title}</h4>
-                      <Badge variant="outline" className="text-xs shrink-0">{article.category}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{article.content}</p>
-                  </div>
+                  <AccordionItem key={article.id} value={article.id}>
+                    <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                      <div className="flex items-center gap-2 text-left">
+                        {article.title}
+                        <Badge variant="outline" className="text-xs shrink-0">{article.category}</Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-xs text-muted-foreground whitespace-pre-line">
+                      {article.content}
+                    </AccordionContent>
+                  </AccordionItem>
                 ))}
-              </div>
+              </Accordion>
             </CardContent>
           </Card>
         </motion.div>
