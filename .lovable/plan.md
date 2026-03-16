@@ -1,92 +1,123 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-# Plan : Enrichir l'API Catalogue avec des endpoints MDM complets
+## Statut
 
-## Contexte
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-Vous avez développé votre propre MDM et souhaitez l'intégrer via l'API catalogue (`catalog-api`). Actuellement, l'API ne propose aucun endpoint MDM — seule l'edge function `mdm-deploy-software` existe en interne. Il faut exposer des endpoints RESTful dans `catalog-api` pour couvrir l'ensemble des fonctionnalités MDM.
+## Endpoints API ajoutés
 
-## Nouveaux endpoints à ajouter
-
-### 1. Appareils (Devices)
-
-| Méthode | Endpoint | Description |
-|---|---|---|
-| `GET` | `/v1/{company}/devices` | Liste des équipements avec filtres (type, statut, collaborateur) |
-| `GET` | `/v1/{company}/devices/{id}` | Détail d'un appareil (serial, collaborateur, contrat, tracking) |
-| `PATCH` | `/v1/{company}/devices/{id}` | Mise à jour (serial, statut, notes) |
-| `GET` | `/v1/{company}/devices/{id}/software` | Logiciels installés/déployés sur cet appareil |
-| `GET` | `/v1/{company}/devices/{id}/history` | Historique des mouvements (via `equipment_tracking`) |
-
-### 2. Déploiement logiciel (Software)
-
-| Méthode | Endpoint | Description |
-|---|---|---|
-| `GET` | `/v1/{company}/software` | Catalogue logiciels actifs |
-| `GET` | `/v1/{company}/software/{id}` | Détail d'un logiciel (commande silencieuse, plateforme, etc.) |
-| `POST` | `/v1/{company}/devices/{id}/deploy` | Déployer un ou plusieurs logiciels sur un appareil |
-| `GET` | `/v1/{company}/deployments` | Liste des déploiements (filtrable par statut, appareil) |
-| `GET` | `/v1/{company}/deployments/{id}` | Statut détaillé d'un déploiement |
-| `PATCH` | `/v1/{company}/deployments/{id}` | Callback : votre MDM met à jour le statut (installing → success/failed) |
-
-### 3. Profils et Politiques (nouvelles tables nécessaires)
-
-| Méthode | Endpoint | Description |
-|---|---|---|
-| `GET` | `/v1/{company}/profiles` | Liste des profils de configuration |
-| `POST` | `/v1/{company}/profiles` | Créer un profil (Wi-Fi, VPN, restrictions, etc.) |
-| `POST` | `/v1/{company}/devices/{id}/assign-profile` | Assigner un profil à un appareil |
-| `DELETE` | `/v1/{company}/devices/{id}/profiles/{profileId}` | Retirer un profil |
-
-### 4. Enrôlement (Enrollment)
-
-| Méthode | Endpoint | Description |
-|---|---|---|
-| `POST` | `/v1/{company}/enrollment/token` | Générer un token/QR d'enrôlement pour un appareil |
-| `POST` | `/v1/{company}/enrollment/register` | Callback : enregistrer un appareil nouvellement enrôlé |
-| `GET` | `/v1/{company}/enrollment/pending` | Appareils en attente d'enrôlement |
-
-### 5. RMM / Support
-
-| Méthode | Endpoint | Description |
-|---|---|---|
-| `POST` | `/v1/{company}/devices/{id}/command` | Envoyer une commande (lock, wipe, restart, script) |
-| `GET` | `/v1/{company}/devices/{id}/status` | État temps réel (online/offline, batterie, OS, stockage) |
-
-## Modifications techniques
-
-### Nouvelles tables SQL (migration)
-
-**`mdm_profiles`** — Profils de configuration
-- `id`, `company_id`, `name`, `description`, `profile_type` (wifi, vpn, restriction, email, custom), `payload` (JSONB), `platform`, `is_active`, timestamps
-
-**`mdm_device_profiles`** — Association appareil ↔ profil
-- `id`, `company_id`, `equipment_id`, `profile_id`, `status` (pending, applied, failed), `applied_at`, timestamps
-
-**`mdm_enrollment_tokens`** — Tokens d'enrôlement
-- `id`, `company_id`, `equipment_id`, `token`, `expires_at`, `is_used`, timestamps
-
-**`mdm_commands`** — Commandes envoyées aux appareils
-- `id`, `company_id`, `equipment_id`, `command_type` (lock, wipe, restart, script), `payload` (JSONB), `status`, `result` (JSONB), `initiated_by`, timestamps
-
-### Fichier modifié : `supabase/functions/catalog-api/index.ts`
-
-- Ajouter les cas `devices`, `software`, `deployments`, `profiles`, `enrollment`, `commands` dans le `switch(endpoint)`
-- Nouvelle permission API : `mdm` (à vérifier dans `keyData.permissions`)
-- Chaque handler query les tables existantes (`contract_equipment`, `software_catalog`, `software_deployments`) + les nouvelles tables
-- Le endpoint `PATCH /deployments/{id}` sert de **webhook callback** pour que votre MDM puisse notifier les changements de statut
-
-### Permissions API Key
-
-Ajouter dans le système de permissions existant :
-- `mdm` : lecture des appareils, logiciels, déploiements
-- `mdm_write` : déploiement, commandes, gestion profils, enrôlement
-
-## Résumé des changements
-
-| Élément | Action |
+| Endpoint | Description |
 |---|---|
-| Migration SQL | 4 nouvelles tables (`mdm_profiles`, `mdm_device_profiles`, `mdm_enrollment_tokens`, `mdm_commands`) + RLS |
-| `catalog-api/index.ts` | ~6 nouveaux blocs dans le switch + ~15 fonctions handler |
-| Documentation | Fichier `catalog-skeleton/mdm-api.txt` avec tous les endpoints et exemples JSON |
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
+## Documentation
+
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+
+## Tables
+
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
+- `software_catalog`, `software_deployments`, `mdm_configurations`
+
+---
+
+# Plan : Déploiement logiciel à distance (MDM)
+
+## Statut
+
+- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
+- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
+- ✅ Phase 3 — Table `software_deployments` + suivi statut
+- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
+- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
+
+## MDM recommandé : Fleet (FleetDM)
+
+| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
+|---|---|---|---|
+| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
+| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
+| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
+| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
+| Open-source | ✅ MIT | ✅ | ✅ |
+
+### Composants
+
+| Fichier | Rôle |
+|---|---|
+| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
+| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
+| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
+| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |
+
+---
+
+# Plan : API Catalogue — Endpoints MDM complets
+
+## Statut
+
+- ✅ Phase 1 — 4 nouvelles tables SQL (`mdm_profiles`, `mdm_device_profiles`, `mdm_enrollment_tokens`, `mdm_commands`) + RLS + indexes
+- ✅ Phase 2 — Endpoints MDM dans `catalog-api` (~20 endpoints, ~15 handlers)
+- ✅ Phase 3 — Documentation `catalog-skeleton/mdm-api.txt` v2026.3
+
+## Endpoints MDM ajoutés
+
+### Devices
+| Méthode | Endpoint | Permission |
+|---|---|---|
+| `GET` | `/v1/{company}/devices` | mdm |
+| `GET` | `/v1/{company}/devices/{id}` | mdm |
+| `PATCH` | `/v1/{company}/devices/{id}` | mdm_write |
+| `GET` | `/v1/{company}/devices/{id}/software` | mdm |
+| `GET` | `/v1/{company}/devices/{id}/history` | mdm |
+| `GET` | `/v1/{company}/devices/{id}/status` | mdm |
+| `POST` | `/v1/{company}/devices/{id}/deploy` | mdm_write |
+| `POST` | `/v1/{company}/devices/{id}/command` | mdm_write |
+| `POST` | `/v1/{company}/devices/{id}/assign-profile` | mdm_write |
+| `DELETE` | `/v1/{company}/devices/{id}/profiles/{profileId}` | mdm_write |
+
+### Software & Deployments
+| Méthode | Endpoint | Permission |
+|---|---|---|
+| `GET` | `/v1/{company}/software` | mdm |
+| `GET` | `/v1/{company}/software/{id}` | mdm |
+| `GET` | `/v1/{company}/deployments` | mdm |
+| `GET` | `/v1/{company}/deployments/{id}` | mdm |
+| `PATCH` | `/v1/{company}/deployments/{id}` | mdm (webhook callback) |
+
+### Profiles
+| Méthode | Endpoint | Permission |
+|---|---|---|
+| `GET` | `/v1/{company}/mdm-profiles` | mdm |
+| `GET` | `/v1/{company}/mdm-profiles/{id}` | mdm |
+| `POST` | `/v1/{company}/mdm-profiles` | mdm_write |
+
+### Enrollment
+| Méthode | Endpoint | Permission |
+|---|---|---|
+| `POST` | `/v1/{company}/enrollment/token` | mdm_write |
+| `POST` | `/v1/{company}/enrollment/register` | mdm_write |
+| `GET` | `/v1/{company}/enrollment/pending` | mdm_write |
+
+### Commands
+| Méthode | Endpoint | Permission |
+|---|---|---|
+| `GET` | `/v1/{company}/commands` | mdm |
+| `GET` | `/v1/{company}/commands/{id}` | mdm |
+| `PATCH` | `/v1/{company}/commands/{id}` | mdm (webhook callback) |
+
+## Documentation
+
+- `catalog-skeleton/mdm-api.txt` — Documentation complète v2026.3 avec exemples JSON et workflows d'intégration
