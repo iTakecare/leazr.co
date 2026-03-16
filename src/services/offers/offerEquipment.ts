@@ -133,6 +133,129 @@ const enrichEquipmentImages = async (equipment: OfferEquipment[], offerId: strin
 };
 
 /**
+ * Enrichit les équipements dont le purchase_price est à 0 en cherchant dans le catalogue
+ */
+const enrichEquipmentPurchasePrices = async (equipment: OfferEquipment[], offerId: string): Promise<OfferEquipment[]> => {
+  try {
+    // Filtrer les équipements avec purchase_price à 0
+    const needsEnrichment = equipment.filter(item => !item.purchase_price || item.purchase_price === 0);
+    if (needsEnrichment.length === 0) return equipment;
+
+    // Récupérer le company_id de l'offre
+    const { data: offer } = await supabase
+      .from('offers')
+      .select('company_id')
+      .eq('id', offerId)
+      .single();
+
+    if (!offer?.company_id) return equipment;
+
+    const enriched = await Promise.all(
+      equipment.map(async (item) => {
+        if (item.purchase_price && item.purchase_price > 0) return item;
+
+        // Si on a un product_id, chercher directement
+        if (item.product_id) {
+          // D'abord chercher dans product_variant_prices avec les attributs
+          const attrs = item.attributes || [];
+          if (attrs.length > 0) {
+            const { data: variantPrices } = await supabase
+              .from('product_variant_prices')
+              .select('price, purchase_price')
+              .eq('product_id', item.product_id);
+
+            if (variantPrices && variantPrices.length > 0) {
+              // Trouver la variante correspondant aux attributs
+              const attrMap: Record<string, string> = {};
+              attrs.forEach(a => { attrMap[a.key] = a.value; });
+
+              for (const vp of variantPrices) {
+                const vpAttrs = (vp as any).attributes;
+                if (vpAttrs && typeof vpAttrs === 'object') {
+                  const matches = Object.entries(attrMap).every(([k, v]) => vpAttrs[k] === v);
+                  if (matches) {
+                    const price = vp.purchase_price || vp.price || 0;
+                    if (price > 0) {
+                      console.log(`✅ Enriched purchase_price for "${item.title}" via variant: ${price}€`);
+                      return { ...item, purchase_price: price };
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // Fallback: prix du produit parent
+          const { data: product } = await supabase
+            .from('products')
+            .select('price, purchase_price')
+            .eq('id', item.product_id)
+            .single();
+
+          if (product) {
+            const price = product.purchase_price || product.price || 0;
+            if (price > 0) {
+              console.log(`✅ Enriched purchase_price for "${item.title}" via product: ${price}€`);
+              return { ...item, purchase_price: price };
+            }
+          }
+        }
+
+        // Sinon, chercher par titre dans le catalogue
+        const { data: products } = await supabase
+          .from('products')
+          .select('id, price, purchase_price')
+          .eq('company_id', offer.company_id)
+          .ilike('name', `%${sanitizeLikePattern(item.title)}%`)
+          .limit(1);
+
+        if (products && products.length > 0) {
+          const p = products[0];
+          // Chercher aussi dans les variant prices
+          const { data: variantPrices } = await supabase
+            .from('product_variant_prices')
+            .select('price, purchase_price')
+            .eq('product_id', p.id);
+
+          if (variantPrices && variantPrices.length > 0) {
+            const attrs = item.attributes || [];
+            const attrMap: Record<string, string> = {};
+            attrs.forEach(a => { attrMap[a.key] = a.value; });
+
+            for (const vp of variantPrices) {
+              const vpAttrs = (vp as any).attributes;
+              if (vpAttrs && typeof vpAttrs === 'object' && Object.keys(attrMap).length > 0) {
+                const matches = Object.entries(attrMap).every(([k, v]) => vpAttrs[k] === v);
+                if (matches) {
+                  const price = vp.purchase_price || vp.price || 0;
+                  if (price > 0) {
+                    console.log(`✅ Enriched purchase_price for "${item.title}" via title+variant: ${price}€`);
+                    return { ...item, purchase_price: price };
+                  }
+                }
+              }
+            }
+          }
+
+          const price = p.purchase_price || p.price || 0;
+          if (price > 0) {
+            console.log(`✅ Enriched purchase_price for "${item.title}" via title search: ${price}€`);
+            return { ...item, purchase_price: price };
+          }
+        }
+
+        return item;
+      })
+    );
+
+    return enriched;
+  } catch (error) {
+    console.error("Error enriching purchase prices:", error);
+    return equipment;
+  }
+};
+
+/**
  * Fetch equipment with their attributes and specifications
  */
 const fetchEquipmentWithDetails = async (equipmentData: any[]): Promise<OfferEquipment[]> => {
@@ -222,7 +345,9 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
       console.log("🔥 EQUIPMENT SERVICE - Processed equipment:", processed.length, "items");
       
       // Fallback: enrichir les images manquantes en cherchant par titre dans le catalogue
-      const enriched = await enrichEquipmentImages(processed, offerId);
+      const withImages = await enrichEquipmentImages(processed, offerId);
+      // Enrichir les prix d'achat manquants depuis le catalogue
+      const enriched = await enrichEquipmentPurchasePrices(withImages, offerId);
       return enriched;
     }
 
@@ -270,9 +395,11 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
           const processed = await fetchEquipmentWithDetails(migratedData || []);
           console.log("🔥 EQUIPMENT SERVICE - Final migrated equipment:", processed.length, "items");
           
-          // Fallback: enrichir les images manquantes en cherchant par titre dans le catalogue
-          const enriched = await enrichEquipmentImages(processed, offerId);
-          return enriched;
+           // Fallback: enrichir les images manquantes en cherchant par titre dans le catalogue
+           const withImages = await enrichEquipmentImages(processed, offerId);
+           // Enrichir les prix d'achat manquants depuis le catalogue
+           const enriched = await enrichEquipmentPurchasePrices(withImages, offerId);
+           return enriched;
         } else {
           console.warn("🔥 EQUIPMENT SERVICE - Migration failed");
         }
