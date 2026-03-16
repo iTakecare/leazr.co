@@ -25,6 +25,8 @@ const itemVariants = {
 const ClientEquipmentPage = () => {
   const { clientData, loading, error } = useClientData();
   const [searchQuery, setSearchQuery] = useState("");
+  const [deployWizardOpen, setDeployWizardOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
 
   // Fetch contracts with equipment
   const { data: contracts = [] } = useQuery({
