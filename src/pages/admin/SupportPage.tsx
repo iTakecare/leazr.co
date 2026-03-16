@@ -53,6 +53,9 @@ const SupportPage = () => {
         <TabsContent value="imap">
           <ImapSettingsForm />
         </TabsContent>
+        <TabsContent value="knowledge">
+          <KnowledgeBaseManager />
+        </TabsContent>
       </Tabs>
     </div>
   );

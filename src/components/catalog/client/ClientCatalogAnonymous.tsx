@@ -323,17 +323,17 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                    </div>
                    
                      {/* Cart Icon */}
-                     <button
-                       onClick={() => navigate(`/${companySlug}/client/panier`)}
-                       className="relative p-2 text-gray-600 hover:text-[#4ab6c4] transition-colors"
-                     >
-                     <ShoppingCart className="h-6 w-6" />
-                     {cartCount > 0 && (
-                       <span className="absolute -top-1 -right-1 bg-[#4ab6c4] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                         {cartCount}
-                       </span>
-                     )}
-                   </button>
+                      <button
+                        onClick={() => navigate(`/${companySlug}/client/panier`)}
+                        className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                      <ShoppingCart className="h-6 w-6" />
+                      {cartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                          {cartCount}
+                        </span>
+                      )}
+                    </button>
                  </div>
 
                   {activeTab === 'products' && (
