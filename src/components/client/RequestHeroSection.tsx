@@ -132,7 +132,7 @@ export const RequestHeroSection: React.FC<RequestHeroSectionProps> = ({
                   Type de demande
                 </p>
                 <p className="text-lg font-semibold text-foreground">
-                  {offer.type === 'client_request' ? 'Demande client' : 'Offre partenaire'}
+                  {getOfferTypeLabel(offer.type)}
                 </p>
               </motion.div>
             </div>
