@@ -6,6 +6,8 @@ import Container from "@/components/layout/Container";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
 import InlinePublicProductDetail from "@/components/catalog/public/InlinePublicProductDetail";
+import CatalogCategoryCards from "@/components/catalog/public/CatalogCategoryCards";
+import CatalogBrandFilter from "@/components/catalog/public/CatalogBrandFilter";
 import InlinePublicCart from "@/components/catalog/public/InlinePublicCart";
 import InlineRequestSteps from "@/components/catalog/public/InlineRequestSteps";
 import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
@@ -134,6 +136,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     resetFilters,
     filteredProducts,
     categories,
+    brands,
     hasActiveFilters,
     resultsCount
   } = usePublicSimplifiedFilter(products);
@@ -283,7 +286,29 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
         />
         
         <Container className="py-6 max-w-[1320px]">
-          <div className="space-y-8">
+          <div className="space-y-6">
+
+            {/* Category Cards and Brand Filter - only in grid view */}
+            {viewMode === 'grid' && (
+              <div className="space-y-4">
+                <CatalogCategoryCards
+                  categories={categories}
+                  selectedCategory={filters.selectedCategory}
+                  onCategorySelect={(cat) => updateFilter('selectedCategory', cat)}
+                />
+                <CatalogBrandFilter
+                  brands={brands}
+                  selectedBrands={filters.selectedBrands}
+                  onBrandToggle={(brand) => {
+                    const current = filters.selectedBrands;
+                    const updated = current.includes(brand)
+                      ? current.filter(b => b !== brand)
+                      : [...current, brand];
+                    updateFilter('selectedBrands', updated);
+                  }}
+                />
+              </div>
+            )}
 
             {/* Main Content - full width */}
             <div className="space-y-6">

@@ -1,80 +1,70 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Refonte de l'en-tête catalogue avec catégories visuelles et filtre par marque
+## Statut
 
-### Objectif
-Reproduire l'UI du screenshot pour les catalogues public et client : header avec bannière, catégories en cartes avec icônes Phosphor-style, filtre par marque avec logos.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-### Composants à créer/modifier
+## Endpoints API ajoutés
 
-#### 1. Nouveau composant : `CatalogHeroBanner`
-**Fichier : `src/components/catalog/public/CatalogHeroBanner.tsx`**
-- Bannière avec fond dégradé/image (utilise `headerBackgroundType` des settings)
-- Titre "Notre catalogue" + description
-- 4 icônes de valeur (Pas d'investissement initial, Renouvellement facile, Maintenance incluse, Maîtrise des coûts)
-- Utilise les Lucide icons (DollarSign, RefreshCw, Shield, TrendingDown)
-
-#### 2. Nouveau composant : `CatalogCategoryCards`
-**Fichier : `src/components/catalog/public/CatalogCategoryCards.tsx`**
-- Cartes cliquables par catégorie avec icône stylisée (Lucide icons car Phosphor n'est pas installé — on utilisera des Lucide icons similaires dans des containers colorés pour reproduire le style Phosphor)
-- Badge de compteur en haut à droite de chaque carte
-- Mapping des catégories vers icônes et couleurs :
-  - Laptop → `Laptop` (teal)
-  - Accessoires Apple → `Apple` (violet)  
-  - Smartphone → `Smartphone` (rose)
-  - Écran → `Monitor` (bleu)
-  - Tablette → `Tablet` (orange)
-  - Logiciel → `AppWindow` (vert)
-  - Desktop → `Monitor` (gris)
-- Sélection visuelle (bordure highlight quand actif)
-- Scrollable horizontalement sur mobile
-
-#### 3. Nouveau composant : `CatalogBrandFilter`
-**Fichier : `src/components/catalog/public/CatalogBrandFilter.tsx`**
-- Ligne "Marques:" avec badges cliquables par marque
-- Logo de la marque en inline (Apple , HP logo, Microsoft logo) via des URLs statiques ou icônes Lucide
-- Compteur entre parenthèses
-- Multi-sélection possible
-
-#### 4. Enrichir le hook `usePublicSimplifiedFilter`
-**Fichier : `src/hooks/products/usePublicSimplifiedFilter.ts`**
-- Ajouter `selectedBrands: string[]` au state
-- Extraire les marques avec compteurs depuis les produits
-- Filtrer par marques sélectionnées
-- Mettre à jour `hasActiveFilters`
-
-#### 5. Modifier `PublicCatalogAnonymous` et `ClientCatalogAnonymous`
-- Ajouter `CatalogHeroBanner` en haut (avant le filtre bar)
-- Remplacer les badges de catégories dans `PublicCatalogFilterBar` par les `CatalogCategoryCards`
-- Ajouter `CatalogBrandFilter` sous les cartes catégories
-- Passer les nouvelles props (brands, selectedBrands) au filtre
-
-#### 6. Modifier `PublicCatalogFilterBar`
-- Retirer la section catégories (déplacée vers `CatalogCategoryCards`)
-- Garder : search, count, sort, cart, devis
-- Ajouter le style "Devis" en bouton teal plein (comme dans le screenshot)
-
-### Mapping des icônes de catégories (style Phosphor via Lucide)
-
-| Catégorie DB | Label | Icône Lucide | Couleur fond |
-|---|---|---|---|
-| Laptop | Ordinateur portable | `Laptop` | teal-100 |
-| Accessoires Apple | Apple Accessories | `Headphones` | violet-100 |
-| Smartphone | Smartphone | `Smartphone` | rose-100 |
-| monitor | Écran | `Monitor` | blue-100 |
-| Tablette | Tablette | `Tablet` | amber-100 |
-| Software | Logiciel | `AppWindow` | emerald-100 |
-| Desktop | Ordinateur de bureau | `MonitorDot` | slate-100 |
-
-### Fichiers impactés
-
-| Fichier | Action |
+| Endpoint | Description |
 |---|---|
-| `src/components/catalog/public/CatalogHeroBanner.tsx` | Créer — bannière hero |
-| `src/components/catalog/public/CatalogCategoryCards.tsx` | Créer — cartes catégories |
-| `src/components/catalog/public/CatalogBrandFilter.tsx` | Créer — filtre marques |
-| `src/hooks/products/usePublicSimplifiedFilter.ts` | Modifier — ajouter brands au state |
-| `src/components/catalog/public/PublicCatalogFilterBar.tsx` | Modifier — retirer catégories, ajouter style devis |
-| `src/pages/PublicCatalogAnonymous.tsx` | Modifier — intégrer les nouveaux composants |
-| `src/components/catalog/client/ClientCatalogAnonymous.tsx` | Modifier — même intégration |
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
+## Documentation
+
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+
+## Tables
+
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
+- `software_catalog`, `software_deployments`, `mdm_configurations`
+
+---
+
+# Plan : Déploiement logiciel à distance (MDM)
+
+## Statut
+
+- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
+- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
+- ✅ Phase 3 — Table `software_deployments` + suivi statut
+- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
+- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
+
+## MDM recommandé : Fleet (FleetDM)
+
+| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
+|---|---|---|---|
+| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
+| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
+| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
+| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
+| Open-source | ✅ MIT | ✅ | ✅ |
+
+### Intégration technique
+
+1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
+2. **Déployer l'agent `fleetd`** sur les machines clientes
+3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
+4. L'edge function existante route les appels vers Fleet automatiquement
+
+### Composants
+
+| Fichier | Rôle |
+|---|---|
+| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
+| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
+| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
+| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |

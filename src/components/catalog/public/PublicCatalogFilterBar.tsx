@@ -128,47 +128,19 @@ const PublicCatalogFilterBar: React.FC<PublicCatalogFilterBarProps> = ({
         </div>
       </div>
 
-      {/* Line 2: Categories and Reset */}
-      <div className="flex flex-wrap gap-2 items-center justify-between">
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-sm font-medium text-foreground mr-2">Catégories:</span>
-          
-          {/* All categories button */}
-          <Badge
-            variant={filters.selectedCategory === null ? "default" : "outline"}
-            className="cursor-pointer transition-all hover:scale-105"
-            onClick={() => updateFilter('selectedCategory', null)}
-          >
-            Toutes
-          </Badge>
-
-          {/* Category buttons with icons */}
-          {categories.map((category) => (
-            <Badge
-              key={category.name}
-              variant={filters.selectedCategory === category.name ? "default" : "outline"}
-              className="cursor-pointer transition-all hover:scale-105 gap-1"
-              onClick={() => updateFilter('selectedCategory', category.name)}
-            >
-              <span>{category.icon}</span>
-              {category.label}
-              <span className="text-xs opacity-70">({category.count})</span>
-            </Badge>
-          ))}
-        </div>
-
-        {/* Reset button */}
-        {hasActiveFilters && (
+      {/* Reset button */}
+      {hasActiveFilters && (
+        <div className="flex justify-end">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={resetFilters}
             className="text-muted-foreground hover:text-foreground"
           >
-            Réinitialiser
+            Réinitialiser les filtres
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

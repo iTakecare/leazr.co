@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 export interface PublicSimplifiedFilterState {
   searchQuery: string;
   selectedCategory: string | null;
+  selectedBrands: string[];
   sortBy: 'name' | 'price' | 'brand' | 'newest';
   sortOrder: 'asc' | 'desc';
 }
@@ -19,6 +20,7 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
   const [filters, setFilters] = useState<PublicSimplifiedFilterState>({
     searchQuery: searchParams.get('search') || '',
     selectedCategory: searchParams.get('category'),
+    selectedBrands: searchParams.get('brands')?.split(',').filter(Boolean) || [],
     sortBy: (searchParams.get('sortBy') as PublicSimplifiedFilterState['sortBy']) || 'newest',
     sortOrder: (searchParams.get('sortOrder') as PublicSimplifiedFilterState['sortOrder']) || 'desc'
   });
@@ -58,12 +60,27 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
     }).sort((a, b) => a.label.localeCompare(b.label));
   }, [products]);
 
+  // Get brands from products
+  const brands = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    const brandsMap = new Map<string, number>();
+    products.forEach(product => {
+      if (product.brand) {
+        brandsMap.set(product.brand, (brandsMap.get(product.brand) || 0) + 1);
+      }
+    });
+    return Array.from(brandsMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [products]);
+
   // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams();
     
     if (filters.searchQuery) params.set('search', filters.searchQuery);
     if (filters.selectedCategory) params.set('category', filters.selectedCategory);
+    if (filters.selectedBrands.length > 0) params.set('brands', filters.selectedBrands.join(','));
     if (filters.sortBy !== 'newest') params.set('sortBy', filters.sortBy);
     if (filters.sortOrder !== 'desc') params.set('sortOrder', filters.sortOrder);
     
@@ -94,6 +111,13 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
     // Category filter
     if (filters.selectedCategory) {
       filtered = filtered.filter(product => product.category === filters.selectedCategory);
+    }
+    
+    // Brand filter
+    if (filters.selectedBrands.length > 0) {
+      filtered = filtered.filter(product => 
+        product.brand && filters.selectedBrands.includes(product.brand)
+      );
     }
     
     // Sort products
@@ -130,7 +154,8 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
   const hasActiveFilters = useMemo(() => {
     return !!(
       filters.searchQuery ||
-      filters.selectedCategory
+      filters.selectedCategory ||
+      filters.selectedBrands.length > 0
     );
   }, [filters]);
 
@@ -145,6 +170,7 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
     setFilters({
       searchQuery: '',
       selectedCategory: null,
+      selectedBrands: [],
       sortBy: 'newest',
       sortOrder: 'desc'
     });
@@ -156,6 +182,7 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
     resetFilters,
     filteredProducts,
     categories,
+    brands,
     hasActiveFilters,
     resultsCount: filteredProducts.length
   };
