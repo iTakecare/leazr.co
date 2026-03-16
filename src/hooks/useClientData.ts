@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useMultiTenant } from './useMultiTenant';
+
 import { Client } from '@/types/client';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -40,7 +40,7 @@ interface ClientNotification {
 
 export const useClientData = () => {
   const { user } = useAuth();
-  const { services } = useMultiTenant();
+  
   const [clientData, setClientData] = useState<Client | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [clientStats, setClientStats] = useState<ClientStats>({ totalMonthly: 0, activeEquipment: 0, pendingRequests: 0, nextRenewal: null });
@@ -57,7 +57,8 @@ export const useClientData = () => {
 
       try {
         // Fetch client by user_id
-        const { data: client, error: clientError } = await services.clients.query()
+        const { data: client, error: clientError } = await supabase
+          .from('clients')
           .select('*, has_custom_catalog')
           .eq('user_id', user.id)
           .maybeSingle();
@@ -73,7 +74,8 @@ export const useClientData = () => {
 
         if (!client) {
           // Fallback: search by email
-          const { data: clientByEmail, error: emailError } = await services.clients.query()
+          const { data: clientByEmail, error: emailError } = await supabase
+            .from('clients')
             .select('*, has_custom_catalog')
             .eq('email', user.email)
             .maybeSingle();
@@ -110,10 +112,15 @@ export const useClientData = () => {
     const fetchClientStats = async (clientId: string) => {
       try {
         // Active contracts + sum monthly payments
-        const { data: activeContracts } = await services.contracts.query()
+        const { data: activeContracts, error: contractsError } = await supabase
+          .from('contracts')
           .select('id, monthly_payment, end_date')
           .eq('client_id', clientId)
           .in('status', ['active', 'signed', 'contract_sent', 'equipment_ordered', 'delivered']);
+
+        if (contractsError) {
+          console.error('Erreur requête contrats stats:', contractsError);
+        }
 
         const totalMonthly = (activeContracts || []).reduce((sum, c) => sum + (c.monthly_payment || 0), 0);
         const activeEquipment = (activeContracts || []).length;
@@ -126,10 +133,15 @@ export const useClientData = () => {
         const nextRenewal = futureEnds.length > 0 ? futureEnds[0] : null;
 
         // Pending offers count
-        const { count: pendingCount } = await services.offers.query()
+        const { count: pendingCount, error: offersError } = await supabase
+          .from('offers')
           .select('id', { count: 'exact', head: true })
           .eq('client_id', clientId)
           .in('status', ['pending', 'sent']);
+
+        if (offersError) {
+          console.error('Erreur requête offres stats:', offersError);
+        }
 
         setClientStats({
           totalMonthly,
@@ -147,7 +159,8 @@ export const useClientData = () => {
         const notifs: ClientNotification[] = [];
 
         // Contracts to sign
-        const { data: toSign } = await services.contracts.query()
+        const { data: toSign } = await supabase
+          .from('contracts')
           .select('id, equipment_description')
           .eq('client_id', clientId)
           .eq('status', 'contract_sent');
@@ -164,7 +177,8 @@ export const useClientData = () => {
         });
 
         // Offers approved but not yet converted
-        const { data: approved } = await services.offers.query()
+        const { data: approved } = await supabase
+          .from('offers')
           .select('id, equipment_description')
           .eq('client_id', clientId)
           .eq('status', 'approved')
@@ -182,7 +196,8 @@ export const useClientData = () => {
         });
 
         // Offers with documents requested (info_requested / internal_docs_requested)
-        const { data: docsRequested } = await services.offers.query()
+        const { data: docsRequested } = await supabase
+          .from('offers')
           .select('id, dossier_number, equipment_description, workflow_status')
           .eq('client_id', clientId)
           .in('workflow_status', ['info_requested', 'internal_docs_requested']);
@@ -230,7 +245,8 @@ export const useClientData = () => {
       try {
         const activities: RecentActivity[] = [];
 
-        const { data: offers } = await services.offers.query()
+        const { data: offers } = await supabase
+          .from('offers')
           .select('id, client_name, status, workflow_status, created_at, equipment_description, type, workflow_template_id, company_id')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
@@ -251,7 +267,8 @@ export const useClientData = () => {
           });
         });
 
-        const { data: contracts } = await services.contracts.query()
+        const { data: contracts } = await supabase
+          .from('contracts')
           .select('id, client_name, status, created_at, equipment_description')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
