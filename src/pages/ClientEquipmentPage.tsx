@@ -8,7 +8,7 @@ import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download } 
 import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import LocationManager from "@/components/equipment/LocationManager";
-// SoftwareDeploymentWizard is used inside ClientSoftwareTab
+import SoftwareDeploymentWizard from "@/components/equipment/SoftwareDeploymentWizard";
 import ClientSoftwareTab from "@/components/equipment/ClientSoftwareTab";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
