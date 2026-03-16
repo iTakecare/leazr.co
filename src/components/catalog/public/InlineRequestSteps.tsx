@@ -4,46 +4,51 @@ import { Button } from '@/components/ui/button';
 import CompanyInfoForm from '@/components/checkout/CompanyInfoForm';
 import ContactInfoForm from '@/components/checkout/ContactInfoForm';
 import RequestSummary from '@/components/checkout/RequestSummary';
+import { Client } from '@/types/client';
 
 interface InlineRequestStepsProps {
   companyId?: string;
+  clientData?: Client | null;
   onBackToCart: () => void;
   onRequestCompleted: () => void;
 }
 
 const InlineRequestSteps: React.FC<InlineRequestStepsProps> = ({ 
   companyId, 
+  clientData,
   onBackToCart, 
   onRequestCompleted 
 }) => {
   const [step, setStep] = useState(1);
   
   const [companyFormData, setCompanyFormData] = useState({
-    company: '',
-    vat_number: '',
+    company: clientData?.company || clientData?.name || '',
+    vat_number: clientData?.vat_number || '',
     company_verified: false,
     is_vat_exempt: false,
-    country: 'BE',
-    email: '',
-    address: '',
-    city: '',
-    postal_code: ''
+    country: clientData?.country || clientData?.billing_country || 'BE',
+    email: clientData?.email || '',
+    address: clientData?.address || clientData?.billing_address || '',
+    city: clientData?.city || clientData?.billing_city || '',
+    postal_code: clientData?.postal_code || clientData?.billing_postal_code || ''
   });
   
+  const hasDifferentDelivery = clientData?.delivery_same_as_billing === false && !!clientData?.delivery_address;
+  
   const [contactFormData, setContactFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    has_client_account: false,
-    address: '',
-    city: '',
-    postal_code: '',
-    country: '',
-    has_different_shipping_address: false,
-    shipping_address: '',
-    shipping_city: '',
-    shipping_postal_code: '',
-    shipping_country: ''
+    name: clientData?.contact_name || clientData?.name || '',
+    phone: clientData?.phone || '',
+    email: clientData?.email || '',
+    has_client_account: !!clientData?.user_id,
+    address: clientData?.address || clientData?.billing_address || '',
+    city: clientData?.city || clientData?.billing_city || '',
+    postal_code: clientData?.postal_code || clientData?.billing_postal_code || '',
+    country: clientData?.country || clientData?.billing_country || '',
+    has_different_shipping_address: hasDifferentDelivery,
+    shipping_address: hasDifferentDelivery ? (clientData?.delivery_address || '') : '',
+    shipping_city: hasDifferentDelivery ? (clientData?.delivery_city || '') : '',
+    shipping_postal_code: hasDifferentDelivery ? (clientData?.delivery_postal_code || '') : '',
+    shipping_country: hasDifferentDelivery ? (clientData?.delivery_country || '') : ''
   });
   
   const handleCompanyDataUpdate = (data: Partial<typeof companyFormData>) => {
