@@ -238,46 +238,17 @@ const ClientDashboard = () => {
               <CardTitle className="text-sm font-medium">Suivi détaillé de vos demandes</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
-              {pendingOffers.slice(0, 3).map((offer) => {
-                const currentIdx = getStepIndex(offer.workflow_status, offer.status);
-                return (
+              {pendingOffers.slice(0, 3).map((offer) => (
                   <div key={offer.id} className="p-4 rounded-xl bg-muted/40">
                     <p className="text-sm font-medium mb-4 truncate">{offer.description}</p>
-                    <div className="flex items-center gap-0.5 overflow-x-auto pb-1">
-                      {WORKFLOW_STEPS.map((step, i) => {
-                        const isDone = i < currentIdx;
-                        const isActive = i === currentIdx;
-                        const isUpcoming = i > currentIdx;
-                        return (
-                          <React.Fragment key={step.key}>
-                            <div className="flex flex-col items-center gap-1.5 min-w-[60px] flex-shrink-0">
-                              {isDone ? (
-                                <div className="h-6 w-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                                  <CheckCircle2 className="h-4 w-4 text-white" />
-                                </div>
-                              ) : isActive ? (
-                                <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center animate-pulse">
-                                  <CircleDot className="h-4 w-4 text-white" />
-                                </div>
-                              ) : (
-                                <div className="h-6 w-6 rounded-full border-2 border-muted-foreground/20 flex items-center justify-center">
-                                  <Circle className="h-3 w-3 text-muted-foreground/30" />
-                                </div>
-                              )}
-                              <span className={`text-[9px] leading-tight text-center ${isUpcoming ? "text-muted-foreground/40" : isDone ? "text-emerald-600 font-medium" : "text-blue-600 font-semibold"}`}>
-                                {step.label}
-                              </span>
-                            </div>
-                            {i < WORKFLOW_STEPS.length - 1 && (
-                              <div className={`h-0.5 flex-1 min-w-[12px] rounded-full -mt-5 ${isDone ? "bg-emerald-400" : "bg-muted-foreground/15"}`} />
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
+                    <MiniWorkflowStepper
+                      currentStatus={offer.workflow_status || offer.status || 'draft'}
+                      offerType={offer.type}
+                      workflowTemplateId={offer.workflow_template_id}
+                      companyId={offer.company_id}
+                    />
                   </div>
-                );
-              })}
+                ))}
             </CardContent>
           </Card>
         </motion.div>
