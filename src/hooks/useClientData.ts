@@ -194,7 +194,8 @@ export const useClientData = () => {
         });
 
         // Offers with documents requested (info_requested / internal_docs_requested)
-        const { data: docsRequested } = await services.offers.query()
+        const { data: docsRequested } = await supabase
+          .from('offers')
           .select('id, dossier_number, equipment_description, workflow_status')
           .eq('client_id', clientId)
           .in('workflow_status', ['info_requested', 'internal_docs_requested']);
