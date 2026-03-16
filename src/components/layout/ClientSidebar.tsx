@@ -12,6 +12,7 @@ import {
   Laptop,
   Clock,
   Package,
+  Download,
   Menu, 
   X,
   ChevronRight,
@@ -50,6 +51,7 @@ const ClientSidebar = memo(({ className, onLinkClick }: SidebarProps) => {
       badge: requestsCount > 0 ? requestsCount.toString() : undefined 
     },
     { icon: Package, label: "Catalogue", href: "products", color: "violet" },
+    { icon: Download, label: "Logiciels", href: "software", color: "cyan" },
     { icon: HelpCircle, label: "Support", href: "support", color: "pink" },
     { icon: Settings, label: "Paramètres", href: "settings", color: "gray" },
   ], [requestsCount]);

@@ -9,6 +9,7 @@ import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import LocationManager from "@/components/equipment/LocationManager";
 import SoftwareDeploymentWizard from "@/components/equipment/SoftwareDeploymentWizard";
+import ClientSoftwareTab from "@/components/equipment/ClientSoftwareTab";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +23,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-const ClientEquipmentPage = () => {
+const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: string }) => {
   const { clientData, loading, error } = useClientData();
   const [searchQuery, setSearchQuery] = useState("");
   const [deployWizardOpen, setDeployWizardOpen] = useState(false);
@@ -147,7 +148,7 @@ const ClientEquipmentPage = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Tabs defaultValue="by-contract" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="by-contract" className="gap-2">
               <FileText className="h-4 w-4" />
@@ -164,6 +165,10 @@ const ClientEquipmentPage = () => {
             <TabsTrigger value="locations" className="gap-2">
               <MapPin className="h-4 w-4" />
               Emplacements
+            </TabsTrigger>
+            <TabsTrigger value="software" className="gap-2">
+              <Download className="h-4 w-4" />
+              Logiciels
             </TabsTrigger>
           </TabsList>
 
@@ -345,6 +350,15 @@ const ClientEquipmentPage = () => {
                 <LocationManager clientId={clientData.id} companyId={(clientData as any).company_id} />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Software Tab */}
+          <TabsContent value="software">
+            <ClientSoftwareTab
+              clientId={clientData.id}
+              companyId={(clientData as any).company_id}
+              equipment={allEquipment}
+            />
           </TabsContent>
         </Tabs>
       </motion.div>
