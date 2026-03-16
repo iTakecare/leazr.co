@@ -61,9 +61,10 @@ export const createProductRequest = async (data: ProductRequestData, cartItems?:
       products: cartItems && cartItems.length > 0
         ? cartItems.map(item => {
             const priceData = item.price || { monthlyPrice: 0, purchasePrice: 0 };
+            const variantId = item.selectedOptions?.variant_id || item.selectedOptions?.selected_variant_id || item.product?.selected_variant_id;
             return {
               product_id: item.product?.id || uuidv4(),
-              variant_id: item.selectedOptions?.variant_id || null,
+              ...(variantId ? { variant_id: variantId } : {}),
               quantity: item.quantity || 1,
               unit_price: priceData.monthlyPrice || 0,
               purchase_price: priceData.purchasePrice || 0,
