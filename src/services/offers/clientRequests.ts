@@ -104,7 +104,7 @@ export const createClientRequest = async (data: any, cartItems?: any[]) => {
       .single();
     
     if (error) {
-      console.error("Error inserting offer:", error);
+      console.error("Error inserting offer:", error.message, error.details, error.hint, error.code);
       return { data: null, error };
     }
     
