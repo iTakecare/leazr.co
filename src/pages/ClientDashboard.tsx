@@ -164,7 +164,7 @@ const ClientDashboard = () => {
               <Button
                 size="sm"
                 className="gap-2 rounded-xl bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
-                onClick={() => navigateToClient("requests")}
+                onClick={() => navigateToClient("catalog")}
               >
                 <Plus className="h-4 w-4" /> Nouvelle demande
               </Button>
