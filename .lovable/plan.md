@@ -1,35 +1,70 @@
 
+# Plan : Système de Packs Partenaires avec Prestataires Externes
 
-## Problème
+## Statut
 
-Quand un client connecté fait une demande depuis son catalogue, le formulaire `InlineRequestSteps` démarre avec des champs vides. Or les données du client (entreprise, TVA, email, adresse, nom du contact) sont déjà disponibles via `clientData` passé à `ClientCatalogAnonymous`.
+- ✅ Phase 1 — Modèle de données (6 tables SQL + RLS)
+- ✅ Phase 2 — Admin : PartnerManager + ExternalProviderManager + onglets CatalogManagement
+- ✅ Phase 3 — API : Endpoints partners, providers dans catalog-api + documentation
+- ⬜ Phase 4 — (Optionnel) Page publique partenaire côté Leazr si nécessaire
 
-## Plan
+## Endpoints API ajoutés
 
-### 1. Passer `clientData` à `InlineRequestSteps`
-**Fichier : `src/components/catalog/client/ClientCatalogAnonymous.tsx`**
-- Ajouter la prop `clientData` lors du rendu de `InlineRequestSteps` (ligne ~257)
-
-### 2. Accepter et utiliser `clientData` dans `InlineRequestSteps`
-**Fichier : `src/components/catalog/public/InlineRequestSteps.tsx`**
-- Ajouter une prop optionnelle `clientData?: Client | null`
-- Pré-remplir `companyFormData` avec les données du client :
-  - `company` ← `clientData.company` ou `clientData.name`
-  - `vat_number` ← `clientData.vat_number`
-  - `email` ← `clientData.email`
-  - `address` ← `clientData.address` ou `clientData.billing_address`
-  - `city` ← `clientData.city` ou `clientData.billing_city`
-  - `postal_code` ← `clientData.postal_code` ou `clientData.billing_postal_code`
-  - `country` ← `clientData.country` ou `clientData.billing_country` ou `'BE'`
-- Pré-remplir `contactFormData` avec :
-  - `name` ← `clientData.contact_name` ou `clientData.name`
-  - `email` ← `clientData.email`
-  - `phone` ← `clientData.phone`
-  - Adresses de livraison si différentes
-
-### Fichiers impactés
-| Fichier | Action |
+| Endpoint | Description |
 |---|---|
-| `src/components/catalog/public/InlineRequestSteps.tsx` | Ajouter prop `clientData`, pré-remplir les formulaires |
-| `src/components/catalog/client/ClientCatalogAnonymous.tsx` | Passer `clientData` à `InlineRequestSteps` |
+| `GET /v1/{company}/partners` | Liste des partenaires actifs |
+| `GET /v1/{company}/partners/{slug}` | Détail d'un partenaire (par ID ou slug) |
+| `GET /v1/{company}/partners/{slug}/packs` | Packs liés avec items, options et produits personnalisables |
+| `GET /v1/{company}/partners/{slug}/providers` | Cartes prestataires avec produits/services |
+| `GET /v1/{company}/providers` | Liste des prestataires externes actifs |
+| `GET /v1/{company}/providers/{id}` | Détail d'un prestataire |
+| `GET /v1/{company}/providers/{id}/products` | Produits/services d'un prestataire |
 
+## Documentation
+
+- `catalog-skeleton/partners-api.txt` — Documentation complète des endpoints avec exemples JSON
+- `catalog-skeleton/types-partners.txt` — Types TypeScript + hooks React Query
+
+## Tables
+
+- `partners`, `partner_packs`, `partner_pack_options`
+- `external_providers`, `external_provider_products`, `partner_provider_links`
+- `software_catalog`, `software_deployments`, `mdm_configurations`
+
+---
+
+# Plan : Déploiement logiciel à distance (MDM)
+
+## Statut
+
+- ✅ Phase 1 — Table `software_catalog` + CRUD admin (SoftwareCatalogManager)
+- ✅ Phase 2 — Wizard déploiement (SoftwareDeploymentWizard) sur page équipements
+- ✅ Phase 3 — Table `software_deployments` + suivi statut
+- ✅ Phase 4 — Edge Function `mdm-deploy-software` (proxy API MDM + mode simulation)
+- ✅ Phase 5 — Configuration MDM admin (MDMConfigSection)
+
+## MDM recommandé : Fleet (FleetDM)
+
+| Critère | Fleet ✅ | Tactical RMM | MeshCentral |
+|---|---|---|---|
+| Mac + Windows | ✅ Natif | ⚠️ Windows natif, Mac limité | ⚠️ Remote desktop surtout |
+| API déploiement logiciel | ✅ `/api/v1/fleet/software` | ✅ Scripts PowerShell | ❌ Pas d'API packages |
+| Packages .pkg / .msi | ✅ Natif | ⚠️ Via Chocolatey/scripts | ❌ |
+| Install silencieuse | ✅ Intégré | ✅ Via scripts | ❌ |
+| Open-source | ✅ MIT | ✅ | ✅ |
+
+### Intégration technique
+
+1. **Héberger Fleet** (Docker : `fleetdm/fleet`)
+2. **Déployer l'agent `fleetd`** sur les machines clientes
+3. **Configurer les secrets Supabase** : `MDM_API_URL` + `MDM_API_TOKEN`
+4. L'edge function existante route les appels vers Fleet automatiquement
+
+### Composants
+
+| Fichier | Rôle |
+|---|---|
+| `src/components/settings/SoftwareCatalogManager.tsx` | CRUD catalogue logiciels |
+| `src/components/settings/MDMConfigSection.tsx` | Configuration connexion MDM |
+| `src/components/equipment/SoftwareDeploymentWizard.tsx` | Wizard déploiement 3 étapes |
+| `supabase/functions/mdm-deploy-software/index.ts` | Proxy API MDM + simulation |

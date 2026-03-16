@@ -256,6 +256,7 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
               {viewMode === 'request-steps' && (
                 <InlineRequestSteps
                   companyId={company?.id}
+                  clientData={clientData}
                   onBackToCart={handleBackToCart}
                   onRequestCompleted={handleRequestCompleted}
                 />
