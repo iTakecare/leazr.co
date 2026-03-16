@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useMultiTenant } from './useMultiTenant';
+
 import { Client } from '@/types/client';
 import { supabase } from '@/integrations/supabase/client';
 
