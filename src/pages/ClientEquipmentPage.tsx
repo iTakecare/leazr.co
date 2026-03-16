@@ -40,7 +40,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
         .select(`
           id, title, quantity, serial_number, monthly_payment, purchase_price,
           collaborator_id, contract_id,
-          contracts!inner(id, client_name, status, tracking_number, monthly_payment, created_at, client_id)
+          contracts!inner(id, client_name, status, tracking_number, contract_number, monthly_payment, created_at, client_id)
         `)
         .eq("contracts.client_id", clientData!.id)
         .in("contracts.status", ["active", "signed", "delivered"]);
@@ -51,7 +51,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
   });
 
   // Group by contract for "Par contrat" tab
-  const contractsMap = new Map<string, { id: string; client_name: string; status: string; tracking_number: string | null; monthly_payment: number | null; items: any[] }>();
+  const contractsMap = new Map<string, { id: string; client_name: string; status: string; contract_number: string | null; monthly_payment: number | null; items: any[] }>();
   contractEquipmentRaw.forEach((eq: any) => {
     const c = eq.contracts;
     if (!contractsMap.has(c.id)) {
@@ -59,7 +59,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
         id: c.id,
         client_name: c.client_name,
         status: c.status,
-        tracking_number: c.tracking_number,
+        contract_number: c.contract_number,
         monthly_payment: c.monthly_payment,
         items: [],
       });
@@ -122,12 +122,18 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
   // Detect equipment category from title
   const detectCategory = (title: string): string => {
     const t = title.toLowerCase();
-    if (t.includes("macbook") || t.includes("laptop") || t.includes("portable") || t.includes("pc") || t.includes("ordinateur") || t.includes("desktop") || t.includes("thinkpad") || t.includes("dell") || t.includes("hp ") || t.includes("lenovo")) return "informatique";
+    if (t.includes("macbook") || t.includes("laptop") || t.includes("portable") || t.includes("pc") || t.includes("ordinateur") || t.includes("desktop") || t.includes("thinkpad") || t.includes("dell") || t.includes("hp ") || t.includes("lenovo") || t.includes("mac mini") || t.includes("mac pro") || t.includes("mac studio") || t.includes("imac")) return "informatique";
     if (t.includes("iphone") || t.includes("samsung") || t.includes("téléphone") || t.includes("telephone") || t.includes("smartphone") || t.includes("galaxy") || t.includes("pixel")) return "telephonie";
-    if (t.includes("écran") || t.includes("ecran") || t.includes("monitor") || t.includes("asus") || t.includes("lg ") || t.includes("display")) return "ecrans";
+    if (t.includes("écran") || t.includes("ecran") || t.includes("monitor") || t.includes("display")) return "ecrans";
     if (t.includes("imprimante") || t.includes("scanner") || t.includes("printer")) return "impression";
     if (t.includes("tablette") || t.includes("ipad") || t.includes("tab")) return "tablettes";
     return "autre";
+  };
+
+  // Only PCs, Macs, tablets and smartphones can have software installed
+  const canInstallSoftware = (title: string): boolean => {
+    const cat = detectCategory(title);
+    return ["informatique", "telephonie", "tablettes"].includes(cat);
   };
 
   const categoryLabels: Record<string, string> = {
@@ -145,7 +151,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     id: eq.id,
     name: eq.title || "Équipement",
     serial: eq.serial_number || "—",
-    contractRef: eq.contracts?.tracking_number || eq.contract_id?.slice(0, 8) || "—",
+    contractRef: eq.contracts?.contract_number || eq.contract_id?.slice(0, 8) || "—",
     contractId: eq.contract_id,
     quantity: eq.quantity || 1,
     monthlyPayment: eq.monthly_payment || null,
@@ -228,7 +234,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-sm font-medium flex items-center gap-2">
                             <FileText className="h-4 w-4 text-primary" />
-                            Contrat {contract.tracking_number || contract.id.slice(0, 8)}
+                            Contrat {contract.contract_number || contract.id.slice(0, 8)}
                           </CardTitle>
                           <Badge variant="outline" className="text-xs">
                             {contract.monthly_payment ? `${contract.monthly_payment.toFixed(2)} €/mois` : "—"}
@@ -253,21 +259,23 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                                 {item.monthly_payment && (
                                   <span className="text-xs text-muted-foreground">{Number(item.monthly_payment).toFixed(2)} €/mois</span>
                                 )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="gap-1 text-xs"
-                                  onClick={() => {
-                                    setSelectedEquipment({
-                                      id: item.id,
-                                      name: item.title || "Équipement",
-                                      contractRef: contract.tracking_number || contract.id.slice(0, 8),
-                                    });
-                                    setDeployWizardOpen(true);
-                                  }}
-                                >
-                                  <Download className="h-3 w-3" /> Installer
-                                </Button>
+                                {canInstallSoftware(item.title || "") && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="gap-1 text-xs"
+                                    onClick={() => {
+                                      setSelectedEquipment({
+                                        id: item.id,
+                                        name: item.title || "Équipement",
+                                        contractRef: contract.contract_number || contract.id.slice(0, 8),
+                                      });
+                                      setDeployWizardOpen(true);
+                                    }}
+                                  >
+                                    <Download className="h-3 w-3" /> Installer
+                                  </Button>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -346,17 +354,21 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                             </td>
                             <td className="p-3 text-sm text-muted-foreground">{eq.quantity}</td>
                             <td className="p-3">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="gap-1 text-xs"
-                                onClick={() => {
-                                  setSelectedEquipment({ id: eq.id, name: eq.name, contractRef: eq.contractRef });
-                                  setDeployWizardOpen(true);
-                                }}
-                              >
-                                <Download className="h-3 w-3" /> Installer
-                              </Button>
+                              {canInstallSoftware(eq.name) ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="gap-1 text-xs"
+                                  onClick={() => {
+                                    setSelectedEquipment({ id: eq.id, name: eq.name, contractRef: eq.contractRef });
+                                    setDeployWizardOpen(true);
+                                  }}
+                                >
+                                  <Download className="h-3 w-3" /> Installer
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
                             </td>
                           </tr>
                         ))}
