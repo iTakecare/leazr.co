@@ -9,6 +9,7 @@ import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import LocationManager from "@/components/equipment/LocationManager";
 import SoftwareDeploymentWizard from "@/components/equipment/SoftwareDeploymentWizard";
+import ClientSoftwareTab from "@/components/equipment/ClientSoftwareTab";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
