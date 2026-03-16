@@ -1,11 +1,12 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, AlertCircle, XCircle, CheckCircle2, CircleDot, Circle } from "lucide-react";
+import { Clock, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useClientOffers } from "@/hooks/useClientOffers";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { motion } from "framer-motion";
+import MiniWorkflowStepper from "@/components/client/MiniWorkflowStepper";
 
 const WORKFLOW_STEPS = [
   { key: "draft", label: "Soumise" },
