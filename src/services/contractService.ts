@@ -142,11 +142,11 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       .select(`
         *, 
         clients(name, email, company, phone, address, city, postal_code, vat_number, billing_address, billing_city, billing_postal_code),
-        offers!inner(dossier_number, down_payment, coefficient, financed_amount),
+        offers!contracts_offer_id_fkey(dossier_number, down_payment, coefficient, financed_amount),
         contract_equipment(id, monthly_payment, quantity)
       `)
       .eq('id', contractId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("❌ Erreur lors de la récupération du contrat:", error);
