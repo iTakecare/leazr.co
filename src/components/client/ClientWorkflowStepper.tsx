@@ -226,7 +226,7 @@ const ClientWorkflowStepper: React.FC<ClientWorkflowStepperProps> = ({
         <h3 className="text-base font-semibold">Suivi de votre demande</h3>
       </div>
 
-      <div className="relative flex items-start gap-0 overflow-x-auto pt-3 pb-4 px-1 scrollbar-thin">
+      <div className="relative flex items-start justify-center gap-0 overflow-x-auto pt-3 pb-4 px-1 scrollbar-thin">
         {activeSteps.map((step, index) => {
           const Icon = step.icon;
           const isActive = index === currentIndex;
