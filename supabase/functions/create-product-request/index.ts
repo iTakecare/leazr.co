@@ -303,7 +303,8 @@ serve(async (req) => {
       
       equipmentCalculations.push({
         productName,
-        productId: product.product_id,
+        productId: productFound ? product.product_id : null,
+        productFound,
         variantId: product.variant_id,
         quantity: product.quantity,
         purchasePrice: price,
