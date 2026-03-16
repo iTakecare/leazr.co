@@ -22,6 +22,7 @@ interface SidebarMenuItemProps {
   isActive: (href: string) => boolean;
   collapsed: boolean;
   onLinkClick?: (href?: string) => void;
+  variant?: "dark" | "light";
 }
 
 const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: SidebarMenuItemProps) => {
