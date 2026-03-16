@@ -412,6 +412,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 <TableCell className="text-right font-medium">
                   {formatCurrency(contract.monthly_payment)}
                 </TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatCurrency((contract as any).financed_amount || 0)}
+                </TableCell>
                 <TableCell>
                   {contract.contract_start_date ? (
                     formatDate(contract.contract_start_date)
