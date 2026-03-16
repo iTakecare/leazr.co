@@ -32,6 +32,7 @@ export interface ProductRequestData {
   shipping_country?: string;
   phone?: string;
   company_id?: string;
+  has_client_account?: boolean;
 }
 
 export interface RequestInfoData {
@@ -43,7 +44,7 @@ export interface RequestInfoData {
 
 /**
  * Crée une demande de produit (offre) à partir du catalogue public
- * Cette fonction crée à la fois un client et une offre en utilisant une fonction Edge
+ * Transforme les données plates en format structuré attendu par l'edge function
  */
 export const createProductRequest = async (data: ProductRequestData) => {
   try {
@@ -51,16 +52,58 @@ export const createProductRequest = async (data: ProductRequestData) => {
     
     // Format du numéro de téléphone - supprimer le 0 après l'indicatif international
     if (data.phone) {
-      // Recherche un format +XX 0XXXXXXXXX et remplace par +XX XXXXXXXXX
       data.phone = data.phone.replace(/^\+(\d+)\s0/, '+$1 ');
     }
     
-    console.log("Calling Edge function create-product-request");
-    // Appeler la fonction Edge pour créer la demande de produit
+    // Transformer les données plates en format structuré attendu par l'edge function
+    const structuredData: any = {
+      // Le champ products est obligatoire - créer un item générique à partir de la description
+      products: [{
+        product_id: uuidv4(), // ID temporaire, l'edge function gère la création
+        quantity: data.quantity || 1,
+        unit_price: data.monthly_payment || 0,
+        purchase_price: data.amount || 0,
+        monthly_payment: data.monthly_payment || 0,
+        product_name: data.equipment_description?.split('\n')[0]?.replace(/^- /, '') || 'Demande de leasing',
+        duration: data.duration || 36,
+      }],
+      // Format contact_info + company_info (nouveau format)
+      contact_info: {
+        first_name: data.client_name?.split(' ')[0] || data.client_name || '',
+        last_name: data.client_name?.split(' ').slice(1).join(' ') || '',
+        email: data.client_contact_email || data.client_email,
+        phone: data.phone || '',
+      },
+      company_info: {
+        company_name: data.client_company || '',
+        vat_number: data.client_vat_number || '',
+        address: data.address || '',
+        postal_code: data.postal_code || '',
+        city: data.city || '',
+        country: (data.client_country || data.country || 'BE').substring(0, 2),
+      },
+      total: data.monthly_payment || 0,
+      subtotal: data.amount || 0,
+      create_client_account: data.has_client_account || false,
+      notes: data.message || data.equipment_description || '',
+    };
+
+    // Ajouter delivery_info si adresse de livraison différente
+    if (data.has_different_shipping_address) {
+      structuredData.delivery_info = {
+        same_as_company: false,
+        address: data.shipping_address || '',
+        postal_code: data.shipping_postal_code || '',
+        city: data.shipping_city || '',
+        country: (data.shipping_country || 'BE').substring(0, 2),
+      };
+    }
+
+    console.log("Calling Edge function create-product-request with structured data");
     const { data: responseData, error } = await supabase.functions.invoke(
       'create-product-request',
       {
-        body: JSON.stringify(data),
+        body: JSON.stringify(structuredData),
       }
     );
     
