@@ -147,6 +147,7 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
     setFilters({
       searchQuery: '',
       selectedCategory: null,
+      selectedBrands: [],
       sortBy: 'newest',
       sortOrder: 'desc'
     });
