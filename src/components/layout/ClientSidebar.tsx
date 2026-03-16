@@ -6,6 +6,8 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useLocation } from "react-router-dom";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useClientRequestsCount } from "@/hooks/useClientRequests";
+import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
+import { useClientData } from "@/hooks/useClientData";
 import { 
   LayoutDashboard,
   FileText,

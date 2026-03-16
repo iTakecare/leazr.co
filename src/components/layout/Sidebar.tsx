@@ -28,6 +28,7 @@ import SidebarUserSection from "./SidebarUserSection";
 import SidebarMenuItem from "./SidebarMenuItem";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
 import { useTaskNotifications } from "@/hooks/useTaskNotifications";
+import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
 
 interface SidebarProps {
   className?: string;
