@@ -191,9 +191,60 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
 
   return (
     <CompanyProvider company={company}>
-      <div className="min-h-screen bg-white">        
+      <div className="min-h-screen bg-white">
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-r from-primary/90 to-primary/60 text-primary-foreground">
+          <Container className="max-w-[1320px] py-10 md:py-14">
+            <h1 className="text-3xl md:text-4xl font-bold mb-3">Notre catalogue</h1>
+            <p className="text-primary-foreground/80 text-sm md:text-base max-w-2xl mb-6">
+              Découvrez notre sélection d'équipements reconditionnés et neufs, disponibles en leasing.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {[
+                { icon: "♻️", text: "Reconditionné certifié" },
+                { icon: "🛡️", text: "Garantie incluse" },
+                { icon: "🚚", text: "Livraison offerte" },
+              ].map((item) => (
+                <div key={item.text} className="flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                  <span>{item.icon}</span>
+                  <span>{item.text}</span>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </div>
+
         <Container className="py-6 max-w-[1320px]">
-          <div className="space-y-8">
+          <div className="space-y-6">
+
+            {/* Horizontal category chips */}
+            {categories.length > 0 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <button
+                  onClick={() => updateFilter('selectedCategory', '')}
+                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    !filters.selectedCategory
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  Tous ({products.length})
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.name}
+                    onClick={() => updateFilter('selectedCategory', cat.name === filters.selectedCategory ? '' : cat.name)}
+                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      filters.selectedCategory === cat.name
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {cat.translation || cat.name}
+                  </button>
+                ))}
+              </div>
+            )}
             
             <div className="flex gap-6">
               {/* Filter Sidebar */}
@@ -247,24 +298,24 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                 </div>
 
                  {/* Tabs for Products and Packs with Cart Icon */}
-                 <div className="flex border-b border-gray-200 justify-between items-center">
-                   <div className="flex">
+                 <div className="flex border-b border-border justify-between items-center">
+                   <div className="flex gap-1">
                      <button
                        onClick={() => setActiveTab('products')}
-                       className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                       className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
                          activeTab === 'products'
-                           ? 'border-[#4ab6c4] text-[#4ab6c4]'
-                           : 'border-transparent text-gray-500 hover:text-gray-700'
+                           ? 'bg-primary text-primary-foreground'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                        }`}
                      >
                        Produits ({products.length})
                      </button>
                      <button
                        onClick={() => setActiveTab('packs')}
-                       className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                       className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
                          activeTab === 'packs'
-                           ? 'border-[#4ab6c4] text-[#4ab6c4]'
-                           : 'border-transparent text-gray-500 hover:text-gray-700'
+                           ? 'bg-primary text-primary-foreground'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                        }`}
                      >
                        Packs ({packs.length})
@@ -272,17 +323,17 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                    </div>
                    
                      {/* Cart Icon */}
-                     <button
-                       onClick={() => navigate(`/${companySlug}/client/panier`)}
-                       className="relative p-2 text-gray-600 hover:text-[#4ab6c4] transition-colors"
-                     >
-                     <ShoppingCart className="h-6 w-6" />
-                     {cartCount > 0 && (
-                       <span className="absolute -top-1 -right-1 bg-[#4ab6c4] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                         {cartCount}
-                       </span>
-                     )}
-                   </button>
+                      <button
+                        onClick={() => navigate(`/${companySlug}/client/panier`)}
+                        className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                      <ShoppingCart className="h-6 w-6" />
+                      {cartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                          {cartCount}
+                        </span>
+                      )}
+                    </button>
                  </div>
 
                   {activeTab === 'products' && (

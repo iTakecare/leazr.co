@@ -1,10 +1,11 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Headset, Mail, Ticket, Settings2 } from "lucide-react";
+import { Headset, Mail, Ticket, Settings2, BookOpen } from "lucide-react";
 import ContactSubmissionsList from "@/components/support/ContactSubmissionsList";
 import SupportTicketsList from "@/components/support/SupportTicketsList";
 import EmailInbox from "@/components/support/EmailInbox";
 import ImapSettingsForm from "@/components/support/ImapSettingsForm";
+import KnowledgeBaseManager from "@/components/support/KnowledgeBaseManager";
 
 const SupportPage = () => {
   return (
@@ -34,6 +35,10 @@ const SupportPage = () => {
             <Settings2 className="h-4 w-4" />
             Configuration IMAP
           </TabsTrigger>
+          <TabsTrigger value="knowledge" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Base de connaissances
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="submissions">
@@ -47,6 +52,9 @@ const SupportPage = () => {
         </TabsContent>
         <TabsContent value="imap">
           <ImapSettingsForm />
+        </TabsContent>
+        <TabsContent value="knowledge">
+          <KnowledgeBaseManager />
         </TabsContent>
       </Tabs>
     </div>

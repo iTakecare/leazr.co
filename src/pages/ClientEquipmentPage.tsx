@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Users, AlertCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin } from "lucide-react";
 import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
+import LocationManager from "@/components/equipment/LocationManager";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -16,6 +22,23 @@ const itemVariants = {
 
 const ClientEquipmentPage = () => {
   const { clientData, loading, error } = useClientData();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Fetch contracts with equipment
+  const { data: contracts = [] } = useQuery({
+    queryKey: ["client-contracts-equipment", clientData?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contracts")
+        .select("id, client_name, status, equipment_description, monthly_payment, start_date, tracking_number")
+        .eq("client_id", clientData!.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientData?.id,
+  });
 
   if (loading) {
     return (
@@ -62,6 +85,42 @@ const ClientEquipmentPage = () => {
     );
   }
 
+  // Parse equipment from contracts for flat view
+  const allEquipment = contracts.flatMap((contract) => {
+    try {
+      const items = JSON.parse(contract.equipment_description || "[]");
+      if (Array.isArray(items)) {
+        return items.map((item: any, idx: number) => ({
+          id: `${contract.id}-${idx}`,
+          name: item.title || item.name || "Équipement",
+          serial: item.serial_number || "—",
+          contractRef: contract.tracking_number || contract.id.slice(0, 8),
+          contractId: contract.id,
+          quantity: item.quantity || 1,
+          monthlyPayment: item.monthly_payment || null,
+        }));
+      }
+    } catch {
+      // Not JSON
+    }
+    return [{
+      id: contract.id,
+      name: contract.equipment_description || "Équipement",
+      serial: "—",
+      contractRef: contract.tracking_number || contract.id.slice(0, 8),
+      contractId: contract.id,
+      quantity: 1,
+      monthlyPayment: contract.monthly_payment,
+    }];
+  });
+
+  const filteredEquipment = allEquipment.filter(
+    (e) =>
+      e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.serial.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.contractRef.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <motion.div
       className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto"
@@ -77,32 +136,184 @@ const ClientEquipmentPage = () => {
               Gestion des Équipements
             </h1>
             <p className="text-muted-foreground">
-              Gérez l'assignation de vos équipements aux collaborateurs
+              Gérez l'assignation de vos équipements aux collaborateurs et emplacements
             </p>
           </div>
         </div>
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card className="border-0 shadow-sm rounded-2xl">
-          <CardHeader className="bg-muted/30 border-b rounded-t-2xl">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Users className="h-5 w-5 text-primary" />
-              À propos de la gestion des équipements
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Vous pouvez assigner vos équipements contractuels à vos collaborateurs une fois que les numéros de série sont disponibles.
-              Les équipements d'offres ne peuvent pas encore être assignés car ils n'ont pas de numéro de série.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </motion.div>
+        <Tabs defaultValue="by-contract" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="by-contract" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Par contrat
+            </TabsTrigger>
+            <TabsTrigger value="by-equipment" className="gap-2">
+              <Cpu className="h-4 w-4" />
+              Par équipement
+            </TabsTrigger>
+            <TabsTrigger value="assign" className="gap-2">
+              <Users className="h-4 w-4" />
+              Assignation
+            </TabsTrigger>
+            <TabsTrigger value="locations" className="gap-2">
+              <MapPin className="h-4 w-4" />
+              Emplacements
+            </TabsTrigger>
+          </TabsList>
 
-      <motion.div variants={itemVariants}>
-        <EquipmentDragDropManager
-          clientId={clientData.id}
-          readOnly={false}
-        />
+          {/* By Contract View */}
+          <TabsContent value="by-contract">
+            <div className="space-y-4">
+              {contracts.length === 0 ? (
+                <Card className="border-0 shadow-sm rounded-2xl">
+                  <CardContent className="py-12 text-center">
+                    <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
+                    <p className="text-sm text-muted-foreground">Aucun contrat actif</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                contracts.map((contract) => {
+                  let items: any[] = [];
+                  try { items = JSON.parse(contract.equipment_description || "[]"); } catch { items = []; }
+                  return (
+                    <Card key={contract.id} className="border-0 shadow-sm rounded-2xl">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-primary" />
+                            Contrat {contract.tracking_number || contract.id.slice(0, 8)}
+                          </CardTitle>
+                          <Badge variant="outline" className="text-xs">
+                            {contract.monthly_payment ? `${contract.monthly_payment.toFixed(2)} €/mois` : "—"}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {Array.isArray(items) && items.length > 0 ? (
+                          <div className="space-y-2">
+                            {items.map((item: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                                <div className="flex items-center gap-3">
+                                  <Cpu className="h-4 w-4 text-muted-foreground" />
+                                  <div>
+                                    <p className="text-sm font-medium">{item.title || item.name || "Équipement"}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {item.serial_number ? `S/N: ${item.serial_number}` : "Pas de N° de série"}
+                                      {item.quantity > 1 && ` · Qté: ${item.quantity}`}
+                                    </p>
+                                  </div>
+                                </div>
+                                {item.monthly_payment && (
+                                  <span className="text-xs text-muted-foreground">{Number(item.monthly_payment).toFixed(2)} €/mois</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">{contract.equipment_description || "Aucun détail d'équipement"}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </TabsContent>
+
+          {/* By Equipment View */}
+          <TabsContent value="by-equipment">
+            <div className="space-y-4">
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un équipement..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 rounded-xl"
+                />
+              </div>
+
+              {filteredEquipment.length === 0 ? (
+                <Card className="border-0 shadow-sm rounded-2xl">
+                  <CardContent className="py-12 text-center">
+                    <Cpu className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
+                    <p className="text-sm text-muted-foreground">Aucun équipement trouvé</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b bg-muted/30">
+                          <th className="text-left text-xs font-medium text-muted-foreground p-3">Équipement</th>
+                          <th className="text-left text-xs font-medium text-muted-foreground p-3">N° Série</th>
+                          <th className="text-left text-xs font-medium text-muted-foreground p-3">Contrat</th>
+                          <th className="text-left text-xs font-medium text-muted-foreground p-3">Qté</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredEquipment.map((eq) => (
+                          <tr key={eq.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <span className="text-sm font-medium truncate max-w-[250px]">{eq.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-sm text-muted-foreground">{eq.serial}</td>
+                            <td className="p-3">
+                              <Badge variant="outline" className="text-xs">{eq.contractRef}</Badge>
+                            </td>
+                            <td className="p-3 text-sm text-muted-foreground">{eq.quantity}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Assignment View (existing drag-drop) */}
+          <TabsContent value="assign">
+            <Card className="border-0 shadow-sm rounded-2xl">
+              <CardHeader className="bg-muted/30 border-b rounded-t-2xl">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Users className="h-5 w-5 text-primary" />
+                  Assignation aux collaborateurs
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Assignez vos équipements contractuels à vos collaborateurs par glisser-déposer.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <EquipmentDragDropManager clientId={clientData.id} readOnly={false} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Locations View */}
+          <TabsContent value="locations">
+            <Card className="border-0 shadow-sm rounded-2xl">
+              <CardHeader className="bg-muted/30 border-b rounded-t-2xl">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  Gestion des emplacements
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Définissez vos sites et emplacements pour organiser vos équipements.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <LocationManager clientId={clientData.id} companyId={(clientData as any).company_id} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </motion.div>
     </motion.div>
   );
