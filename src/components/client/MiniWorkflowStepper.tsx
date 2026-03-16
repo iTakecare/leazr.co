@@ -122,8 +122,8 @@ const MiniWorkflowStepper: React.FC<MiniWorkflowStepperProps> = ({
                   <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                 </div>
               ) : isActive ? (
-                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center animate-pulse">
-                  <CircleDot className="h-3.5 w-3.5 text-primary-foreground" />
+                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 ring-4 ring-primary/20 shadow-md shadow-primary/30 flex items-center justify-center">
+                  <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
                 </div>
               ) : (
                 <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20 flex items-center justify-center">
