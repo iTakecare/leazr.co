@@ -1,13 +1,17 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Headset, Mail, Ticket, Settings2, BookOpen } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import ContactSubmissionsList from "@/components/support/ContactSubmissionsList";
 import SupportTicketsList from "@/components/support/SupportTicketsList";
 import EmailInbox from "@/components/support/EmailInbox";
 import ImapSettingsForm from "@/components/support/ImapSettingsForm";
 import KnowledgeBaseManager from "@/components/support/KnowledgeBaseManager";
+import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
 
 const SupportPage = () => {
+  const { unreadCount } = useTicketReplyNotifications({ role: "admin" });
+
   return (
     <div className="space-y-6 p-6">
       <div>
@@ -23,9 +27,14 @@ const SupportPage = () => {
             <Mail className="h-4 w-4" />
             Formulaire de contact
           </TabsTrigger>
-          <TabsTrigger value="tickets" className="flex items-center gap-2">
+          <TabsTrigger value="tickets" className="flex items-center gap-2 relative">
             <Ticket className="h-4 w-4" />
             Tickets
+            {unreadCount > 0 && (
+              <Badge className="ml-1 bg-red-500 text-white border-red-500 text-[10px] px-1.5 py-0 animate-pulse">
+                {unreadCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="inbox" className="flex items-center gap-2">
             <Headset className="h-4 w-4" />
