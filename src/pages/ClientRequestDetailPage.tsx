@@ -30,6 +30,19 @@ import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { useOfferDocuments } from "@/hooks/useOfferDocuments";
 import { mapWorkflowStatusToClientStatus } from "@/utils/statusMapping";
 
+const getOfferTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    'client_request': 'Demande client',
+    'web_request': 'Demande en ligne',
+    'partner_request': 'Offre partenaire',
+    'ambassador_offer': 'Offre ambassadeur',
+    'custom_pack_request': 'Pack personnalisé',
+    'purchase_request': "Demande d'achat",
+    'self_leasing': 'Auto-financement',
+  };
+  return labels[type] || type;
+};
+
 const ClientRequestDetailPage = () => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -286,13 +299,13 @@ const ClientRequestDetailPage = () => {
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-border/50">
                     <span className="text-sm text-muted-foreground">Référence</span>
-                    <span className="text-sm font-mono">{offer.id.slice(0, 8)}</span>
+                    <span className="text-sm font-mono">{offer.dossier_number || offer.id.slice(0, 8)}</span>
                   </div>
                   
                   <div className="flex justify-between items-center py-2 border-b border-border/50">
                     <span className="text-sm text-muted-foreground">Type</span>
                     <span className="text-sm">
-                      {offer.type === 'client_request' ? 'Demande client' : 'Offre partenaire'}
+                      {getOfferTypeLabel(offer.type)}
                     </span>
                   </div>
                   

@@ -5,6 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
+const getOfferTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    'client_request': 'Demande client',
+    'web_request': 'Demande en ligne',
+    'partner_request': 'Offre partenaire',
+    'ambassador_offer': 'Offre ambassadeur',
+    'custom_pack_request': 'Pack personnalisé',
+    'purchase_request': "Demande d'achat",
+    'self_leasing': 'Auto-financement',
+  };
+  return labels[type] || type;
+};
+
 interface RequestHeroSectionProps {
   offer: any;
   statusInfo: {
@@ -84,7 +97,7 @@ export const RequestHeroSection: React.FC<RequestHeroSectionProps> = ({
                   Demande de financement
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Référence #{offer.id.slice(0, 8)}
+                  Référence #{offer.dossier_number || offer.id.slice(0, 8)}
                 </p>
               </div>
             </div>
@@ -132,7 +145,7 @@ export const RequestHeroSection: React.FC<RequestHeroSectionProps> = ({
                   Type de demande
                 </p>
                 <p className="text-lg font-semibold text-foreground">
-                  {offer.type === 'client_request' ? 'Demande client' : 'Offre partenaire'}
+                  {getOfferTypeLabel(offer.type)}
                 </p>
               </motion.div>
             </div>
