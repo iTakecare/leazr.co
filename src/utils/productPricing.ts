@@ -42,12 +42,18 @@ export const getProductPrice = (
   }
 
   // 1. Try to get price from variant combination prices (highest priority)
-  if (product.variant_combination_prices && product.variant_combination_prices.length > 0 && selectedOptions) {
-    console.log(`getProductPrice: Found ${product.variant_combination_prices.length} variant combinations`);
+  // Filter out internal keys that are not product attributes
+  const internalKeys = ['variant_id', 'selected_variant_id'];
+  const cleanedOptions = selectedOptions 
+    ? Object.fromEntries(Object.entries(selectedOptions).filter(([key]) => !internalKeys.includes(key)))
+    : undefined;
+
+  if (product.variant_combination_prices && product.variant_combination_prices.length > 0 && cleanedOptions && Object.keys(cleanedOptions).length > 0) {
+    console.log(`getProductPrice: Found ${product.variant_combination_prices.length} variant combinations, cleaned options:`, cleanedOptions);
     
     const matchingCombo = product.variant_combination_prices.find(combo => {
       if (!combo.attributes) return false;
-      return Object.entries(selectedOptions).every(([key, value]) => 
+      return Object.entries(cleanedOptions).every(([key, value]) => 
         combo.attributes[key] === value
       );
     });
@@ -63,10 +69,12 @@ export const getProductPrice = (
       }
       
       // Le champ pour le prix d'achat s'appelle 'price' dans product_variant_prices
-      if (matchingCombo.price && matchingCombo.price > 0) {
-        const parsed = typeof matchingCombo.price === 'number' ? 
-                      matchingCombo.price : 
-                      parseFloat(String(matchingCombo.price) || '0');
+      // Also support 'purchase_price' field for future compatibility
+      const comboPurchasePrice = matchingCombo.price || (matchingCombo as any).purchase_price;
+      if (comboPurchasePrice && comboPurchasePrice > 0) {
+        const parsed = typeof comboPurchasePrice === 'number' ? 
+                      comboPurchasePrice : 
+                      parseFloat(String(comboPurchasePrice) || '0');
         if (!isNaN(parsed)) purchasePrice = parsed;
       }
       
@@ -75,10 +83,10 @@ export const getProductPrice = (
   }
 
   // 2. Try to get price from variants array if available
-  if (monthlyPrice <= 0 && product.variants && product.variants.length > 0 && selectedOptions) {
+  if (monthlyPrice <= 0 && product.variants && product.variants.length > 0 && cleanedOptions && Object.keys(cleanedOptions).length > 0) {
     const matchingVariant = product.variants.find(variant => {
       if (!variant.selected_attributes) return false;
-      return Object.entries(selectedOptions).every(([key, value]) => 
+      return Object.entries(cleanedOptions).every(([key, value]) => 
         variant.selected_attributes?.[key] === value
       );
     });
