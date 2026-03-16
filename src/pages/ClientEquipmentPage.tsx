@@ -166,6 +166,10 @@ const ClientEquipmentPage = () => {
               <MapPin className="h-4 w-4" />
               Emplacements
             </TabsTrigger>
+            <TabsTrigger value="software" className="gap-2">
+              <Download className="h-4 w-4" />
+              Logiciels
+            </TabsTrigger>
           </TabsList>
 
           {/* By Contract View */}
