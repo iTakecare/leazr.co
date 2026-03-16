@@ -12,6 +12,7 @@ import PageTransition from '@/components/layout/PageTransition';
 import Logo from '@/components/layout/Logo';
 import { getCompanySlugForUser } from '@/services/companySlugService';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
+import itakecareHero from '@/assets/itakecare-hero.jpg';
 
 const Login = () => {
   const [email, setEmail] = useState('');
