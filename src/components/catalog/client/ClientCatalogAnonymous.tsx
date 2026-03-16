@@ -191,9 +191,60 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
 
   return (
     <CompanyProvider company={company}>
-      <div className="min-h-screen bg-white">        
+      <div className="min-h-screen bg-white">
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-r from-primary/90 to-primary/60 text-primary-foreground">
+          <Container className="max-w-[1320px] py-10 md:py-14">
+            <h1 className="text-3xl md:text-4xl font-bold mb-3">Notre catalogue</h1>
+            <p className="text-primary-foreground/80 text-sm md:text-base max-w-2xl mb-6">
+              Découvrez notre sélection d'équipements reconditionnés et neufs, disponibles en leasing.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {[
+                { icon: "♻️", text: "Reconditionné certifié" },
+                { icon: "🛡️", text: "Garantie incluse" },
+                { icon: "🚚", text: "Livraison offerte" },
+              ].map((item) => (
+                <div key={item.text} className="flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-2 text-sm">
+                  <span>{item.icon}</span>
+                  <span>{item.text}</span>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </div>
+
         <Container className="py-6 max-w-[1320px]">
-          <div className="space-y-8">
+          <div className="space-y-6">
+
+            {/* Horizontal category chips */}
+            {categories.length > 0 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <button
+                  onClick={() => updateFilter('selectedCategory', '')}
+                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    !filters.selectedCategory
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  Tous ({products.length})
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.name}
+                    onClick={() => updateFilter('selectedCategory', cat.name === filters.selectedCategory ? '' : cat.name)}
+                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      filters.selectedCategory === cat.name
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {cat.translation || cat.name}
+                  </button>
+                ))}
+              </div>
+            )}
             
             <div className="flex gap-6">
               {/* Filter Sidebar */}
