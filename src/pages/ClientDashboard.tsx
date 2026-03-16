@@ -14,6 +14,41 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
+// Workflow steps for the detailed stepper
+const WORKFLOW_STEPS = [
+  { key: "draft", label: "Soumise" },
+  { key: "internal_review", label: "En analyse" },
+  { key: "internal_approved", label: "Approuvée" },
+  { key: "leaser_scoring", label: "Scoring" },
+  { key: "offer_send", label: "Offre envoyée" },
+  { key: "accepted", label: "Acceptée" },
+  { key: "contract_sent", label: "Contrat envoyé" },
+  { key: "contract_signed", label: "Signé" },
+];
+
+const WORKFLOW_STATUS_MAP: Record<string, string> = {
+  draft: "draft",
+  submitted: "draft",
+  internal_review: "internal_review",
+  internal_docs_requested: "internal_review",
+  internal_approved: "internal_approved",
+  leaser_introduced: "leaser_scoring",
+  leaser_scoring: "leaser_scoring",
+  offer_send: "offer_send",
+  offer_validation: "offer_send",
+  accepted: "accepted",
+  contract_sent: "contract_sent",
+  contrat_pret: "contract_sent",
+  contract_signed: "contract_signed",
+};
+
+function getStepIndex(workflowStatus?: string, offerStatus?: string): number {
+  const status = workflowStatus || offerStatus || "draft";
+  const mappedKey = WORKFLOW_STATUS_MAP[status] || "draft";
+  const idx = WORKFLOW_STEPS.findIndex((s) => s.key === mappedKey);
+  return idx >= 0 ? idx : 0;
+}
+
 const ClientDashboard = () => {
   const { user } = useAuth();
   const { clientData, recentActivity, clientStats, notifications, loading, error } = useClientData();
@@ -42,7 +77,7 @@ const ClientDashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8 space-y-6">
+      <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
         <div className="animate-pulse space-y-6">
           <div className="h-36 rounded-2xl bg-muted" />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -59,8 +94,8 @@ const ClientDashboard = () => {
 
   if (error) {
     return (
-      <div className="p-6 md:p-8">
-        <Card className="border-destructive/30 bg-destructive/5">
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <Card className="border-destructive/30 bg-destructive/5 rounded-2xl">
           <CardContent className="pt-6 flex items-center gap-3 text-destructive">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <p className="text-sm">{error}</p>
@@ -89,16 +124,6 @@ const ClientDashboard = () => {
   // Build request timeline from pending offers
   const pendingOffers = recentActivity.filter(a => a.type === "offer" && a.status && ["pending", "sent", "approved"].includes(a.status));
 
-  const getStepState = (status: string | undefined) => {
-    const steps = ["sent", "pending", "approved", "signed"];
-    const idx = steps.indexOf(status || "");
-    return (stepIdx: number) => {
-      if (stepIdx <= idx) return "done";
-      if (stepIdx === idx + 1) return "active";
-      return "upcoming";
-    };
-  };
-
   const statusBadge = (status?: string) => {
     const map: Record<string, { label: string; cls: string }> = {
       pending: { label: "⏳ En attente", cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
@@ -124,30 +149,29 @@ const ClientDashboard = () => {
     >
       {/* ── Welcome Banner ── */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-6 md:p-8 text-primary-foreground">
-          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -left-8 -bottom-8 h-32 w-32 rounded-full bg-white/5 blur-xl" />
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-blue-900 p-6 md:p-8 text-white">
+          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-blue-500/20 blur-2xl" />
+          <div className="absolute -left-8 -bottom-8 h-32 w-32 rounded-full bg-violet-500/15 blur-xl" />
+          <div className="absolute right-8 bottom-4 h-24 w-24 rounded-full bg-emerald-500/10 blur-lg" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold">{getGreeting()}, {displayName} 👋</h1>
-              <p className="mt-1 text-primary-foreground/80 text-sm md:text-base">
+              <h1 className="text-2xl md:text-3xl font-bold text-white">{getGreeting()}, {displayName} 👋</h1>
+              <p className="mt-1 text-white/70 text-sm md:text-base">
                 Voici un aperçu de votre espace de financement
               </p>
             </div>
             <div className="flex gap-3">
               <Button
                 size="sm"
-                variant="secondary"
-                className="gap-2 rounded-xl bg-white/20 hover:bg-white/30 text-primary-foreground border-0"
+                className="gap-2 rounded-xl bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
                 onClick={() => navigateToClient("requests")}
               >
                 <Plus className="h-4 w-4" /> Nouvelle demande
               </Button>
               <Button
                 size="sm"
-                variant="secondary"
-                className="gap-2 rounded-xl bg-white/10 hover:bg-white/20 text-primary-foreground border-0"
-                onClick={() => navigateToClient("settings")}
+                className="gap-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border-0 backdrop-blur-sm"
+                onClick={() => navigateToClient("support")}
               >
                 <Headphones className="h-4 w-4" /> Support
               </Button>
@@ -238,44 +262,46 @@ const ClientDashboard = () => {
         </motion.div>
       </div>
 
-      {/* ── Request Timeline ── */}
+      {/* ── Detailed Workflow Stepper ── */}
       {pendingOffers.length > 0 && (
         <motion.div variants={itemVariants}>
           <Card className="border-0 shadow-sm rounded-2xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Suivi de vos demandes</CardTitle>
+              <CardTitle className="text-sm font-medium">Suivi détaillé de vos demandes</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {pendingOffers.slice(0, 2).map((offer) => {
-                const stepState = getStepState(offer.status);
-                const steps = [
-                  { label: "Soumise", idx: 0 },
-                  { label: "En revue", idx: 1 },
-                  { label: "Approuvée", idx: 2 },
-                  { label: "Contrat", idx: 3 },
-                ];
+            <CardContent className="space-y-5">
+              {pendingOffers.slice(0, 3).map((offer) => {
+                const currentIdx = getStepIndex(offer.workflow_status, offer.status);
                 return (
                   <div key={offer.id} className="p-4 rounded-xl bg-muted/40">
-                    <p className="text-sm font-medium mb-3 truncate">{offer.description}</p>
-                    <div className="flex items-center gap-1">
-                      {steps.map((step, i) => {
-                        const state = stepState(step.idx);
+                    <p className="text-sm font-medium mb-4 truncate">{offer.description}</p>
+                    <div className="flex items-center gap-0.5 overflow-x-auto pb-1">
+                      {WORKFLOW_STEPS.map((step, i) => {
+                        const isDone = i < currentIdx;
+                        const isActive = i === currentIdx;
+                        const isUpcoming = i > currentIdx;
                         return (
-                          <React.Fragment key={step.label}>
-                            <div className="flex flex-col items-center gap-1 flex-1">
-                              {state === "done" ? (
-                                <CircleDot className="h-5 w-5 text-primary" />
-                              ) : state === "active" ? (
-                                <CircleDot className="h-5 w-5 text-orange-500 animate-pulse" />
+                          <React.Fragment key={step.key}>
+                            <div className="flex flex-col items-center gap-1.5 min-w-[60px] flex-shrink-0">
+                              {isDone ? (
+                                <div className="h-6 w-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                                  <CheckCircle2 className="h-4 w-4 text-white" />
+                                </div>
+                              ) : isActive ? (
+                                <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center animate-pulse">
+                                  <CircleDot className="h-4 w-4 text-white" />
+                                </div>
                               ) : (
-                                <Circle className="h-5 w-5 text-muted-foreground/40" />
+                                <div className="h-6 w-6 rounded-full border-2 border-muted-foreground/20 flex items-center justify-center">
+                                  <Circle className="h-3 w-3 text-muted-foreground/30" />
+                                </div>
                               )}
-                              <span className={`text-[10px] ${state === "upcoming" ? "text-muted-foreground/50" : "text-foreground"}`}>
+                              <span className={`text-[9px] leading-tight text-center ${isUpcoming ? "text-muted-foreground/40" : isDone ? "text-emerald-600 font-medium" : "text-blue-600 font-semibold"}`}>
                                 {step.label}
                               </span>
                             </div>
-                            {i < steps.length - 1 && (
-                              <div className={`h-0.5 flex-1 rounded-full -mt-4 ${state === "done" ? "bg-primary" : "bg-muted-foreground/20"}`} />
+                            {i < WORKFLOW_STEPS.length - 1 && (
+                              <div className={`h-0.5 flex-1 min-w-[12px] rounded-full -mt-5 ${isDone ? "bg-emerald-400" : "bg-muted-foreground/15"}`} />
                             )}
                           </React.Fragment>
                         );
@@ -298,9 +324,8 @@ const ClientDashboard = () => {
           <CardContent>
             {recentActivity.length > 0 ? (
               <div className="relative space-y-0">
-                {/* Vertical line */}
                 <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" />
-                {recentActivity.map((activity, i) => {
+                {recentActivity.map((activity) => {
                   const Icon = activity.type === "offer" ? Clock : FileText;
                   return (
                     <div
