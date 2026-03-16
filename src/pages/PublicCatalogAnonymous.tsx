@@ -134,6 +134,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     resetFilters,
     filteredProducts,
     categories,
+    brands,
     hasActiveFilters,
     resultsCount
   } = usePublicSimplifiedFilter(products);
