@@ -30,8 +30,8 @@ const CompanySlugGuard = () => {
     );
   }
   
-  console.log('🛡️ COMPANY SLUG GUARD - Valid company slug, rendering PublicSlugCatalog for:', companySlug);
-  return <PublicSlugCatalog />;
+  console.log('🛡️ COMPANY SLUG GUARD - Valid company slug, redirecting to login for:', companySlug);
+  return <Navigate to={`/${companySlug}/login`} replace />;
 };
 
 export default CompanySlugGuard;
