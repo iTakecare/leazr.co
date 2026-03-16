@@ -27,6 +27,7 @@ const itemVariants = {
 const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: string }) => {
   const { clientData, loading, error } = useClientData();
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [deployWizardOpen, setDeployWizardOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
 
