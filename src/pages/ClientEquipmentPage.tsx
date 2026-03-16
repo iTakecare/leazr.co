@@ -153,7 +153,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
   }));
 
   // Collect present categories for the filter
-  const presentCategories = Array.from(new Set(allEquipment.map((e) => e.category)));
+  const presentCategories: string[] = Array.from(new Set(allEquipment.map((e) => e.category)));
 
   const filteredEquipment = allEquipment.filter(
     (e) =>
