@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useMultiTenant } from './useMultiTenant';
 import { Client } from '@/types/client';
@@ -13,27 +12,41 @@ interface RecentActivity {
   status?: string;
 }
 
+interface ClientStats {
+  totalMonthly: number;
+  activeEquipment: number;
+  pendingRequests: number;
+  nextRenewal: string | null;
+}
+
+interface ClientNotification {
+  id: string;
+  type: 'warning' | 'info' | 'action';
+  title: string;
+  description: string;
+  actionLabel?: string;
+  actionHref?: string;
+}
+
 export const useClientData = () => {
   const { user } = useAuth();
   const { services } = useMultiTenant();
   const [clientData, setClientData] = useState<Client | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [clientStats, setClientStats] = useState<ClientStats>({ totalMonthly: 0, activeEquipment: 0, pendingRequests: 0, nextRenewal: null });
+  const [notifications, setNotifications] = useState<ClientNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchClientData = async () => {
       if (!user?.id) {
-        console.log('🔍 CLIENT DATA - Pas d\'utilisateur connecté');
         setLoading(false);
         return;
       }
 
       try {
-        console.log('🔍 CLIENT DATA - Récupération des données client pour l\'utilisateur:', user.id);
-        console.log('🔍 CLIENT DATA - Email utilisateur:', user.email);
-
-        // Récupérer les informations du client associé à cet utilisateur (avec flag catalogue personnalisé)
+        // Fetch client by user_id
         const { data: client, error: clientError } = await services.clients.query()
           .select('*, has_custom_catalog')
           .eq('user_id', user.id)
@@ -46,33 +59,36 @@ export const useClientData = () => {
           return;
         }
 
-        if (client) {
-          setClientData(client);
-          console.log('🔍 CLIENT DATA - Données client récupérées par user_id:', client);
+        let resolvedClient = client;
 
-          // Récupérer l'activité récente du client
-          await fetchRecentActivity(client.id);
-        } else {
-          console.log('🔍 CLIENT DATA - Aucun client trouvé pour user_id:', user.id);
-          
-          // Essayer aussi de chercher par email si aucun client n'est trouvé par user_id
+        if (!client) {
+          // Fallback: search by email
           const { data: clientByEmail, error: emailError } = await services.clients.query()
             .select('*, has_custom_catalog')
             .eq('email', user.email)
             .maybeSingle();
 
           if (emailError) {
-            console.error('Erreur lors de la recherche par email:', emailError);
             setError('Impossible de récupérer les informations du client');
-          } else if (clientByEmail) {
-            setClientData(clientByEmail);
-            console.log('🔍 CLIENT DATA - Client trouvé par email:', clientByEmail);
-            await fetchRecentActivity(clientByEmail.id);
-          } else {
-            console.log('🔍 CLIENT DATA - Aucun client trouvé par email non plus');
-            setError('Aucun client associé à ce compte. Veuillez contacter l\'administrateur pour créer votre fiche client.');
+            setLoading(false);
+            return;
           }
+          if (!clientByEmail) {
+            setError('Aucun client associé à ce compte. Veuillez contacter l\'administrateur pour créer votre fiche client.');
+            setLoading(false);
+            return;
+          }
+          resolvedClient = clientByEmail;
         }
+
+        setClientData(resolvedClient);
+
+        // Fetch all enriched data in parallel
+        await Promise.all([
+          fetchRecentActivity(resolvedClient!.id),
+          fetchClientStats(resolvedClient!.id),
+          fetchNotifications(resolvedClient!.id),
+        ]);
       } catch (err) {
         console.error('Erreur lors du chargement des données client:', err);
         setError('Erreur lors du chargement des données');
@@ -81,129 +97,171 @@ export const useClientData = () => {
       }
     };
 
+    const fetchClientStats = async (clientId: string) => {
+      try {
+        // Active contracts + sum monthly payments
+        const { data: activeContracts } = await services.contracts.query()
+          .select('id, monthly_payment, end_date')
+          .eq('client_id', clientId)
+          .eq('status', 'active');
+
+        const totalMonthly = (activeContracts || []).reduce((sum, c) => sum + (c.monthly_payment || 0), 0);
+        const activeEquipment = (activeContracts || []).length;
+
+        // Find next renewal
+        const futureEnds = (activeContracts || [])
+          .map(c => c.end_date)
+          .filter(Boolean)
+          .sort();
+        const nextRenewal = futureEnds.length > 0 ? futureEnds[0] : null;
+
+        // Pending offers count
+        const { count: pendingCount } = await services.offers.query()
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', clientId)
+          .in('status', ['pending', 'sent']);
+
+        setClientStats({
+          totalMonthly,
+          activeEquipment,
+          pendingRequests: pendingCount || 0,
+          nextRenewal,
+        });
+      } catch (err) {
+        console.error('Erreur stats client:', err);
+      }
+    };
+
+    const fetchNotifications = async (clientId: string) => {
+      try {
+        const notifs: ClientNotification[] = [];
+
+        // Contracts to sign
+        const { data: toSign } = await services.contracts.query()
+          .select('id, equipment_description')
+          .eq('client_id', clientId)
+          .eq('status', 'contract_sent');
+
+        (toSign || []).forEach(c => {
+          notifs.push({
+            id: `sign-${c.id}`,
+            type: 'action',
+            title: 'Contrat à signer',
+            description: parseEquipmentTitle(c.equipment_description) || 'Un contrat attend votre signature',
+            actionLabel: 'Voir le contrat',
+            actionHref: 'contracts',
+          });
+        });
+
+        // Offers approved but not yet converted
+        const { data: approved } = await services.offers.query()
+          .select('id, equipment_description')
+          .eq('client_id', clientId)
+          .eq('status', 'approved')
+          .eq('converted_to_contract', false);
+
+        (approved || []).forEach(o => {
+          notifs.push({
+            id: `approved-${o.id}`,
+            type: 'info',
+            title: 'Demande approuvée',
+            description: parseEquipmentTitle(o.equipment_description) || 'Votre demande a été approuvée',
+            actionLabel: 'Voir la demande',
+            actionHref: 'requests',
+          });
+        });
+
+        setNotifications(notifs);
+      } catch (err) {
+        console.error('Erreur notifications:', err);
+      }
+    };
+
     const fetchRecentActivity = async (clientId: string) => {
       try {
         const activities: RecentActivity[] = [];
 
-        // Récupérer les offres récentes
-        const { data: offers, error: offersError } = await services.offers.query()
+        const { data: offers } = await services.offers.query()
           .select('id, client_name, status, created_at, equipment_description')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
           .limit(3);
 
-        if (!offersError && offers) {
-          offers.forEach(offer => {
-            const getStatusText = (status: string) => {
-              switch(status) {
-                case 'pending': return 'en attente de validation';
-                case 'approved': return 'approuvée';
-                case 'rejected': return 'refusée';
-                case 'sent': return 'envoyée au client';
-                default: return status;
-              }
-            };
-
-            // Formatage de la description d'équipement
-            let equipmentDesc = 'Équipement non spécifié';
-            if (offer.equipment_description) {
-              try {
-                // Si c'est du JSON, essayer de le parser et extraire les informations utiles
-                const equipmentData = JSON.parse(offer.equipment_description);
-                if (Array.isArray(equipmentData) && equipmentData.length > 0) {
-                  const titles = equipmentData.map(item => item.title).filter(Boolean);
-                  if (titles.length > 0) {
-                    equipmentDesc = titles.length > 1 
-                      ? `${titles[0]} et ${titles.length - 1} autre(s) équipement(s)`
-                      : titles[0];
-                  }
-                }
-              } catch {
-                // Si ce n'est pas du JSON, utiliser tel quel
-                equipmentDesc = offer.equipment_description;
-              }
-            }
-
-            activities.push({
-              id: offer.id,
-              type: 'offer',
-              title: `Demande de financement ${getStatusText(offer.status)}`,
-              description: equipmentDesc,
-              date: offer.created_at,
-              status: offer.status
-            });
+        (offers || []).forEach(offer => {
+          activities.push({
+            id: offer.id,
+            type: 'offer',
+            title: `Demande de financement ${getOfferStatusText(offer.status)}`,
+            description: parseEquipmentTitle(offer.equipment_description) || 'Équipement non spécifié',
+            date: offer.created_at,
+            status: offer.status,
           });
-        }
+        });
 
-        // Récupérer les contrats récents
-        const { data: contracts, error: contractsError } = await services.contracts.query()
+        const { data: contracts } = await services.contracts.query()
           .select('id, client_name, status, created_at, equipment_description')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
           .limit(3);
 
-        if (!contractsError && contracts) {
-          contracts.forEach(contract => {
-            const getContractStatusText = (status: string) => {
-              switch(status) {
-                case 'active': return 'actif';
-                case 'contract_sent': return 'envoyé pour signature';
-                case 'equipment_ordered': return 'équipement commandé';
-                case 'completed': return 'terminé';
-                default: return status;
-              }
-            };
-
-            // Formatage de la description d'équipement pour les contrats aussi
-            let equipmentDesc = 'Équipement non spécifié';
-            if (contract.equipment_description) {
-              try {
-                const equipmentData = JSON.parse(contract.equipment_description);
-                if (Array.isArray(equipmentData) && equipmentData.length > 0) {
-                  const titles = equipmentData.map(item => item.title).filter(Boolean);
-                  if (titles.length > 0) {
-                    equipmentDesc = titles.length > 1 
-                      ? `${titles[0]} et ${titles.length - 1} autre(s) équipement(s)`
-                      : titles[0];
-                  }
-                }
-              } catch {
-                equipmentDesc = contract.equipment_description;
-              }
-            }
-
-            activities.push({
-              id: contract.id,
-              type: 'contract',
-              title: `Contrat de financement ${getContractStatusText(contract.status)}`,
-              description: equipmentDesc,
-              date: contract.created_at,
-              status: contract.status
-            });
+        (contracts || []).forEach(contract => {
+          activities.push({
+            id: contract.id,
+            type: 'contract',
+            title: `Contrat de financement ${getContractStatusText(contract.status)}`,
+            description: parseEquipmentTitle(contract.equipment_description) || 'Équipement non spécifié',
+            date: contract.created_at,
+            status: contract.status,
           });
-        }
+        });
 
-        // Trier par date (plus récent en premier)
         activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
-        setRecentActivity(activities.slice(0, 5)); // Garder seulement les 5 plus récents
+        setRecentActivity(activities.slice(0, 5));
       } catch (err) {
-        console.error('Erreur lors de la récupération de l\'activité récente:', err);
+        console.error('Erreur activité récente:', err);
       }
     };
 
     fetchClientData();
   }, [user?.id]);
 
-  return {
-    clientData,
-    recentActivity,
-    loading,
-    error,
-    refetch: () => {
-      setLoading(true);
-      setError(null);
-      // Re-trigger useEffect by setting a state that will change
-    }
-  };
+  return { clientData, recentActivity, clientStats, notifications, loading, error };
 };
+
+// --- Helpers ---
+
+function parseEquipmentTitle(desc: string | null | undefined): string | null {
+  if (!desc) return null;
+  try {
+    const data = JSON.parse(desc);
+    if (Array.isArray(data) && data.length > 0) {
+      const titles = data.map((item: any) => item.title).filter(Boolean);
+      if (titles.length > 0) {
+        return titles.length > 1 ? `${titles[0]} et ${titles.length - 1} autre(s)` : titles[0];
+      }
+    }
+    return null;
+  } catch {
+    return desc;
+  }
+}
+
+function getOfferStatusText(status: string) {
+  switch (status) {
+    case 'pending': return 'en attente';
+    case 'approved': return 'approuvée';
+    case 'rejected': return 'refusée';
+    case 'sent': return 'envoyée';
+    default: return status;
+  }
+}
+
+function getContractStatusText(status: string) {
+  switch (status) {
+    case 'active': return 'actif';
+    case 'contract_sent': return 'envoyé pour signature';
+    case 'equipment_ordered': return 'équipement commandé';
+    case 'completed': return 'terminé';
+    default: return status;
+  }
+}
