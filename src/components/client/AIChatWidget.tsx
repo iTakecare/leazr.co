@@ -22,6 +22,7 @@ const AIChatWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { clientData } = useClientData();
+  const { navigateToClient } = useRoleNavigation();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
