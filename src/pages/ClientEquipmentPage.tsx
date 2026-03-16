@@ -23,7 +23,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-const ClientEquipmentPage = () => {
+const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: string }) => {
   const { clientData, loading, error } = useClientData();
   const [searchQuery, setSearchQuery] = useState("");
   const [deployWizardOpen, setDeployWizardOpen] = useState(false);

@@ -28,6 +28,7 @@ const ClientRoutes = () => {
           <Route path="requests" element={<ClientRequestsPage />} />
           <Route path="requests/:id" element={<ClientRequestDetailPage />} />
           <Route path="equipment" element={<ClientEquipmentPage />} />
+          <Route path="software" element={<ClientEquipmentPage defaultTab="software" />} />
           <Route path="products" element={<ClientCatalogPage />} />
           <Route path="products/:productId" element={<ClientProductDetailPage />} />
           <Route path="panier" element={<ClientCartPage />} />
