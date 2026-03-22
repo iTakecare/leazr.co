@@ -159,6 +159,15 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
           comparison = new Date(a.contract_start_date || a.created_at).getTime() - 
                        new Date(b.contract_start_date || b.created_at).getTime();
           break;
+        case 'contract_number':
+          comparison = (a.contract_number || '').localeCompare(b.contract_number || '', 'fr');
+          break;
+        case 'offer_number':
+          comparison = (a.offer_dossier_number || '').localeCompare(b.offer_dossier_number || '', 'fr');
+          break;
+        case 'company':
+          comparison = (a.clients?.company || '').localeCompare(b.clients?.company || '', 'fr');
+          break;
         case 'client':
           comparison = (a.client_name || '').localeCompare(b.client_name || '', 'fr');
           break;
