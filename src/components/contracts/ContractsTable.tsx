@@ -417,46 +417,72 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
           <TableBody>
             {sortedContracts.map((contract) => (
               <TableRow key={contract.id}>
-                <TableCell className="font-medium whitespace-nowrap">
+                <TableCell className="px-2 py-1.5 font-medium whitespace-nowrap">
                   <div className="flex items-center">
-                    <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <Calendar className="mr-1 h-3 w-3 text-muted-foreground" />
                     {formatDate(contract.contract_start_date || contract.created_at)}
                   </div>
                 </TableCell>
-                <TableCell>{contract.client_name}</TableCell>
-                 <TableCell className="max-w-[200px] truncate">
-                   {formatEquipmentForClient(contract.equipment_description)}
-                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1.5 whitespace-nowrap">
+                  {contract.contract_number || "-"}
+                </TableCell>
+                <TableCell className="px-2 py-1.5 whitespace-nowrap">
+                  {contract.offer_dossier_number ? (
+                    <button
+                      className="text-primary hover:underline cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (contract.offer_id) {
+                          const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
+                          if (companySlug) {
+                            navigate(`/${companySlug}/admin/offers/${contract.offer_id}`);
+                          } else {
+                            navigate(`/offers/${contract.offer_id}`);
+                          }
+                        }
+                      }}
+                    >
+                      {contract.offer_dossier_number}
+                    </button>
+                  ) : "-"}
+                </TableCell>
+                <TableCell className="px-2 py-1.5">{contract.client_name}</TableCell>
+                <TableCell className="px-2 py-1.5 whitespace-nowrap">
+                  {contract.clients?.company || "-"}
+                </TableCell>
+                <TableCell className="px-2 py-1.5 max-w-[150px] truncate">
+                  {formatEquipmentForClient(contract.equipment_description)}
+                </TableCell>
+                <TableCell className="px-2 py-1.5">
                   <div className="flex items-center">
                     {contract.leaser_logo && (
                       <img 
                         src={contract.leaser_logo} 
                         alt={contract.leaser_name} 
-                        className="w-5 h-5 mr-2 rounded-full" 
+                        className="w-4 h-4 mr-1 rounded-full" 
                       />
                     )}
                     {contract.leaser_name}
                   </div>
                 </TableCell>
-                <TableCell className="text-right font-medium">
+                <TableCell className="px-2 py-1.5 text-right font-medium">
                   {formatCurrency(contract.monthly_payment)}
                 </TableCell>
-                <TableCell className="text-right font-medium">
+                <TableCell className="px-2 py-1.5 text-right font-medium">
                   {formatCurrency((contract as any).financed_amount || 0)}
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1.5 whitespace-nowrap">
                   {contract.contract_start_date ? (
                     formatDate(contract.contract_start_date)
                   ) : (
-                    <span className="text-muted-foreground text-sm">Non définie</span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1.5 whitespace-nowrap">
                   {contract.contract_end_date ? (
                     formatDate(contract.contract_end_date)
                   ) : (
-                    <span className="text-muted-foreground text-sm">Non définie</span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
                 <TableCell>
