@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { 
   getContracts, 
@@ -9,6 +9,7 @@ import {
   Contract,
   contractStatuses
 } from "@/services/contractService";
+import { AdvancedFilters } from "@/components/contracts/ContractsAdvancedFilters";
 
 export const useContracts = () => {
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -21,6 +22,7 @@ export const useContracts = () => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
   const [includeCompleted, setIncludeCompleted] = useState(true);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
 
   const fetchContracts = async () => {
     try {
