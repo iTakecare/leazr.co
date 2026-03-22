@@ -327,7 +327,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
 
   return (
     <>
-      <div className="rounded-md border overflow-hidden">
+      <div className="rounded-md border overflow-hidden text-xs">
         <Table>
           <TableHeader>
             <TableRow>
@@ -339,8 +339,29 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 onSort={handleSort}
               />
               <SortableTableHead
+                column="contract_number"
+                label="N° Contrat"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableTableHead
+                column="offer_number"
+                label="N° Demande"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableTableHead
                 column="client"
                 label="Client"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableTableHead
+                column="company"
+                label="Entreprise"
                 currentSort={sortColumn}
                 direction={sortDirection}
                 onSort={handleSort}
@@ -371,14 +392,14 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
               />
               <SortableTableHead
                 column="start_date"
-                label="Date début"
+                label="Début"
                 currentSort={sortColumn}
                 direction={sortDirection}
                 onSort={handleSort}
               />
               <SortableTableHead
                 column="end_date"
-                label="Date fin"
+                label="Fin"
                 currentSort={sortColumn}
                 direction={sortDirection}
                 onSort={handleSort}
