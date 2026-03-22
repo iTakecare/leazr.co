@@ -425,7 +425,7 @@ const InvoicingPage = () => {
                           const isCredited = invoice.status === 'credited' || (invoice as any).credited_amount > 0;
                           
                           return (
-                            <TableRow key={invoice.id} className={isCredited ? "opacity-60" : ""}>
+                            <TableRow key={invoice.id} className={cn("cursor-pointer", isCredited ? "opacity-60" : "")} onClick={() => handleViewInvoice(invoice.id)}>
                               <TableCell className="font-medium">
                                 {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
                               </TableCell>
