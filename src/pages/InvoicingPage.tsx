@@ -442,7 +442,7 @@ const InvoicingPage = () => {
                               </TableCell>
                               <TableCell>{getStatusBadge(invoice)}</TableCell>
                               <TableCell>{formatDate(invoice.invoice_date || invoice.created_at)}</TableCell>
-                              <TableCell>
+                              <TableCell onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="sm">
