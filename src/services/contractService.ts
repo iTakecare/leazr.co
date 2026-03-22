@@ -597,6 +597,7 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
         ...contract,
         equipment_description: equipmentDescription,
         offer_dossier_number: contract.offers?.dossier_number,
+        offer_leaser_request_number: contract.offers?.leaser_request_number,
         down_payment: downPayment,
         coefficient: coefficient,
         financed_amount: financedAmount,
