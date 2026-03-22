@@ -17,6 +17,7 @@ export interface Contract {
   id: string;
   offer_id: string;
   offer_dossier_number?: string;
+  offer_leaser_request_number?: string;
   client_name: string;
   client_id?: string;
   client_email?: string;
