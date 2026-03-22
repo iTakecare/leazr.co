@@ -213,6 +213,15 @@ const Contracts = () => {
             </div>
           </motion.div>
 
+          <motion.div variants={itemVariants} className="mb-4">
+            <ContractsAdvancedFilters
+              filters={advancedFilters}
+              onFiltersChange={setAdvancedFilters}
+              leasers={availableLeasers}
+              durations={availableDurations}
+            />
+          </motion.div>
+
           <motion.div variants={itemVariants}>
             {filteredContracts.length === 0 ? (
               <ContractsEmptyState activeFilter={activeStatusFilter} />
