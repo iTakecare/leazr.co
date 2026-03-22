@@ -181,6 +181,7 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
     const contractData = {
       ...data,
       offer_dossier_number: data.offers?.dossier_number,
+      offer_leaser_request_number: data.offers?.leaser_request_number,
       down_payment: downPayment,
       coefficient: coefficient,
       financed_amount: financedAmount,
