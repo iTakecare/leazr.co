@@ -427,7 +427,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   {contract.contract_number || "-"}
                 </TableCell>
                 <TableCell className="px-2 py-1.5 whitespace-nowrap">
-                  {contract.offer_dossier_number ? (
+                  {(contract.offer_leaser_request_number || contract.offer_dossier_number) ? (
                     <button
                       className="text-primary hover:underline cursor-pointer"
                       onClick={(e) => {
@@ -442,7 +442,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                         }
                       }}
                     >
-                      {contract.offer_dossier_number}
+                      {contract.offer_leaser_request_number || contract.offer_dossier_number}
                     </button>
                   ) : "-"}
                 </TableCell>
