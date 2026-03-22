@@ -115,6 +115,39 @@ export const useContracts = () => {
         contract.clients?.vat_number?.toLowerCase().includes(lowerCaseSearch)
       );
     }
+
+    // Filtres avancés
+    if (advancedFilters.startDateFrom) {
+      filtered = filtered.filter(c => c.contract_start_date && new Date(c.contract_start_date) >= advancedFilters.startDateFrom!);
+    }
+    if (advancedFilters.startDateTo) {
+      filtered = filtered.filter(c => c.contract_start_date && new Date(c.contract_start_date) <= advancedFilters.startDateTo!);
+    }
+    if (advancedFilters.endDateFrom) {
+      filtered = filtered.filter(c => c.contract_end_date && new Date(c.contract_end_date) >= advancedFilters.endDateFrom!);
+    }
+    if (advancedFilters.endDateTo) {
+      filtered = filtered.filter(c => c.contract_end_date && new Date(c.contract_end_date) <= advancedFilters.endDateTo!);
+    }
+    if (advancedFilters.leaser) {
+      filtered = filtered.filter(c => c.leaser_name === advancedFilters.leaser);
+    }
+    if (advancedFilters.duration) {
+      filtered = filtered.filter(c => (c as any).contract_duration === advancedFilters.duration);
+    }
+    if (advancedFilters.clientSearch) {
+      const search = advancedFilters.clientSearch.toLowerCase();
+      filtered = filtered.filter(c =>
+        c.client_name?.toLowerCase().includes(search) ||
+        c.clients?.company?.toLowerCase().includes(search)
+      );
+    }
+    if (advancedFilters.minMonthly !== undefined) {
+      filtered = filtered.filter(c => c.monthly_payment >= advancedFilters.minMonthly!);
+    }
+    if (advancedFilters.maxMonthly !== undefined) {
+      filtered = filtered.filter(c => c.monthly_payment <= advancedFilters.maxMonthly!);
+    }
     
     setFilteredContracts(filtered);
   };
