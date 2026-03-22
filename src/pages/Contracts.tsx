@@ -45,7 +45,11 @@ const Contracts = () => {
     viewMode,
     setViewMode,
     includeCompleted,
-    setIncludeCompleted
+    setIncludeCompleted,
+    advancedFilters,
+    setAdvancedFilters,
+    availableLeasers,
+    availableDurations
   } = useContracts();
 
   const scrollContainer = React.useRef<HTMLDivElement>(null);
