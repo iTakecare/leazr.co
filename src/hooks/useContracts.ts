@@ -46,7 +46,16 @@ export const useContracts = () => {
 
   useEffect(() => {
     filterContracts();
-  }, [contracts, activeStatusFilter, searchTerm]);
+  }, [contracts, activeStatusFilter, searchTerm, advancedFilters]);
+
+  // Extraire les leasers et durées uniques pour les filtres
+  const availableLeasers = useMemo(() => {
+    return [...new Set(contracts.map(c => c.leaser_name).filter(Boolean))].sort() as string[];
+  }, [contracts]);
+
+  const availableDurations = useMemo(() => {
+    return [...new Set(contracts.map(c => (c as any).contract_duration).filter(Boolean))].sort((a, b) => a - b) as number[];
+  }, [contracts]);
 
   const filterContracts = () => {
     let filtered = [...contracts];
