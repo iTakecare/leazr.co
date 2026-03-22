@@ -14,6 +14,7 @@ import ContractsFilter from "@/components/contracts/ContractsFilter";
 import ContractsSearch from "@/components/contracts/ContractsSearch";
 import ContractsTable from "@/components/contracts/ContractsTable";
 import ContractsEmptyState from "@/components/contracts/ContractsEmptyState";
+import ContractsAdvancedFilters from "@/components/contracts/ContractsAdvancedFilters";
 import {
   DropdownMenu,
   DropdownMenuContent,
