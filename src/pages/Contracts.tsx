@@ -14,6 +14,7 @@ import ContractsFilter from "@/components/contracts/ContractsFilter";
 import ContractsSearch from "@/components/contracts/ContractsSearch";
 import ContractsTable from "@/components/contracts/ContractsTable";
 import ContractsEmptyState from "@/components/contracts/ContractsEmptyState";
+import ContractsAdvancedFilters from "@/components/contracts/ContractsAdvancedFilters";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,7 +45,11 @@ const Contracts = () => {
     viewMode,
     setViewMode,
     includeCompleted,
-    setIncludeCompleted
+    setIncludeCompleted,
+    advancedFilters,
+    setAdvancedFilters,
+    availableLeasers,
+    availableDurations
   } = useContracts();
 
   const scrollContainer = React.useRef<HTMLDivElement>(null);
@@ -206,6 +211,15 @@ const Contracts = () => {
                 </Button>
               </div>
             </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="mb-4">
+            <ContractsAdvancedFilters
+              filters={advancedFilters}
+              onFiltersChange={setAdvancedFilters}
+              leasers={availableLeasers}
+              durations={availableDurations}
+            />
           </motion.div>
 
           <motion.div variants={itemVariants}>

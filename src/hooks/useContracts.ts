@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { 
   getContracts, 
@@ -9,6 +9,7 @@ import {
   Contract,
   contractStatuses
 } from "@/services/contractService";
+import { AdvancedFilters } from "@/components/contracts/ContractsAdvancedFilters";
 
 export const useContracts = () => {
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -21,6 +22,7 @@ export const useContracts = () => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
   const [includeCompleted, setIncludeCompleted] = useState(true);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
 
   const fetchContracts = async () => {
     try {
@@ -44,7 +46,16 @@ export const useContracts = () => {
 
   useEffect(() => {
     filterContracts();
-  }, [contracts, activeStatusFilter, searchTerm]);
+  }, [contracts, activeStatusFilter, searchTerm, advancedFilters]);
+
+  // Extraire les leasers et durées uniques pour les filtres
+  const availableLeasers = useMemo(() => {
+    return [...new Set(contracts.map(c => c.leaser_name).filter(Boolean))].sort() as string[];
+  }, [contracts]);
+
+  const availableDurations = useMemo(() => {
+    return [...new Set(contracts.map(c => (c as any).contract_duration).filter(Boolean))].sort((a, b) => a - b) as number[];
+  }, [contracts]);
 
   const filterContracts = () => {
     let filtered = [...contracts];
@@ -103,6 +114,39 @@ export const useContracts = () => {
         contract.clients?.company?.toLowerCase().includes(lowerCaseSearch) ||
         contract.clients?.vat_number?.toLowerCase().includes(lowerCaseSearch)
       );
+    }
+
+    // Filtres avancés
+    if (advancedFilters.startDateFrom) {
+      filtered = filtered.filter(c => c.contract_start_date && new Date(c.contract_start_date) >= advancedFilters.startDateFrom!);
+    }
+    if (advancedFilters.startDateTo) {
+      filtered = filtered.filter(c => c.contract_start_date && new Date(c.contract_start_date) <= advancedFilters.startDateTo!);
+    }
+    if (advancedFilters.endDateFrom) {
+      filtered = filtered.filter(c => c.contract_end_date && new Date(c.contract_end_date) >= advancedFilters.endDateFrom!);
+    }
+    if (advancedFilters.endDateTo) {
+      filtered = filtered.filter(c => c.contract_end_date && new Date(c.contract_end_date) <= advancedFilters.endDateTo!);
+    }
+    if (advancedFilters.leaser) {
+      filtered = filtered.filter(c => c.leaser_name === advancedFilters.leaser);
+    }
+    if (advancedFilters.duration) {
+      filtered = filtered.filter(c => (c as any).contract_duration === advancedFilters.duration);
+    }
+    if (advancedFilters.clientSearch) {
+      const search = advancedFilters.clientSearch.toLowerCase();
+      filtered = filtered.filter(c =>
+        c.client_name?.toLowerCase().includes(search) ||
+        c.clients?.company?.toLowerCase().includes(search)
+      );
+    }
+    if (advancedFilters.minMonthly !== undefined) {
+      filtered = filtered.filter(c => c.monthly_payment >= advancedFilters.minMonthly!);
+    }
+    if (advancedFilters.maxMonthly !== undefined) {
+      filtered = filtered.filter(c => c.monthly_payment <= advancedFilters.maxMonthly!);
     }
     
     setFilteredContracts(filtered);
@@ -228,6 +272,10 @@ export const useContracts = () => {
     setViewMode,
     includeCompleted,
     setIncludeCompleted,
+    advancedFilters,
+    setAdvancedFilters,
+    availableLeasers,
+    availableDurations,
     fetchContracts,
     handleUpdateContractStatus,
     handleAddTrackingInfo,
