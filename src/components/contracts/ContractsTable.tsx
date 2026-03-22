@@ -416,7 +416,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
           </TableHeader>
           <TableBody>
             {sortedContracts.map((contract) => (
-              <TableRow key={contract.id}>
+              <TableRow key={contract.id} className="cursor-pointer" onClick={() => handleViewDetails(contract.id)}>
                 <TableCell className="px-2 py-1.5 font-medium whitespace-nowrap">
                   <div className="flex items-center">
                     <Calendar className="mr-1 h-3 w-3 text-muted-foreground" />
@@ -502,7 +502,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
