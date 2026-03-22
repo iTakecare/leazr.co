@@ -425,7 +425,7 @@ const InvoicingPage = () => {
                           const isCredited = invoice.status === 'credited' || (invoice as any).credited_amount > 0;
                           
                           return (
-                            <TableRow key={invoice.id} className={isCredited ? "opacity-60" : ""}>
+                            <TableRow key={invoice.id} className={`cursor-pointer ${isCredited ? "opacity-60" : ""}`} onClick={() => handleViewInvoice(invoice.id)}>
                               <TableCell className="font-medium">
                                 {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
                               </TableCell>
@@ -442,7 +442,7 @@ const InvoicingPage = () => {
                               </TableCell>
                               <TableCell>{getStatusBadge(invoice)}</TableCell>
                               <TableCell>{formatDate(invoice.invoice_date || invoice.created_at)}</TableCell>
-                              <TableCell>
+                              <TableCell onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="sm">
