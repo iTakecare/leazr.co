@@ -92,13 +92,20 @@ const CompanyDashboard = () => {
     creditNotes: totalCreditNotes,
   };
 
+  // Pour la moyenne, ne compter que les mois écoulés + mois en cours
+  // Pour l'année en cours : de janvier au mois actuel. Pour les années passées : 12 mois.
+  const elapsedMonths = selectedYear < currentYear 
+    ? 12 
+    : Math.min(new Date().getMonth() + 1, monthlyData.length);
+  const avgDivisor = Math.max(elapsedMonths, 1);
+
   const moyennes = {
-    ca: monthlyData.length ? totals.ca / monthlyData.length : 0,
-    caLeasing: monthlyData.length ? totals.caLeasing / monthlyData.length : 0,
-    selfLeasing: monthlyData.length ? totals.selfLeasing / monthlyData.length : 0,
-    directSales: monthlyData.length ? totals.directSales / monthlyData.length : 0,
-    achats: monthlyData.length ? totals.achats / monthlyData.length : 0,
-    marge: monthlyData.length ? totals.marge / monthlyData.length : 0,
+    ca: totals.ca / avgDivisor,
+    caLeasing: totals.caLeasing / avgDivisor,
+    selfLeasing: totals.selfLeasing / avgDivisor,
+    directSales: totals.directSales / avgDivisor,
+    achats: totals.achats / avgDivisor,
+    marge: totals.marge / avgDivisor,
     margePercent: totals.ca > 0 ? (totals.marge / totals.ca) * 100 : 0
   };
 
