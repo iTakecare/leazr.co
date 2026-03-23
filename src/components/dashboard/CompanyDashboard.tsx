@@ -300,7 +300,7 @@ const CompanyDashboard = () => {
                   <p className="text-xs font-normal text-muted-foreground">
                     Marge Brute {includeCreditNotes && <span className="text-primary">(net)</span>}
                   </p>
-                  <p className="text-xl font-medium text-foreground">{formatCurrency(totals.marge)}</p>
+                  <p className="text-xl font-medium text-foreground">{formatCurrency(displayedTotals.marge)}</p>
                 </div>
                 <div className="p-2 rounded-lg bg-emerald-50">
                   <TrendingUp className="w-5 h-5 text-emerald-600" />
