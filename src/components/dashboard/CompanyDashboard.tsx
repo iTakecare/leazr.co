@@ -92,21 +92,38 @@ const CompanyDashboard = () => {
     creditNotes: totalCreditNotes,
   };
 
-  // Pour la moyenne, ne compter que les mois écoulés + mois en cours
-  // Pour l'année en cours : de janvier au mois actuel. Pour les années passées : 12 mois.
+  // Pour la moyenne, ne prendre en compte que les mois écoulés + mois en cours
   const elapsedMonths = selectedYear < currentYear 
     ? 12 
     : Math.min(new Date().getMonth() + 1, monthlyData.length);
-  const avgDivisor = Math.max(elapsedMonths, 1);
+  
+  // Calculer les moyennes uniquement sur les mois écoulés (les N premiers mois)
+  const elapsedData = monthlyData.slice(0, elapsedMonths);
+  const avgDivisor = Math.max(elapsedData.length, 1);
+
+  const elapsedTotals = {
+    ca: elapsedData.reduce((sum, m) => sum + m.ca, 0),
+    caLeasing: elapsedData.reduce((sum, m) => sum + m.caLeasing, 0),
+    selfLeasing: elapsedData.reduce((sum, m) => sum + m.selfLeasing, 0),
+    directSales: elapsedData.reduce((sum, m) => sum + m.directSales, 0),
+    achats: elapsedData.reduce((sum, m) => sum + m.achats, 0),
+    marge: elapsedData.reduce((sum, m) => sum + m.marge, 0),
+    creditNotes: elapsedData.reduce((sum, m) => sum + m.creditNotes, 0),
+  };
+
+  // Appliquer le même traitement credit notes que pour les totaux
+  const avgCa = includeCreditNotes ? elapsedTotals.ca - elapsedTotals.creditNotes : elapsedTotals.ca;
+  const avgCaLeasing = includeCreditNotes ? elapsedTotals.caLeasing - elapsedTotals.creditNotes : elapsedTotals.caLeasing;
+  const avgMarge = includeCreditNotes ? elapsedTotals.marge : elapsedTotals.marge + elapsedTotals.creditNotes;
 
   const moyennes = {
-    ca: totals.ca / avgDivisor,
-    caLeasing: totals.caLeasing / avgDivisor,
-    selfLeasing: totals.selfLeasing / avgDivisor,
-    directSales: totals.directSales / avgDivisor,
-    achats: totals.achats / avgDivisor,
-    marge: totals.marge / avgDivisor,
-    margePercent: totals.ca > 0 ? (totals.marge / totals.ca) * 100 : 0
+    ca: avgCa / avgDivisor,
+    caLeasing: avgCaLeasing / avgDivisor,
+    selfLeasing: elapsedTotals.selfLeasing / avgDivisor,
+    directSales: elapsedTotals.directSales / avgDivisor,
+    achats: elapsedTotals.achats / avgDivisor,
+    marge: avgMarge / avgDivisor,
+    margePercent: avgCa > 0 ? (avgMarge / avgCa) * 100 : 0
   };
 
   // Traitement des statistiques par statut
