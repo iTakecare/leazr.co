@@ -1,55 +1,30 @@
 
 
-# Prévisionnel basé sur les contrats self-leasing connus (toutes colonnes)
+# Corriger la saisie de prix réel et date d'achat par unité
 
-## Problème actuel
+## Problème
 
-Le "prévisionnel" est calculé comme `moyenne × 12`, ce qui est incorrect. Le vrai prévisionnel doit être : **total réel des mois écoulés + revenus self-leasing connus pour les mois restants** (avril → décembre).
+Quand un équipement est éclaté en unités (qty > 1 + "Gérer par unité"), les sous-lignes n'affichent que le fournisseur et le statut. Il est impossible de saisir un **prix réel** ni une **date d'achat** par unité — ces champs n'existent que pour les lignes parentes sans unités.
 
-Les contrats self-leasing ont une mensualité fixe et une durée connue — leur contribution future est certaine.
+## Solution
 
-## Approche
+### Fichier : `src/components/contracts/ContractPurchaseTracking.tsx`
 
-### 1. `useCompanyDashboard.ts` — Exposer les projections self-leasing futures
+1. **Ajouter des états d'édition par unité** : `editingUnitPrices`, `editingUnitDates`, `editingUnitNotes` (même pattern que les états existants `editingPrices` etc. mais avec clé = `unit.id`)
 
-Ajouter une nouvelle query `selfLeasingProjection` qui, pour l'année en cours uniquement, calcule le self-leasing des mois **restants** (du mois suivant jusqu'à décembre) :
+2. **Ajouter `handleSaveUnitPurchase`** : sauvegarde le prix, la date et les notes sur l'unité via `updateEquipmentUnit`, puis synchronise le prix moyen vers le parent via `syncUnitPricesToParent`
 
-- Requête les contrats `is_self_leasing = true`, statuts actifs, dont la période chevauche les mois futurs de l'année
-- Pour chaque contrat : calcule les mois actifs **après le mois courant** jusqu'à fin d'année
-- Calcule :
-  - `futureRevenue` = `monthly_payment × mois futurs actifs`
-  - `futurePurchases` = `(equipmentCost / duration) × mois futurs actifs`
-  - `futureMargin` = `futureRevenue - futurePurchases`
+3. **Modifier les sous-lignes d'unités** (lignes 494-549) : remplacer les cellules vides par des champs de saisie identiques à ceux de la ligne parente :
+   - Colonne "Prix réel" : Input prix unitaire + Input date + Input notes (ou affichage si déjà saisi)
+   - Colonne "Économie" : calcul unitaire (purchase_price parent - supplier_price unité)
+   - Colonne actions : bouton Save / bouton Modifier
 
-Retourner ces valeurs dans le hook via un nouvel objet `selfLeasingProjection`.
+4. **Ligne parente avec unités** : afficher le total agrégé des prix réels des unités dans la colonne "Prix réel" (somme des `supplier_price` des unités)
 
-### 2. `CompanyDashboard.tsx` — Calcul du prévisionnel par colonne
+### Détail technique
 
-Calculer le prévisionnel pour **chaque colonne** :
-
-```text
-previsionnel = {
-  ca:          elapsedTotals.ca + projection.futureRevenue,
-  caLeasing:   elapsedTotals.caLeasing,        // pas de futur connu
-  selfLeasing: elapsedTotals.selfLeasing + projection.futureRevenue,
-  directSales: elapsedTotals.directSales,       // pas de futur connu
-  achats:      elapsedTotals.achats + projection.futurePurchases,
-  marge:       prev.ca - prev.achats,
-}
-```
-
-### 3. `CompanyDashboard.tsx` — Affichage dans la ligne TOTAL
-
-Pour **chaque cellule** de la ligne TOTAL (CA Total, CA Leasing, CA Self-Leasing, Ventes Directes, Achats, Marge) :
-- En grand : le total réel (mois écoulés uniquement)
-- En petit dessous `(Prév. : XX XXX,XX €)` : le prévisionnel
-
-Même traitement pour la carte KPI "CA Total" dans le header.
-
-Ne s'affiche que si `isCurrentYear === true`.
-
-### Fichiers modifiés
-
-1. `src/hooks/useCompanyDashboard.ts` — nouvelle query + exposition dans le return
-2. `src/components/dashboard/CompanyDashboard.tsx` — calcul prévisionnel + affichage toutes colonnes
+- `updateEquipmentUnit` existe déjà dans `equipmentOrderService.ts`
+- `syncUnitPricesToParent` existe déjà — il calcule la moyenne des `supplier_price` et la reporte sur le parent
+- Les champs `supplier_price`, `order_date`, `reception_date` existent déjà sur la table `equipment_order_units`
+- Pas de migration nécessaire
 
