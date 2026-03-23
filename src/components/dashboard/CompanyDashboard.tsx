@@ -341,7 +341,7 @@ const CompanyDashboard = () => {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                             <div className="flex flex-col items-center gap-2">
                               <Activity className="w-8 h-8 opacity-50" />
                               <span>Aucune donnée disponible pour cette période</span>
