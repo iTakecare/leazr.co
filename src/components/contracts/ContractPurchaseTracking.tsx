@@ -462,7 +462,20 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        {isPurchased && !isEditing ? (
+                        {hasUnits ? (
+                          (() => {
+                            const unitTotal = units.reduce((s, u) => s + (u.supplier_price || 0), 0);
+                            const filledUnits = units.filter(u => u.supplier_price != null).length;
+                            return filledUnits > 0 ? (
+                              <div>
+                                <div className="font-medium">{formatCurrency(unitTotal)}</div>
+                                <div className="text-xs text-muted-foreground">{filledUnits}/{units.length} unités</div>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">Voir unités</span>
+                            );
+                          })()
+                        ) : isPurchased && !isEditing ? (
                           <div>
                             <div className="text-sm text-muted-foreground">
                               {formatCurrency(eq.actual_purchase_price!)} × {eq.quantity}
