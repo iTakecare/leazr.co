@@ -110,12 +110,28 @@ const ContractWorkflowPanel: React.FC<ContractWorkflowPanelProps> = ({ contract,
     }
     
     const currentIndex = getCurrentStepIndex();
+
+    // Bouton retour en arrière (étape précédente)
+    const prevStep = currentIndex > 0 ? workflowSteps[currentIndex - 1] : null;
+    if (prevStep) {
+      actions.push({
+        label: `Revenir à: ${prevStep.label}`,
+        icon: RefreshCw,
+        onClick: () => {
+          setTargetStatus(prevStep.id);
+          setStatusChangeReason('');
+          setStatusDialogOpen(true);
+        },
+        variant: "outline" as const
+      });
+    }
+
+    // Bouton avancer (étape suivante)
     const nextStep = workflowSteps[currentIndex + 1];
-    
     if (nextStep) {
       // Condition spéciale pour la livraison
       if (nextStep.id === contractStatuses.DELIVERED && !contract.tracking_number) {
-        return actions; // Ne pas permettre de marquer comme livré sans tracking
+        return actions;
       }
       
       actions.push({
