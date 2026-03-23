@@ -285,6 +285,7 @@ const CompanyDashboard = () => {
                         <TableHead className="text-right font-medium text-xs">CA total (€)</TableHead>
                         <TableHead className="text-right font-medium text-xs text-blue-600">CA Leasing (€)</TableHead>
                         <TableHead className="text-right font-medium text-xs text-indigo-600">CA Self-Leasing (€)</TableHead>
+                        <TableHead className="text-right font-medium text-xs text-green-600">CA Ventes Directes (€)</TableHead>
                         <TableHead className="text-right font-medium text-xs text-slate-600">
                           <div className="flex items-center justify-end gap-2">
                             <span>Notes de crédit (€)</span>
@@ -321,6 +322,7 @@ const CompanyDashboard = () => {
                             <TableCell className="text-right font-normal">{formatCurrency(includeCreditNotes ? month.ca - month.creditNotes : month.ca)}</TableCell>
                             <TableCell className="text-right font-normal text-blue-700">{formatCurrency(includeCreditNotes ? month.caLeasing - month.creditNotes : month.caLeasing)}</TableCell>
                             <TableCell className="text-right font-normal text-indigo-700">{formatCurrency(month.selfLeasing)}</TableCell>
+                            <TableCell className="text-right font-normal text-green-700">{formatCurrency(month.directSales)}</TableCell>
                             <TableCell className="text-right font-normal text-slate-500">
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
                             </TableCell>
@@ -339,7 +341,7 @@ const CompanyDashboard = () => {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                             <div className="flex flex-col items-center gap-2">
                               <Activity className="w-8 h-8 opacity-50" />
                               <span>Aucune donnée disponible pour cette période</span>
@@ -352,6 +354,7 @@ const CompanyDashboard = () => {
                         <TableCell className="text-right font-medium text-base">{formatCurrency(totals.ca)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-blue-700">{formatCurrency(totals.caLeasing)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-indigo-700">{formatCurrency(totals.selfLeasing)}</TableCell>
+                        <TableCell className="text-right font-medium text-base text-green-700">{formatCurrency(totals.directSales)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-slate-500">
                           {monthlyData.reduce((sum, m) => sum + m.creditNotes, 0) > 0 
                             ? `-${formatCurrency(monthlyData.reduce((sum, m) => sum + m.creditNotes, 0))}` 
@@ -366,6 +369,7 @@ const CompanyDashboard = () => {
                         <TableCell className="text-right font-normal">{formatCurrency(moyennes.ca)}</TableCell>
                         <TableCell className="text-right font-normal text-blue-600">{formatCurrency(moyennes.caLeasing)}</TableCell>
                         <TableCell className="text-right font-normal text-indigo-600">{formatCurrency(moyennes.selfLeasing)}</TableCell>
+                        <TableCell className="text-right font-normal text-green-600">{formatCurrency(moyennes.directSales)}</TableCell>
                         <TableCell className="text-right font-normal text-slate-500">-</TableCell>
                         <TableCell className="text-right font-normal">{formatCurrency(moyennes.achats)}</TableCell>
                         <TableCell className="text-right font-normal text-slate-600">{formatCurrency(moyennes.marge)}</TableCell>
