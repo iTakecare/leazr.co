@@ -285,6 +285,7 @@ const CompanyDashboard = () => {
                         <TableHead className="text-right font-medium text-xs">CA total (€)</TableHead>
                         <TableHead className="text-right font-medium text-xs text-blue-600">CA Leasing (€)</TableHead>
                         <TableHead className="text-right font-medium text-xs text-indigo-600">CA Self-Leasing (€)</TableHead>
+                        <TableHead className="text-right font-medium text-xs text-green-600">CA Ventes Directes (€)</TableHead>
                         <TableHead className="text-right font-medium text-xs text-slate-600">
                           <div className="flex items-center justify-end gap-2">
                             <span>Notes de crédit (€)</span>
