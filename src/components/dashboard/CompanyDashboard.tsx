@@ -369,6 +369,7 @@ const CompanyDashboard = () => {
                         <TableCell className="text-right font-normal">{formatCurrency(moyennes.ca)}</TableCell>
                         <TableCell className="text-right font-normal text-blue-600">{formatCurrency(moyennes.caLeasing)}</TableCell>
                         <TableCell className="text-right font-normal text-indigo-600">{formatCurrency(moyennes.selfLeasing)}</TableCell>
+                        <TableCell className="text-right font-normal text-green-600">{formatCurrency(moyennes.directSales)}</TableCell>
                         <TableCell className="text-right font-normal text-slate-500">-</TableCell>
                         <TableCell className="text-right font-normal">{formatCurrency(moyennes.achats)}</TableCell>
                         <TableCell className="text-right font-normal text-slate-600">{formatCurrency(moyennes.marge)}</TableCell>
