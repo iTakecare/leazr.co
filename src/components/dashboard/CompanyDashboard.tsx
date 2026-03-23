@@ -354,6 +354,7 @@ const CompanyDashboard = () => {
                         <TableCell className="text-right font-medium text-base">{formatCurrency(totals.ca)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-blue-700">{formatCurrency(totals.caLeasing)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-indigo-700">{formatCurrency(totals.selfLeasing)}</TableCell>
+                        <TableCell className="text-right font-medium text-base text-green-700">{formatCurrency(totals.directSales)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-slate-500">
                           {monthlyData.reduce((sum, m) => sum + m.creditNotes, 0) > 0 
                             ? `-${formatCurrency(monthlyData.reduce((sum, m) => sum + m.creditNotes, 0))}` 
