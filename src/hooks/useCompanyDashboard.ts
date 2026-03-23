@@ -569,7 +569,8 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       refetchRefusedStats(),
       refetchStats(),
       refetchActivity(),
-      refetchOverdue()
+      refetchOverdue(),
+      refetchProjection()
     ]);
   };
 
