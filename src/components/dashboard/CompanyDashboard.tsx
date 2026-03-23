@@ -127,7 +127,17 @@ const CompanyDashboard = () => {
   };
 
   const isCurrentYear = selectedYear === currentYear;
-  const caPrevisionnel = moyennes.ca * 12;
+  
+  // Prévisionnel = totaux réels + revenus self-leasing connus pour les mois restants
+  const previsionnel = {
+    ca: totals.ca + (selfLeasingProjection?.futureRevenue || 0),
+    caLeasing: totals.caLeasing, // pas de futur connu pour le leasing externe
+    selfLeasing: totals.selfLeasing + (selfLeasingProjection?.futureRevenue || 0),
+    directSales: totals.directSales, // pas de futur connu
+    achats: totals.achats + (selfLeasingProjection?.futurePurchases || 0),
+    marge: 0, // calculé ci-dessous
+  };
+  previsionnel.marge = previsionnel.ca - previsionnel.achats;
 
   // Traitement des statistiques par statut
   const contractStats = metrics?.contract_stats || [];
