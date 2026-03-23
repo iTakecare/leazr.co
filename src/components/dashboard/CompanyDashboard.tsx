@@ -123,7 +123,11 @@ const CompanyDashboard = () => {
     directSales: elapsedTotals.directSales / avgDivisor,
     achats: elapsedTotals.achats / avgDivisor,
     marge: avgMarge / avgDivisor,
-    margePercent: avgCa > 0 ? (avgMarge / avgCa) * 100 : 0
+    margePercent: avgCa > 0 ? (avgMarge / avgCa) * 100 : 0,
+  };
+
+  const isCurrentYear = selectedYear === currentYear;
+  const caPrevisionnel = moyennes.ca * 12;
   };
 
   // Traitement des statistiques par statut
