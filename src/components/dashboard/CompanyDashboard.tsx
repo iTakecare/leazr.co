@@ -127,17 +127,33 @@ const CompanyDashboard = () => {
   };
 
   const isCurrentYear = selectedYear === currentYear;
-  
-  // Prévisionnel = totaux réels des mois écoulés + revenus self-leasing connus pour les mois restants
+
+  // Total affiché = mois écoulés pour l'année en cours, sinon total annuel complet
+  const displayedTotals = isCurrentYear
+    ? {
+        ca: includeCreditNotes ? elapsedTotals.ca - elapsedTotals.creditNotes : elapsedTotals.ca,
+        caLeasing: includeCreditNotes ? elapsedTotals.caLeasing - elapsedTotals.creditNotes : elapsedTotals.caLeasing,
+        selfLeasing: elapsedTotals.selfLeasing,
+        directSales: elapsedTotals.directSales,
+        achats: elapsedTotals.achats,
+        marge: includeCreditNotes ? elapsedTotals.marge : elapsedTotals.marge + elapsedTotals.creditNotes,
+        creditNotes: elapsedTotals.creditNotes,
+      }
+    : totals;
+
+  const totalMarginPercent = displayedTotals.ca > 0 ? (displayedTotals.marge / displayedTotals.ca) * 100 : 0;
+
+  // Prévisionnel = total affiché + revenus self-leasing connus pour les mois restants
   const previsionnel = {
-    ca: elapsedTotals.ca + (selfLeasingProjection?.futureRevenue || 0),
-    caLeasing: elapsedTotals.caLeasing,
-    selfLeasing: elapsedTotals.selfLeasing + (selfLeasingProjection?.futureRevenue || 0),
-    directSales: elapsedTotals.directSales,
-    achats: elapsedTotals.achats + (selfLeasingProjection?.futurePurchases || 0),
+    ca: displayedTotals.ca + (selfLeasingProjection?.futureRevenue || 0),
+    caLeasing: displayedTotals.caLeasing,
+    selfLeasing: displayedTotals.selfLeasing + (selfLeasingProjection?.futureRevenue || 0),
+    directSales: displayedTotals.directSales,
+    achats: displayedTotals.achats + (selfLeasingProjection?.futurePurchases || 0),
     marge: 0,
   };
   previsionnel.marge = previsionnel.ca - previsionnel.achats;
+  const previsionnelMarginPercent = previsionnel.ca > 0 ? (previsionnel.marge / previsionnel.ca) * 100 : 0;
 
   // Traitement des statistiques par statut
   const contractStats = metrics?.contract_stats || [];
@@ -251,7 +267,7 @@ const CompanyDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-normal text-muted-foreground">CA Total</p>
-                  <p className="text-xl font-medium text-foreground">{formatCurrency(totals.ca)}</p>
+                  <p className="text-xl font-medium text-foreground">{formatCurrency(displayedTotals.ca)}</p>
                   {isCurrentYear && (
                     <p className="text-xs text-muted-foreground">(Prév. : {formatCurrency(previsionnel.ca)})</p>
                   )}
@@ -268,7 +284,7 @@ const CompanyDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-normal text-muted-foreground">Achats Total</p>
-                  <p className="text-xl font-medium text-foreground">{formatCurrency(totals.achats)}</p>
+                  <p className="text-xl font-medium text-foreground">{formatCurrency(displayedTotals.achats)}</p>
                 </div>
                 <div className="p-2 rounded-lg bg-amber-50">
                   <HandshakeIcon className="w-5 h-5 text-amber-600" />
@@ -284,7 +300,7 @@ const CompanyDashboard = () => {
                   <p className="text-xs font-normal text-muted-foreground">
                     Marge Brute {includeCreditNotes && <span className="text-primary">(net)</span>}
                   </p>
-                  <p className="text-xl font-medium text-foreground">{formatCurrency(totals.marge)}</p>
+                  <p className="text-xl font-medium text-foreground">{formatCurrency(displayedTotals.marge)}</p>
                 </div>
                 <div className="p-2 rounded-lg bg-emerald-50">
                   <TrendingUp className="w-5 h-5 text-emerald-600" />
@@ -392,50 +408,48 @@ const CompanyDashboard = () => {
                       <TableRow className="bg-slate-100 dark:bg-slate-800/50 border-t-2 border-slate-300">
                         <TableCell className="font-medium text-base text-slate-900">TOTAL</TableCell>
                         <TableCell className="text-right font-medium text-base">
-                          <div>{formatCurrency(totals.ca)}</div>
+                          <div>{formatCurrency(displayedTotals.ca)}</div>
                           {isCurrentYear && (
                             <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.ca)})</div>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium text-base text-blue-700">
-                          <div>{formatCurrency(totals.caLeasing)}</div>
-                          {isCurrentYear && previsionnel.caLeasing !== totals.caLeasing && (
+                          <div>{formatCurrency(displayedTotals.caLeasing)}</div>
+                          {isCurrentYear && previsionnel.caLeasing !== displayedTotals.caLeasing && (
                             <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.caLeasing)})</div>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium text-base text-indigo-700">
-                          <div>{formatCurrency(totals.selfLeasing)}</div>
-                          {isCurrentYear && previsionnel.selfLeasing !== totals.selfLeasing && (
+                          <div>{formatCurrency(displayedTotals.selfLeasing)}</div>
+                          {isCurrentYear && previsionnel.selfLeasing !== displayedTotals.selfLeasing && (
                             <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.selfLeasing)})</div>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium text-base text-green-700">
-                          <div>{formatCurrency(totals.directSales)}</div>
-                          {isCurrentYear && previsionnel.directSales !== totals.directSales && (
+                          <div>{formatCurrency(displayedTotals.directSales)}</div>
+                          {isCurrentYear && previsionnel.directSales !== displayedTotals.directSales && (
                             <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.directSales)})</div>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium text-base text-slate-500">
-                          {monthlyData.reduce((sum, m) => sum + m.creditNotes, 0) > 0 
-                            ? `-${formatCurrency(monthlyData.reduce((sum, m) => sum + m.creditNotes, 0))}` 
-                            : '-'}
+                          {displayedTotals.creditNotes > 0 ? `-${formatCurrency(displayedTotals.creditNotes)}` : '-'}
                         </TableCell>
                         <TableCell className="text-right font-medium text-base">
-                          <div>{formatCurrency(totals.achats)}</div>
-                          {isCurrentYear && previsionnel.achats !== totals.achats && (
+                          <div>{formatCurrency(displayedTotals.achats)}</div>
+                          {isCurrentYear && previsionnel.achats !== displayedTotals.achats && (
                             <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.achats)})</div>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium text-base text-emerald-700">
-                          <div>{formatCurrency(totals.marge)}</div>
-                          {isCurrentYear && previsionnel.marge !== totals.marge && (
+                          <div>{formatCurrency(displayedTotals.marge)}</div>
+                          {isCurrentYear && previsionnel.marge !== displayedTotals.marge && (
                             <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.marge)})</div>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium text-base text-emerald-700">
-                          <div>{moyennes.margePercent.toFixed(1)}%</div>
-                          {isCurrentYear && previsionnel.ca > 0 && previsionnel.marge !== totals.marge && (
-                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {((previsionnel.marge / previsionnel.ca) * 100).toFixed(1)}%)</div>
+                          <div>{totalMarginPercent.toFixed(1)}%</div>
+                          {isCurrentYear && previsionnel.ca > 0 && previsionnel.marge !== displayedTotals.marge && (
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {previsionnelMarginPercent.toFixed(1)}%)</div>
                           )}
                         </TableCell>
                       </TableRow>
