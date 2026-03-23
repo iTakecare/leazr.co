@@ -42,7 +42,7 @@ const CompanyDashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [includeCreditNotes, setIncludeCreditNotes] = useState(false);
   const [showPDFModal, setShowPDFModal] = useState(false);
-  const { metrics, recentActivity, overdueInvoices, isLoading, refetch } = useCompanyDashboard(selectedYear);
+  const { metrics, recentActivity, overdueInvoices, selfLeasingProjection, isLoading, refetch } = useCompanyDashboard(selectedYear);
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
   
@@ -127,7 +127,17 @@ const CompanyDashboard = () => {
   };
 
   const isCurrentYear = selectedYear === currentYear;
-  const caPrevisionnel = moyennes.ca * 12;
+  
+  // Prévisionnel = totaux réels + revenus self-leasing connus pour les mois restants
+  const previsionnel = {
+    ca: totals.ca + (selfLeasingProjection?.futureRevenue || 0),
+    caLeasing: totals.caLeasing, // pas de futur connu pour le leasing externe
+    selfLeasing: totals.selfLeasing + (selfLeasingProjection?.futureRevenue || 0),
+    directSales: totals.directSales, // pas de futur connu
+    achats: totals.achats + (selfLeasingProjection?.futurePurchases || 0),
+    marge: 0, // calculé ci-dessous
+  };
+  previsionnel.marge = previsionnel.ca - previsionnel.achats;
 
   // Traitement des statistiques par statut
   const contractStats = metrics?.contract_stats || [];
@@ -243,7 +253,7 @@ const CompanyDashboard = () => {
                   <p className="text-xs font-normal text-muted-foreground">CA Total</p>
                   <p className="text-xl font-medium text-foreground">{formatCurrency(totals.ca)}</p>
                   {isCurrentYear && (
-                    <p className="text-xs text-muted-foreground">(Prév. : {formatCurrency(caPrevisionnel)})</p>
+                    <p className="text-xs text-muted-foreground">(Prév. : {formatCurrency(previsionnel.ca)})</p>
                   )}
                 </div>
                 <div className="p-2 rounded-lg bg-blue-50">
@@ -384,20 +394,50 @@ const CompanyDashboard = () => {
                         <TableCell className="text-right font-medium text-base">
                           <div>{formatCurrency(totals.ca)}</div>
                           {isCurrentYear && (
-                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(caPrevisionnel)})</div>
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.ca)})</div>
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-medium text-base text-blue-700">{formatCurrency(totals.caLeasing)}</TableCell>
-                        <TableCell className="text-right font-medium text-base text-indigo-700">{formatCurrency(totals.selfLeasing)}</TableCell>
-                        <TableCell className="text-right font-medium text-base text-green-700">{formatCurrency(totals.directSales)}</TableCell>
+                        <TableCell className="text-right font-medium text-base text-blue-700">
+                          <div>{formatCurrency(totals.caLeasing)}</div>
+                          {isCurrentYear && previsionnel.caLeasing !== totals.caLeasing && (
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.caLeasing)})</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-base text-indigo-700">
+                          <div>{formatCurrency(totals.selfLeasing)}</div>
+                          {isCurrentYear && previsionnel.selfLeasing !== totals.selfLeasing && (
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.selfLeasing)})</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-base text-green-700">
+                          <div>{formatCurrency(totals.directSales)}</div>
+                          {isCurrentYear && previsionnel.directSales !== totals.directSales && (
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.directSales)})</div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right font-medium text-base text-slate-500">
                           {monthlyData.reduce((sum, m) => sum + m.creditNotes, 0) > 0 
                             ? `-${formatCurrency(monthlyData.reduce((sum, m) => sum + m.creditNotes, 0))}` 
                             : '-'}
                         </TableCell>
-                        <TableCell className="text-right font-medium text-base">{formatCurrency(totals.achats)}</TableCell>
-                        <TableCell className="text-right font-medium text-base text-emerald-700">{formatCurrency(totals.marge)}</TableCell>
-                        <TableCell className="text-right font-medium text-base text-emerald-700">{moyennes.margePercent.toFixed(1)}%</TableCell>
+                        <TableCell className="text-right font-medium text-base">
+                          <div>{formatCurrency(totals.achats)}</div>
+                          {isCurrentYear && previsionnel.achats !== totals.achats && (
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.achats)})</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-base text-emerald-700">
+                          <div>{formatCurrency(totals.marge)}</div>
+                          {isCurrentYear && previsionnel.marge !== totals.marge && (
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(previsionnel.marge)})</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-base text-emerald-700">
+                          <div>{moyennes.margePercent.toFixed(1)}%</div>
+                          {isCurrentYear && previsionnel.ca > 0 && previsionnel.marge !== totals.marge && (
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {((previsionnel.marge / previsionnel.ca) * 100).toFixed(1)}%)</div>
+                          )}
+                        </TableCell>
                       </TableRow>
                       <TableRow className="bg-slate-50 dark:bg-slate-800/30 border-b-2 border-slate-200">
                         <TableCell className="font-medium text-slate-600">MOYENNE</TableCell>
