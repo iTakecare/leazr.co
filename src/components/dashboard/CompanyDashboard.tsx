@@ -382,7 +382,12 @@ const CompanyDashboard = () => {
                       )}
                       <TableRow className="bg-slate-100 dark:bg-slate-800/50 border-t-2 border-slate-300">
                         <TableCell className="font-medium text-base text-slate-900">TOTAL</TableCell>
-                        <TableCell className="text-right font-medium text-base">{formatCurrency(totals.ca)}</TableCell>
+                        <TableCell className="text-right font-medium text-base">
+                          <div>{formatCurrency(totals.ca)}</div>
+                          {isCurrentYear && (
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(caPrevisionnel)})</div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right font-medium text-base text-blue-700">{formatCurrency(totals.caLeasing)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-indigo-700">{formatCurrency(totals.selfLeasing)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-green-700">{formatCurrency(totals.directSales)}</TableCell>
