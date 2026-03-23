@@ -627,7 +627,8 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     metrics: realTimeMetrics || (metrics ? { ...metrics, monthly_data: monthlyData, contract_stats: contractStats } : null),
     recentActivity,
     overdueInvoices: overdueInvoices || { overdue_count: 0, overdue_amount: 0 },
-    isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading || overdueLoading || pendingStatsLoading || realizedStatsLoading || directSalesStatsLoading || refusedStatsLoading,
+    selfLeasingProjection: selfLeasingProjection || { futureRevenue: 0, futurePurchases: 0, futureMargin: 0 },
+    isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading || overdueLoading || pendingStatsLoading || realizedStatsLoading || directSalesStatsLoading || refusedStatsLoading || projectionLoading,
     refetch: refetchAll
   };
 };
