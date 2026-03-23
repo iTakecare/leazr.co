@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { ShoppingCart, Check, TrendingUp, Save, Calendar, ChevronDown, SplitSquareHorizontal } from "lucide-react";
-import { ORDER_STATUS_CONFIG, OrderStatus, updateContractEquipmentOrder, fetchSuppliers, splitEquipmentIntoUnits, updateEquipmentUnit, fetchEquipmentUnits } from "@/services/equipmentOrderService";
+import { ORDER_STATUS_CONFIG, OrderStatus, updateContractEquipmentOrder, fetchSuppliers, splitEquipmentIntoUnits, updateEquipmentUnit, fetchEquipmentUnits, syncUnitPricesToParent } from "@/services/equipmentOrderService";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { format } from "date-fns";
