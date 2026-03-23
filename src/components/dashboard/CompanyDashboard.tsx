@@ -127,17 +127,33 @@ const CompanyDashboard = () => {
   };
 
   const isCurrentYear = selectedYear === currentYear;
-  
-  // Prévisionnel = totaux réels des mois écoulés + revenus self-leasing connus pour les mois restants
+
+  // Total affiché = mois écoulés pour l'année en cours, sinon total annuel complet
+  const displayedTotals = isCurrentYear
+    ? {
+        ca: includeCreditNotes ? elapsedTotals.ca - elapsedTotals.creditNotes : elapsedTotals.ca,
+        caLeasing: includeCreditNotes ? elapsedTotals.caLeasing - elapsedTotals.creditNotes : elapsedTotals.caLeasing,
+        selfLeasing: elapsedTotals.selfLeasing,
+        directSales: elapsedTotals.directSales,
+        achats: elapsedTotals.achats,
+        marge: includeCreditNotes ? elapsedTotals.marge : elapsedTotals.marge + elapsedTotals.creditNotes,
+        creditNotes: elapsedTotals.creditNotes,
+      }
+    : totals;
+
+  const totalMarginPercent = displayedTotals.ca > 0 ? (displayedTotals.marge / displayedTotals.ca) * 100 : 0;
+
+  // Prévisionnel = total affiché + revenus self-leasing connus pour les mois restants
   const previsionnel = {
-    ca: elapsedTotals.ca + (selfLeasingProjection?.futureRevenue || 0),
-    caLeasing: elapsedTotals.caLeasing,
-    selfLeasing: elapsedTotals.selfLeasing + (selfLeasingProjection?.futureRevenue || 0),
-    directSales: elapsedTotals.directSales,
-    achats: elapsedTotals.achats + (selfLeasingProjection?.futurePurchases || 0),
+    ca: displayedTotals.ca + (selfLeasingProjection?.futureRevenue || 0),
+    caLeasing: displayedTotals.caLeasing,
+    selfLeasing: displayedTotals.selfLeasing + (selfLeasingProjection?.futureRevenue || 0),
+    directSales: displayedTotals.directSales,
+    achats: displayedTotals.achats + (selfLeasingProjection?.futurePurchases || 0),
     marge: 0,
   };
   previsionnel.marge = previsionnel.ca - previsionnel.achats;
+  const previsionnelMarginPercent = previsionnel.ca > 0 ? (previsionnel.marge / previsionnel.ca) * 100 : 0;
 
   // Traitement des statistiques par statut
   const contractStats = metrics?.contract_stats || [];
