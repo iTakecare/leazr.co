@@ -537,12 +537,24 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                     {hasUnits && isExpanded && units.map(unit => {
                       const unitStatus = (unit.order_status || 'to_order') as OrderStatus;
                       const unitStatusConfig = ORDER_STATUS_CONFIG[unitStatus];
+                      const isUnitEditing = editingUnitPrices[unit.id] !== undefined;
+                      const isUnitPurchased = unit.supplier_price !== null;
+                      const unitSavings = isUnitPurchased ? (eq.purchase_price - unit.supplier_price!) : 0;
                       return (
                         <TableRow key={unit.id} className="bg-muted/30">
                           <TableCell className="pl-10">
                             <span className="text-xs text-muted-foreground">Unité {unit.unit_index}</span>
                             {unit.serial_number && (
                               <span className="text-xs text-muted-foreground ml-2">S/N: {unit.serial_number}</span>
+                            )}
+                            {unit.order_date && !isUnitEditing && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(unit.order_date), 'dd MMM yyyy', { locale: fr })}
+                              </div>
+                            )}
+                            {unit.order_notes && !isUnitEditing && (
+                              <p className="text-xs text-muted-foreground mt-1">{unit.order_notes}</p>
                             )}
                           </TableCell>
                           <TableCell>
@@ -582,11 +594,74 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                           </TableCell>
                           <TableCell className="text-center text-xs text-muted-foreground">1</TableCell>
                           <TableCell className="text-right text-sm text-muted-foreground">
-                            {unit.supplier_price ? formatCurrency(unit.supplier_price) : '-'}
+                            {formatCurrency(eq.purchase_price)}
                           </TableCell>
-                          <TableCell></TableCell>
-                          <TableCell></TableCell>
-                          <TableCell></TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            {isUnitPurchased && !isUnitEditing ? (
+                              <div className="font-medium text-sm">
+                                {formatCurrency(unit.supplier_price!)}
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <Input
+                                  type="text"
+                                  placeholder="Prix unitaire"
+                                  className="w-28 text-right h-8"
+                                  value={editingUnitPrices[unit.id] ?? ''}
+                                  onChange={(e) => setEditingUnitPrices(prev => ({ ...prev, [unit.id]: e.target.value }))}
+                                />
+                                <Input
+                                  type="date"
+                                  placeholder="Date d'achat"
+                                  className="w-28 text-xs h-7"
+                                  value={editingUnitDates[unit.id] ?? ''}
+                                  onChange={(e) => setEditingUnitDates(prev => ({ ...prev, [unit.id]: e.target.value }))}
+                                />
+                                <Input
+                                  type="text"
+                                  placeholder="Notes (optionnel)"
+                                  className="w-28 text-xs h-7"
+                                  value={editingUnitNotes[unit.id] ?? ''}
+                                  onChange={(e) => setEditingUnitNotes(prev => ({ ...prev, [unit.id]: e.target.value }))}
+                                />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {isUnitPurchased && (
+                              <span className={`font-medium text-sm ${unitSavings > 0 ? 'text-green-600' : unitSavings < 0 ? 'text-red-600' : ''}`}>
+                                {unitSavings > 0 ? '+' : ''}{formatCurrency(unitSavings)}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            {(isUnitEditing || !isUnitPurchased) && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveUnitPurchase(unit)}
+                                disabled={saving === unit.id || !editingUnitPrices[unit.id]}
+                              >
+                                {saving === unit.id ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                ) : (
+                                  <Save className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                            {isUnitPurchased && !isUnitEditing && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setEditingUnitPrices(prev => ({ ...prev, [unit.id]: unit.supplier_price!.toString() }));
+                                  setEditingUnitDates(prev => ({ ...prev, [unit.id]: unit.order_date ? format(new Date(unit.order_date), 'yyyy-MM-dd') : '' }));
+                                  setEditingUnitNotes(prev => ({ ...prev, [unit.id]: unit.order_notes || '' }));
+                                }}
+                              >
+                                Modifier
+                              </Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
