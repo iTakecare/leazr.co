@@ -167,6 +167,46 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
     }
   };
 
+  const handleSaveUnitPurchase = async (unit: EquipmentOrderUnit) => {
+    const priceStr = editingUnitPrices[unit.id];
+    const dateStr = editingUnitDates[unit.id];
+    const notes = editingUnitNotes[unit.id];
+
+    if (!priceStr) {
+      toast.error("Veuillez saisir un prix d'achat");
+      return;
+    }
+
+    const price = parseFloat(priceStr.replace(',', '.'));
+    if (isNaN(price) || price < 0) {
+      toast.error("Prix invalide");
+      return;
+    }
+
+    setSaving(unit.id);
+    try {
+      const updateData: any = { supplier_price: price };
+      if (dateStr) updateData.order_date = new Date(dateStr).toISOString();
+      if (notes !== undefined) updateData.order_notes = notes || null;
+
+      await updateEquipmentUnit(unit.id, updateData);
+      await syncUnitPricesToParent('contract', unit.source_equipment_id);
+
+      toast.success(`Unité ${unit.unit_index} : prix enregistré`);
+      fetchEquipment();
+      onUpdate?.();
+
+      setEditingUnitPrices(prev => { const { [unit.id]: _, ...rest } = prev; return rest; });
+      setEditingUnitDates(prev => { const { [unit.id]: _, ...rest } = prev; return rest; });
+      setEditingUnitNotes(prev => { const { [unit.id]: _, ...rest } = prev; return rest; });
+    } catch (error) {
+      console.error('Erreur sauvegarde unité:', error);
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setSaving(null);
+    }
+  };
+
   const getSupplierName = (supplierId: string | null) => {
     if (!supplierId) return null;
     return suppliers.find(s => s.id === supplierId)?.name || null;
