@@ -37,7 +37,8 @@ const ClientSearchInput = ({ value, onChange }: ClientSearchInputProps) => {
         .order('name')
         .limit(50);
       if (search.trim()) {
-        query = query.ilike('name', `%${sanitizeLikePattern(search.trim())}%`);
+        const pattern = `%${sanitizeLikePattern(search.trim())}%`;
+        query = query.or(`name.ilike.${pattern},email.ilike.${pattern},phone.ilike.${pattern},vat_number.ilike.${pattern},company.ilike.${pattern},contact_name.ilike.${pattern}`);
       }
       const { data } = await query;
       setClients(data || []);
