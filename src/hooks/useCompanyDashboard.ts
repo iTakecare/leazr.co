@@ -437,6 +437,71 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     refetchInterval: 60000,
   });
 
+  // Projection self-leasing : revenus/achats futurs connus pour les mois restants de l'année en cours
+  const {
+    data: selfLeasingProjection,
+    isLoading: projectionLoading,
+    refetch: refetchProjection
+  } = useQuery({
+    queryKey: ['company-self-leasing-projection', companyId, year],
+    queryFn: async () => {
+      if (!companyId || year !== currentYear) {
+        return { futureRevenue: 0, futurePurchases: 0, futureMargin: 0 };
+      }
+
+      const currentMonth = new Date().getMonth(); // 0-indexed (mars = 2)
+      // Mois futurs = du mois suivant (currentMonth+1) jusqu'à décembre (11)
+      if (currentMonth >= 11) {
+        return { futureRevenue: 0, futurePurchases: 0, futureMargin: 0 };
+      }
+
+      const { data: contracts } = await supabase
+        .from('contracts')
+        .select(`
+          id, monthly_payment, contract_start_date, contract_end_date, contract_duration,
+          contract_equipment(purchase_price, actual_purchase_price, quantity)
+        `)
+        .eq('company_id', companyId)
+        .eq('is_self_leasing', true)
+        .in('status', ['signed', 'active', 'delivered'])
+        .lte('contract_start_date', `${year}-12-31`);
+
+      let futureRevenue = 0;
+      let futurePurchases = 0;
+
+      for (const contract of contracts || []) {
+        const startDate = contract.contract_start_date ? new Date(contract.contract_start_date) : null;
+        const endDate = contract.contract_end_date ? new Date(contract.contract_end_date) : null;
+        if (!startDate) continue;
+
+        // Pour chaque mois futur (currentMonth+1 à 11), vérifier si le contrat est actif
+        for (let m = currentMonth + 1; m <= 11; m++) {
+          const monthStart = new Date(year, m, 1);
+          const monthEnd = new Date(year, m + 1, 0);
+
+          if (startDate > monthEnd) continue; // contrat pas encore démarré
+          if (endDate && endDate < monthStart) continue; // contrat terminé
+
+          futureRevenue += contract.monthly_payment || 0;
+
+          const totalEquipmentPurchase = (contract.contract_equipment || []).reduce(
+            (sum: number, e: any) => sum + ((e.actual_purchase_price || e.purchase_price || 0) * (e.quantity || 1)), 0
+          );
+          const contractDuration = contract.contract_duration || 36;
+          futurePurchases += totalEquipmentPurchase / contractDuration;
+        }
+      }
+
+      return {
+        futureRevenue,
+        futurePurchases,
+        futureMargin: futureRevenue - futurePurchases
+      };
+    },
+    enabled: !companyLoading && !!companyId,
+    refetchInterval: 60000,
+  });
+
   // Combiner toutes les stats calculées côté frontend
   const contractStats: ContractStatistics[] = [
     ...(pendingStats ? [pendingStats] : []),
