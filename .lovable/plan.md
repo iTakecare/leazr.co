@@ -1,25 +1,22 @@
 
 
-# Ajouter colonnes N° contrat, N° demande, Entreprise au tableau des contrats
+# Ajouter la colonne "CA Ventes Directes" au tableau mensuel du dashboard
 
-## Modifications
+## Constat
 
-### Fichier : `src/components/contracts/ContractsTable.tsx`
+Les données `directSales` sont déjà calculées mois par mois (ligne 72 de `CompanyDashboard.tsx`) et les totaux/moyennes existent aussi (lignes 89, 99). Il manque simplement la colonne dans le tableau HTML.
 
-1. **Ajouter 3 nouvelles colonnes** dans le `TableHeader` (après "Date", avant "Client") :
-   - **N° Contrat** : affiche `contract.contract_number` (ou "-")
-   - **N° Demande** : affiche `contract.offer_dossier_number`, cliquable → navigue vers `/offers/{contract.offer_id}`
-   - **Entreprise** : affiche `contract.clients?.company` (ou "-")
+## Modification unique : `src/components/dashboard/CompanyDashboard.tsx`
 
-2. **Ajouter les cellules correspondantes** dans le `TableBody` pour chaque contrat.
+1. **Header** (après "CA Self-Leasing") : ajouter `<TableHead>` "CA Ventes Directes (€)" avec couleur `text-green-600`
 
-3. **Réduire la taille de police du tableau** : ajouter `text-xs` au composant `Table` pour que tout tienne sur un seul écran sans défilement horizontal.
+2. **Lignes mensuelles** (après la cellule Self-Leasing) : ajouter `<TableCell>` affichant `month.directSales` en `text-green-700`
 
-4. **Réduire le padding des cellules** : utiliser des classes plus compactes (`px-2 py-1.5`) sur les cellules.
+3. **Ligne TOTAL** : ajouter cellule avec `totals.directSales`
 
-5. **Ajouter le tri** sur les nouvelles colonnes `contract_number` et `company` dans le `SortableTableHead` et le `useMemo` de tri.
+4. **Ligne MOYENNE** : ajouter cellule avec `moyennes.directSales`
 
-### Données déjà disponibles
+5. **Mettre à jour le `colSpan`** du message "Aucune donnée" de 8 à 9
 
-Les champs `contract_number`, `offer_dossier_number`, `offer_id` et `clients.company` sont déjà présents dans le type `Contract` et chargés par `getContracts()`. Aucune modification de requête ou migration nécessaire.
+Aucune modification de service, hook ou migration requise -- les données sont déjà disponibles.
 
