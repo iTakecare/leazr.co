@@ -1,22 +1,25 @@
 
 
-# Ajouter la colonne "CA Ventes Directes" au tableau mensuel du dashboard
+# Ajouter le CA prévisionnel sous le CA Total
 
-## Constat
+## Logique
 
-Les données `directSales` sont déjà calculées mois par mois (ligne 72 de `CompanyDashboard.tsx`) et les totaux/moyennes existent aussi (lignes 89, 99). Il manque simplement la colonne dans le tableau HTML.
+Le **CA prévisionnel** = moyenne mensuelle des mois écoulés × 12. Cela projette le CA annuel en se basant sur les mois déjà réalisés.
 
-## Modification unique : `src/components/dashboard/CompanyDashboard.tsx`
+## Modification : `src/components/dashboard/CompanyDashboard.tsx`
 
-1. **Header** (après "CA Self-Leasing") : ajouter `<TableHead>` "CA Ventes Directes (€)" avec couleur `text-green-600`
+1. **Calculer le CA prévisionnel** après les moyennes existantes :
+   ```
+   const caPrevisionnel = moyennes.ca * 12;
+   ```
 
-2. **Lignes mensuelles** (après la cellule Self-Leasing) : ajouter `<TableCell>` affichant `month.directSales` en `text-green-700`
+2. **Carte "CA Total"** (ligne ~240-241) : garder le CA réel en grand, ajouter en dessous en petit entre parenthèses le prévisionnel :
+   ```
+   <p className="text-xl font-medium">XX XXX,XX €</p>
+   <p className="text-xs text-muted-foreground">(Prév. : XX XXX,XX €)</p>
+   ```
 
-3. **Ligne TOTAL** : ajouter cellule avec `totals.directSales`
+3. **Ligne TOTAL du tableau** (ligne ~378) : même principe sur la cellule CA total — afficher le réel en gras, et en dessous en petit le prévisionnel entre parenthèses.
 
-4. **Ligne MOYENNE** : ajouter cellule avec `moyennes.directSales`
-
-5. **Mettre à jour le `colSpan`** du message "Aucune donnée" de 8 à 9
-
-Aucune modification de service, hook ou migration requise -- les données sont déjà disponibles.
+Le prévisionnel ne s'affiche que si l'année sélectionnée est l'année en cours (pas de sens pour une année passée).
 
