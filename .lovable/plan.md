@@ -1,25 +1,55 @@
 
 
-# Ajouter le CA prévisionnel sous le CA Total
+# Prévisionnel basé sur les contrats self-leasing connus (toutes colonnes)
 
-## Logique
+## Problème actuel
 
-Le **CA prévisionnel** = moyenne mensuelle des mois écoulés × 12. Cela projette le CA annuel en se basant sur les mois déjà réalisés.
+Le "prévisionnel" est calculé comme `moyenne × 12`, ce qui est incorrect. Le vrai prévisionnel doit être : **total réel des mois écoulés + revenus self-leasing connus pour les mois restants** (avril → décembre).
 
-## Modification : `src/components/dashboard/CompanyDashboard.tsx`
+Les contrats self-leasing ont une mensualité fixe et une durée connue — leur contribution future est certaine.
 
-1. **Calculer le CA prévisionnel** après les moyennes existantes :
-   ```
-   const caPrevisionnel = moyennes.ca * 12;
-   ```
+## Approche
 
-2. **Carte "CA Total"** (ligne ~240-241) : garder le CA réel en grand, ajouter en dessous en petit entre parenthèses le prévisionnel :
-   ```
-   <p className="text-xl font-medium">XX XXX,XX €</p>
-   <p className="text-xs text-muted-foreground">(Prév. : XX XXX,XX €)</p>
-   ```
+### 1. `useCompanyDashboard.ts` — Exposer les projections self-leasing futures
 
-3. **Ligne TOTAL du tableau** (ligne ~378) : même principe sur la cellule CA total — afficher le réel en gras, et en dessous en petit le prévisionnel entre parenthèses.
+Ajouter une nouvelle query `selfLeasingProjection` qui, pour l'année en cours uniquement, calcule le self-leasing des mois **restants** (du mois suivant jusqu'à décembre) :
 
-Le prévisionnel ne s'affiche que si l'année sélectionnée est l'année en cours (pas de sens pour une année passée).
+- Requête les contrats `is_self_leasing = true`, statuts actifs, dont la période chevauche les mois futurs de l'année
+- Pour chaque contrat : calcule les mois actifs **après le mois courant** jusqu'à fin d'année
+- Calcule :
+  - `futureRevenue` = `monthly_payment × mois futurs actifs`
+  - `futurePurchases` = `(equipmentCost / duration) × mois futurs actifs`
+  - `futureMargin` = `futureRevenue - futurePurchases`
+
+Retourner ces valeurs dans le hook via un nouvel objet `selfLeasingProjection`.
+
+### 2. `CompanyDashboard.tsx` — Calcul du prévisionnel par colonne
+
+Calculer le prévisionnel pour **chaque colonne** :
+
+```text
+previsionnel = {
+  ca:          elapsedTotals.ca + projection.futureRevenue,
+  caLeasing:   elapsedTotals.caLeasing,        // pas de futur connu
+  selfLeasing: elapsedTotals.selfLeasing + projection.futureRevenue,
+  directSales: elapsedTotals.directSales,       // pas de futur connu
+  achats:      elapsedTotals.achats + projection.futurePurchases,
+  marge:       prev.ca - prev.achats,
+}
+```
+
+### 3. `CompanyDashboard.tsx` — Affichage dans la ligne TOTAL
+
+Pour **chaque cellule** de la ligne TOTAL (CA Total, CA Leasing, CA Self-Leasing, Ventes Directes, Achats, Marge) :
+- En grand : le total réel (mois écoulés uniquement)
+- En petit dessous `(Prév. : XX XXX,XX €)` : le prévisionnel
+
+Même traitement pour la carte KPI "CA Total" dans le header.
+
+Ne s'affiche que si `isCurrentYear === true`.
+
+### Fichiers modifiés
+
+1. `src/hooks/useCompanyDashboard.ts` — nouvelle query + exposition dans le return
+2. `src/components/dashboard/CompanyDashboard.tsx` — calcul prévisionnel + affichage toutes colonnes
 
