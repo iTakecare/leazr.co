@@ -52,6 +52,9 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
   const [editingDates, setEditingDates] = useState<Record<string, string>>({});
   const [equipmentUnits, setEquipmentUnits] = useState<Record<string, EquipmentOrderUnit[]>>({});
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [editingUnitPrices, setEditingUnitPrices] = useState<Record<string, string>>({});
+  const [editingUnitDates, setEditingUnitDates] = useState<Record<string, string>>({});
+  const [editingUnitNotes, setEditingUnitNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchEquipment();
