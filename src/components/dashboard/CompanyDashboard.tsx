@@ -243,6 +243,9 @@ const CompanyDashboard = () => {
                 <div>
                   <p className="text-xs font-normal text-muted-foreground">CA Total</p>
                   <p className="text-xl font-medium text-foreground">{formatCurrency(totals.ca)}</p>
+                  {isCurrentYear && (
+                    <p className="text-xs text-muted-foreground">(Prév. : {formatCurrency(caPrevisionnel)})</p>
+                  )}
                 </div>
                 <div className="p-2 rounded-lg bg-blue-50">
                   <DollarSign className="w-5 h-5 text-blue-600" />
