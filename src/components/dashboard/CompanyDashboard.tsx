@@ -128,7 +128,6 @@ const CompanyDashboard = () => {
 
   const isCurrentYear = selectedYear === currentYear;
   const caPrevisionnel = moyennes.ca * 12;
-  };
 
   // Traitement des statistiques par statut
   const contractStats = metrics?.contract_stats || [];
