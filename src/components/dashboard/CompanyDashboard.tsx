@@ -42,7 +42,7 @@ const CompanyDashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [includeCreditNotes, setIncludeCreditNotes] = useState(false);
   const [showPDFModal, setShowPDFModal] = useState(false);
-  const { metrics, recentActivity, overdueInvoices, isLoading, refetch } = useCompanyDashboard(selectedYear);
+  const { metrics, recentActivity, overdueInvoices, selfLeasingProjection, isLoading, refetch } = useCompanyDashboard(selectedYear);
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
   
