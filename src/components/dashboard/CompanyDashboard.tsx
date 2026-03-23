@@ -123,8 +123,11 @@ const CompanyDashboard = () => {
     directSales: elapsedTotals.directSales / avgDivisor,
     achats: elapsedTotals.achats / avgDivisor,
     marge: avgMarge / avgDivisor,
-    margePercent: avgCa > 0 ? (avgMarge / avgCa) * 100 : 0
+    margePercent: avgCa > 0 ? (avgMarge / avgCa) * 100 : 0,
   };
+
+  const isCurrentYear = selectedYear === currentYear;
+  const caPrevisionnel = moyennes.ca * 12;
 
   // Traitement des statistiques par statut
   const contractStats = metrics?.contract_stats || [];
@@ -239,6 +242,9 @@ const CompanyDashboard = () => {
                 <div>
                   <p className="text-xs font-normal text-muted-foreground">CA Total</p>
                   <p className="text-xl font-medium text-foreground">{formatCurrency(totals.ca)}</p>
+                  {isCurrentYear && (
+                    <p className="text-xs text-muted-foreground">(Prév. : {formatCurrency(caPrevisionnel)})</p>
+                  )}
                 </div>
                 <div className="p-2 rounded-lg bg-blue-50">
                   <DollarSign className="w-5 h-5 text-blue-600" />
@@ -375,7 +381,12 @@ const CompanyDashboard = () => {
                       )}
                       <TableRow className="bg-slate-100 dark:bg-slate-800/50 border-t-2 border-slate-300">
                         <TableCell className="font-medium text-base text-slate-900">TOTAL</TableCell>
-                        <TableCell className="text-right font-medium text-base">{formatCurrency(totals.ca)}</TableCell>
+                        <TableCell className="text-right font-medium text-base">
+                          <div>{formatCurrency(totals.ca)}</div>
+                          {isCurrentYear && (
+                            <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(caPrevisionnel)})</div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right font-medium text-base text-blue-700">{formatCurrency(totals.caLeasing)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-indigo-700">{formatCurrency(totals.selfLeasing)}</TableCell>
                         <TableCell className="text-right font-medium text-base text-green-700">{formatCurrency(totals.directSales)}</TableCell>
