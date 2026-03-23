@@ -128,14 +128,14 @@ const CompanyDashboard = () => {
 
   const isCurrentYear = selectedYear === currentYear;
   
-  // Prévisionnel = totaux réels + revenus self-leasing connus pour les mois restants
+  // Prévisionnel = totaux réels des mois écoulés + revenus self-leasing connus pour les mois restants
   const previsionnel = {
-    ca: totals.ca + (selfLeasingProjection?.futureRevenue || 0),
-    caLeasing: totals.caLeasing, // pas de futur connu pour le leasing externe
-    selfLeasing: totals.selfLeasing + (selfLeasingProjection?.futureRevenue || 0),
-    directSales: totals.directSales, // pas de futur connu
-    achats: totals.achats + (selfLeasingProjection?.futurePurchases || 0),
-    marge: 0, // calculé ci-dessous
+    ca: elapsedTotals.ca + (selfLeasingProjection?.futureRevenue || 0),
+    caLeasing: elapsedTotals.caLeasing,
+    selfLeasing: elapsedTotals.selfLeasing + (selfLeasingProjection?.futureRevenue || 0),
+    directSales: elapsedTotals.directSales,
+    achats: elapsedTotals.achats + (selfLeasingProjection?.futurePurchases || 0),
+    marge: 0,
   };
   previsionnel.marge = previsionnel.ca - previsionnel.achats;
 
