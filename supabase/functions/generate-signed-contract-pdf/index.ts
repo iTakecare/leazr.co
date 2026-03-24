@@ -225,12 +225,12 @@ serve(async (req) => {
       .from('contracts')
       .select(`
         *,
-        companies!inner(name, logo_url, primary_color, signature_url, signature_representative_name, signature_representative_title),
+        companies(name, logo_url, primary_color, signature_url, signature_representative_name, signature_representative_title),
         clients(company, address, city, postal_code, country, vat_number, phone, email),
         offers!contracts_offer_id_fkey(file_fee, annual_insurance, down_payment, coefficient, financed_amount, amount)
       `)
       .eq('id', contractId)
-      .single();
+      .maybeSingle();
 
     if (contractError || !contract) {
       console.error('[GENERATE-SIGNED-CONTRACT-PDF] Contract not found:', contractError);
