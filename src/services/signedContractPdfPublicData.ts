@@ -59,9 +59,9 @@ export const buildSignedContractPdfDataFromRpc = async (rpcData: any): Promise<S
     // Leaser
     leaser_name: leaserDisplayName,
     is_self_leasing: isSelfLeasing,
-    // Company from company_customizations matching admin flow
+    // Build full company address with city/postal code
     company_name: customization.company_name || company.name || '',
-    company_address: customization.company_address || undefined,
+    company_address: [customization.company_address, customization.company_postal_code, customization.company_city].filter(Boolean).join(', ') || undefined,
     company_email: customization.company_email || undefined,
     company_phone: customization.company_phone || undefined,
     company_vat_number: customization.company_vat_number || undefined,
@@ -107,8 +107,8 @@ export const buildSignedContractPdfDataFromRpc = async (rpcData: any): Promise<S
 /**
  * Generate a deterministic filename for a signed contract PDF
  */
-export const getSignedContractPdfFilename = (trackingNumber: string, clientName: string): string => {
-  const safeName = `Contrat ${trackingNumber} - ${clientName}.pdf`.replace(/[/\\:*?"<>|]/g, '');
+export const getSignedContractPdfFilename = (contractNumber: string, clientName: string): string => {
+  const safeName = `Contrat ${contractNumber} - ${clientName}.pdf`.replace(/[/\\:*?"<>|]/g, '');
   return safeName;
 };
 

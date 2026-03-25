@@ -85,7 +85,7 @@ const replacePlaceholders = (text: string, data: any): string => {
   const monthlyPayment = data.adjustedMonthlyPayment ?? data.monthly_payment ?? 0;
 
   const clientFullAddress = [
-    data.client_address, data.client_postal_code, data.client_city, data.client_country
+    data.client_address, data.client_postal_code, data.client_city
   ].filter(Boolean).join(', ');
 
   const endDate = data.contract_end_date ? formatDate(data.contract_end_date) : '';
@@ -240,7 +240,7 @@ serve(async (req) => {
     // Fetch customization
     const { data: customization } = await supabaseClient
       .from('company_customizations')
-      .select('company_email, company_phone, company_address, company_vat_number, company_name, logo_url')
+      .select('company_email, company_phone, company_address, company_city, company_postal_code, company_vat_number, company_name, company_legal_form, logo_url')
       .eq('company_id', contract.company_id)
       .single();
 
@@ -288,9 +288,16 @@ serve(async (req) => {
       ? Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100
       : contract.monthly_payment;
 
+    // Build full company address with city
+    const companyFullAddress = [
+      customization?.company_address,
+      customization?.company_postal_code,
+      customization?.company_city,
+    ].filter(Boolean).join(', ');
+
     const pdfData = {
       company_name: customization?.company_name || contract.companies?.name || '',
-      company_address: customization?.company_address || '',
+      company_address: companyFullAddress || '',
       company_vat_number: customization?.company_vat_number || '',
       company_email: customization?.company_email || '',
       company_phone: customization?.company_phone || '',

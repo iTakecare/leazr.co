@@ -388,8 +388,7 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData, effe
   const clientFullAddress = [
     contract.client_address,
     contract.client_postal_code,
-    contract.client_city,
-    contract.client_country
+    contract.client_city
   ].filter(Boolean).join(', ');
 
   // Calculate end date if not provided

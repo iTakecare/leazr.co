@@ -134,16 +134,16 @@ export async function downloadSignedContractPDF(contractId: string): Promise<voi
     // Fetch minimal contract info for filename
     const { data: contract } = await supabase
       .from('contracts')
-      .select('tracking_number, client_name')
+      .select('tracking_number, contract_number, client_name, client_company')
       .eq('id', contractId)
       .single();
 
     const blob = await generateSignedContractPDF(contractId);
 
-    // Create filename
-    const trackingNumber = contract?.tracking_number || contractId.slice(0, 8);
-    const clientName = contract?.client_name || 'Client';
-    const filename = `Contrat ${trackingNumber} - ${clientName}.pdf`
+    // Create filename - prefer contract_number over tracking_number
+    const displayNumber = contract?.contract_number || contract?.tracking_number || contractId.slice(0, 8);
+    const displayName = contract?.client_company || contract?.client_name || 'Client';
+    const filename = `Contrat ${displayNumber} - ${displayName}.pdf`
       .replace(/[/\\:*?"<>|]/g, '');
 
     // Download
