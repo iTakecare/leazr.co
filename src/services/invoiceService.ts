@@ -1267,7 +1267,7 @@ export const generateSelfLeasingMonthlyInvoice = async (
 
     if (invoiceError) {
       console.error('❌ Erreur création facture:', invoiceError);
-      throw new Error('Erreur lors de la création de la facture');
+      throw new Error(`Erreur lors de la création de la facture: ${invoiceError.message || invoiceError.code || JSON.stringify(invoiceError)}`);
     }
 
     console.log('✅ Facture self-leasing mensuelle créée:', invoice.id);
