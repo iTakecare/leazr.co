@@ -1,34 +1,35 @@
-import React, { useState } from "react";
-import Container from "@/components/layout/Container";
-import PageTransition from "@/components/layout/PageTransition";
+import React from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { useContracts } from "@/hooks/useContracts";
-import { FileText, Search, Filter, Grid, List, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Search, Grid, List, TrendingUp, Clock, AlertTriangle, Activity } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import ContractsKanban from "@/components/contracts/ContractsKanban";
-import { contractStatuses } from "@/services/contractService";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ContractsFilter from "@/components/contracts/ContractsFilter";
-import ContractsSearch from "@/components/contracts/ContractsSearch";
-import ContractsTable from "@/components/contracts/ContractsTable";
-import ContractsEmptyState from "@/components/contracts/ContractsEmptyState";
-import ContractsAdvancedFilters from "@/components/contracts/ContractsAdvancedFilters";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import ContractsKanban from "@/components/contracts/ContractsKanban";
+import { contractStatuses } from "@/services/contractService";
+import ContractsAdvancedFilters from "@/components/contracts/ContractsAdvancedFilters";
+import ContractsTable from "@/components/contracts/ContractsTable";
+import ContractsEmptyState from "@/components/contracts/ContractsEmptyState";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileContractsPage } from "@/components/mobile/pages";
+
+const STATUS_FILTERS = [
+  { value: "all",                          label: "Tous" },
+  { value: "in_progress",                  label: "En cours" },
+  { value: contractStatuses.ACTIVE,        label: "Actifs" },
+  { value: "expiring_soon",                label: "Expiration proche" },
+  { value: contractStatuses.CONTRACT_SIGNED, label: "Signés" },
+  { value: "self_leasing",                 label: "Self-Leasing" },
+  { value: contractStatuses.COMPLETED,     label: "Terminés" },
+  { value: contractStatuses.CANCELLED,     label: "Annulés" },
+];
 
 const Contracts = () => {
   const isMobile = useIsMobile();
   const {
+    contracts,
     filteredContracts,
     loading,
     loadingError,
@@ -49,40 +50,9 @@ const Contracts = () => {
     advancedFilters,
     setAdvancedFilters,
     availableLeasers,
-    availableDurations
+    availableDurations,
   } = useContracts();
 
-  const scrollContainer = React.useRef<HTMLDivElement>(null);
-
-  const scrollLeft = () => {
-    if (scrollContainer.current) {
-      scrollContainer.current.scrollBy({ left: -300, behavior: 'smooth' });
-    }
-  };
-
-  const scrollRight = () => {
-    if (scrollContainer.current) {
-      scrollContainer.current.scrollBy({ left: 300, behavior: 'smooth' });
-    }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        when: "beforeChildren",
-        staggerChildren: 0.05,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
-  };
-
-  // Mobile rendering
   if (isMobile) {
     return (
       <MobileContractsPage
@@ -99,191 +69,215 @@ const Contracts = () => {
     );
   }
 
+  // KPI computations on full contracts list
+  const threeMonthsFromNow = new Date();
+  threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+
+  const activeContracts = contracts.filter(c =>
+    [contractStatuses.ACTIVE, contractStatuses.CONTRACT_SIGNED, "in_progress"].includes(c.status)
+  );
+  const totalMonthly = activeContracts.reduce((sum, c) => sum + (c.adjusted_monthly_payment || c.monthly_payment || 0), 0);
+  const expiringCount = contracts.filter(c =>
+    c.contract_end_date &&
+    new Date(c.contract_end_date) <= threeMonthsFromNow &&
+    new Date(c.contract_end_date) >= new Date() &&
+    c.status !== contractStatuses.COMPLETED
+  ).length;
+  const inDeliveryCount = contracts.filter(c =>
+    c.delivery_status && c.delivery_status !== 'livré'
+  ).length;
+
+  const kpis = [
+    {
+      label: "Contrats actifs",
+      value: activeContracts.length,
+      icon: Activity,
+      color: "text-blue-600",
+      bg: "bg-blue-50 border-blue-100",
+    },
+    {
+      label: "Valeur mensuelle",
+      value: formatCurrency(totalMonthly),
+      icon: TrendingUp,
+      color: "text-emerald-600",
+      bg: "bg-emerald-50 border-emerald-100",
+    },
+    {
+      label: "En livraison",
+      value: inDeliveryCount,
+      icon: Clock,
+      color: "text-orange-600",
+      bg: inDeliveryCount > 0 ? "bg-orange-50 border-orange-100" : "bg-muted/40 border-border",
+    },
+    {
+      label: "Expiration < 3 mois",
+      value: expiringCount,
+      icon: AlertTriangle,
+      color: expiringCount > 0 ? "text-red-600" : "text-muted-foreground",
+      bg: expiringCount > 0 ? "bg-red-50 border-red-100" : "bg-muted/40 border-border",
+    },
+  ];
+
   if (loading) {
     return (
-      <PageTransition>
-        <Container>
-          <div className="py-8 flex justify-center items-center">
-            <div className="text-center">
-              <div className="animate-spin mb-4 h-8 w-8 text-primary mx-auto">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </div>
-              <p className="text-muted-foreground">Chargement des contrats...</p>
-            </div>
-          </div>
-        </Container>
-      </PageTransition>
+      <div className="p-6 space-y-4">
+        <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+        <div className="grid grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />)}
+        </div>
+        <div className="h-64 bg-muted rounded-xl animate-pulse" />
+      </div>
     );
   }
 
   if (loadingError && filteredContracts.length === 0) {
     return (
-      <PageTransition>
-        <Container>
-          <div className="py-8">
-            <div className="text-center">
-              <div className="mb-4 text-red-500">
-                <FileText className="h-12 w-12 mx-auto" />
-              </div>
-              <h2 className="text-xl font-semibold mb-2">Erreur de chargement</h2>
-              <p className="text-muted-foreground mb-4">{loadingError}</p>
-              <Button onClick={fetchContracts}>Réessayer</Button>
-            </div>
-          </div>
-        </Container>
-      </PageTransition>
+      <div className="p-6 text-center py-12">
+        <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+        <p className="font-medium">{loadingError}</p>
+        <Button onClick={fetchContracts} className="mt-4" size="sm">Réessayer</Button>
+      </div>
     );
   }
 
-
   return (
-    <PageTransition>
-      <Container>
-        <motion.div
-          className="py-4"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div variants={itemVariants} className="mb-6">
-            <div className="flex items-center">
-              <FileText className="h-6 w-6 mr-2" />
-              <h1 className="text-2xl font-bold">Gestion des contrats</h1>
-            </div>
-            <p className="text-muted-foreground mt-1">
-              Gérez vos contrats et suivez leur progression
-            </p>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
-            <ContractsFilter
-              activeStatus={activeStatusFilter}
-              onStatusChange={setActiveStatusFilter}
+    <div className="p-4 md:p-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-muted-foreground" />
+          <h1 className="text-xl font-bold">Contrats</h1>
+          <span className="text-sm text-muted-foreground ml-1">
+            ({filteredContracts.length})
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Inclure terminés */}
+          <div className="flex items-center gap-2">
+            <Switch
+              id="include-completed"
+              checked={includeCompleted}
+              onCheckedChange={setIncludeCompleted}
+              className="scale-90"
             />
-            
-            <div className="flex items-center gap-2">
-              <ContractsSearch 
-                value={searchTerm} 
-                onChange={setSearchTerm} 
-              />
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="flex items-center justify-between p-2">
-                    <Label htmlFor="show-completed" className="flex items-center cursor-pointer">
-                      <span>Inclure les contrats terminés</span>
-                    </Label>
-                    <Switch 
-                      id="show-completed"
-                      checked={includeCompleted}
-                      onCheckedChange={setIncludeCompleted}
-                    />
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <div className="flex items-center border rounded-md overflow-hidden">
-                <Button 
-                  variant={viewMode === 'list' ? 'default' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setViewMode('list')} 
-                  className="rounded-none px-3"
-                >
-                  <List className="h-4 w-4 mr-2" />
-                  Liste
-                </Button>
-                <Button 
-                  variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setViewMode('kanban')} 
-                  className="rounded-none px-3"
-                >
-                  <Grid className="h-4 w-4 mr-2" />
-                  Kanban
-                </Button>
+            <Label htmlFor="include-completed" className="text-xs text-muted-foreground cursor-pointer">
+              Inclure terminés
+            </Label>
+          </div>
+          {/* View toggle */}
+          <div className="flex border rounded-lg overflow-hidden">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="rounded-none h-8 px-3"
+            >
+              <List className="h-3.5 w-3.5 mr-1.5" /> Liste
+            </Button>
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+              className="rounded-none h-8 px-3 border-l"
+            >
+              <Grid className="h-3.5 w-3.5 mr-1.5" /> Kanban
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI bar */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {kpis.map((kpi) => {
+          const Icon = kpi.icon;
+          return (
+            <div key={kpi.label} className={cn("border rounded-xl p-3 flex items-center gap-3", kpi.bg)}>
+              <div className={cn("p-1.5 rounded-lg bg-white/60", kpi.color)}>
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className={cn("text-lg font-bold leading-tight", kpi.color)}>{kpi.value}</p>
+                <p className="text-xs text-muted-foreground truncate">{kpi.label}</p>
               </div>
             </div>
-          </motion.div>
+          );
+        })}
+      </div>
 
-          <motion.div variants={itemVariants} className="mb-4">
-            <ContractsAdvancedFilters
-              filters={advancedFilters}
-              onFiltersChange={setAdvancedFilters}
-              leasers={availableLeasers}
-              durations={availableDurations}
-            />
-          </motion.div>
+      {/* Filters row */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        {/* Status pills */}
+        <div className="flex flex-wrap gap-1 flex-1">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setActiveStatusFilter(f.value)}
+              className={cn(
+                "h-7 px-3 text-xs rounded-full border transition-all",
+                activeStatusFilter === f.value
+                  ? "bg-primary text-primary-foreground border-primary font-medium"
+                  : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
-          <motion.div variants={itemVariants}>
-            {filteredContracts.length === 0 ? (
-              <ContractsEmptyState activeFilter={activeStatusFilter} />
-            ) : viewMode === 'kanban' ? (
-              <>
-                <div className="flex justify-between items-center mb-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={scrollLeft}
-                    className="rounded-full"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={scrollRight}
-                    className="rounded-full"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div ref={scrollContainer} className="overflow-hidden">
-                  <ContractsKanban 
-                    contracts={filteredContracts}
-                    onStatusChange={handleUpdateContractStatus}
-                    onAddTrackingInfo={handleAddTrackingInfo}
-                    isUpdatingStatus={isUpdatingStatus}
-                  />
-                </div>
-              </>
-            ) : (
-              <ContractsTable 
-                contracts={filteredContracts}
-                onStatusChange={handleUpdateContractStatus}
-                onAddTrackingInfo={handleAddTrackingInfo}
-                onDeleteContract={handleDeleteContract}
-                isUpdatingStatus={isUpdatingStatus}
-                isDeleting={isDeleting}
-              />
-            )}
-          </motion.div>
-          
-          <motion.div variants={itemVariants} className="mt-6 text-sm text-muted-foreground">
-            <p>
-              Valeur mensuelle totale:{" "}
-              <span className="font-medium text-foreground">
-                {formatCurrency(
-                  filteredContracts.reduce(
-                    (total, contract) => total + contract.monthly_payment,
-                    0
-                  )
-                )}
-              </span>
-            </p>
-          </motion.div>
-        </motion.div>
-      </Container>
-    </PageTransition>
+        {/* Search */}
+        <div className="relative w-full sm:w-56 shrink-0">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
+      </div>
+
+      {/* Advanced filters */}
+      <ContractsAdvancedFilters
+        filters={advancedFilters}
+        onFiltersChange={setAdvancedFilters}
+        leasers={availableLeasers}
+        durations={availableDurations}
+      />
+
+      {/* Content */}
+      {filteredContracts.length === 0 ? (
+        <ContractsEmptyState activeFilter={activeStatusFilter} />
+      ) : viewMode === 'kanban' ? (
+        <div className="overflow-x-auto">
+          <ContractsKanban
+            contracts={filteredContracts}
+            onStatusChange={handleUpdateContractStatus}
+            onAddTrackingInfo={handleAddTrackingInfo}
+            isUpdatingStatus={isUpdatingStatus}
+          />
+        </div>
+      ) : (
+        <ContractsTable
+          contracts={filteredContracts}
+          onStatusChange={handleUpdateContractStatus}
+          onAddTrackingInfo={handleAddTrackingInfo}
+          onDeleteContract={handleDeleteContract}
+          isUpdatingStatus={isUpdatingStatus}
+          isDeleting={isDeleting}
+        />
+      )}
+
+      {/* Footer total */}
+      {filteredContracts.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Valeur mensuelle affichée :{" "}
+          <span className="font-medium text-foreground">
+            {formatCurrency(filteredContracts.reduce((t, c) => t + (c.adjusted_monthly_payment || c.monthly_payment || 0), 0))}
+          </span>
+          {" · "}{filteredContracts.length} contrat{filteredContracts.length > 1 ? "s" : ""}
+        </p>
+      )}
+    </div>
   );
 };
 
