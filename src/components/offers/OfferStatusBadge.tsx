@@ -58,73 +58,73 @@ export const OFFER_STATUSES = {
     icon: CheckCircle,
     color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
-  INTERNAL_DOCS_REQUESTED: { 
-    id: "internal_docs_requested", 
-    label: "Documents demandés (interne)", 
+  INTERNAL_DOCS_REQUESTED: {
+    id: "internal_docs_requested",
+    label: "Docs interne",
     icon: FileText,
     color: "bg-amber-50 text-amber-800 border-amber-300"
   },
-  INTERNAL_REJECTED: { 
-    id: "internal_rejected", 
-    label: "Rejetée interne", 
+  INTERNAL_REJECTED: {
+    id: "internal_rejected",
+    label: "Rejet interne",
     icon: XCircle,
     color: "bg-red-50 text-red-800 border-red-300"
   },
-  
+
   // Analyse leaser
-  LEASER_REVIEW: { 
-    id: "leaser_review", 
-    label: "Analyse leaser", 
+  LEASER_REVIEW: {
+    id: "leaser_review",
+    label: "Analyse leaser",
     icon: Building2,
     color: "bg-slate-100 text-slate-700 border-slate-300"
   },
-  LEASER_INTRODUCED: { 
-    id: "leaser_introduced", 
-    label: "Introduit leaser", 
+  LEASER_INTRODUCED: {
+    id: "leaser_introduced",
+    label: "Intro. leaser",
     icon: Building2,
     color: "bg-slate-100 text-slate-700 border-slate-300"
   },
-  SCORING_REVIEW: { 
-    id: "Scoring_review", 
-    label: "Résultat leaser", 
+  SCORING_REVIEW: {
+    id: "Scoring_review",
+    label: "Score leaser",
     icon: BarChart3,
     color: "bg-slate-100 text-slate-700 border-slate-300"
   },
-  LEASER_APPROVED: { 
-    id: "leaser_approved", 
-    label: "Validée leaser", 
+  LEASER_APPROVED: {
+    id: "leaser_approved",
+    label: "Validé leaser",
     icon: CheckCircle,
     color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
-  LEASER_DOCS_REQUESTED: { 
-    id: "leaser_docs_requested", 
-    label: "Documents demandés (leaser)", 
+  LEASER_DOCS_REQUESTED: {
+    id: "leaser_docs_requested",
+    label: "Docs leaser",
     icon: FileText,
     color: "bg-amber-50 text-amber-800 border-amber-300"
   },
-  LEASER_REJECTED: { 
-    id: "leaser_rejected", 
-    label: "Rejetée leaser", 
+  LEASER_REJECTED: {
+    id: "leaser_rejected",
+    label: "Rejet leaser",
     icon: XCircle,
     color: "bg-red-50 text-red-800 border-red-300"
   },
-  
+
   // Client
-  CLIENT_REVIEW: { 
-    id: "client_review", 
-    label: "En revue client", 
+  CLIENT_REVIEW: {
+    id: "client_review",
+    label: "Revue client",
     icon: User,
     color: "bg-blue-50 text-blue-700 border-blue-200"
   },
-  OFFER_ACCEPTED: { 
-    id: "offer_accepted", 
-    label: "Offre acceptée", 
+  OFFER_ACCEPTED: {
+    id: "offer_accepted",
+    label: "Offre acceptée",
     icon: CheckCircle,
     color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
-  CLIENT_REJECTED: { 
-    id: "client_rejected", 
-    label: "Rejetée par client", 
+  CLIENT_REJECTED: {
+    id: "client_rejected",
+    label: "Rejet client",
     icon: XCircle,
     color: "bg-red-50 text-red-800 border-red-300"
   },
@@ -176,9 +176,9 @@ export const OFFER_STATUSES = {
     icon: XCircle,
     color: "bg-red-50 text-red-800 border-red-300"
   },
-  INFO_REQUESTED: { 
-    id: "info_requested", 
-    label: "Informations demandées", 
+  INFO_REQUESTED: {
+    id: "info_requested",
+    label: "Infos demandées",
     icon: HelpCircle,
     color: "bg-amber-50 text-amber-800 border-amber-300"
   },

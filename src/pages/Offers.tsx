@@ -85,51 +85,55 @@ const Offers = () => {
   }
 
   return <PageTransition>
-      <div className="w-full p-4 md:p-8">
-        <div className="flex justify-between items-center mb-6">
+      <div className="w-full p-4 md:p-6">
+        {/* En-tête compact : titre + actions sur une ligne */}
+        <div className="flex justify-between items-center mb-4">
           <OffersHeader />
           <div className="flex items-center gap-2">
             <OffersSearch value={searchTerm} onChange={setSearchTerm} />
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-4 w-4" />
+                <Button variant="outline" size="icon" className="h-8 w-8">
+                  <Filter className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="flex items-center justify-between p-2">
-                  <Label htmlFor="show-converted" className="flex items-center cursor-pointer">
-                    <span>Inclure les demandes converties</span>
+                  <Label htmlFor="show-converted" className="flex items-center cursor-pointer text-sm">
+                    <span>Inclure les converties</span>
                   </Label>
                   <Switch id="show-converted" checked={includeConverted} onCheckedChange={setIncludeConverted} />
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             <ExcelExportDialog offers={offers}>
-              <Button variant="outline" size="icon">
-                <Download className="h-4 w-4" />
+              <Button variant="outline" size="icon" className="h-8 w-8">
+                <Download className="h-3.5 w-3.5" />
               </Button>
             </ExcelExportDialog>
             <ExcelImportDialog onImportComplete={fetchOffers}>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="h-8 text-xs">
                 Importer
               </Button>
             </ExcelImportDialog>
-            <Button onClick={() => navigateToAdmin("create-offer")} className="bg-emerald-500 hover:bg-emerald-600 text-white">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button onClick={() => navigateToAdmin("create-offer")} size="sm" className="h-8 bg-emerald-500 hover:bg-emerald-600 text-white text-xs">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Nouvelle demande
             </Button>
           </div>
         </div>
-        
-        <div className="mb-6">
+
+        {/* Filtres sur une seule ligne */}
+        <div className="mb-4">
           <OffersFilter activeTab={activeTab} onTabChange={setActiveTab} activeType={activeType} onTypeChange={setActiveType} activeSource={activeSource} onSourceChange={setActiveSource} hideTypeFilter={isBrokerUser()} />
         </div>
-        
+
+        {/* KPI cards */}
         <OffersKPIStats offers={offers} activeKPIFilter={activeKPIFilter} onKPIClick={setActiveKPIFilter} />
-        
+
+        {/* Table */}
         {loading ? <OffersLoading /> : loadingError ? <OffersError message={loadingError} onRetry={fetchOffers} /> : <OffersTable offers={filteredOffers} onStatusChange={handleUpdateWorkflowStatus} onDeleteOffer={handleDeleteOffer} onResendOffer={handleResendOffer} onGenerateOffer={handleGenerateOffer} isUpdatingStatus={isUpdatingStatus} sentReminders={reminders} onReminderSent={invalidateReminders} />}
       </div>
     </PageTransition>;
