@@ -40,6 +40,10 @@ interface ContractData {
   financed_amount?: string;
   billing_entity_name?: string;
   billingEntityId?: string;
+  // New enrichment fields
+  business_sector?: string;
+  source?: string;
+  notes?: string;
   equipments: EquipmentItem[];
 }
 
@@ -297,6 +301,8 @@ serve(async (req) => {
             address: contract.client_address || null,
             city: contract.client_city || null,
             postal_code: contract.client_postal_code || null,
+            notes: contract.notes || null,
+            business_sector: contract.business_sector || null,
             country: contract.client_country || 'BE',
             status: 'active'
           };
@@ -577,7 +583,17 @@ serve(async (req) => {
         // STEP 5: Create new offer (contract doesn't exist)
         // Use per-contract billing entity or fallback to default
         const contractBillingEntityId = contract.billingEntityId || defaultBillingEntityId;
-        
+
+        // Map CSV status → offer workflow_status
+        const csvStatus = (contract.status || 'active').toLowerCase();
+        const offerWorkflowStatus = csvStatus === 'rejected' ? 'leaser_rejected'
+          : csvStatus === 'pending' ? 'draft'
+          : 'financed';
+        const offerStatus = csvStatus === 'rejected' ? 'rejected'
+          : csvStatus === 'pending' ? 'draft'
+          : 'accepted';
+        const convertedToContract = csvStatus !== 'rejected' && csvStatus !== 'pending';
+
         const offerData = {
           client_id: clientId,
           client_name: matchedClientName || contract.client_name || contract.client_company,
@@ -589,9 +605,11 @@ serve(async (req) => {
           financed_amount: financedAmount || totalEquipmentCost,
           monthly_payment: monthlyPayment,
           type: 'internal_offer',
-          workflow_status: 'accepted',
-          status: 'accepted',
-          converted_to_contract: true,
+          workflow_status: offerWorkflowStatus,
+          status: offerStatus,
+          converted_to_contract: convertedToContract,
+          business_sector: contract.business_sector || null,
+          source: contract.source || null,
           request_date: parseDate(contract.request_date) || parseDate(contract.offer_date) || parseDate(contract.dossier_date) || null,
           created_at: parseDate(contract.offer_date) || parseDate(contract.dossier_date) || parseDate(contract.request_date) || `${year}-01-01`,
           dossier_number: contract.dossier_number

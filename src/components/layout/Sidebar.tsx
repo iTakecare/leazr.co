@@ -125,7 +125,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
 
   if (!user || !companyId) return null;
 
-  const SidebarContent = memo(() => (
+  const renderSidebarContent = () => (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
       {/* Header */}
       <div className={cn(
@@ -226,7 +226,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         <SidebarUserSection collapsed={isCollapsed} darkMode />
       </div>
     </div>
-  ));
+  );
 
   return (
     <>
@@ -244,7 +244,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         isCollapsed ? "w-16" : "w-64",
         className
       )}>
-        <SidebarContent />
+        {renderSidebarContent()}
       </div>
 
       {/* Mobile Sidebar Overlay */}
@@ -255,7 +255,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
             onClick={closeMobile}
           />
           <div className="absolute left-0 top-0 bottom-0 w-64 transform transition-transform duration-300">
-            <SidebarContent />
+            {renderSidebarContent()}
           </div>
         </div>
       )}

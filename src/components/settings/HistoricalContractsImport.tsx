@@ -75,6 +75,9 @@ interface CSVRow {
   contract_duration?: string;
   financed_amount?: string;
   billing_entity_name?: string;
+  business_sector?: string;
+  source?: string;
+  notes?: string;
   [key: string]: string | undefined;
 }
 
@@ -111,6 +114,9 @@ interface GroupedContract {
   contract_duration: string;
   financed_amount: string;
   billing_entity_name: string;
+  business_sector: string;
+  source: string;
+  notes: string;
   equipments: EquipmentItem[];
 }
 
@@ -193,7 +199,10 @@ const COLUMN_LABELS: Record<string, string> = {
   contract_end_date: 'Fin contrat',
   contract_duration: 'Durée (mois)',
   financed_amount: 'Montant financé (€)',
-  billing_entity_name: 'Entité de facturation'
+  billing_entity_name: 'Entité de facturation',
+  business_sector: 'Secteur d\'activité',
+  source: 'Source / Origine',
+  notes: 'Notes'
 };
 
 const HistoricalContractsImport: React.FC = () => {
@@ -490,6 +499,9 @@ const HistoricalContractsImport: React.FC = () => {
             contract_duration: row.contract_duration || '36',
             financed_amount: row.financed_amount || '',
             billing_entity_name: row.billing_entity_name || '',
+            business_sector: row.business_sector || '',
+            source: row.source || '',
+            notes: row.notes || '',
             equipments: []
           };
         }
@@ -507,13 +519,40 @@ const HistoricalContractsImport: React.FC = () => {
         }
       });
 
+      // Auto-create any billing entities referenced in CSV that don't exist yet (e.g. 'iTakecare PP')
+      const referencedEntityNames = [...new Set(
+        Object.values(groupedContracts)
+          .map(c => c.billing_entity_name?.trim())
+          .filter(Boolean)
+      )];
+      for (const entityName of referencedEntityNames) {
+        const exists = billingEntities?.some(e => e.name.toLowerCase().trim() === entityName.toLowerCase().trim());
+        if (!exists && entityName) {
+          const { data: newEntity } = await supabase
+            .from('billing_entities')
+            .insert({
+              company_id: profile.company_id,
+              name: entityName,
+              country: 'BE',
+              valid_from: '2020-01-01',
+              is_default: false
+            })
+            .select('id, name, is_default')
+            .single();
+          if (newEntity) {
+            billingEntities?.push(newEntity);
+            toast.info(`Entité de facturation créée : ${entityName}`);
+          }
+        }
+      }
+
       // Map contracts with their billing entity IDs
       const contractsToImport = Object.values(groupedContracts).map(contract => {
         // Find billing entity by name (case-insensitive)
-        const matchedEntity = billingEntities?.find(e => 
+        const matchedEntity = billingEntities?.find(e =>
           e.name.toLowerCase().trim() === contract.billing_entity_name.toLowerCase().trim()
         );
-        
+
         return {
           ...contract,
           billingEntityId: matchedEntity?.id || defaultBillingEntity.id

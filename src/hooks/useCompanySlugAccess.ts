@@ -17,7 +17,7 @@ export const useCompanySlugAccess = (companySlug?: string) => {
   useEffect(() => {
     const checkAccess = async () => {
       // Wait for auth — don't resolve while user is null (keeps loading:true)
-      if (!user) return;
+      if (!user?.id) return;
       if (!companySlug) {
         setHasAccess(false);
         setLoading(false);
@@ -76,7 +76,7 @@ export const useCompanySlugAccess = (companySlug?: string) => {
     };
 
     checkAccess();
-  }, [user, companySlug]);
+  }, [user?.id, companySlug]);
 
   return { hasAccess, loading, company };
 };
