@@ -1204,9 +1204,21 @@ export const generateSelfLeasingMonthlyInvoice = async (
     const vatAmount = Math.round((amountHtva * vatRate / 100) * 100) / 100;
     const amountTvacCalc = Math.round((amountHtva + vatAmount) * 100) / 100;
 
+    // Calculer le numéro de mensualité
+    const contractStartDate = contract.start_date ? new Date(contract.start_date) : null;
+    const paymentDateObj = new Date(paymentDate);
+    let mensualiteLabel = '';
+    if (contractStartDate) {
+      const monthsDiff = (paymentDateObj.getFullYear() - contractStartDate.getFullYear()) * 12 
+        + (paymentDateObj.getMonth() - contractStartDate.getMonth()) + 1;
+      const duration = contract.duration || 36;
+      mensualiteLabel = ` | Mensualité ${monthsDiff}/${duration}`;
+    }
+
     // Construire equipment_data pour l'affichage des lignes
+    const contractRef = contract.contract_number || contract.tracking_number || '';
     const equipmentData = equipmentItems.map(item => ({
-      title: `Contrat de location ${contract.tracking_number || ''} / ${item.title}`,
+      title: `Contrat de location ${contractRef}${mensualiteLabel} / ${item.title}`,
       quantity: item.quantity || 1,
       selling_price_excl_vat: item.monthly_payment || (baseAmountHtva / (equipmentItems.length || 1)),
       serial_number: item.serial_number || null,
