@@ -1205,18 +1205,17 @@ export const generateSelfLeasingMonthlyInvoice = async (
     const amountTvacCalc = Math.round((amountHtva + vatAmount) * 100) / 100;
 
     // Calculer le numéro de mensualité
-    const contractStartDate = contract.start_date 
-      ? new Date(contract.start_date) 
-      : contract.first_payment_date 
-        ? new Date(contract.first_payment_date) 
-        : contract.created_at 
-          ? new Date(contract.created_at) 
-          : null;
+    const contractStartDateRaw =
+      contract.contract_start_date ||
+      contract.start_date ||
+      contract.first_payment_date ||
+      contract.created_at;
+    const contractStartDate = contractStartDateRaw ? new Date(contractStartDateRaw) : null;
     const paymentDateObj = new Date(paymentDate);
-    const duration = contract.duration || 36;
+    const duration = contract.contract_duration || contract.duration || 36;
     let mensualiteLabel = '';
     if (contractStartDate) {
-      const monthsDiff = (paymentDateObj.getFullYear() - contractStartDate.getFullYear()) * 12 
+      const monthsDiff = (paymentDateObj.getFullYear() - contractStartDate.getFullYear()) * 12
         + (paymentDateObj.getMonth() - contractStartDate.getMonth()) + 1;
       mensualiteLabel = ` | Mensualité ${Math.max(1, monthsDiff)}/${duration}`;
     } else {
