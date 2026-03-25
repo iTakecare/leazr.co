@@ -1,0 +1,23 @@
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: https://cifbetjefyfocafanlhv.supabase.co
+        VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw
+        VITE_SUPABASE_PROJECT_ID: cifbetjefyfocafanlhv
+    restart: unless-stopped
+    networks:
+      - deploy_internal
+    labels:
+      - "traefik.enable=true"
+      # app.leazr.co → portail générique
+      - "traefik.http.routers.leazr-app.rule=Host(`app.leazr.co`) || HostRegexp(`{subdomain:[a-z0-9-]+}.leazr.co`)"
+      - "traefik.http.routers.leazr-app.entrypoints=websecure"
+      - "traefik.http.routers.leazr-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.leazr-app.loadbalancer.server.port=80"
+
+networks:
+  deploy_internal:
+    external: true

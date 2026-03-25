@@ -19,4 +19,26 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          // UI libraries
+          "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-toast", "framer-motion"],
+          // Data fetching & forms
+          "vendor-data": ["@tanstack/react-query", "react-hook-form", "zod"],
+          // Supabase
+          "vendor-supabase": ["@supabase/supabase-js"],
+          // PDF libraries (chargées uniquement quand nécessaire)
+          "vendor-pdf": ["jspdf", "jspdf-autotable", "pdf-lib"],
+          // Charts
+          "vendor-charts": ["recharts"],
+          // Excel
+          "vendor-excel": ["exceljs", "xlsx"],
+        },
+      },
+    },
+  },
 }));

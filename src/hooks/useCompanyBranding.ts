@@ -9,6 +9,9 @@ interface CompanyBranding {
   primary_color: string | null;
   secondary_color: string | null;
   accent_color: string | null;
+  hero_image_url: string | null;
+  login_title: string | null;
+  login_subtitle: string | null;
 }
 
 export const useCompanyBranding = (companySlug: string | null) => {

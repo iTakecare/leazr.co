@@ -12,6 +12,7 @@ import PageTransition from '@/components/layout/PageTransition';
 import Logo from '@/components/layout/Logo';
 import { getCompanySlugForUser } from '@/services/companySlugService';
 import { useCompanyBranding } from '@/hooks/useCompanyBranding';
+import { getTenantSlug } from '@/utils/tenantDetection';
 import itakecareHero from '@/assets/itakecare-hero.jpg';
 
 const Login = () => {
@@ -23,9 +24,11 @@ const Login = () => {
   const location = useLocation();
   const { signIn, user, isAdmin, isClient, isAmbassador, isSuperAdmin, isLoading, session } = useAuth();
 
-  // Detect company slug from URL path
-  const companySlug = location.pathname.split('/')[1];
-  const { branding: companyBranding, loading: brandingLoading } = useCompanyBranding(companySlug || null);
+  // Priorité : sous-domaine (itakecare.leazr.co) → path URL (/itakecare/login) → null
+  const subdomainSlug = getTenantSlug();
+  const pathSlug = location.pathname.split('/')[1];
+  const companySlug = subdomainSlug || pathSlug || null;
+  const { branding: companyBranding, loading: brandingLoading } = useCompanyBranding(companySlug);
 
   // Redirection automatique - corrigée pour éviter les conflits
   useEffect(() => {
@@ -322,34 +325,21 @@ const Login = () => {
       
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-indigo-600/40 z-10"></div>
-        <div 
-          className="absolute inset-0 bg-cover bg-center" 
-          style={{ 
-            backgroundImage: `url('${companyBranding ? itakecareHero : "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"}')`,
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url('${companyBranding?.hero_image_url || itakecareHero}')`,
             filter: "brightness(0.8) blur(1px)"
           }}
         ></div>
-        
+
         <div className="absolute bottom-12 left-12 right-12 p-6 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 z-20">
-          {companyBranding ? (
-            <>
-              <h3 className="text-2xl font-bold text-white mb-2">
-                Leazr.co × {companyBranding.name}
-              </h3>
-              <p className="text-white/90">
-                Une collaboration innovante pour digitaliser la gestion de vos contrats de leasing et optimiser le suivi de vos équipements en toute simplicité.
-              </p>
-            </>
-          ) : (
-            <>
-              <h3 className="text-2xl font-bold text-white mb-2">
-                Leazr.co
-              </h3>
-              <p className="text-white/90">
-                Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n'importe où, à tout moment.
-              </p>
-            </>
-          )}
+          <h3 className="text-2xl font-bold text-white mb-2">
+            {companyBranding?.login_title || 'Leazr.co'}
+          </h3>
+          <p className="text-white/90">
+            {companyBranding?.login_subtitle || 'Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n\'importe où, à tout moment.'}
+          </p>
         </div>
       </div>
     </PageTransition>
