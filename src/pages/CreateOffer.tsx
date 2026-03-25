@@ -913,10 +913,10 @@ const CreateOffer = () => {
                             )}
                             <div className={`flex items-center gap-1.5 ${isCurrent || isCompleted ? 'cursor-default' : 'cursor-default'}`}>
                               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium transition-colors
-                                ${isCompleted ? 'bg-emerald-500 text-white' : isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                ${isCompleted ? 'bg-emerald-500 text-white' : isCurrent ? 'bg-primary text-primary-foreground' : 'bg-slate-200 text-slate-600'}`}>
                                 {isCompleted ? '✓' : stepNum}
                               </div>
-                              <span className={`text-xs hidden sm:block transition-colors ${isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                              <span className={`text-xs hidden sm:block transition-colors ${isCurrent ? 'text-foreground font-medium' : 'text-slate-500'}`}>
                                 {step.label}
                               </span>
                             </div>
