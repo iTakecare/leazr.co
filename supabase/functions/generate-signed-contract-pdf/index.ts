@@ -226,7 +226,7 @@ serve(async (req) => {
       .select(`
         *,
         companies(name, logo_url, primary_color, signature_url, signature_representative_name, signature_representative_title),
-        clients(company, address, city, postal_code, country, vat_number, phone, email),
+        clients(company, address, city, postal_code, billing_address, billing_city, billing_postal_code, billing_country, country, vat_number, phone, email),
         offers!contracts_offer_id_fkey(file_fee, annual_insurance, down_payment, coefficient, financed_amount, amount)
       `)
       .eq('id', contractId)
