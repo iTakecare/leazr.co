@@ -588,9 +588,10 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
         toast.success("Facture de location générée avec succès");
       }
       setInvoiceGeneratedForPayments(prev => new Set(prev).add(payment.id));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating invoice:", error);
-      toast.error("Erreur lors de la génération de la facture");
+      const errorMsg = error?.message || "Erreur inconnue";
+      toast.error(`Erreur lors de la génération de la facture: ${errorMsg}`);
     } finally {
       setGeneratingInvoiceForPayment(null);
     }
