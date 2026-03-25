@@ -16,6 +16,7 @@ export const useCompanySlugAccess = (companySlug?: string) => {
 
   useEffect(() => {
     const checkAccess = async () => {
+      setLoading(true);
       if (!user || !companySlug) {
         setHasAccess(false);
         setLoading(false);
