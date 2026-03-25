@@ -14,10 +14,12 @@ services:
       - deploy_internal
     labels:
       - "traefik.enable=true"
-      # app.leazr.co → portail générique
+      # Couvre app.leazr.co + tous les tenants *.leazr.co
       - "traefik.http.routers.leazr-app.rule=Host(`app.leazr.co`) || HostRegexp(`{subdomain:[a-z0-9-]+}.leazr.co`)"
       - "traefik.http.routers.leazr-app.entrypoints=websecure"
-      - "traefik.http.routers.leazr-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.leazr-app.tls.certresolver=ovh"
+      - "traefik.http.routers.leazr-app.tls.domains[0].main=leazr.co"
+      - "traefik.http.routers.leazr-app.tls.domains[0].sans=*.leazr.co"
       - "traefik.http.services.leazr-app.loadbalancer.server.port=80"
 
 networks:
