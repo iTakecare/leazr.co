@@ -240,7 +240,7 @@ serve(async (req) => {
     // Fetch customization
     const { data: customization } = await supabaseClient
       .from('company_customizations')
-      .select('company_email, company_phone, company_address, company_vat_number, company_name, logo_url')
+      .select('company_email, company_phone, company_address, company_city, company_postal_code, company_vat_number, company_name, company_legal_form, logo_url')
       .eq('company_id', contract.company_id)
       .single();
 
