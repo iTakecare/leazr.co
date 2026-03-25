@@ -15,7 +15,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Couvre app.leazr.co + tous les tenants *.leazr.co
-      - "traefik.http.routers.leazr-app.rule=Host(`app.leazr.co`) || HostRegexp(`{subdomain:[a-z0-9-]+}.leazr.co`)"
+      - "traefik.http.routers.leazr-app.rule=HostRegexp(`[a-z0-9-]+\\.leazr\\.co`)"
       - "traefik.http.routers.leazr-app.entrypoints=websecure"
       - "traefik.http.routers.leazr-app.tls.certresolver=ovh"
       - "traefik.http.routers.leazr-app.tls.domains[0].main=leazr.co"
