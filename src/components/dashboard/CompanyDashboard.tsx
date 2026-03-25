@@ -173,148 +173,118 @@ const CompanyDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-2">
-            <div className="h-8 w-64 bg-muted rounded animate-pulse" />
-            <div className="h-4 w-96 bg-muted rounded animate-pulse" />
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-32 bg-muted rounded animate-pulse" />
-            <div className="h-10 w-24 bg-muted rounded animate-pulse" />
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-6 w-48 bg-muted rounded animate-pulse" />
+          <div className="flex gap-2">
+            <div className="h-8 w-24 bg-muted rounded animate-pulse" />
+            <div className="h-8 w-8 bg-muted rounded animate-pulse" />
           </div>
         </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card>
-              <div className="h-8 w-48 m-6 mb-4 bg-muted rounded animate-pulse" />
-              <div className="p-6 pt-0">
-                <div className="h-64 w-full bg-muted rounded animate-pulse" />
-              </div>
-            </Card>
-          </div>
-          <div className="space-y-4">
-            <Card>
-              <div className="h-6 w-32 m-6 mb-4 bg-muted rounded animate-pulse" />
-              <div className="p-6 pt-0 space-y-3">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-12 w-full bg-muted rounded animate-pulse" />
-                ))}
-              </div>
-            </Card>
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 h-64 bg-muted rounded-lg animate-pulse" />
+          <div className="h-64 bg-muted rounded-lg animate-pulse" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-1">
-            <h1 className="text-xl font-medium text-foreground">
-              Dashboard Financier {selectedYear}
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Performance et analytics de votre activité leasing
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-background p-4">
+      <div className="space-y-4">
+        {/* Header compact */}
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-lg font-semibold text-foreground">
+            Dashboard Financier
+          </h1>
+          <div className="flex items-center gap-2">
             <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
-              <SelectTrigger className="w-28">
-                <Calendar className="w-4 h-4 mr-2" />
+              <SelectTrigger className="h-8 w-24 text-xs">
+                <Calendar className="w-3 h-3 mr-1" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {availableYears.map(year => (
-                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                  <SelectItem key={year} value={year.toString()} className="text-xs">{year}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={timeFilter} onValueChange={setTimeFilter}>
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">Mois</SelectItem>
-                <SelectItem value="quarter">Trimestre</SelectItem>
-                <SelectItem value="year">Année</SelectItem>
-                <SelectItem value="all">Tout</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
               onClick={handleRefresh}
               disabled={isRefreshing}
+              title="Rafraîchir"
             >
-              <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
-              Rafraîchir
+              <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
             </Button>
-            <Button variant="outline" onClick={() => setShowPDFModal(true)}>
-              <Download className="w-4 h-4 mr-2" />
-              Exporter PDF
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setShowPDFModal(true)} title="Exporter PDF">
+              <Download className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="shadow-none">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-normal text-muted-foreground">CA Total</p>
-                  <p className="text-xl font-medium text-foreground">{formatCurrency(displayedTotals.ca)}</p>
+                  <p className="text-xs text-muted-foreground">CA Total</p>
+                  <p className="text-lg font-semibold">{formatCurrency(displayedTotals.ca)}</p>
                   {isCurrentYear && (
-                    <p className="text-xs text-muted-foreground">(Prév. : {formatCurrency(previsionnel.ca)})</p>
+                    <p className="text-[11px] text-muted-foreground">Prév. {formatCurrency(previsionnel.ca)}</p>
                   )}
                 </div>
                 <div className="p-2 rounded-lg bg-blue-50">
-                  <DollarSign className="w-5 h-5 text-blue-600" />
+                  <DollarSign className="w-4 h-4 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-5">
+          <Card className="shadow-none">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-normal text-muted-foreground">Achats Total</p>
-                  <p className="text-xl font-medium text-foreground">{formatCurrency(displayedTotals.achats)}</p>
+                  <p className="text-xs text-muted-foreground">Achats</p>
+                  <p className="text-lg font-semibold">{formatCurrency(displayedTotals.achats)}</p>
                 </div>
                 <div className="p-2 rounded-lg bg-amber-50">
-                  <HandshakeIcon className="w-5 h-5 text-amber-600" />
+                  <HandshakeIcon className="w-4 h-4 text-amber-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-5">
+          <Card className="shadow-none">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-normal text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Marge Brute {includeCreditNotes && <span className="text-primary">(net)</span>}
                   </p>
-                  <p className="text-xl font-medium text-foreground">{formatCurrency(displayedTotals.marge)}</p>
+                  <p className="text-lg font-semibold">{formatCurrency(displayedTotals.marge)}</p>
                 </div>
                 <div className="p-2 rounded-lg bg-emerald-50">
-                  <TrendingUp className="w-5 h-5 text-emerald-600" />
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-5">
+          <Card className="shadow-none">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-normal text-muted-foreground">Taux de Marge</p>
-                  <p className="text-xl font-medium text-foreground">{moyennes.margePercent.toFixed(2)}%</p>
+                  <p className="text-xs text-muted-foreground">Taux de Marge</p>
+                  <p className="text-lg font-semibold">{moyennes.margePercent.toFixed(2)}%</p>
                 </div>
                 <div className="p-2 rounded-lg bg-purple-50">
                   <Target className="w-5 h-5 text-purple-600" />
@@ -325,9 +295,9 @@ const CompanyDashboard = () => {
         </div>
 
         {/* Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Monthly Table + Factures en retard + Actions Rapides */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Monthly Table + Factures en retard */}
+          <div className="lg:col-span-2 space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base font-medium">Tableau Mensuel {selectedYear}</CardTitle>
@@ -471,221 +441,133 @@ const CompanyDashboard = () => {
             </Card>
 
             {/* Factures en retard */}
-            <Card className="border-l-4 border-l-orange-400 bg-orange-50/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-orange-500" />
-                  Factures en attente de paiement
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-orange-100/50">
-                    <p className="text-xs text-muted-foreground">Nombre</p>
-                    <p className="text-xl font-bold text-foreground">{overdueInvoices.overdue_count}</p>
+            {overdueInvoices.overdue_count > 0 && (
+              <Card className="shadow-none border-orange-200 bg-orange-50/40">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      <div>
+                        <p className="text-xs font-medium text-foreground">Factures en attente</p>
+                        <p className="text-xs text-muted-foreground">{overdueInvoices.overdue_count} · {formatCurrency(overdueInvoices.overdue_amount)}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-100"
+                      onClick={() => navigate('/itakecare/admin/invoicing')}
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      Voir
+                    </Button>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-orange-100/50">
-                    <p className="text-xs text-muted-foreground">Montant dû</p>
-                    <p className="text-lg font-bold text-foreground">{formatCurrency(overdueInvoices.overdue_amount)}</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  className="w-full"
-                  onClick={() => navigate('/itakecare/admin/invoicing')}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Voir les factures
-                </Button>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
           </div>
 
-          {/* Statistics Sidebar */}
-          <div className="space-y-4">
-            {/* Contrats réalisés */}
-            <Card className="border-l-4 border-l-emerald-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-emerald-500" />
-                  Contrats Réalisés
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="text-center p-3 rounded-lg bg-muted cursor-help">
-                          <p className="text-xs text-muted-foreground">Nombre</p>
-                          <p className="text-xl font-bold text-foreground">{realizedStats?.count || 0}</p>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-sm">
-                        <div className="space-y-1">
-                          <p>{realizedStats?.leasing_count || 0} factures leasing</p>
-                          <p>{realizedStats?.self_leasing_count || 0} contrats self-leasing</p>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Marge</p>
-                    <p className="text-lg font-bold text-foreground">{formatCurrency(Number(realizedStats?.total_margin || 0))}</p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Montant CA</span>
-                    <span className="font-semibold">{formatCurrency(Number(realizedStats?.total_revenue || 0))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Achats</span>
-                    <span className="font-semibold">{formatCurrency(Number(realizedStats?.total_purchases || 0))}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Sidebar — carte consolidée */}
+          <div className="space-y-3">
+            <Card className="shadow-none">
+              <CardContent className="p-0 divide-y divide-border">
 
-            {/* Contrats en attente */}
-            <Card className="border-l-4 border-l-amber-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-amber-500" />
-                  En Attente
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Nombre</p>
-                    <p className="text-xl font-bold text-foreground">{pendingStats?.count || 0}</p>
+                {/* Réalisés */}
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                      Contrats réalisés
+                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-lg font-bold text-foreground cursor-help">{realizedStats?.count || 0}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="text-xs">
+                          <p>{realizedStats?.leasing_count || 0} leasing · {realizedStats?.self_leasing_count || 0} self-leasing</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Marge potentielle</p>
-                    <p className="text-lg font-bold text-foreground">{formatCurrency(Number(pendingStats?.total_margin || 0))}</p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Achats</span>
-                    <span className="font-semibold">{formatCurrency(Number(pendingStats?.total_purchases || 0))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">CA potentiel</span>
-                    <span className="font-semibold">{formatCurrency(Number(pendingStats?.total_revenue || 0))}</span>
+                  <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
+                    <span>CA</span><span className="text-right font-medium text-foreground">{formatCurrency(Number(realizedStats?.total_revenue || 0))}</span>
+                    <span>Achats</span><span className="text-right font-medium text-foreground">{formatCurrency(Number(realizedStats?.total_purchases || 0))}</span>
+                    <span>Marge</span><span className="text-right font-semibold text-emerald-600">{formatCurrency(Number(realizedStats?.total_margin || 0))}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Contrats refusés */}
-            <Card className="border-l-4 border-l-rose-400">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-rose-500" />
-                  Refusés/Sans Suite
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Nombre</p>
-                    <p className="text-xl font-bold text-foreground">{refusedStats?.count || 0}</p>
+                {/* En attente */}
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      En attente
+                    </div>
+                    <span className="text-lg font-bold text-foreground">{pendingStats?.count || 0}</span>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Marge perdue</p>
-                    <p className="text-lg font-bold text-foreground">{formatCurrency(Number(refusedStats?.total_margin || 0))}</p>
+                  <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
+                    <span>CA potentiel</span><span className="text-right font-medium text-foreground">{formatCurrency(Number(pendingStats?.total_revenue || 0))}</span>
+                    <span>Marge pot.</span><span className="text-right font-semibold text-amber-600">{formatCurrency(Number(pendingStats?.total_margin || 0))}</span>
                   </div>
                 </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">CA perdu</span>
-                    <span className="font-semibold">{formatCurrency(Number(refusedStats?.total_revenue || 0))}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Ventes Directes */}
-            <Card className="border-l-4 border-l-cyan-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-cyan-500" />
-                  Ventes Directes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Factures</p>
-                    <p className="text-xl font-bold text-foreground">{directSalesStats?.count || 0}</p>
+                {/* Ventes directes */}
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                      <ShoppingBag className="w-3.5 h-3.5 text-cyan-500" />
+                      Ventes directes
+                    </div>
+                    <span className="text-lg font-bold text-foreground">{directSalesStats?.count || 0}</span>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Marge</p>
-                    <p className="text-lg font-bold text-foreground">{formatCurrency(Number(directSalesStats?.total_margin || 0))}</p>
+                  <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
+                    <span>CA</span><span className="text-right font-medium text-foreground">{formatCurrency(Number(directSalesStats?.total_revenue || 0))}</span>
+                    <span>Marge</span><span className="text-right font-semibold text-cyan-600">{formatCurrency(Number(directSalesStats?.total_margin || 0))}</span>
                   </div>
                 </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">CA total</span>
-                    <span className="font-semibold">{formatCurrency(Number(directSalesStats?.total_revenue || 0))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Achats</span>
-                    <span className="font-semibold">{formatCurrency(Number(directSalesStats?.total_purchases || 0))}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Prévisionnel */}
-            <Card className="border-l-4 border-l-indigo-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-indigo-500" />
-                  Prévisionnel
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Nombre total</p>
-                    <p className="text-xl font-bold text-foreground">
+                {/* Refusés */}
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                      <Target className="w-3.5 h-3.5 text-rose-400" />
+                      Refusés / Sans suite
+                    </div>
+                    <span className="text-lg font-bold text-foreground">{refusedStats?.count || 0}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
+                    <span>CA perdu</span><span className="text-right font-medium text-foreground">{formatCurrency(Number(refusedStats?.total_revenue || 0))}</span>
+                    <span>Marge perdue</span><span className="text-right font-semibold text-rose-500">{formatCurrency(Number(refusedStats?.total_margin || 0))}</span>
+                  </div>
+                </div>
+
+                {/* Prévisionnel */}
+                <div className="p-4 bg-muted/30 rounded-b-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                      <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
+                      Prévisionnel total
+                    </div>
+                    <span className="text-lg font-bold text-foreground">
                       {(realizedStats?.count || 0) + (pendingStats?.count || 0) + (directSalesStats?.count || 0)}
-                    </p>
+                    </span>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-muted">
-                    <p className="text-xs text-muted-foreground">Marge prévue</p>
-                    <p className="text-lg font-bold text-foreground">
-                      {formatCurrency(Number(realizedStats?.total_margin || 0) + Number(pendingStats?.total_margin || 0) + Number(directSalesStats?.total_margin || 0))}
-                      {(() => {
-                        const totalPurchases = Number(realizedStats?.total_purchases || 0) + Number(pendingStats?.total_purchases || 0) + Number(directSalesStats?.total_purchases || 0);
-                        const totalMargin = Number(realizedStats?.total_margin || 0) + Number(pendingStats?.total_margin || 0) + Number(directSalesStats?.total_margin || 0);
-                        const marginPercent = totalPurchases > 0 ? (totalMargin / totalPurchases) * 100 : 0;
-                        return <span className="text-xs ml-1 opacity-75">({marginPercent.toFixed(1)}%)</span>;
-                      })()}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">CA prévisionnel</span>
-                    <span className="font-semibold">
+                  <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
+                    <span>CA prévu</span>
+                    <span className="text-right font-medium text-foreground">
                       {formatCurrency(Number(realizedStats?.total_revenue || 0) + Number(pendingStats?.total_revenue || 0) + Number(directSalesStats?.total_revenue || 0))}
                     </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Achats prévus</span>
-                    <span className="font-semibold">
-                      {formatCurrency(Number(realizedStats?.total_purchases || 0) + Number(pendingStats?.total_purchases || 0) + Number(directSalesStats?.total_purchases || 0))}
+                    <span>Marge prévue</span>
+                    <span className="text-right font-semibold text-indigo-600">
+                      {formatCurrency(Number(realizedStats?.total_margin || 0) + Number(pendingStats?.total_margin || 0) + Number(directSalesStats?.total_margin || 0))}
                     </span>
                   </div>
                 </div>
+
               </CardContent>
             </Card>
-
           </div>
         </div>
       </div>
