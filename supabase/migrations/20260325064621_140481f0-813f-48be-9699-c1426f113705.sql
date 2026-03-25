@@ -1,0 +1,1 @@
+ALTER TABLE public.invoices DROP CONSTRAINT invoices_contract_id_unique;
