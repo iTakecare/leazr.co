@@ -1205,14 +1205,28 @@ export const generateSelfLeasingMonthlyInvoice = async (
     const amountTvacCalc = Math.round((amountHtva + vatAmount) * 100) / 100;
 
     // Calculer le numéro de mensualité
-    const contractStartDate = contract.start_date ? new Date(contract.start_date) : null;
+    const contractStartDate = contract.start_date 
+      ? new Date(contract.start_date) 
+      : contract.first_payment_date 
+        ? new Date(contract.first_payment_date) 
+        : contract.created_at 
+          ? new Date(contract.created_at) 
+          : null;
     const paymentDateObj = new Date(paymentDate);
+    const duration = contract.duration || 36;
     let mensualiteLabel = '';
     if (contractStartDate) {
       const monthsDiff = (paymentDateObj.getFullYear() - contractStartDate.getFullYear()) * 12 
         + (paymentDateObj.getMonth() - contractStartDate.getMonth()) + 1;
-      const duration = contract.duration || 36;
-      mensualiteLabel = ` | Mensualité ${monthsDiff}/${duration}`;
+      mensualiteLabel = ` | Mensualité ${Math.max(1, monthsDiff)}/${duration}`;
+    } else {
+      // Fallback: compter les factures existantes pour ce contrat
+      const { count } = await supabase
+        .from('invoices')
+        .select('id', { count: 'exact', head: true })
+        .eq('contract_id', contractId)
+        .eq('invoice_type', 'leasing');
+      mensualiteLabel = ` | Mensualité ${(count || 0) + 1}/${duration}`;
     }
 
     // Construire equipment_data pour l'affichage des lignes
