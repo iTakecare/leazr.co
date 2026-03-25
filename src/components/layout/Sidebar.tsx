@@ -64,97 +64,49 @@ const Sidebar = memo(({ className }: SidebarProps) => {
 
   const companySlug = getCompanySlugFromPath();
 
-  const menuItems = useMemo(() => {
+  const menuGroups = useMemo(() => {
     const basePrefix = companySlug ? `/${companySlug}` : '';
-    
-    const allMenuItems = [
-      { 
-        icon: BarChart3, 
-        label: "Dashboard", 
-        href: `${basePrefix}/admin/dashboard`, 
-        moduleSlug: "dashboard",
-        alwaysVisible: true 
+
+    const groups = [
+      {
+        label: "Principal",
+        items: [
+          { icon: BarChart3, label: "Dashboard", href: `${basePrefix}/admin/dashboard`, moduleSlug: "dashboard", alwaysVisible: true },
+          { icon: UserCheck, label: "CRM", href: `${basePrefix}/admin/clients`, moduleSlug: "crm" },
+          { icon: FileText, label: "Contrats", href: `${basePrefix}/admin/contracts`, moduleSlug: "contracts" },
+          { icon: ClipboardList, label: "Demandes", href: `${basePrefix}/admin/offers`, moduleSlug: "offers" },
+          { icon: Calculator, label: "Factures", href: `${basePrefix}/admin/invoicing`, moduleSlug: "invoicing" },
+        ]
       },
-      { 
-        icon: UserCheck, 
-        label: "CRM", 
-        href: `${basePrefix}/admin/clients`, 
-        moduleSlug: "crm" 
+      {
+        label: "Catalogue & Stock",
+        items: [
+          { icon: Package, label: "Catalogue", href: `${basePrefix}/admin/catalog`, moduleSlug: "catalog" },
+          { icon: Truck, label: "Commandes", href: `${basePrefix}/admin/equipment-orders`, moduleSlug: "contracts", alwaysVisible: false },
+          { icon: Warehouse, label: "Stock", href: `${basePrefix}/admin/stock`, moduleSlug: "contracts", alwaysVisible: false },
+        ]
       },
-      { 
-        icon: FileText, 
-        label: "Contrats", 
-        href: `${basePrefix}/admin/contracts`, 
-        moduleSlug: "contracts" 
-      },
-      { 
-        icon: ClipboardList, 
-        label: "Demandes", 
-        href: `${basePrefix}/admin/offers`, 
-        moduleSlug: "offers" 
-      },
-      { 
-        icon: Calculator, 
-        label: "Factures", 
-        href: `${basePrefix}/admin/invoicing`, 
-        moduleSlug: "invoicing" 
-      },
-      { 
-        icon: Package, 
-        label: "Catalogue", 
-        href: `${basePrefix}/admin/catalog`, 
-        moduleSlug: "catalog" 
-      },
-      { 
-        icon: Truck, 
-        label: "Commandes", 
-        href: `${basePrefix}/admin/equipment-orders`, 
-        moduleSlug: "contracts",
-        alwaysVisible: false 
-      },
-      { 
-        icon: Warehouse, 
-        label: "Stock", 
-        href: `${basePrefix}/admin/stock`, 
-        moduleSlug: "contracts",
-        alwaysVisible: false 
-      },
-      { 
-        icon: CheckSquare, 
-        label: "Tâches", 
-        href: `${basePrefix}/admin/tasks`, 
-        moduleSlug: "tasks",
-        alwaysVisible: true,
-        badge: taskUnreadCount > 0 ? String(taskUnreadCount) : undefined
-      },
-      { 
-        icon: Mail, 
-        label: "Chat Admin", 
-        href: `${basePrefix}/admin/chat`, 
-        moduleSlug: "chat" 
-      },
-      { 
-        icon: Headset, 
-        label: "Support", 
-        href: `${basePrefix}/admin/support`, 
-        moduleSlug: "support",
-        alwaysVisible: true,
-        badge: supportUnreadCount > 0 ? String(supportUnreadCount) : undefined
-      },
-      { 
-        icon: Settings, 
-        label: "Paramètres", 
-        href: `${basePrefix}/admin/settings`, 
-        moduleSlug: "settings",
-        alwaysVisible: true 
+      {
+        label: "Collaboration",
+        items: [
+          { icon: CheckSquare, label: "Tâches", href: `${basePrefix}/admin/tasks`, moduleSlug: "tasks", alwaysVisible: true, badge: taskUnreadCount > 0 ? String(taskUnreadCount) : undefined },
+          { icon: Mail, label: "Chat Admin", href: `${basePrefix}/admin/chat`, moduleSlug: "chat" },
+          { icon: Headset, label: "Support", href: `${basePrefix}/admin/support`, moduleSlug: "support", alwaysVisible: true, badge: supportUnreadCount > 0 ? String(supportUnreadCount) : undefined },
+        ]
       },
     ];
 
-    return allMenuItems.filter(item => {
-      if (item.alwaysVisible) return true;
-      return hasModuleAccess(item.moduleSlug);
-    });
+    return groups.map(group => ({
+      ...group,
+      items: group.items.filter(item => {
+        if ((item as any).alwaysVisible) return true;
+        return hasModuleAccess(item.moduleSlug);
+      })
+    })).filter(group => group.items.length > 0);
   }, [companySlug, hasModuleAccess, taskUnreadCount, supportUnreadCount]);
+
+  // Flat list for backward compat (used by isActive etc.)
+  const menuItems = useMemo(() => menuGroups.flatMap(g => g.items), [menuGroups]);
 
   const isActive = useCallback((href: string) => location.pathname === href, [location.pathname]);
   
@@ -215,22 +167,46 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         "flex-1 overflow-y-auto",
         isCollapsed ? "px-2 py-3" : "p-3"
       )}>
-        {!isCollapsed && (
-          <p className="text-[9px] font-medium uppercase text-sidebar-foreground/40 px-3 mb-2">
-            Navigation
-          </p>
-        )}
-        <ul className="space-y-1">
-          {menuItems.map((item) => (
-            <SidebarMenuItem
-              key={item.href}
-              item={item}
-              isActive={isActive}
-              collapsed={isCollapsed}
-              onLinkClick={closeMobile}
-            />
+        <div className={cn("space-y-1", !isCollapsed && "space-y-4")}>
+          {menuGroups.map((group, groupIdx) => (
+            <div key={group.label}>
+              {!isCollapsed && groupIdx > 0 && (
+                <div className="h-px bg-sidebar-border/50 mb-3" />
+              )}
+              {!isCollapsed && (
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-sidebar-foreground/35 px-3 mb-1.5">
+                  {group.label}
+                </p>
+              )}
+              {isCollapsed && groupIdx > 0 && (
+                <div className="h-px bg-sidebar-border/40 my-2" />
+              )}
+              <ul className="space-y-0.5">
+                {group.items.map((item) => (
+                  <SidebarMenuItem
+                    key={item.href}
+                    item={item}
+                    isActive={isActive}
+                    collapsed={isCollapsed}
+                    onLinkClick={closeMobile}
+                  />
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
+
+        {/* Paramètres en bas de la nav */}
+        <div className={cn(isCollapsed ? "mt-3" : "mt-4")}>
+          {!isCollapsed && <div className="h-px bg-sidebar-border/50 mb-3" />}
+          {isCollapsed && <div className="h-px bg-sidebar-border/40 my-2" />}
+          <SidebarMenuItem
+            item={{ icon: Settings, label: "Paramètres", href: `${companySlug ? `/${companySlug}` : ''}/admin/settings`, moduleSlug: "settings", alwaysVisible: true }}
+            isActive={isActive}
+            collapsed={isCollapsed}
+            onLinkClick={closeMobile}
+          />
+        </div>
       </nav>
 
       {/* Collapse button when collapsed */}
