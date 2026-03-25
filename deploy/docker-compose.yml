@@ -14,8 +14,8 @@ services:
       - deploy_internal
     labels:
       - "traefik.enable=true"
-      # Couvre app.leazr.co + tous les tenants *.leazr.co
-      - "traefik.http.routers.leazr-app.rule=HostRegexp(`[a-z0-9-]+\\.leazr\\.co`)"
+      # Couvre leazr.co + app.leazr.co + tous les tenants *.leazr.co
+      - "traefik.http.routers.leazr-app.rule=Host(`leazr.co`) || HostRegexp(`[a-z0-9-]+\\.leazr\\.co`)"
       - "traefik.http.routers.leazr-app.entrypoints=websecure"
       - "traefik.http.routers.leazr-app.tls.certresolver=ovh"
       - "traefik.http.routers.leazr-app.tls.domains[0].main=leazr.co"
