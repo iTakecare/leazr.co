@@ -226,7 +226,7 @@ serve(async (req) => {
       .select(`
         *,
         companies(name, logo_url, primary_color, signature_url, signature_representative_name, signature_representative_title),
-        clients(company, address, city, postal_code, country, vat_number, phone, email),
+        clients(company, address, city, postal_code, billing_address, billing_city, billing_postal_code, billing_country, country, vat_number, phone, email),
         offers!contracts_offer_id_fkey(file_fee, annual_insurance, down_payment, coefficient, financed_amount, amount)
       `)
       .eq('id', contractId)
@@ -304,10 +304,10 @@ serve(async (req) => {
       lessor_representative_name: contract.companies?.signature_representative_name || '',
       client_name: contract.client_name || 'Client',
       client_company: contract.clients?.company || '',
-      client_address: contract.clients?.address || '',
-      client_city: contract.clients?.city || '',
-      client_postal_code: contract.clients?.postal_code || '',
-      client_country: contract.clients?.country || 'Belgique',
+      client_address: contract.clients?.billing_address || contract.clients?.address || '',
+      client_city: contract.clients?.billing_city || contract.clients?.city || '',
+      client_postal_code: contract.clients?.billing_postal_code || contract.clients?.postal_code || '',
+      client_country: contract.clients?.billing_country || contract.clients?.country || 'Belgique',
       client_vat_number: contract.clients?.vat_number || '',
       client_phone: contract.clients?.phone || '',
       client_email: contract.client_email || contract.clients?.email || '',
