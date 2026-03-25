@@ -916,7 +916,7 @@ const CreateOffer = () => {
                                 ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : isCurrent ? 'bg-primary border-primary text-primary-foreground' : 'bg-gray-100 border-gray-300 text-gray-700'}`}>
                                 {isCompleted ? '✓' : stepNum}
                               </div>
-                              <span className={`text-xs hidden sm:block transition-colors ${isCurrent ? 'text-foreground font-medium' : 'text-gray-400'}`}>
+                              <span className={`text-xs hidden sm:block transition-colors ${isCurrent ? 'text-foreground font-medium' : 'text-gray-600'}`}>
                                 {step.label}
                               </span>
                             </div>
