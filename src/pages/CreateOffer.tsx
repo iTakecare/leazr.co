@@ -912,11 +912,21 @@ const CreateOffer = () => {
                               <div className={`h-px w-8 transition-colors ${isCompleted ? 'bg-emerald-500' : 'bg-border'}`} />
                             )}
                             <div className={`flex items-center gap-1.5 ${isCurrent || isCompleted ? 'cursor-default' : 'cursor-default'}`}>
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium border transition-colors
-                                ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : isCurrent ? 'bg-primary border-primary text-primary-foreground' : 'bg-gray-100 border-gray-300 text-gray-700'}`}>
+                              <div
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium border"
+                                style={isCompleted
+                                  ? { backgroundColor: '#10b981', borderColor: '#10b981', color: '#fff' }
+                                  : isCurrent
+                                  ? { backgroundColor: 'hsl(var(--primary))', borderColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
+                                  : { backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }
+                                }
+                              >
                                 {isCompleted ? '✓' : stepNum}
                               </div>
-                              <span className={`text-xs hidden sm:block transition-colors ${isCurrent ? 'text-foreground font-medium' : 'text-gray-600'}`}>
+                              <span
+                                className="text-xs hidden sm:block"
+                                style={{ color: isCurrent ? 'inherit' : '#6b7280', fontWeight: isCurrent ? 600 : 400 }}
+                              >
                                 {step.label}
                               </span>
                             </div>
