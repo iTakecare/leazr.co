@@ -17,6 +17,7 @@ import ErrorBoundaryWrapper from "@/components/layout/ErrorBoundaryWrapper";
 
 // Auth pages
 import Login from "@/pages/Login";
+import { getTenantSlug } from "@/utils/tenantDetection";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Signup from "@/pages/Signup";
 import UpdatePassword from "@/pages/UpdatePassword";
@@ -189,7 +190,7 @@ const AppRoutes = () => (
     <Route path="/tarifs" element={<PricingPage />} />
     
     {/* Public routes */}
-    <Route path="/" element={<HomePage />} />
+    <Route path="/" element={getTenantSlug() ? <Navigate to="/login" replace /> : <HomePage />} />
     <Route path="/catalog" element={<PublicCatalogList />} />
     <Route path="/debug-slugs" element={<DebugSlugs />} />
     
