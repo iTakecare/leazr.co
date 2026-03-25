@@ -4,3 +4,4 @@ export { default as MobileSettingsPage } from './MobileSettingsPage';
 export { default as MobileDashboardPage } from './MobileDashboardPage';
 export { default as MobileOfferDetailPage } from './MobileOfferDetailPage';
 export { default as MobileCRMPage } from './MobileCRMPage';
+export { default as MobileTasksPage } from './MobileTasksPage';

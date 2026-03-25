@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileTasksPage } from "@/components/mobile/pages";
 import { useTasks, useTaskMutations } from "@/hooks/useTasks";
 import { useTaskNotifications } from "@/hooks/useTaskNotifications";
 import TaskList from "@/components/tasks/TaskList";
@@ -18,6 +20,7 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const Tasks = () => {
+  const isMobile = useIsMobile();
   const [view, setView] = useState<'list' | 'kanban' | 'calendar'>('list');
   const [filters, setFilters] = useState<TaskFiltersType>({});
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -28,6 +31,10 @@ const Tasks = () => {
   const { data: tasks = [], isLoading } = useTasks(filters);
   const { create, update, remove } = useTaskMutations();
   const { notifications, unreadCount, markRead, markAllRead } = useTaskNotifications();
+
+  if (isMobile) {
+    return <MobileTasksPage />;
+  }
 
   const activeTasks = tasks.filter(t => t.status !== 'done');
   const doneTasks = tasks.filter(t => t.status === 'done');
