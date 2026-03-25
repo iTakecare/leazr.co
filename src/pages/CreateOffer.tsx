@@ -853,25 +853,82 @@ const CreateOffer = () => {
       setIsSubmitting(false);
     }
   };
+  // Wizard step state
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = productsToBeDetermined ? 2 : 3;
+
+  const canAdvanceStep1 = !!(selectedLeaser || isPurchase);
+  const canAdvanceStep2 = productsToBeDetermined
+    ? estimatedBudget > 0
+    : equipmentList.length > 0;
+
+  const goNext = () => {
+    if (currentStep === 1) {
+      setCurrentStep(productsToBeDetermined ? (totalSteps) : 2);
+    } else if (currentStep === 2) {
+      setCurrentStep(3);
+    }
+  };
+
+  const goBack = () => {
+    if (currentStep === 2) setCurrentStep(1);
+    else if (currentStep === 3) setCurrentStep(productsToBeDetermined ? 1 : 2);
+  };
+
+  // Recalculate totalSteps when productsToBeDetermined changes
+  const effectiveTotalSteps = productsToBeDetermined ? 2 : 3;
+  const effectiveStep = productsToBeDetermined && currentStep === 3 ? 2 : currentStep;
+
+  const steps = productsToBeDetermined
+    ? [{ label: "Configuration" }, { label: "Validation" }]
+    : [{ label: "Configuration" }, { label: "Équipements" }, { label: "Validation" }];
+
   return <PageTransition>
       <div className="min-h-screen bg-background">
         <div className="h-screen flex flex-col">
-          {/* Compact Header */}
+          {/* Header */}
           <div className="flex-shrink-0 border-b bg-background">
             <div className="px-4 lg:px-6 py-3">
               <div className="max-w-7xl mx-auto">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <CalcIcon className="h-5 w-5 text-primary" />
-                    <h1 className="text-lg font-semibold text-gray-900">
-                      {isEditMode ? "Modifier l'offre" : "Créer une offre"}
-                      {/* Debug info pour la commission */}
-                      {!isInternalOffer && commissionData.amount > 0}
+                    <h1 className="text-base font-semibold text-gray-900">
+                      {isEditMode ? "Modifier l'offre" : "Nouvelle demande"}
                     </h1>
                   </div>
+
+                  {/* Step indicator */}
+                  {!isEditMode && (
+                    <div className="flex items-center gap-1.5">
+                      {steps.map((step, idx) => {
+                        const stepNum = idx + 1;
+                        const realStep = productsToBeDetermined && currentStep === 3 ? 2 : currentStep;
+                        const isCompleted = stepNum < realStep;
+                        const isCurrent = stepNum === realStep;
+                        return (
+                          <React.Fragment key={stepNum}>
+                            {idx > 0 && (
+                              <div className={`h-px w-8 transition-colors ${isCompleted ? 'bg-emerald-500' : 'bg-border'}`} />
+                            )}
+                            <div className={`flex items-center gap-1.5 ${isCurrent || isCompleted ? 'cursor-default' : 'cursor-default'}`}>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium transition-colors
+                                ${isCompleted ? 'bg-emerald-500 text-white' : isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                {isCompleted ? '✓' : stepNum}
+                              </div>
+                              <span className={`text-xs hidden sm:block transition-colors ${isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                                {step.label}
+                              </span>
+                            </div>
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   <Button variant="outline" onClick={() => navigateToAdmin('offers')} className="flex items-center gap-2 h-8 px-3" size="sm">
                     <ArrowLeft className="h-3 w-3" />
-                    Retour
+                    Annuler
                   </Button>
                 </div>
               </div>
@@ -882,163 +939,276 @@ const CreateOffer = () => {
           <div className="flex-1 overflow-auto">
             <div className="px-4 lg:px-6 py-4">
               <div className="max-w-7xl mx-auto">
-                {loading ? <div className="flex items-center justify-center h-64">
+                {loading ? (
+                  <div className="flex items-center justify-center h-64">
                     <WaveLoader message="Chargement..." />
-                  </div> : <div className="space-y-4">
-                    {/* Configuration de l'offre */}
-                    <OfferConfiguration 
-                      isInternalOffer={isInternalOffer} 
-                      setIsInternalOffer={handleInternalOfferChange} 
-                      selectedAmbassador={selectedAmbassador} 
-                      onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)} 
-                      selectedLeaser={selectedLeaser} 
-                      onOpenLeaserSelector={handleOpenLeaserSelector} 
-                      selectedDuration={selectedDuration} 
-                      onDurationChange={handleDurationChange} 
-                      fileFeeEnabled={fileFeeEnabled} 
-                      fileFeeAmount={fileFeeAmount} 
-                      onFileFeeEnabledChange={setFileFeeEnabled} 
-                      onFileFeeAmountChange={setFileFeeAmount}
-                      isPurchase={isPurchase}
-                      setIsPurchase={setIsPurchase}
-                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
 
-                    {/* Option Produits à déterminer */}
-                    <Card className="p-4">
-                      <div className="flex items-start space-x-3">
-                        <Checkbox
-                          id="products-tbd-simple"
-                          checked={productsToBeDetermined}
-                          onCheckedChange={(checked) => {
-                            setProductsToBeDetermined(checked as boolean);
-                            if (checked) {
-                              setEquipmentList([]);
-                            }
-                          }}
-                        />
-                        <div className="flex-1">
-                          <Label htmlFor="products-tbd-simple" className="text-sm font-medium cursor-pointer">
-                            Produits à déterminer
-                          </Label>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Créer une demande sans définir les produits pour scorer le client d'abord
-                          </p>
-                        </div>
-                      </div>
+                    {/* ─── ÉTAPE 1 : Configuration ─── */}
+                    {(currentStep === 1 || isEditMode) && (
+                      <div className="space-y-4">
+                        {!isEditMode && (
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Étape 1 — Configurez le type, le financement et sélectionnez le client
+                          </div>
+                        )}
 
-                      {productsToBeDetermined && (
-                        <div className="mt-4">
-                          <Label htmlFor="estimated-budget">Budget estimé (€)</Label>
-                          <Input
-                            id="estimated-budget"
-                            type="number"
-                            value={estimatedBudget}
-                            onChange={(e) => setEstimatedBudget(Number(e.target.value))}
-                            placeholder="Ex: 5000"
-                            min="0"
-                            className="mt-1"
-                          />
-                        </div>
-                      )}
-                    </Card>
-
-                    {productsToBeDetermined && (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Mode "Produits à déterminer" activé</AlertTitle>
-                        <AlertDescription>
-                          Budget estimé : <strong>{estimatedBudget.toLocaleString('fr-FR')} €</strong>
-                          <br />
-                          Vous pourrez définir les produits spécifiques après avoir scoré le client.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-                    {/* Contenu principal */}
-                    {!productsToBeDetermined && (
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                      <div className="xl:col-span-1">
-                        <EquipmentForm 
-                          equipment={equipment} 
-                          setEquipment={setEquipment} 
-                          selectedLeaser={selectedLeaser} 
-                          addToList={addToList} 
-                          editingId={editingId} 
-                          cancelEditing={cancelEditing} 
-                          onOpenCatalog={() => setIsCatalogOpen(true)}
-                          coefficient={coefficient} 
-                          monthlyPayment={monthlyPayment} 
-                          targetMonthlyPayment={targetMonthlyPayment} 
-                          setTargetMonthlyPayment={setTargetMonthlyPayment} 
-                          calculatedMargin={calculatedMargin} 
-                          applyCalculatedMargin={applyCalculatedMargin} 
-                          targetSalePrice={targetSalePrice} 
-                          setTargetSalePrice={setTargetSalePrice} 
-                          calculatedFromSalePrice={calculatedFromSalePrice} 
-                          applyCalculatedFromSalePrice={applyCalculatedFromSalePrice}
-                          clientId={clientId}
+                        <OfferConfiguration
+                          isInternalOffer={isInternalOffer}
+                          setIsInternalOffer={handleInternalOfferChange}
+                          selectedAmbassador={selectedAmbassador}
+                          onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)}
+                          selectedLeaser={selectedLeaser}
+                          onOpenLeaserSelector={handleOpenLeaserSelector}
+                          selectedDuration={selectedDuration}
+                          onDurationChange={handleDurationChange}
+                          fileFeeEnabled={fileFeeEnabled}
+                          fileFeeAmount={fileFeeAmount}
+                          onFileFeeEnabledChange={setFileFeeEnabled}
+                          onFileFeeAmountChange={setFileFeeAmount}
                           isPurchase={isPurchase}
+                          setIsPurchase={setIsPurchase}
                         />
-                      </div>
 
-                      <div className="xl:col-span-1 space-y-4">
-                        <EquipmentList equipmentList={equipmentList} editingId={editingId} startEditing={startEditing} removeFromList={removeFromList} updateQuantity={updateQuantity} totalMonthlyPayment={totalMonthlyPayment} globalMarginAdjustment={{
-                      amount: globalMarginAdjustment.amount,
-                      newCoef: globalMarginAdjustment.newCoef,
-                      active: globalMarginAdjustment.adaptMonthlyPayment,
-                      marginDifference: globalMarginAdjustment.marginDifference
-                    }} toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment} calculations={calculations}
-                    // Transmettre les infos commission pour l'affichage
-                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} fileFee={fileFeeEnabled ? fileFeeAmount : 0} annualInsurance={annualInsurance} isPurchase={isPurchase} discountData={globalDiscount} />
-                        
-                        {/* Remise commerciale */}
-                        {equipmentList.length > 0 && !isPurchase && (
-                          <DiscountInput
-                            monthlyPayment={totalMonthlyPayment}
-                            margin={totalEquipmentMargin}
-                            coefficient={Number(coefficient) || Number(globalMarginAdjustment.newCoef) || 0}
-                            totalPurchasePrice={calculations?.totalPurchasePrice || 0}
-                            discountData={globalDiscount}
-                            onDiscountChange={setGlobalDiscount}
-                            showMarginImpact={true}
-                            label="Remise commerciale"
-                          />
-                        )}
+                        {/* Client selector inline */}
+                        <Card className="p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">Client</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsClientSelectorOpen(true)}
+                            className="w-full"
+                          >
+                            {clientId ? "Modifier le client" : "Sélectionner un client"}
+                          </Button>
+                          {clientName && (
+                            <div className="mt-3 p-3 bg-muted/40 rounded-lg text-sm">
+                              <div className="font-medium">{clientName}</div>
+                              {clientCompany && <div className="text-muted-foreground text-xs mt-0.5">{clientCompany}</div>}
+                              {clientEmail && <div className="text-muted-foreground text-xs">{clientEmail}</div>}
+                            </div>
+                          )}
+                        </Card>
 
-                        {/* Carte Acompte - entre équipements et client */}
-                        {!isPurchase && equipmentList.length > 0 && (
-                          <DownPaymentCard
-                            downPayment={downPayment}
-                            onDownPaymentChange={setDownPayment}
-                            totalSellingPrice={calculations?.totalFinancedAmount || 0}
-                            coefficient={globalMarginAdjustment.newCoef || coefficient || 3.27}
-                            disabled={productsToBeDetermined}
-                          />
+                        {/* Option Produits à déterminer */}
+                        <Card className="p-4">
+                          <div className="flex items-start space-x-3">
+                            <Checkbox
+                              id="products-tbd-simple"
+                              checked={productsToBeDetermined}
+                              onCheckedChange={(checked) => {
+                                setProductsToBeDetermined(checked as boolean);
+                                if (checked) setEquipmentList([]);
+                              }}
+                            />
+                            <div className="flex-1">
+                              <Label htmlFor="products-tbd-simple" className="text-sm font-medium cursor-pointer">
+                                Produits à déterminer
+                              </Label>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Créer une demande sans définir les produits pour scorer le client d'abord
+                              </p>
+                            </div>
+                          </div>
+                          {productsToBeDetermined && (
+                            <div className="mt-4">
+                              <Label htmlFor="estimated-budget">Budget estimé (€)</Label>
+                              <Input
+                                id="estimated-budget"
+                                type="number"
+                                value={estimatedBudget}
+                                onChange={(e) => setEstimatedBudget(Number(e.target.value))}
+                                placeholder="Ex: 5000"
+                                min="0"
+                                className="mt-1"
+                              />
+                            </div>
+                          )}
+                        </Card>
+
+                        {/* Nav step 1 */}
+                        {!isEditMode && (
+                          <div className="flex justify-end pt-2">
+                            <Button
+                              onClick={goNext}
+                              disabled={!canAdvanceStep1}
+                              className="bg-primary hover:bg-primary/90"
+                            >
+                              {productsToBeDetermined ? "Valider →" : "Équipements →"}
+                            </Button>
+                          </div>
                         )}
-                        
-                        <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} productsToBeDetermined={productsToBeDetermined} />
                       </div>
-                    </div>
                     )}
 
-                    {/* Client Info quand produits à déterminer */}
-                    {productsToBeDetermined && (
-                      <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} productsToBeDetermined={productsToBeDetermined} />
+                    {/* ─── ÉTAPE 2 : Équipements ─── */}
+                    {(currentStep === 2 || isEditMode) && !productsToBeDetermined && (
+                      <div className="space-y-4">
+                        {!isEditMode && (
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Étape 2 — Ajoutez les équipements à financer
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                          <div className="xl:col-span-1">
+                            <EquipmentForm
+                              equipment={equipment}
+                              setEquipment={setEquipment}
+                              selectedLeaser={selectedLeaser}
+                              addToList={addToList}
+                              editingId={editingId}
+                              cancelEditing={cancelEditing}
+                              onOpenCatalog={() => setIsCatalogOpen(true)}
+                              coefficient={coefficient}
+                              monthlyPayment={monthlyPayment}
+                              targetMonthlyPayment={targetMonthlyPayment}
+                              setTargetMonthlyPayment={setTargetMonthlyPayment}
+                              calculatedMargin={calculatedMargin}
+                              applyCalculatedMargin={applyCalculatedMargin}
+                              targetSalePrice={targetSalePrice}
+                              setTargetSalePrice={setTargetSalePrice}
+                              calculatedFromSalePrice={calculatedFromSalePrice}
+                              applyCalculatedFromSalePrice={applyCalculatedFromSalePrice}
+                              clientId={clientId}
+                              isPurchase={isPurchase}
+                            />
+                          </div>
+
+                          <div className="xl:col-span-1 space-y-4">
+                            <EquipmentList
+                              equipmentList={equipmentList}
+                              editingId={editingId}
+                              startEditing={startEditing}
+                              removeFromList={removeFromList}
+                              updateQuantity={updateQuantity}
+                              totalMonthlyPayment={totalMonthlyPayment}
+                              globalMarginAdjustment={{
+                                amount: globalMarginAdjustment.amount,
+                                newCoef: globalMarginAdjustment.newCoef,
+                                active: globalMarginAdjustment.adaptMonthlyPayment,
+                                marginDifference: globalMarginAdjustment.marginDifference
+                              }}
+                              toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                              calculations={calculations}
+                              ambassadorId={selectedAmbassador?.id}
+                              commissionLevelId={commissionLevelId}
+                              hideFinancialDetails={false}
+                              fileFee={fileFeeEnabled ? fileFeeAmount : 0}
+                              annualInsurance={annualInsurance}
+                              isPurchase={isPurchase}
+                              discountData={globalDiscount}
+                            />
+
+                            {equipmentList.length > 0 && !isPurchase && (
+                              <DiscountInput
+                                monthlyPayment={totalMonthlyPayment}
+                                margin={totalEquipmentMargin}
+                                coefficient={Number(coefficient) || Number(globalMarginAdjustment.newCoef) || 0}
+                                totalPurchasePrice={calculations?.totalPurchasePrice || 0}
+                                discountData={globalDiscount}
+                                onDiscountChange={setGlobalDiscount}
+                                showMarginImpact={true}
+                                label="Remise commerciale"
+                              />
+                            )}
+
+                            {!isPurchase && equipmentList.length > 0 && (
+                              <DownPaymentCard
+                                downPayment={downPayment}
+                                onDownPaymentChange={setDownPayment}
+                                totalSellingPrice={calculations?.totalFinancedAmount || 0}
+                                coefficient={globalMarginAdjustment.newCoef || coefficient || 3.27}
+                                disabled={productsToBeDetermined}
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Nav step 2 */}
+                        {!isEditMode && (
+                          <div className="flex justify-between pt-2">
+                            <Button variant="outline" onClick={goBack}>
+                              ← Configuration
+                            </Button>
+                            <Button
+                              onClick={goNext}
+                              disabled={!canAdvanceStep2}
+                              className="bg-primary hover:bg-primary/90"
+                            >
+                              Valider →
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     )}
-                  </div>}
+
+                    {/* ─── ÉTAPE 3 : Validation ─── */}
+                    {(currentStep === 3 || isEditMode) && (
+                      <div className="space-y-4">
+                        {!isEditMode && (
+                          <div className="text-sm font-medium text-muted-foreground">
+                            {productsToBeDetermined ? "Étape 2" : "Étape 3"} — Vérifiez et enregistrez
+                          </div>
+                        )}
+
+                        {productsToBeDetermined && (
+                          <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Produits à déterminer</AlertTitle>
+                            <AlertDescription>
+                              Budget estimé : <strong>{estimatedBudget.toLocaleString('fr-FR')} €</strong>
+                              <br />
+                              Les produits seront définis après scoring du client.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        <ClientInfo
+                          clientId={clientId}
+                          clientName={clientName}
+                          clientEmail={clientEmail}
+                          clientCompany={clientCompany}
+                          remarks={remarks}
+                          setRemarks={setRemarks}
+                          onOpenClientSelector={() => setIsClientSelectorOpen(true)}
+                          handleSaveOffer={handleSaveOffer}
+                          isSubmitting={isSubmitting}
+                          selectedLeaser={selectedLeaser}
+                          equipmentList={equipmentList}
+                          productsToBeDetermined={productsToBeDetermined}
+                        />
+
+                        {/* Nav step 3 */}
+                        {!isEditMode && (
+                          <div className="flex justify-start pt-2">
+                            <Button variant="outline" onClick={goBack}>
+                              ← {productsToBeDetermined ? "Configuration" : "Équipements"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
         {/* Modals */}
-        <ProductSelector 
-          isOpen={isCatalogOpen} 
-          onClose={() => setIsCatalogOpen(false)} 
-          onSelectProduct={handleProductSelect} 
+        <ProductSelector
+          isOpen={isCatalogOpen}
+          onClose={() => setIsCatalogOpen(false)}
+          onSelectProduct={handleProductSelect}
           onOpenPackSelector={() => setIsPackSelectorOpen(true)}
-          title="Ajouter un équipement" 
-          description="Sélectionnez un produit du catalogue à ajouter à votre offre" 
+          title="Ajouter un équipement"
+          description="Sélectionnez un produit du catalogue à ajouter à votre offre"
         />
 
         <PackSelectorModal
@@ -1049,11 +1219,28 @@ const CreateOffer = () => {
           onPackRemove={handlePackRemove}
         />
 
-        <ClientSelector isOpen={isClientSelectorOpen} onClose={() => setIsClientSelectorOpen(false)} onSelectClient={handleClientSelect} selectedClientId={clientId} onClientSelect={() => {}} selectedAmbassadorId={!isInternalOffer ? selectedAmbassador?.id : undefined} />
-        
-        <LeaserSelector isOpen={isLeaserSelectorOpen} onClose={() => setIsLeaserSelectorOpen(false)} onSelect={handleLeaserSelect} selectedLeaser={selectedLeaser} />
+        <ClientSelector
+          isOpen={isClientSelectorOpen}
+          onClose={() => setIsClientSelectorOpen(false)}
+          onSelectClient={handleClientSelect}
+          selectedClientId={clientId}
+          onClientSelect={() => {}}
+          selectedAmbassadorId={!isInternalOffer ? selectedAmbassador?.id : undefined}
+        />
 
-        <AmbassadorSelector isOpen={isAmbassadorSelectorOpen} onClose={() => setIsAmbassadorSelectorOpen(false)} onSelectAmbassador={handleAmbassadorChange} selectedAmbassadorId={selectedAmbassador?.id} />
+        <LeaserSelector
+          isOpen={isLeaserSelectorOpen}
+          onClose={() => setIsLeaserSelectorOpen(false)}
+          onSelect={handleLeaserSelect}
+          selectedLeaser={selectedLeaser}
+        />
+
+        <AmbassadorSelector
+          isOpen={isAmbassadorSelectorOpen}
+          onClose={() => setIsAmbassadorSelectorOpen(false)}
+          onSelectAmbassador={handleAmbassadorChange}
+          selectedAmbassadorId={selectedAmbassador?.id}
+        />
       </div>
     </PageTransition>;
 };
