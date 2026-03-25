@@ -288,9 +288,16 @@ serve(async (req) => {
       ? Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100
       : contract.monthly_payment;
 
+    // Build full company address with city
+    const companyFullAddress = [
+      customization?.company_address,
+      customization?.company_postal_code,
+      customization?.company_city,
+    ].filter(Boolean).join(', ');
+
     const pdfData = {
       company_name: customization?.company_name || contract.companies?.name || '',
-      company_address: customization?.company_address || '',
+      company_address: companyFullAddress || '',
       company_vat_number: customization?.company_vat_number || '',
       company_email: customization?.company_email || '',
       company_phone: customization?.company_phone || '',
