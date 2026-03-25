@@ -16,12 +16,14 @@ export const useCompanySlugAccess = (companySlug?: string) => {
 
   useEffect(() => {
     const checkAccess = async () => {
-      setLoading(true);
-      if (!user || !companySlug) {
+      // Wait for auth — don't resolve while user is null (keeps loading:true)
+      if (!user) return;
+      if (!companySlug) {
         setHasAccess(false);
         setLoading(false);
         return;
       }
+      setLoading(true);
 
       try {
         console.log('🔍 COMPANY SLUG ACCESS - Checking access for slug:', companySlug, 'user:', user.email);
