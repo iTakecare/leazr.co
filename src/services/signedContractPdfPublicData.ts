@@ -107,8 +107,8 @@ export const buildSignedContractPdfDataFromRpc = async (rpcData: any): Promise<S
 /**
  * Generate a deterministic filename for a signed contract PDF
  */
-export const getSignedContractPdfFilename = (trackingNumber: string, clientName: string): string => {
-  const safeName = `Contrat ${trackingNumber} - ${clientName}.pdf`.replace(/[/\\:*?"<>|]/g, '');
+export const getSignedContractPdfFilename = (contractNumber: string, clientName: string): string => {
+  const safeName = `Contrat ${contractNumber} - ${clientName}.pdf`.replace(/[/\\:*?"<>|]/g, '');
   return safeName;
 };
 

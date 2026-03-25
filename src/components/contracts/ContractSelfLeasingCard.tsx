@@ -212,7 +212,7 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
         const response = await fetch(cacheBustedUrl);
         if (response.ok) {
           const blob = await response.blob();
-          const filename = `Contrat ${contract.tracking_number || contract.id} - ${contract.client_name || 'Client'}.pdf`;
+          const filename = `Contrat ${contract.contract_number || contract.tracking_number || contract.id} - ${contract.client_company || contract.client_name || 'Client'}.pdf`;
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;

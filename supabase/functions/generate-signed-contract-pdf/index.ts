@@ -85,7 +85,7 @@ const replacePlaceholders = (text: string, data: any): string => {
   const monthlyPayment = data.adjustedMonthlyPayment ?? data.monthly_payment ?? 0;
 
   const clientFullAddress = [
-    data.client_address, data.client_postal_code, data.client_city, data.client_country
+    data.client_address, data.client_postal_code, data.client_city
   ].filter(Boolean).join(', ');
 
   const endDate = data.contract_end_date ? formatDate(data.contract_end_date) : '';
