@@ -1,0 +1,510 @@
+[
+  {
+    "filename": "20230122_24572482_Facture_ITC-2023-006_BouvierGazYohann.pdf",
+    "invoice_number": "ITC-2023-006",
+    "invoice_date": "2023-01-22",
+    "client_ref": "Bouvier-Gaz, Yohann",
+    "client_vat": "BE0695514348",
+    "total_htva": 1570.47,
+    "tva_rate": 0.21,
+    "equipment": []
+  },
+  {
+    "filename": "20230216_25382972_Facture_ITC-2023-0009_PRINTBOXSPRL.pdf",
+    "invoice_number": "ITC-2023-0009",
+    "invoice_date": "2023-02-16",
+    "client_ref": "PRINTBOX SPRL",
+    "client_vat": "BE9806894724",
+    "total_htva": 858.48,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Apple iPad 10,2’’ modèle 2020 - 32 Go - Wifi",
+        "serial_number": null,
+        "quantity": 3,
+        "unit_price_htva": 286.16,
+        "total_htva": 858.48,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230221_25527138_Facture_ITC-2023-0015_LECHIFFRE.pdf",
+    "invoice_number": "ITC-2023-0015",
+    "invoice_date": "2023-02-21",
+    "client_ref": "LE-CHIFFRE",
+    "client_vat": "BE9806894724",
+    "total_htva": 1055.3,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Apple iPhone 13 Pro 256GB Graphite - RFB GR AB",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 788.3,
+        "total_htva": 788.3,
+        "tva_pct": 21
+      },
+      {
+        "title": "Apple iPad 6e gen 128 Go Wifi - RFB GR A",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 267.0,
+        "total_htva": 267.0,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230405_27132159_Facture_ITC-2023-0022_SALESKONSUL.pdf",
+    "invoice_number": "ITC-2023-0022",
+    "invoice_date": "2023-04-05",
+    "client_ref": "SALES KONSUL",
+    "client_vat": "BE9806894724",
+    "total_htva": 1820.91,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "MacBook Pro 13 M1 / 8 Go / 256 Go SSD / AZERTY - RFB GR B |",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 800.0,
+        "total_htva": 800.0,
+        "tva_pct": 21
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go Purple - Open Box | SN :",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 1020.91,
+        "total_htva": 1020.91,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230408_27338150_Facture_ITC-2023-0023_OLINNBELGIUM.pdf",
+    "invoice_number": "ITC-2023-0023",
+    "invoice_date": "2023-04-08",
+    "client_ref": "DOSSIER 021-202304-0033 OLINN BELGIUM",
+    "client_vat": "BE9806894724",
+    "total_htva": 11650.0,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Contrat-021-202304-0033 / COSY HOUSE SRL comprenant :",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 11650.0,
+        "total_htva": 11650.0,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230426_27997145_Facture_ITC-2023-0028_PRINTBOXSPRL.pdf",
+    "invoice_number": "ITC-2023-0028",
+    "invoice_date": "2023-04-26",
+    "client_ref": "PRINTBOX SPRL",
+    "client_vat": "BE9806894724",
+    "total_htva": 572.32,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Apple (MYL92) iPad 2020 - 10.2 inch - WiFi - 32GB - iPadOS 16 -",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 286.16,
+        "total_htva": 572.32,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230512_28619666_Facture_ITC-2023-0031_SPRLCACONSTRUCTSTARTERBVBA.pdf",
+    "invoice_number": "ITC-2023-0031",
+    "invoice_date": "2023-05-12",
+    "client_ref": "Appetito Box PDA - Taverne Lecoq SPRL CA CONSTRUCT- STARTER BVBA",
+    "client_vat": "BE9806894724",
+    "total_htva": 299.0,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Appetito Box PDA",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 299.0,
+        "total_htva": 299.0,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230512_28619748_Facture_ITC-2023-0032_LittleItaly.pdf",
+    "invoice_number": "ITC-2023-0032",
+    "invoice_date": "2023-05-12",
+    "client_ref": "Appetito Box PDA - Little Italy Pizzeria Mons Little Italy",
+    "client_vat": "BE9806894724",
+    "total_htva": 299.0,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Appetito Box PDA",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 299.0,
+        "total_htva": 299.0,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230629_30375607_Facture_ITC-2023-0034_ALTATAURUSSL.pdf",
+    "invoice_number": "ITC-2023-0034",
+    "invoice_date": "2023-06-29",
+    "client_ref": "ALTA TAURUS SL",
+    "client_vat": "BE9806894724",
+    "total_htva": 3339.86,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Apple Macbook Pro (2023) MNWA3FN /A - 16 pouces - Apple",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 3339.86,
+        "total_htva": 3339.86,
+        "tva_pct": 0
+      }
+    ]
+  },
+  {
+    "filename": "20230821_32302269_Facture_ITC-2023-0038_DebackerAnthony.pdf",
+    "invoice_number": "ITC-2023-0038",
+    "invoice_date": "2023-08-21",
+    "client_ref": "Debacker, Anthony",
+    "client_vat": "BE9806894724",
+    "total_htva": 4985.93,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Pack comprenant :",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 4985.93,
+        "total_htva": 4985.93,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230825_32441060_Facture_ITC-2023-0039_Repairo.pdf",
+    "invoice_number": "ITC-2023-0039",
+    "invoice_date": "2023-08-25",
+    "client_ref": "Repairo",
+    "client_vat": "BE9806894724",
+    "total_htva": 450.0,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Samsung ZFlip 4 128 Go - cassé - pour pièces",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 100.0,
+        "total_htva": 100.0,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230825_32441505_Facture_ITC-2023-0040_MADEManagement.pdf",
+    "invoice_number": "ITC-2023-0040",
+    "invoice_date": "2023-08-25",
+    "client_ref": "MA.DE Management",
+    "client_vat": "BE9806894724",
+    "total_htva": 100.0,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Reparation MacBook",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 100.0,
+        "total_htva": 100.0,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230825_32443816_Facture_ITC-2023-0041_CapSpartel.pdf",
+    "invoice_number": "ITC-2023-0041",
+    "invoice_date": "2023-08-25",
+    "client_ref": "Appetito Box PDA - Cap Spartel Cap Spartel",
+    "client_vat": "BE9806894724",
+    "total_htva": 299.0,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Appetito Box PDA",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 299.0,
+        "total_htva": 299.0,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230920_33427622_Facture_ITC-2023-0048_DereumeJÇrme.pdf",
+    "invoice_number": "ITC-2023-0048",
+    "invoice_date": "2023-09-20",
+    "client_ref": "Dereume, Jérôme",
+    "client_vat": "BE9806894724",
+    "total_htva": 206.61,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "MacBook Pro 16 i7 / 16 Go / 512 SSD",
+        "serial_number": "C02ZJA0YMD6M",
+        "quantity": 1,
+        "unit_price_htva": 130.11,
+        "total_htva": 130.11,
+        "tva_pct": 21
+      },
+      {
+        "title": "iPhone 12 Pro Max 128 Go Space Gray",
+        "serial_number": "356729117336424",
+        "quantity": 1,
+        "unit_price_htva": 76.5,
+        "total_htva": 76.5,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20230928_33719983_Facture_ITC-2023-0050_DereumeJÇrme.pdf",
+    "invoice_number": "ITC-2023-0050",
+    "invoice_date": "2023-09-28",
+    "client_ref": "Dereume, Jérôme",
+    "client_vat": "BE9806894724",
+    "total_htva": 206.61,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "MacBook Pro 16 i7 / 16 Go / 512 SSD",
+        "serial_number": "C02ZJA0YMD6M",
+        "quantity": 1,
+        "unit_price_htva": 130.11,
+        "total_htva": 130.11,
+        "tva_pct": 21
+      },
+      {
+        "title": "iPhone 12 Pro Max 128 Go Space Gray",
+        "serial_number": "356729117336424",
+        "quantity": 1,
+        "unit_price_htva": 76.5,
+        "total_htva": 76.5,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20231005_34187785_Facture_ITC-2023-0054_ATHENEEROYALSAINTGHISLAIN.pdf",
+    "invoice_number": "ITC-2023-0054",
+    "invoice_date": "2023-10-05",
+    "client_ref": "ATHENEE ROYAL SAINT GHISLAIN",
+    "client_vat": "BE9806894724",
+    "total_htva": 27757.65,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Lenovo ThinkCentre neo 50q Mini PC Intel® Core™ i5 i5-13420H",
+        "serial_number": null,
+        "quantity": 33,
+        "unit_price_htva": 691.85,
+        "total_htva": 22831.05,
+        "tva_pct": 21
+      },
+      {
+        "title": "Ecran Samsung 24’’ incurvé HDMI/VGA",
+        "serial_number": null,
+        "quantity": 33,
+        "unit_price_htva": 102.35,
+        "total_htva": 3377.55,
+        "tva_pct": 21
+      },
+      {
+        "title": "Casque Micro Jabra Evolve 20 MS",
+        "serial_number": null,
+        "quantity": 33,
+        "unit_price_htva": 33.35,
+        "total_htva": 1100.55,
+        "tva_pct": 21
+      },
+      {
+        "title": "DCP-L8410CDW color laser 31ppm",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 448.5,
+        "total_htva": 448.5,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20231028_35274172_Facture_ITC-2023-0055_DereumeJÇrme.pdf",
+    "invoice_number": "ITC-2023-0055",
+    "invoice_date": "2023-10-28",
+    "client_ref": "Dereume, Jérôme",
+    "client_vat": "BE9806894724",
+    "total_htva": 206.61,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "MacBook Pro 16 i7 / 16 Go / 512 SSD",
+        "serial_number": "C02ZJA0YMD6M",
+        "quantity": 1,
+        "unit_price_htva": 130.11,
+        "total_htva": 130.11,
+        "tva_pct": 21
+      },
+      {
+        "title": "iPhone 12 Pro Max 128 Go Space Gray",
+        "serial_number": "356729117336424",
+        "quantity": 1,
+        "unit_price_htva": 76.5,
+        "total_htva": 76.5,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20231106_35615385_Facture_ITC-2023-0058_BrancatoFrancesco.pdf",
+    "invoice_number": "ITC-2023-0058",
+    "invoice_date": "2023-11-06",
+    "client_ref": "Appetito PDA Box (Francesco Brancato)",
+    "client_vat": null,
+    "total_htva": 299.0,
+    "tva_rate": 21,
+    "equipment": [
+      {
+        "title": "APPETITO BOX PDA",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 299.0,
+        "total_htva": 299.0,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20231113_35879407_Facture_ITC-2023-0059_MIGDPSRL.pdf",
+    "invoice_number": "ITC-2023-0059",
+    "invoice_date": "2023-11-13",
+    "client_ref": "MIG DP S.P.R.L.",
+    "client_vat": "BE9806894724",
+    "total_htva": 701.84,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Apple iPhone 12 64Go RFB GR AB",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 350.92,
+        "total_htva": 701.84,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20231128_36535853_Facture_ITC-2023-0062_DereumeJÇrme.pdf",
+    "invoice_number": "ITC-2023-0062",
+    "invoice_date": "2023-11-28",
+    "client_ref": "Dereume, Jérôme",
+    "client_vat": "BE9806894724",
+    "total_htva": 206.61,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "MacBook Pro 16 i7 / 16 Go / 512 SSD",
+        "serial_number": "C02ZJA0YMD6M",
+        "quantity": 1,
+        "unit_price_htva": 130.11,
+        "total_htva": 130.11,
+        "tva_pct": 21
+      },
+      {
+        "title": "iPhone 12 Pro Max 128 Go Space Gray",
+        "serial_number": "356729117336424",
+        "quantity": 1,
+        "unit_price_htva": 76.5,
+        "total_htva": 76.5,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20231201_36692061_Facture_ITC-2023-0065_A2ComSRL.pdf",
+    "invoice_number": "ITC-2023-0065",
+    "invoice_date": "2023-12-01",
+    "client_ref": "A2Com SRL",
+    "client_vat": "BE9806894724",
+    "total_htva": 810.0,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Refacturation Teamleader - Licence abonnement BOOST",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 405.0,
+        "total_htva": 810.0,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20231219_37568681_Facture_ITC-2023-0069_OlgaYeseniaNizet.pdf",
+    "invoice_number": "ITC-2023-0069",
+    "invoice_date": "2023-12-19",
+    "client_ref": "Nizet, Marie-Laure",
+    "client_vat": "BE9806894724",
+    "total_htva": 57.87,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "Renouvellement hébergement + nom de domaine équilibre-",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 57.87,
+        "total_htva": 57.87,
+        "tva_pct": 21
+      }
+    ]
+  },
+  {
+    "filename": "20231228_37878114_Facture_ITC-2023-0072_DereumeJÇrme.pdf",
+    "invoice_number": "ITC-2023-0072",
+    "invoice_date": "2023-12-28",
+    "client_ref": "Dereume, Jérôme",
+    "client_vat": "BE9806894724",
+    "total_htva": 206.61,
+    "tva_rate": 0,
+    "equipment": [
+      {
+        "title": "MacBook Pro 16 i7 / 16 Go / 512 SSD",
+        "serial_number": "C02ZJA0YMD6M",
+        "quantity": 1,
+        "unit_price_htva": 130.11,
+        "total_htva": 130.11,
+        "tva_pct": 21
+      },
+      {
+        "title": "iPhone 12 Pro Max 128 Go Space Gray",
+        "serial_number": "356729117336424",
+        "quantity": 1,
+        "unit_price_htva": 76.5,
+        "total_htva": 76.5,
+        "tva_pct": 21
+      }
+    ]
+  }
+]

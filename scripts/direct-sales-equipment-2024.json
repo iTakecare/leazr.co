@@ -1,0 +1,1139 @@
+{
+  "ITC-2024-0001": {
+    "invoice_number": "ITC-2024-0001",
+    "format": "old",
+    "client_ref": "BLACK BOX",
+    "equipment_data": [
+      {
+        "title": "Licence Teamleader GO",
+        "serial_number": [],
+        "selling_price_excl_vat": 840.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 840.0,
+      "vat_amount": 176.4,
+      "total_incl_vat": 1016.4
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0008": {
+    "invoice_number": "ITC-2024-0008",
+    "format": "old",
+    "client_ref": "Dereume, Jérôme",
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 16 i7 / 16 Go / 512 SSD",
+        "serial_number": [
+          "C02ZJA0YMD6M"
+        ],
+        "selling_price_excl_vat": 130.11,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 12 Pro Max 128 Go Space Gray",
+        "serial_number": [
+          "356729117336424"
+        ],
+        "selling_price_excl_vat": 76.5,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 206.61,
+      "vat_amount": 43.39,
+      "total_incl_vat": 250.0
+    },
+    "n_items": 2
+  },
+  "ITC-2024-0014": {
+    "invoice_number": "ITC-2024-0014",
+    "format": "old",
+    "client_ref": "LEGAL AVENUE",
+    "equipment_data": [
+      {
+        "title": "Clavier Magic Keyboard ES for iPad Air",
+        "serial_number": [],
+        "selling_price_excl_vat": 404.96,
+        "quantity": 1
+      },
+      {
+        "title": "iPad Air 2022 Wifi 256Go",
+        "serial_number": [],
+        "selling_price_excl_vat": 893.06,
+        "quantity": 1
+      },
+      {
+        "title": "Apple iPhone 15 Pro 512Go Bleu",
+        "serial_number": [],
+        "selling_price_excl_vat": 1592.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 2890.02,
+      "vat_amount": 606.9,
+      "total_incl_vat": 3496.92
+    },
+    "n_items": 3
+  },
+  "ITC-2024-0015": {
+    "invoice_number": "ITC-2024-0015",
+    "format": "old",
+    "client_ref": "Dereume, Jérôme",
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 16 i7 / 16 Go / 512 SSD",
+        "serial_number": [
+          "C02ZJA0YMD6M"
+        ],
+        "selling_price_excl_vat": 130.11,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 12 Pro Max 128 Go Space Gray",
+        "serial_number": [
+          "356729117336424"
+        ],
+        "selling_price_excl_vat": 76.5,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 206.61,
+      "vat_amount": 43.39,
+      "total_incl_vat": 250.0
+    },
+    "n_items": 2
+  },
+  "ITC-2024-0022": {
+    "invoice_number": "ITC-2024-0022",
+    "format": "old",
+    "client_ref": "Appetito Box - Taverne 44 TAVERNE 44",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T11BGT3G00015"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0023": {
+    "invoice_number": "ITC-2024-0023",
+    "format": "old",
+    "client_ref": "Appetito Box - Dour Grill DOUR GRILL",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A5911BGT3G00008"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0024": {
+    "invoice_number": "ITC-2024-0024",
+    "format": "old",
+    "client_ref": "Appetito Box - The Bruxelles Burger The Bruxelles Burger",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T11BGT3G00018"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0025": {
+    "invoice_number": "ITC-2024-0025",
+    "format": "old",
+    "client_ref": "Appetito Box - La Casa Borghese La Casa Borghese",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A5811BGT3C00007"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0026": {
+    "invoice_number": "ITC-2024-0026",
+    "format": "old",
+    "client_ref": "Appetito Box - Godefroid Godefroid",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A5911BGT3G00396"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0027": {
+    "invoice_number": "ITC-2024-0027",
+    "format": "old",
+    "client_ref": "Dereume, Jérôme",
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 16 i7 / 16 Go / 512 SSD",
+        "serial_number": [
+          "C02ZJA0YMD6M"
+        ],
+        "selling_price_excl_vat": 130.11,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 12 Pro Max 128 Go Space Gray",
+        "serial_number": [
+          "356729117336424"
+        ],
+        "selling_price_excl_vat": 76.5,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 206.61,
+      "vat_amount": 43.39,
+      "total_incl_vat": 250.0
+    },
+    "n_items": 2
+  },
+  "ITC-2024-0032": {
+    "invoice_number": "ITC-2024-0032",
+    "format": "old",
+    "client_ref": "Dereume, Jérôme",
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 16 i7 / 16 Go / 512 SSD",
+        "serial_number": [
+          "C02ZJA0YMD6M"
+        ],
+        "selling_price_excl_vat": 120.01,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 12 Pro Max 128 Go Space Gray",
+        "serial_number": [
+          "356729117336424"
+        ],
+        "selling_price_excl_vat": 72.24,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 192.25,
+      "vat_amount": 40.37,
+      "total_incl_vat": 232.62
+    },
+    "n_items": 2
+  },
+  "ITC-2024-0041": {
+    "invoice_number": "ITC-2024-0041",
+    "format": "old",
+    "client_ref": "Appetito Box - USM Zanghi, Grazia",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4C00896"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0042": {
+    "invoice_number": "ITC-2024-0042",
+    "format": "old",
+    "client_ref": "Bouvier-Gaz, Yohann",
+    "equipment_data": [
+      {
+        "title": "iPhone 15 Pro Black - RFB GR A",
+        "serial_number": [],
+        "selling_price_excl_vat": 842.15,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 842.15,
+      "vat_amount": 176.85,
+      "total_incl_vat": 1019.0
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0046": {
+    "invoice_number": "ITC-2024-0046",
+    "format": "old",
+    "client_ref": "NN°° ddee cclliieenntt:: 32 Alain Vaudon",
+    "equipment_data": [
+      {
+        "title": "Logitech Combo Touch iPad Pro 11 pouces",
+        "serial_number": [],
+        "selling_price_excl_vat": 157.0,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Pencil (2ème Génération)",
+        "serial_number": [],
+        "selling_price_excl_vat": 103.93,
+        "quantity": 1
+      },
+      {
+        "title": "Apple AirPods (3ᵉ génération)",
+        "serial_number": [],
+        "selling_price_excl_vat": 146.95,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 407.88,
+      "vat_amount": 85.65,
+      "total_incl_vat": 493.53
+    },
+    "n_items": 3
+  },
+  "ITC-2024-0047": {
+    "invoice_number": "ITC-2024-0047",
+    "format": "old",
+    "client_ref": "Appetito Box - AR CHEEMA A.R. CHEEMA",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4C00820"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0048": {
+    "invoice_number": "ITC-2024-0048",
+    "format": "old",
+    "client_ref": "Appetito Box - CHEZ MARMARA Bulazar, Zehra",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4C00842"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0052": {
+    "invoice_number": "ITC-2024-0052",
+    "format": "old",
+    "client_ref": "WE ARE UP",
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 13 i5 8Go 512Go",
+        "serial_number": [
+          "FVFCQ7ZM6KG"
+        ],
+        "selling_price_excl_vat": 425.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 425.0,
+      "vat_amount": 89.25,
+      "total_incl_vat": 514.25
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0053": {
+    "invoice_number": "ITC-2024-0053",
+    "format": "old",
+    "client_ref": "WE ARE UP",
+    "equipment_data": [
+      {
+        "title": "iPad Pro 11 M1 128Go Wifi",
+        "serial_number": [
+          "DMPPC103G5VJ"
+        ],
+        "selling_price_excl_vat": 735.0,
+        "quantity": 1
+      },
+      {
+        "title": "Logitech Combo Touch iPad Pro 11",
+        "serial_number": [],
+        "selling_price_excl_vat": 160.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 895.0,
+      "vat_amount": 187.95,
+      "total_incl_vat": 1082.95
+    },
+    "n_items": 2
+  },
+  "ITC-2024-0054": {
+    "invoice_number": "ITC-2024-0054",
+    "format": "old",
+    "client_ref": "Appetito Box - AQUA E FARINA L'ACQUA E FARINA 2018",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4C00805"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0058": {
+    "invoice_number": "ITC-2024-0058",
+    "format": "old",
+    "client_ref": "Appetito Box - SALSA & MOZZA Marine, David",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4C00806"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0059": {
+    "invoice_number": "ITC-2024-0059",
+    "format": "old",
+    "client_ref": "Média & Pub SRL",
+    "equipment_data": [
+      {
+        "title": "Apple AirPods 3 - new",
+        "serial_number": [],
+        "selling_price_excl_vat": 169.0,
+        "quantity": 3
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 507.0,
+      "vat_amount": 106.47,
+      "total_incl_vat": 613.47
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0060": {
+    "invoice_number": "ITC-2024-0060",
+    "format": "old",
+    "client_ref": "PRINTBOX SPRL",
+    "equipment_data": [
+      {
+        "title": "Apple iPad 2020 32Go Wifi",
+        "serial_number": [],
+        "selling_price_excl_vat": 260.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 260.0,
+      "vat_amount": 54.6,
+      "total_incl_vat": 314.6
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0061": {
+    "invoice_number": "ITC-2024-0061",
+    "format": "old",
+    "client_ref": "LE-CHIFFRE",
+    "equipment_data": [
+      {
+        "title": "iPhone 12 RED - Refurbished Grade A",
+        "serial_number": [],
+        "selling_price_excl_vat": 260.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 260.0,
+      "vat_amount": 54.6,
+      "total_incl_vat": 314.6
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0062": {
+    "invoice_number": "ITC-2024-0062",
+    "format": "old",
+    "client_ref": "MENUISERIE MORDANT JIMMY SRL",
+    "equipment_data": [
+      {
+        "title": "DCP-L8410CDW color laser 31ppm/28ipm",
+        "serial_number": [],
+        "selling_price_excl_vat": 287.08,
+        "quantity": 1
+      },
+      {
+        "title": "Nom de domaine jimmymordant.be - période du 02/04/24 au",
+        "serial_number": [],
+        "selling_price_excl_vat": 15.99,
+        "quantity": 1
+      },
+      {
+        "title": "Serveur Email Outlook Exchange - période du 02/04/24 au",
+        "serial_number": [],
+        "selling_price_excl_vat": 67.88,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 370.95,
+      "vat_amount": 77.9,
+      "total_incl_vat": 448.85
+    },
+    "n_items": 3
+  },
+  "ITC-2024-0065": {
+    "invoice_number": "ITC-2024-0065",
+    "format": "old",
+    "client_ref": "Appetito Box - Io Roberto CYBERMA SRL",
+    "equipment_data": [
+      {
+        "title": "Appetito Box V2",
+        "serial_number": [
+          "A59T12BGT4C00941"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0066": {
+    "invoice_number": "ITC-2024-0066",
+    "format": "old",
+    "client_ref": "Appetito Box - Chez MaryGeo Lermusiaux Geoffrey",
+    "equipment_data": [
+      {
+        "title": "Appetito Box V2",
+        "serial_number": [
+          "A59T12BGT4C01166"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0067": {
+    "invoice_number": "ITC-2024-0067",
+    "format": "old",
+    "client_ref": "Appetito Box - Snack Thessaloniki Ninirakis, Nikolaos",
+    "equipment_data": [
+      {
+        "title": "Appetito Box V2",
+        "serial_number": [
+          "A59T12BGT4C01014"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0069": {
+    "invoice_number": "ITC-2024-0069",
+    "format": "old",
+    "client_ref": "SERENITY FINANCE SRL",
+    "equipment_data": [
+      {
+        "title": "iPad 2021 - 64GB - WiFi - Space Gray",
+        "serial_number": [],
+        "selling_price_excl_vat": 270.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 270.0,
+      "vat_amount": 56.7,
+      "total_incl_vat": 326.7
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0072": {
+    "invoice_number": "ITC-2024-0072",
+    "format": "old",
+    "client_ref": "SERMEX 2000 SRL",
+    "equipment_data": [
+      {
+        "title": "iPad Pro 11\" (2022) M2 512GB WiFi Space Gray - Refurbished",
+        "serial_number": [],
+        "selling_price_excl_vat": 833.88,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 833.88,
+      "vat_amount": 175.11,
+      "total_incl_vat": 1008.99
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0075": {
+    "invoice_number": "ITC-2024-0075",
+    "format": "old",
+    "client_ref": "Quisenaire, Albine",
+    "equipment_data": [
+      {
+        "title": "Apple iPad Pro 12.9 128Go Wifi - RFB GR A",
+        "serial_number": [],
+        "selling_price_excl_vat": 836.5,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Pencil 2",
+        "serial_number": [],
+        "selling_price_excl_vat": 113.45,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 949.95,
+      "vat_amount": 199.49,
+      "total_incl_vat": 1149.44
+    },
+    "n_items": 2
+  },
+  "ITC-2024-0076": {
+    "invoice_number": "ITC-2024-0076",
+    "format": "old",
+    "client_ref": "Appetito Box - Pitta Star STYLE AY SRL",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4C00981"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0077": {
+    "invoice_number": "ITC-2024-0077",
+    "format": "old",
+    "client_ref": "Appetito Box - Friterie Snack Bk P Becker, Pierrot",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00124"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0078": {
+    "invoice_number": "ITC-2024-0078",
+    "format": "old",
+    "client_ref": "Appetito Box - Aux 500 Amoruso, Antonio",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00273"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0079": {
+    "invoice_number": "ITC-2024-0079",
+    "format": "old",
+    "client_ref": "Appetito Box - Pizzeria da Dionigi Ianniello, Dionigi",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00098"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0087": {
+    "invoice_number": "ITC-2024-0087",
+    "format": "new",
+    "client_ref": "Appetito Box - La Rondinella",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00286"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0088": {
+    "invoice_number": "ITC-2024-0088",
+    "format": "new",
+    "client_ref": "DESCRIPTION P. U. QUANTITÉ EXCL. TVA INCL.",
+    "equipment_data": [
+      {
+        "title": "Apple MacBook Pro M1 / 8Go / 256 Go SSD - RFB GR A",
+        "serial_number": [],
+        "selling_price_excl_vat": 661.16,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 661.16,
+      "vat_amount": 138.84,
+      "total_incl_vat": 800.0
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0091": {
+    "invoice_number": "ITC-2024-0091",
+    "format": "new",
+    "client_ref": "Appetito Box - Spar Hornu",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00413"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0092": {
+    "invoice_number": "ITC-2024-0092",
+    "format": "new",
+    "client_ref": "Appetito Box - LDJ concept",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00361"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0093": {
+    "invoice_number": "ITC-2024-0093",
+    "format": "new",
+    "client_ref": "Appetito Box - As de pique",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00068"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0094": {
+    "invoice_number": "ITC-2024-0094",
+    "format": "new",
+    "client_ref": "Appetito Box - Friterie Chez Mary",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00091"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0095": {
+    "invoice_number": "ITC-2024-0095",
+    "format": "new",
+    "client_ref": "Appetito Box - Pekin Express",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00219"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0096": {
+    "invoice_number": "ITC-2024-0096",
+    "format": "new",
+    "client_ref": "Appetito Box - Brothers",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00271"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0097": {
+    "invoice_number": "ITC-2024-0097",
+    "format": "new",
+    "client_ref": "Appetito Box - Chez Madze",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00210"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0098": {
+    "invoice_number": "ITC-2024-0098",
+    "format": "new",
+    "client_ref": "Appetito Box - Empire Food",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00125"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0099": {
+    "invoice_number": "ITC-2024-0099",
+    "format": "new",
+    "client_ref": "Appetito Box - Ludovic Busschaert",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00133"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      },
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00109"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 398.0,
+      "vat_amount": 83.58,
+      "total_incl_vat": 481.58
+    },
+    "n_items": 2
+  },
+  "ITC-2024-0100": {
+    "invoice_number": "ITC-2024-0100",
+    "format": "new",
+    "client_ref": "Appetito Box - Al Gusto",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00199"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0101": {
+    "invoice_number": "ITC-2024-0101",
+    "format": "new",
+    "client_ref": "Appetito Box - La Rusticana",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00404"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0102": {
+    "invoice_number": "ITC-2024-0102",
+    "format": "new",
+    "client_ref": "Appetito Box - La Rusticana",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00067"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0113": {
+    "invoice_number": "ITC-2024-0113",
+    "format": "new",
+    "client_ref": "DESCRIPTION P. U. QUANTITÉ EXCL. TVA INCL.",
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 13 16Go / 512Go / 4 ports USB-C / Touch Bar - RFB",
+        "serial_number": [],
+        "selling_price_excl_vat": 700.0,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 12 64Go - RFB GR A",
+        "serial_number": [],
+        "selling_price_excl_vat": 350.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 1050.0,
+      "vat_amount": 220.5,
+      "total_incl_vat": 1270.5
+    },
+    "n_items": 2
+  },
+  "ITC-2024-0119": {
+    "invoice_number": "ITC-2024-0119",
+    "format": "new",
+    "client_ref": "DESCRIPTION P. U. QUANTITÉ EXCL. TVA INCL.",
+    "equipment_data": [
+      {
+        "title": "Apple Watch Ultra 2 (2023) GPS + Cellular silver Ocean Band blue",
+        "serial_number": [],
+        "selling_price_excl_vat": 553.72,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 553.72,
+      "vat_amount": 116.28,
+      "total_incl_vat": 670.0
+    },
+    "n_items": 1
+  },
+  "ITC-2024-0120": {
+    "invoice_number": "ITC-2024-0120",
+    "format": "new",
+    "client_ref": "Appetito Box - Tim Food",
+    "equipment_data": [
+      {
+        "title": "APPETITO BOX V2",
+        "serial_number": [
+          "A59T12BGT4G00243"
+        ],
+        "selling_price_excl_vat": 199.0,
+        "quantity": 1
+      }
+    ],
+    "invoice_totals": {
+      "total_excl_vat": 199.0,
+      "vat_amount": 41.79,
+      "total_incl_vat": 240.79
+    },
+    "n_items": 1
+  }
+}

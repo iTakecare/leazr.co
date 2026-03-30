@@ -524,6 +524,7 @@ const CompanyDashboard = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
                     <span>CA</span><span className="text-right font-medium text-foreground">{formatCurrency(Number(directSalesStats?.total_revenue || 0))}</span>
+                    <span>Achats</span><span className="text-right font-medium text-foreground">{formatCurrency(Number(directSalesStats?.total_purchases || 0))}</span>
                     <span>Marge</span><span className="text-right font-semibold text-cyan-600">{formatCurrency(Number(directSalesStats?.total_margin || 0))}</span>
                   </div>
                 </div>

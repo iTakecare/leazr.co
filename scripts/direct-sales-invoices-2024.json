@@ -1,0 +1,1079 @@
+[
+  {
+    "invoice_number": "ITC-2024-0001",
+    "invoice_date": "2024-01-01",
+    "client_ref": "BlackBox",
+    "client_vat": "",
+    "entity": "SRL",
+    "total_htva": 840.0,
+    "purchase_price": 720.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 720.0,
+        "selling_price": 840.0
+      }
+    ],
+    "has_pdf": false,
+    "client_override": "Jonathan Da Silva"
+  },
+  {
+    "invoice_number": "ITC-2024-0008",
+    "invoice_date": "2024-01-01",
+    "client_ref": "Jerome Dereume - Umbrella Services (6/10)",
+    "client_vat": "BE0886921577",
+    "entity": "SRL",
+    "total_htva": 206.61,
+    "purchase_price": 204.5,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 204.5,
+        "selling_price": 206.61
+      }
+    ],
+    "has_pdf": false,
+    "client_override": "Jérôme Dereume"
+  },
+  {
+    "invoice_number": "ITC-2024-0014",
+    "invoice_date": "2024-02-01",
+    "client_ref": "Dorian Vandensteen Legal Avenue",
+    "client_vat": "BE0888488879",
+    "entity": "SRL",
+    "total_htva": 2890.02,
+    "purchase_price": 2290.42,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 2290.42,
+        "selling_price": 2890.02
+      }
+    ],
+    "has_pdf": false,
+    "client_override": "Dorian Vandensteen"
+  },
+  {
+    "invoice_number": "ITC-2024-0015",
+    "invoice_date": "2024-02-01",
+    "client_ref": "Jerome Dereume - Umbrella Services (8/10)",
+    "client_vat": "BE0886921577",
+    "entity": "SRL",
+    "total_htva": 206.61,
+    "purchase_price": 204.5,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 204.5,
+        "selling_price": 206.61
+      }
+    ],
+    "has_pdf": false,
+    "client_override": "Jérôme Dereume"
+  },
+  {
+    "invoice_number": "ITC-2024-0022",
+    "invoice_date": "2024-03-01",
+    "client_ref": "Appetito - Taverne 44",
+    "client_vat": "",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 164.25,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 164.25,
+        "selling_price": 199.0
+      }
+    ],
+    "has_pdf": false
+  },
+  {
+    "invoice_number": "ITC-2024-0023",
+    "invoice_date": "2024-03-01",
+    "client_ref": "Appetito - Dour Grill",
+    "client_vat": "",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 164.25,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 164.25,
+        "selling_price": 199.0
+      }
+    ],
+    "has_pdf": false
+  },
+  {
+    "invoice_number": "ITC-2024-0024",
+    "invoice_date": "2024-03-01",
+    "client_ref": "Appetito - Bxl Burger",
+    "client_vat": "",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 164.25,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 164.25,
+        "selling_price": 199.0
+      }
+    ],
+    "has_pdf": false
+  },
+  {
+    "invoice_number": "ITC-2024-0025",
+    "invoice_date": "2024-03-01",
+    "client_ref": "Appetito - Casa Borghese",
+    "client_vat": "",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 164.25,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 164.25,
+        "selling_price": 199.0
+      }
+    ],
+    "has_pdf": false
+  },
+  {
+    "invoice_number": "ITC-2024-0026",
+    "invoice_date": "2024-03-01",
+    "client_ref": "Appetito - Godefroid",
+    "client_vat": "",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 164.25,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 164.25,
+        "selling_price": 199.0
+      }
+    ],
+    "has_pdf": false
+  },
+  {
+    "invoice_number": "ITC-2024-0027",
+    "invoice_date": "2024-03-01",
+    "client_ref": "Jerome Dereume - Umbrella Services (9/10)",
+    "client_vat": "BE0886921577",
+    "entity": "SRL",
+    "total_htva": 206.61,
+    "purchase_price": 204.5,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 204.5,
+        "selling_price": 206.61
+      }
+    ],
+    "has_pdf": false,
+    "client_override": "Jérôme Dereume"
+  },
+  {
+    "invoice_number": "ITC-2024-0032",
+    "invoice_date": "2024-03-01",
+    "client_ref": "Jerome Dereume - Umbrella Services (10/10)",
+    "client_vat": "BE0886921577",
+    "entity": "SRL",
+    "total_htva": 192.25,
+    "purchase_price": 190.14,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 190.14,
+        "selling_price": 192.25
+      }
+    ],
+    "has_pdf": false,
+    "client_override": "Jérôme Dereume"
+  },
+  {
+    "invoice_number": "ITC-2024-0041",
+    "invoice_date": "2024-04-27",
+    "client_ref": "Appetito Box - USM",
+    "client_vat": "BE1007688260",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4C00896"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Zangh, Grazia"
+  },
+  {
+    "invoice_number": "ITC-2024-0042",
+    "invoice_date": "2024-04-29",
+    "client_ref": "Yohann Bouvier Gaz",
+    "client_vat": "BE0695514348",
+    "entity": "SRL",
+    "total_htva": 842.15,
+    "purchase_price": 840.5,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 840.5,
+        "selling_price": 842.15
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Yohann Bouvier-Gaz"
+  },
+  {
+    "invoice_number": "ITC-2024-0046",
+    "invoice_date": "2024-05-20",
+    "client_ref": "Alain Vaudon",
+    "client_vat": "",
+    "entity": "SRL",
+    "total_htva": 407.88,
+    "purchase_price": 383.7,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 383.7,
+        "selling_price": 407.88
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Alain Vaudon"
+  },
+  {
+    "invoice_number": "ITC-2024-0047",
+    "invoice_date": "2024-05-22",
+    "client_ref": "Appetito - AR CHEEMA",
+    "client_vat": "BE1002657128",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4C00820"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "AR Cheema"
+  },
+  {
+    "invoice_number": "ITC-2024-0048",
+    "invoice_date": "2024-05-22",
+    "client_ref": "Appetito - Chez Marmara",
+    "client_vat": "BE0810938806",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4C00842"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Bular, Zehra"
+  },
+  {
+    "invoice_number": "ITC-2024-0052",
+    "invoice_date": "2024-05-29",
+    "client_ref": "Jonathan Wei - We Are UP",
+    "client_vat": "BE0776525382",
+    "entity": "SRL",
+    "total_htva": 895.0,
+    "purchase_price": 834.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 834.0,
+        "selling_price": 895.0,
+        "serial_numbers": [
+          "FVFCQ7ZM6KG"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Jonathan Wei"
+  },
+  {
+    "invoice_number": "ITC-2024-0053",
+    "invoice_date": "2024-05-29",
+    "client_ref": "Jonathan Wei - We Are UP",
+    "client_vat": "BE0776525382",
+    "entity": "SRL",
+    "total_htva": 425.0,
+    "purchase_price": 300.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 300.0,
+        "selling_price": 425.0,
+        "serial_numbers": [
+          "DMPPC103G5VJ"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Jonathan Wei"
+  },
+  {
+    "invoice_number": "ITC-2024-0058",
+    "invoice_date": "2024-06-15",
+    "client_ref": "Appetito - Salsa & Mozza",
+    "client_vat": "BE0753746121",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4C00806"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Salsa & Mozza"
+  },
+  {
+    "invoice_number": "ITC-2024-0059",
+    "invoice_date": "2024-06-17",
+    "client_ref": "Alexis Legrand - Full Team Services",
+    "client_vat": "BE1003765007",
+    "entity": "SRL",
+    "total_htva": 507.0,
+    "purchase_price": 477.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 477.0,
+        "selling_price": 507.0
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Media Pub SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0060",
+    "invoice_date": "2024-06-17",
+    "client_ref": "PrintBox SRL",
+    "client_vat": "BE0860086726",
+    "entity": "SRL",
+    "total_htva": 270.0,
+    "purchase_price": 260.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 260.0,
+        "selling_price": 270.0
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "PrintBox SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0061",
+    "invoice_date": "2024-06-17",
+    "client_ref": "Le Chiffre SRL",
+    "client_vat": "BE0864243670",
+    "entity": "SRL",
+    "total_htva": 350.0,
+    "purchase_price": 328.22,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 328.22,
+        "selling_price": 350.0
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Le Chiffre SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0062",
+    "invoice_date": "2024-06-17",
+    "client_ref": "Jimmy Mordant - Menuiserie Jimmy Mordant",
+    "client_vat": "BE0548908944",
+    "entity": "SRL",
+    "total_htva": 370.95,
+    "purchase_price": 308.77,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 308.77,
+        "selling_price": 370.95
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Jimmy Mordant"
+  },
+  {
+    "invoice_number": "ITC-2024-0065",
+    "invoice_date": "2024-06-24",
+    "client_ref": "Appetito - Io Roberto",
+    "client_vat": "BE0800263064",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4C00941"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Cybema SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0066",
+    "invoice_date": "2024-06-24",
+    "client_ref": "Appetito - Chez MaryGeo",
+    "client_vat": "BE0839437703",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4C01166"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Chez MaryGeo"
+  },
+  {
+    "invoice_number": "ITC-2024-0067",
+    "invoice_date": "2024-06-24",
+    "client_ref": "Appetito - Snack Thessaloniki",
+    "client_vat": "BE0839994858",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4C01014"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Snack Thessaloniki"
+  },
+  {
+    "invoice_number": "ITC-2024-0069",
+    "invoice_date": "2024-06-28",
+    "client_ref": "Romuald Etienne - Serenity finances",
+    "client_vat": "BE0746690756",
+    "entity": "SRL",
+    "total_htva": 270.0,
+    "purchase_price": 260.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 260.0,
+        "selling_price": 270.0
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Serenity Finance"
+  },
+  {
+    "invoice_number": "ITC-2024-0072",
+    "invoice_date": "2024-07-31",
+    "client_ref": "Jonathan Wei - SERMEX 2000 SRL",
+    "client_vat": "BE0430520642",
+    "entity": "SRL",
+    "total_htva": 833.88,
+    "purchase_price": 775.51,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 775.51,
+        "selling_price": 833.88
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Jonathan Wei"
+  },
+  {
+    "invoice_number": "ITC-2024-0075",
+    "invoice_date": "2024-08-01",
+    "client_ref": "Albine Quinaire - Uniq’Event",
+    "client_vat": "BE0662949072",
+    "entity": "SRL",
+    "total_htva": 949.95,
+    "purchase_price": 854.3,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 854.3,
+        "selling_price": 949.95
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Quisenaire Albine"
+  },
+  {
+    "invoice_number": "ITC-2024-0076",
+    "invoice_date": "2024-07-17",
+    "client_ref": "Appetito - Pitta Star",
+    "client_vat": "BE0878239384",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4C00981"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Style A SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0077",
+    "invoice_date": "2024-07-24",
+    "client_ref": "Appetito - Friterie Snack Bk P",
+    "client_vat": "BE0861603389",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00124"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Becker Pierrot"
+  },
+  {
+    "invoice_number": "ITC-2024-0078",
+    "invoice_date": "2024-08-27",
+    "client_ref": "Appetito - Aux 500",
+    "client_vat": "BE0873587740",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00273"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Aux 500"
+  },
+  {
+    "invoice_number": "ITC-2024-0079",
+    "invoice_date": "2024-08-19",
+    "client_ref": "Appetito - Pizzeria da Dionigi",
+    "client_vat": "BE1006192480",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00098"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Pizzeria da Dionigi"
+  },
+  {
+    "invoice_number": "ITC-2024-0087",
+    "invoice_date": "2024-08-30",
+    "client_ref": "Appetito - La Rondinella",
+    "client_vat": "BE0447539885",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00286"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "La Rondinella SA"
+  },
+  {
+    "invoice_number": "ITC-2024-0088",
+    "invoice_date": "2024-10-10",
+    "client_ref": "Alain Vaudon",
+    "client_vat": "",
+    "entity": "SRL",
+    "total_htva": 661.16,
+    "purchase_price": 660.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 660.0,
+        "selling_price": 661.16
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Nathalie Tricart"
+  },
+  {
+    "invoice_number": "ITC-2024-0091",
+    "invoice_date": "2024-10-20",
+    "client_ref": "Appetito - Spar Hornu",
+    "client_vat": "BE0798773026",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00413"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "BS Invest SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0092",
+    "invoice_date": "2024-09-16",
+    "client_ref": "Appetito - LDJ Concept",
+    "client_vat": "BE1009834039",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00361"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "LDJ Concept"
+  },
+  {
+    "invoice_number": "ITC-2024-0093",
+    "invoice_date": "2024-09-17",
+    "client_ref": "Appetito - As de pique",
+    "client_vat": "BE0757563268",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00068"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Mule Carmelo"
+  },
+  {
+    "invoice_number": "ITC-2024-0094",
+    "invoice_date": "2024-09-26",
+    "client_ref": "Appetito - Chez Mary",
+    "client_vat": "BE1005635721",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00091"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Friterie Chez Mary"
+  },
+  {
+    "invoice_number": "ITC-2024-0095",
+    "invoice_date": "2024-10-21",
+    "client_ref": "Appetito - Pekin Express",
+    "client_vat": "BE0765909822",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00219"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Wu Dingmin"
+  },
+  {
+    "invoice_number": "ITC-2024-0096",
+    "invoice_date": "2024-10-21",
+    "client_ref": "Appetito - Brother",
+    "client_vat": "BE0798892790",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00271"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Ozdemir Emre"
+  },
+  {
+    "invoice_number": "ITC-2024-0097",
+    "invoice_date": "2024-10-21",
+    "client_ref": "Appetito - Chez Madze",
+    "client_vat": "BE1012097802",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00210"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Romain Sara"
+  },
+  {
+    "invoice_number": "ITC-2024-0098",
+    "invoice_date": "2024-10-21",
+    "client_ref": "Appetito - Empire Food",
+    "client_vat": "BE0518976130",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00125"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Empire Foods SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0099",
+    "invoice_date": "2024-10-12",
+    "client_ref": "Appetito - Busschaert Ludovic",
+    "client_vat": "BE0635737307",
+    "entity": "SRL",
+    "total_htva": 398.0,
+    "purchase_price": 232.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 232.0,
+        "selling_price": 398.0,
+        "serial_numbers": [
+          "A59T12BGT4G00133",
+          "A59T12BGT4G00109"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Busschaert Ludovic"
+  },
+  {
+    "invoice_number": "ITC-2024-0100",
+    "invoice_date": "2024-10-14",
+    "client_ref": "Appetito - Riccardo Cucchiara",
+    "client_vat": "BE1013386417",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00199"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Al Gusto SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0101",
+    "invoice_date": "2024-10-18",
+    "client_ref": "Appetito -  La Rusticana #1",
+    "client_vat": "BE0873160445",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00404"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "La Rusticana SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0102",
+    "invoice_date": "2024-10-16",
+    "client_ref": "Appetito -  La Rusticana #2",
+    "client_vat": "BE0873160445",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00067"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "La Rusticana SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0113",
+    "invoice_date": "2025-02-17",
+    "client_ref": "MigDP",
+    "client_vat": "BE0475338701",
+    "entity": "SRL",
+    "total_htva": 1050.0,
+    "purchase_price": 1005.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 1005.0,
+        "selling_price": 1050.0
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Mig DP SRL"
+  },
+  {
+    "invoice_number": "ITC-2024-0119",
+    "invoice_date": "2024-12-30",
+    "client_ref": "Alain Vaudon",
+    "client_vat": "",
+    "entity": "SRL",
+    "total_htva": 670.0,
+    "purchase_price": 634.7,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 634.7,
+        "selling_price": 670.0
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Alain Vaudon"
+  },
+  {
+    "invoice_number": "ITC-2024-0120",
+    "invoice_date": "2024-12-27",
+    "client_ref": "Appetito -  TIM FOOD SRL",
+    "client_vat": "BE0772884320",
+    "entity": "SRL",
+    "total_htva": 199.0,
+    "purchase_price": 116.0,
+    "tva_rate": 0.21,
+    "equipment": [
+      {
+        "title": "Voir facture",
+        "quantity": 1,
+        "purchase_price": 116.0,
+        "selling_price": 199.0,
+        "serial_numbers": [
+          "A59T12BGT4G00243"
+        ]
+      }
+    ],
+    "has_pdf": true,
+    "client_override": "Tim Food SRL"
+  }
+]

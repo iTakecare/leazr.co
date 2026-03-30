@@ -1,0 +1,2996 @@
+[
+  {
+    "dossier_number": "180-17784",
+    "client_id": "eb049586-b547-4e00-a89e-57d714e561cc",
+    "client_name": "Patrick Malin",
+    "client_company": "Always Say IT #1",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Commerce",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-01-01",
+    "date_paiement": "2023-01-12",
+    "month_invoice": 1,
+    "ca": 37296.77,
+    "achat": 18892.0,
+    "marge": 18404.77,
+    "mensualite": 1156.2,
+    "nb_ord": 11,
+    "nb_smart": 2,
+    "nb_tab": 3,
+    "invoice_number": "ITC-2023-001 (PP)",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Dossier en contentieux",
+    "equipment": [
+      {
+        "title": "iPad Pro 12.9 pouces 2020 - 1 To Wifi + 4G RFB GR A",
+        "qty": 3,
+        "purchase_price": 930.0,
+        "selling_price": 2098.0
+      },
+      {
+        "title": "Macbook Pro 16 Intel - Intel Core i9 2.3GHz, SSD 1 To + Hub USB-C",
+        "qty": 4,
+        "purchase_price": 1480.0,
+        "selling_price": 2823.58
+      },
+      {
+        "title": "Macbook Pro 13 Retina M1 - SSD 512 Go AZERTY RFB GR A + Hub USB-C",
+        "qty": 2,
+        "purchase_price": 1020.0,
+        "selling_price": 1900.16
+      },
+      {
+        "title": "Macbook Pro 16 M1 Pro 10/16 - 16Go - 1To Go SSD AZERTY RFB GR A + Hub USB-C",
+        "qty": 2,
+        "purchase_price": 2120.0,
+        "selling_price": 3850.0
+      },
+      {
+        "title": "iPhone 12 Pro Max 256 Go - 256 Go",
+        "qty": 2,
+        "purchase_price": 675.0,
+        "selling_price": 1540.15
+      },
+      {
+        "title": "iMac 27 pouces 5K - SSD 1 To AZERTY RFB GR A",
+        "qty": 1,
+        "purchase_price": 1200.0,
+        "selling_price": 2200.03
+      },
+      {
+        "title": "HP ProBook 450 Go / i5 / 8 Go / 512 Go RFB GR A + SSD 1 To NVMe + 8 Go SoDimm",
+        "qty": 2,
+        "purchase_price": 676.0,
+        "selling_price": 1463.9
+      },
+      {
+        "title": "iPad Pro 12.9 pouces 2020 - 1 To Wifi + 4G RFB GR A",
+        "qty": 3,
+        "purchase_price": 1049.0,
+        "selling_price": 2098.0
+      },
+      {
+        "title": "Macbook Pro 16 Intel - Intel Core i9 2.3GHz, SSD 1 To",
+        "qty": 4,
+        "purchase_price": 1400.0,
+        "selling_price": 2823.58
+      },
+      {
+        "title": "Macbook Pro 13 Retina M1 - SSD 512 Go AZERTY RFB GR A",
+        "qty": 2,
+        "purchase_price": 850.0,
+        "selling_price": 1900.16
+      },
+      {
+        "title": "Macbook Pro 16 M1 Pro 10/16 - 16Go - 1To Go SSD AZERTY RFB GR A",
+        "qty": 2,
+        "purchase_price": 1942.0,
+        "selling_price": 3850.0
+      },
+      {
+        "title": "iPhone 12 Pro Max 256 Go - 256 Go",
+        "qty": 2,
+        "purchase_price": 775.0,
+        "selling_price": 1540.15
+      },
+      {
+        "title": "iMac 27 pouces 5K - SSD 1 To AZERTY RFB GR A",
+        "qty": 1,
+        "purchase_price": 1100.0,
+        "selling_price": 2200.03
+      },
+      {
+        "title": "HP ProBook 450 Go / i5 / 8 Go / 512 Go RFB GR A + SSD 1 To NVMe + 8 Go SoDimm",
+        "qty": 2,
+        "purchase_price": 676.0,
+        "selling_price": 1463.9
+      },
+      {
+        "title": "Hub USB-C ( 1 par Macbook )",
+        "qty": 8,
+        "purchase_price": 20.0,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-17866",
+    "client_id": "16aa1a3b-6257-44d3-8344-6706ff1925c4",
+    "client_name": "Us BarberShop",
+    "client_company": "Debacker Anthony",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Coiffure",
+    "localisation": "Liège",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-01-01",
+    "date_paiement": "2023-01-12",
+    "month_invoice": 1,
+    "ca": 6745.9,
+    "achat": 3448.62,
+    "marge": 3297.28,
+    "mensualite": 205.75,
+    "nb_ord": 1,
+    "nb_smart": 2,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-003 (PP)",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Pack accessoires ( souris + malette + hub )",
+        "qty": 1,
+        "purchase_price": 60.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Apple iPhone 14 Pro Max - 128 Go, Neuf",
+        "qty": 3,
+        "purchase_price": 1222.31,
+        "selling_price": 0
+      },
+      {
+        "title": "Licence office 2021 Mac",
+        "qty": 1,
+        "purchase_price": 14.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Macbook Pro 13 M1 Pro - SSD 512 Go RFB GR A",
+        "qty": 1,
+        "purchase_price": 900.0,
+        "selling_price": 0
+      },
+      {
+        "title": "iPad Offert",
+        "qty": 1,
+        "purchase_price": 155.0,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-17879",
+    "client_id": "0da6d563-4edf-4f50-b06a-7f35627b9ba0",
+    "client_name": "Lux & Design",
+    "client_company": "Lux & Design",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Construction",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-01-01",
+    "date_paiement": "2023-01-12",
+    "month_invoice": 1,
+    "ca": 4816.22,
+    "achat": 2803.78,
+    "marge": 2012.44,
+    "mensualite": 125.85,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-004 (PP)",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Apple iPhone 14 Pro Max - 128 Go, Neuf",
+        "qty": 1,
+        "purchase_price": 1256.0,
+        "selling_price": 2047.81
+      },
+      {
+        "title": "iPad Pro 12.9 pouces 2020 - 128 Go, Wifi + 4G",
+        "qty": 1,
+        "purchase_price": 900.0,
+        "selling_price": 1745.95
+      },
+      {
+        "title": "Apple Smart Keyboard iPad Pro 12.9 2020 Azerty",
+        "qty": 1,
+        "purchase_price": 205.78,
+        "selling_price": 214.2
+      },
+      {
+        "title": "Apple Watch Series 8 45mm Stellar light",
+        "qty": 1,
+        "purchase_price": 442.0,
+        "selling_price": 808.26
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-17880",
+    "client_id": "7485a95e-083b-4eaf-9f8e-a9ef0983c8cb",
+    "client_name": "Dav Constructance",
+    "client_company": "Dav Constructance",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Construction",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-01-01",
+    "date_paiement": "2023-01-12",
+    "month_invoice": 1,
+    "ca": 8251.61,
+    "achat": 4244.36,
+    "marge": 4007.25,
+    "mensualite": 255.8,
+    "nb_ord": 1,
+    "nb_smart": 2,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-005 (PP)",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Apple iPhone 14 Pro Max - 128 Go Neuf",
+        "qty": 1,
+        "purchase_price": 1256.0,
+        "selling_price": 2314.84
+      },
+      {
+        "title": "iMac 27 5K 16 Go 1 To RFB GRA",
+        "qty": 1,
+        "purchase_price": 1241.0,
+        "selling_price": 2301.84
+      },
+      {
+        "title": "2020 Apple iPad Pro M1 12,9 Pouces, Wi-FI + Cellular, 1 To - Gris sidéral (5ᵉ génération)",
+        "qty": 1,
+        "purchase_price": 1375.0,
+        "selling_price": 1822.57
+      },
+      {
+        "title": "Apple iPhone 13 Pro - 256 Go",
+        "qty": 1,
+        "purchase_price": 930.0,
+        "selling_price": 1812.36
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-17915",
+    "client_id": "af14bf1d-bbdf-4e21-9023-b491f2af1973",
+    "client_name": "Art Solution Services",
+    "client_company": "Art Solution Services",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Construction",
+    "localisation": "Braine L'Alleud",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-01-01",
+    "date_paiement": "2023-01-12",
+    "month_invoice": 1,
+    "ca": 6798.39,
+    "achat": 3599.08,
+    "marge": 3199.31,
+    "mensualite": 210.75,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-002 (PP)",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Dossier en contentieux",
+    "equipment": [
+      {
+        "title": "iPhone 14 Pro Max 256 Go",
+        "qty": 1,
+        "purchase_price": 1354.0,
+        "selling_price": 1989.0
+      },
+      {
+        "title": "iMac 27 5K 16 Go 1 To RFB GRA",
+        "qty": 1,
+        "purchase_price": 1241.0,
+        "selling_price": 2996.95
+      },
+      {
+        "title": "Office 2021 pour Mac licence electronique",
+        "qty": 1,
+        "purchase_price": 14.0,
+        "selling_price": 100.66
+      },
+      {
+        "title": "AirPods (3ᵉ génération) avec Boîtier de charge MagSafe",
+        "qty": 1,
+        "purchase_price": 164.46,
+        "selling_price": 204.87
+      },
+      {
+        "title": "Epson EcoTank ET-16600",
+        "qty": 1,
+        "purchase_price": 825.62,
+        "selling_price": 1506.91
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-17993",
+    "client_id": "7bad372c-3bcc-441f-8fa6-4bfe04cc2598",
+    "client_name": "Sakina Ait taleb",
+    "client_company": "Amily SRL",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Transport",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-01-01",
+    "date_paiement": "2023-02-01",
+    "month_invoice": 1,
+    "ca": 3838.41,
+    "achat": 2139.0,
+    "marge": 1699.41,
+    "mensualite": 119.9,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0002",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "iPad Pro 11 pouces 2020 - 256 Go, Wifi + 4G (refurbisheddirect.nl)",
+        "qty": 1,
+        "purchase_price": 785.0,
+        "selling_price": 1858.13
+      },
+      {
+        "title": "Apple iPhone 14 Pro Max - 256 Go, Neuf MAUVE",
+        "qty": 1,
+        "purchase_price": 1354.0,
+        "selling_price": 1980.28
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18112",
+    "client_id": "b9f8b3cc-8364-4005-9afd-af0c54edddb0",
+    "client_name": "Nicolas Sols",
+    "client_company": "Nicolas Sols",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Gestion entreprise",
+    "localisation": "Namur",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-01-01",
+    "date_paiement": "2023-02-01",
+    "month_invoice": 1,
+    "ca": 1921.7,
+    "achat": 1131.0,
+    "marge": 790.7,
+    "mensualite": 69.95,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0003",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Lenovo Thinkpad L14 Gen 3",
+        "qty": 1,
+        "purchase_price": 1139.98,
+        "selling_price": 1921.7
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-17992",
+    "client_id": "637bb0c2-bc12-4fec-9d8e-641069077f69",
+    "client_name": "Jonathan Stordeur",
+    "client_company": "Out of Border",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Industrie musicale",
+    "localisation": "Jodoigne",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-02-01",
+    "date_paiement": "2023-03-01",
+    "month_invoice": 2,
+    "ca": 7545.6,
+    "achat": 6180.17,
+    "marge": 1365.43,
+    "mensualite": 104.95,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0012",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "Macbook Pro 13 M1 / 16 Go / 256 Go SSD",
+        "qty": 1,
+        "purchase_price": 650.0,
+        "selling_price": 1098.9
+      },
+      {
+        "title": "Housse MBP 13",
+        "qty": 1,
+        "purchase_price": 15.82,
+        "selling_price": 0
+      },
+      {
+        "title": "Hub USB-C 10-1",
+        "qty": 1,
+        "purchase_price": 34.6,
+        "selling_price": 0
+      },
+      {
+        "title": "Macbook Pro 16 M2 Pro / 32 Go / 1 To SSD",
+        "qty": 2,
+        "purchase_price": 3060.0,
+        "selling_price": 3138.72
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-17994",
+    "client_id": "c8ceba46-ca8d-4903-8f6b-8b69df636ed4",
+    "client_name": "Moises Rodrigues",
+    "client_company": "Moises Rodrigues",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Transport",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-01-23",
+    "date_facture": "2023-02-01",
+    "date_paiement": "2023-02-01",
+    "month_invoice": 2,
+    "ca": 2196.43,
+    "achat": 1518.0,
+    "marge": 678.43,
+    "mensualite": 79.95,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0004",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iPad Pro 12.9 M1 1To Go Wifi + 5G RFB GR A",
+        "qty": 1,
+        "purchase_price": 1517.07,
+        "selling_price": 2196.43
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18022",
+    "client_id": "a860d579-e102-4255-9352-a28f6f8f30bd",
+    "client_name": "Cleverson Rodrigues",
+    "client_company": "Cleverson Rodrigues",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Transport",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-01-23",
+    "date_facture": "2023-02-01",
+    "date_paiement": "2023-02-01",
+    "month_invoice": 2,
+    "ca": 1399.73,
+    "achat": 750.0,
+    "marge": 649.73,
+    "mensualite": 50.95,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0005",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Dossier en contentieux",
+    "equipment": [
+      {
+        "title": "Macbook Pro 13 Intel i5/ 16 Go / 256Go SSD RFB GR A",
+        "qty": 1,
+        "purchase_price": 675.0,
+        "selling_price": 1290.12
+      },
+      {
+        "title": "iPad Pro 12.9 M1 128 GO Wifi + 5G RFB GR A",
+        "qty": 1,
+        "purchase_price": 1041.0,
+        "selling_price": 2151.54
+      },
+      {
+        "title": "Apple AirPods 3 new",
+        "qty": 2,
+        "purchase_price": 164.0,
+        "selling_price": 206.0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18073",
+    "client_id": "713b0856-cc2f-441e-846d-eb6d0c949a79",
+    "client_name": "Romain Janssens",
+    "client_company": "Romain Janssens",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Construction",
+    "localisation": "Jodoigne",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-02-01",
+    "date_paiement": "2023-02-01",
+    "month_invoice": 2,
+    "ca": 4143.29,
+    "achat": 2278.0,
+    "marge": 1865.29,
+    "mensualite": 144.8,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0006",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "MBP 13 M1 /8Go/512 Go SSD",
+        "qty": 1,
+        "purchase_price": 1139.67,
+        "selling_price": 2298.95
+      },
+      {
+        "title": "Apple iPhone 14 Pro Max - 128 Go, Neuf",
+        "qty": 1,
+        "purchase_price": 1123.0,
+        "selling_price": 2057.76
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18149",
+    "client_id": "4b9e3a48-2ec2-461d-a33a-acc60df2bfa2",
+    "client_name": "Marie Sergi",
+    "client_company": "Marie Sergi",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Immobilier",
+    "localisation": "Bastogne",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-02-01",
+    "date_paiement": "2023-02-01",
+    "month_invoice": 2,
+    "ca": 879.12,
+    "achat": 480.0,
+    "marge": 197.02,
+    "mensualite": 32.0,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0007",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Hp Envy 13 i5 / 16Go / 1 To / 13’’ / Win 10 Pro",
+        "qty": 1,
+        "purchase_price": 799.43,
+        "selling_price": 1367.42
+      },
+      {
+        "title": "Logitech MK470 Clavier / Souris Sans Fils AZERTY BE",
+        "qty": 1,
+        "purchase_price": 49.99,
+        "selling_price": 69.99
+      },
+      {
+        "title": "Ecran HP 24 M24fe 23,8’’ FHD IPS",
+        "qty": 1,
+        "purchase_price": 140.83,
+        "selling_price": 197.16
+      },
+      {
+        "title": "Chargeur HP pour Envy 13",
+        "qty": 1,
+        "purchase_price": 13.32,
+        "selling_price": 0
+      },
+      {
+        "title": "hub USB-C (station d’accueil) 9 en 1 : USB-A 3.0 / USB-C / Jack 3,5’’ / SD / HDMI / VGA / RJ45",
+        "qty": 2,
+        "purchase_price": 37.48,
+        "selling_price": 37.48
+      },
+      {
+        "title": "Logiciels",
+        "qty": 1,
+        "purchase_price": 30.0,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18228",
+    "client_id": "48eba76a-7e2b-4301-8193-52746839de23",
+    "client_name": "Zakaria Gayet",
+    "client_company": "Winfinance",
+    "leaser_name": "Grenke",
+    "source": "Client existant",
+    "secteur": "Finance  - courtage",
+    "localisation": "Namur",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-02-01",
+    "date_paiement": "2023-02-01",
+    "month_invoice": 2,
+    "ca": 4471.95,
+    "achat": 2845.3,
+    "marge": 1626.65,
+    "mensualite": 146.68,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0008",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iMac 27’’ 5K 2020 reconditionné CHAPP.NL",
+        "qty": 3,
+        "purchase_price": 1238.0,
+        "selling_price": 0
+      },
+      {
+        "title": "iPhone 12 64Go black 2021 reconditionné AMAZON.FR",
+        "qty": 1,
+        "purchase_price": 524.82,
+        "selling_price": 0
+      },
+      {
+        "title": "Apple AirPods 3 neuf BOL.COM",
+        "qty": 2,
+        "purchase_price": 152.88,
+        "selling_price": 0
+      },
+      {
+        "title": "Microsoft Office 365 business standard 3 ans  DECTDIRECT",
+        "qty": 1,
+        "purchase_price": 94.21,
+        "selling_price": 0
+      },
+      {
+        "title": "Yealink SIP-T46s + power adapter DECTDIRECT",
+        "qty": 3,
+        "purchase_price": 145.64,
+        "selling_price": 0
+      },
+      {
+        "title": "Dongle Wifi T46s DECT DIRECT",
+        "qty": 3,
+        "purchase_price": 23.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Epson Workforce Pro WF-C5790DWF + 3y CoverPlus Onsite + High Cabinet for WF-5000 Series TECHDATA",
+        "qty": 1,
+        "purchase_price": 570.41,
+        "selling_price": 0
+      },
+      {
+        "title": "Brother MFC-L8690CDW Couleur 2400 x 600 DPI A4 Wi-Fi",
+        "qty": 1,
+        "purchase_price": 495.04,
+        "selling_price": 0
+      },
+      {
+        "title": "Iphone 13 Pro Max 256Go Green Alpin ( apd 01/07/22 )",
+        "qty": 1,
+        "purchase_price": 1038.65,
+        "selling_price": 0
+      },
+      {
+        "title": "iMac 27’’ 5K 2020 reconditionné",
+        "qty": 3,
+        "purchase_price": 1596.9,
+        "selling_price": 0
+      },
+      {
+        "title": "iPhone 12 64Go black 2021 reconditionné",
+        "qty": 1,
+        "purchase_price": 633.97,
+        "selling_price": 0
+      },
+      {
+        "title": "Apple AirPods 3 neuf",
+        "qty": 2,
+        "purchase_price": 164.46,
+        "selling_price": 0
+      },
+      {
+        "title": "Microsoft Office 365 business standard 3 ans",
+        "qty": 1,
+        "purchase_price": 126.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Yealink SIP-T46s",
+        "qty": 3,
+        "purchase_price": 186.86,
+        "selling_price": 0
+      },
+      {
+        "title": "Epson Workforce Pro WF-C5790DWF",
+        "qty": 2,
+        "purchase_price": 926.95,
+        "selling_price": 0
+      },
+      {
+        "title": "iMac 27’’ 5K 2020 reconditionné",
+        "qty": 2,
+        "purchase_price": 1596.9,
+        "selling_price": 0
+      },
+      {
+        "title": "Macbook Pro M1 13’’ 2020 reconditionné",
+        "qty": 2,
+        "purchase_price": 1298.9,
+        "selling_price": 0
+      },
+      {
+        "title": "iPhone 12 64Go black 2021 reconditionné",
+        "qty": 1,
+        "purchase_price": 633.97,
+        "selling_price": 0
+      },
+      {
+        "title": "iPad Pro 11’’ 512 Go silver Wifi+4G  2020 reconditionné",
+        "qty": 1,
+        "purchase_price": 961.32,
+        "selling_price": 0
+      },
+      {
+        "title": "Apple AirPods 3 neuf",
+        "qty": 1,
+        "purchase_price": 164.46,
+        "selling_price": 0
+      },
+      {
+        "title": "Microsoft Office 365 business standard 3 ans",
+        "qty": 1,
+        "purchase_price": 126.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Yealink SIP-T46s",
+        "qty": 3,
+        "purchase_price": 186.86,
+        "selling_price": 0
+      },
+      {
+        "title": "Epson Workforce Pro WF-C5790DWF",
+        "qty": 1,
+        "purchase_price": 926.95,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18243",
+    "client_id": "c5d4dbe6-8aba-4e03-9bbd-338b346397ee",
+    "client_name": "Bilal Gorfti Amrani",
+    "client_company": "BTSM Tech",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "HVAC",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-02-01",
+    "date_paiement": "2023-03-01",
+    "month_invoice": 2,
+    "ca": 5185.53,
+    "achat": 2421.9,
+    "marge": 2763.63,
+    "mensualite": 164.9,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0011",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Dossier en contentieux",
+    "equipment": [
+      {
+        "title": "iMac 27 pouces 5K - SSD 1 To AZERTY RFB GR A",
+        "qty": 1,
+        "purchase_price": 1150.0,
+        "selling_price": 2487.92
+      },
+      {
+        "title": "Apple iPhone 14 Pro Max - 256 Go, Neuf mauve",
+        "qty": 1,
+        "purchase_price": 1271.9,
+        "selling_price": 2697.61
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18328",
+    "client_id": "a4ebafa5-f6e6-4c29-b7a4-2e765624370e",
+    "client_name": "Steve Laureys",
+    "client_company": "Magic Horse Stables",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Chevaux",
+    "localisation": "La Hestre",
+    "date_dossier": "2023-02-01",
+    "date_facture": "2023-02-01",
+    "date_paiement": "2023-02-01",
+    "month_invoice": 2,
+    "ca": 3047.26,
+    "achat": 1540.93,
+    "marge": 1506.33,
+    "mensualite": 99.95,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0010",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "Macbook Pro 13 M1 / 8Go / 2 To SSD / AZERTY RFB GR A",
+        "qty": 1,
+        "purchase_price": 950.0,
+        "selling_price": 1490.1
+      },
+      {
+        "title": "iPhone 13 128 Go - RFB GR A",
+        "qty": 1,
+        "purchase_price": 585.0,
+        "selling_price": 1180.05
+      },
+      {
+        "title": "Imprimante Epson EcoTank",
+        "qty": 1,
+        "purchase_price": 156.2,
+        "selling_price": 252.1
+      },
+      {
+        "title": "AirPods 2",
+        "qty": 1,
+        "purchase_price": 131.0,
+        "selling_price": 125.01
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18223",
+    "client_id": "b2f72028-1c93-433f-92cb-5f00945c0254",
+    "client_name": "Maxime Vicini",
+    "client_company": "Ecole libre Notre Dame de Jumet",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Ecole",
+    "localisation": "Charleroi",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-03-01",
+    "date_paiement": "2023-03-01",
+    "month_invoice": 3,
+    "ca": 1673.08,
+    "achat": 1292.02,
+    "marge": 381.06,
+    "mensualite": 60.9,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0013",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "iPhone 13 Pro Max 128 Go - RFB GR A.",
+        "qty": 1,
+        "purchase_price": 1150.0,
+        "selling_price": 1502.66
+      },
+      {
+        "title": "Ecran SAMSUNG 27 pouces incurvé NEUF",
+        "qty": 1,
+        "purchase_price": 142.02,
+        "selling_price": 170.42
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18256",
+    "client_id": "2b8db788-e4ac-4868-9705-b0f9eec4bb58",
+    "client_name": "Yentl Adams",
+    "client_company": "Yentl Adams",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Industrie musicale",
+    "localisation": "Wuustwezel (Anvers)",
+    "date_dossier": "2023-02-01",
+    "date_facture": "2023-03-01",
+    "date_paiement": "2023-03-01",
+    "month_invoice": 3,
+    "ca": 1646.98,
+    "achat": 1120.0,
+    "marge": 526.98,
+    "mensualite": 59.95,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0016",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Ordinateur portable",
+        "qty": 1,
+        "purchase_price": 1120.0,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18299",
+    "client_id": "1874989d-c1a8-4fc5-bf24-12ddfc5616ce",
+    "client_name": "Celine Maillot",
+    "client_company": "Sublime Emoi",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Coaching",
+    "localisation": "Charleroi",
+    "date_dossier": "2023-02-01",
+    "date_facture": "2023-03-01",
+    "date_paiement": "2023-03-01",
+    "month_invoice": 3,
+    "ca": 3504.57,
+    "achat": 1675.0,
+    "marge": 1829.57,
+    "mensualite": 114.95,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0018",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "Macbook Pro 14 M1 Pro 8/12 - 16 Go - 512 SSD",
+        "qty": 1,
+        "purchase_price": 1570.0,
+        "selling_price": 3292.96
+      },
+      {
+        "title": "Ecran Samsung 24’’ incurvé new",
+        "qty": 1,
+        "purchase_price": 145.0,
+        "selling_price": 181.13
+      },
+      {
+        "title": "Chargeur MacBook Pro USB-C",
+        "qty": 1,
+        "purchase_price": 40.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Office 2021 Home & Business for Mac",
+        "qty": 1,
+        "purchase_price": 14.0,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18396",
+    "client_id": "02566653-cff3-482f-9e8c-2713893aacb2",
+    "client_name": "Dorian Vandensteen",
+    "client_company": "Legal Avenue",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Avocat",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-02-01",
+    "date_facture": "2023-03-01",
+    "date_paiement": "2023-03-01",
+    "month_invoice": 3,
+    "ca": 6256.29,
+    "achat": 4245.8,
+    "marge": 2010.49,
+    "mensualite": 198.95,
+    "nb_ord": 2,
+    "nb_smart": 0,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0017",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iPad Air M1 (5e gen.)  10.9’’ – 256 GB – Wifi - violet - NEW",
+        "qty": 1,
+        "purchase_price": 790.0,
+        "selling_price": 1347.0
+      },
+      {
+        "title": "Mac Mini M2 8 CPU /10 GPU - 16Go RAM - SSD 512 Go - NEW",
+        "qty": 2,
+        "purchase_price": 1000.0,
+        "selling_price": 1629.48
+      },
+      {
+        "title": "AirPods Pro (2e gen) - NEW",
+        "qty": 1,
+        "purchase_price": 222.61,
+        "selling_price": 239.0
+      },
+      {
+        "title": "HomePod Blanc - NEW",
+        "qty": 1,
+        "purchase_price": 290.0,
+        "selling_price": 325.88
+      },
+      {
+        "title": "Apple Magic Keyboard pour iPad Air (5e gen) - Espagnol - Blanc - NEW",
+        "qty": 1,
+        "purchase_price": 286.23,
+        "selling_price": 305.27
+      },
+      {
+        "title": "Magic Keyboard avec touch ID et pavé numérique noir - NEW",
+        "qty": 2,
+        "purchase_price": 169.41,
+        "selling_price": 189.95
+      },
+      {
+        "title": "Magic Trackpad noir - NEW",
+        "qty": 1,
+        "purchase_price": 111.35,
+        "selling_price": 143.95
+      },
+      {
+        "title": "Magic mouse noir - NEW",
+        "qty": 1,
+        "purchase_price": 78.78,
+        "selling_price": 98.23
+      },
+      {
+        "title": "Apple Pencil 2e gen - NEW",
+        "qty": 1,
+        "purchase_price": 128.01,
+        "selling_price": 158.1
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18618",
+    "client_id": "eb049586-b547-4e00-a89e-57d714e561cc",
+    "client_name": "Patrick Malin",
+    "client_company": "E.LITA SPRL",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Restauration",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-03-01",
+    "date_facture": "2023-03-01",
+    "date_paiement": "2023-04-01",
+    "month_invoice": 3,
+    "ca": 57322.78,
+    "achat": 40063.36,
+    "marge": 17259.42,
+    "mensualite": 1811.4,
+    "nb_ord": 4,
+    "nb_smart": 20,
+    "nb_tab": 4,
+    "invoice_number": "ITC-2023-0021",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Dossier en contentieux",
+    "equipment": [
+      {
+        "title": "iPhone 14 Pro Max 256 Go - NEW",
+        "qty": 20,
+        "purchase_price": 1305.0,
+        "selling_price": 2175.0
+      },
+      {
+        "title": "iPad Pro 12,9 pouces M2 128 Go Wifi + 5G  - NEW",
+        "qty": 4,
+        "purchase_price": 1191.67,
+        "selling_price": 2191.67
+      },
+      {
+        "title": "MacBook Air 13’’ M2 - 8 Go - 512 SSD - AZERTY - NEW",
+        "qty": 2,
+        "purchase_price": 1374.17,
+        "selling_price": 2374.17
+      },
+      {
+        "title": "Macbook Pro 14’’ M2 Pro - 16 Go - 512 SSD - AZERTY - NEW",
+        "qty": 2,
+        "purchase_price": 1999.16,
+        "selling_price": 2999.16
+      },
+      {
+        "title": "AirPods 3",
+        "qty": 20,
+        "purchase_price": 162.81,
+        "selling_price": 0
+      },
+      {
+        "title": "Chargeurs iPhone + cable",
+        "qty": 10,
+        "purchase_price": 20.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Mallette Transport + souris Apple",
+        "qty": 4,
+        "purchase_price": 35.0,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18678",
+    "client_id": "2010fbd3-0570-4713-852b-3067be1629f3",
+    "client_name": "Madalin Draghiceanu",
+    "client_company": "DM carrelages",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Construction",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-03-01",
+    "date_facture": "2023-03-01",
+    "date_paiement": "2023-03-01",
+    "month_invoice": 3,
+    "ca": 2031.59,
+    "achat": 1255.0,
+    "marge": 776.59,
+    "mensualite": 73.95,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0020",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Livré en attente paiement",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Smartphone",
+        "qty": 1,
+        "purchase_price": 1255.0,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "021-202304-0033",
+    "client_id": "f5fb9bd0-bd44-4507-9ac5-b3ebe76cac6a",
+    "client_name": "David Becquevort",
+    "client_company": "Cosy House Design SRL",
+    "leaser_name": "Olinn",
+    "source": "Client existant",
+    "secteur": "Construction",
+    "localisation": "Walhain",
+    "date_dossier": "2023-03-01",
+    "date_facture": "2023-04-01",
+    "date_paiement": "2023-04-01",
+    "month_invoice": 4,
+    "ca": 11650.0,
+    "achat": 6838.37,
+    "marge": 4811.63,
+    "mensualite": 337.78,
+    "nb_ord": 4,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0023",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "iMac 27’’ 5k / 16 Go / 1 To SSD",
+        "qty": 1,
+        "purchase_price": 1362.81,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18620",
+    "client_id": "18ecd4dc-be45-49d6-bab1-b8ee7f11b5a6",
+    "client_name": "Kevin Jadin",
+    "client_company": "Trans-mission",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Gestion entreprise",
+    "localisation": "Amay",
+    "date_dossier": "2023-03-01",
+    "date_facture": "2023-04-01",
+    "date_paiement": "2023-05-01",
+    "month_invoice": 4,
+    "ca": 3961.49,
+    "achat": 2222.43,
+    "marge": 1739.06,
+    "mensualite": 129.95,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0026",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iPad Pro 12.9 128 Go Wifi 4G  RFB GR A",
+        "qty": 1,
+        "purchase_price": 938.02,
+        "selling_price": 1749.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go - NEW",
+        "qty": 1,
+        "purchase_price": 1040.0,
+        "selling_price": 1785.0
+      },
+      {
+        "title": "Smartkeyboard for iPad Pro 12.9 AZERTY",
+        "qty": 1,
+        "purchase_price": 164.46,
+        "selling_price": 226.89
+      },
+      {
+        "title": "Apple Pencil 2",
+        "qty": 1,
+        "purchase_price": 131.0,
+        "selling_price": 201.0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18679",
+    "client_id": "494dfa25-7bef-428f-ab7d-efea33bff4f6",
+    "client_name": "Bastien Heynderickx - Apik #1",
+    "client_company": "Bastien Heynderickx - Apik #1",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Web",
+    "localisation": "Braine-L’Alleud",
+    "date_dossier": "2023-03-01",
+    "date_facture": "2023-04-01",
+    "date_paiement": "2023-04-01",
+    "month_invoice": 4,
+    "ca": 4266.77,
+    "achat": 3013.0,
+    "marge": 1253.77,
+    "mensualite": 139.95,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0024",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "Macbook Pro 16 M1 Pro 32Go / 1To / AZERTY RFB GR A",
+        "qty": 1,
+        "purchase_price": 2500.0,
+        "selling_price": 3405.43
+      },
+      {
+        "title": "iPhone 13 mini 128 Go RFB GR A",
+        "qty": 1,
+        "purchase_price": 437.0,
+        "selling_price": 861.34
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18710",
+    "client_id": "4bde7969-9752-463c-8617-66baac5951d2",
+    "client_name": "Virginie GEPTS",
+    "client_company": "BUREAU COMPTABLE & FISCALE GEPTS",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Comptabilité",
+    "localisation": "Pont-à-Celles",
+    "date_dossier": "2023-03-01",
+    "date_facture": "2023-04-01",
+    "date_paiement": "2023-05-01",
+    "month_invoice": 4,
+    "ca": 2196.43,
+    "achat": 1134.71,
+    "marge": 1061.72,
+    "mensualite": 79.95,
+    "nb_ord": 0,
+    "nb_smart": 0,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0025",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "iPad Pro 12.9 M1 512 Go Wifi + 5G",
+        "qty": 1,
+        "purchase_price": 1134.71,
+        "selling_price": 2196.43
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18816",
+    "client_id": "5f99d8a0-e9d6-476c-9ce7-c038c5612e1c",
+    "client_name": "Prosper Naci",
+    "client_company": "Coach Naci #2",
+    "leaser_name": "Grenke",
+    "source": "Client existant",
+    "secteur": "Coaching sportif",
+    "localisation": "Liège",
+    "date_dossier": "2023-04-01",
+    "date_facture": "2023-04-01",
+    "date_paiement": "2023-05-01",
+    "month_invoice": 4,
+    "ca": 1973.9,
+    "achat": 903.36,
+    "marge": 1070.54,
+    "mensualite": 71.85,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0027",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "iPad Pro 11 2018 64 Go Wifi Grade A",
+        "qty": 1,
+        "purchase_price": 422.0,
+        "selling_price": 1008.0
+      },
+      {
+        "title": "iPhone 12 64 Go Grade AB",
+        "qty": 1,
+        "purchase_price": 381.36,
+        "selling_price": 798.0
+      },
+      {
+        "title": "Logitech Slim Folio Pro (pour 11-inch iPad Pro - 3e génération) - Français",
+        "qty": 1,
+        "purchase_price": 100.0,
+        "selling_price": 167.9
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18337",
+    "client_id": "dc8f2046-8f19-40fb-a2b9-07207ba9622c",
+    "client_name": "Thomas SCHIETECATTE",
+    "client_company": "LCV Consult",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Finance",
+    "localisation": "Morlanwez",
+    "date_dossier": "2023-04-01",
+    "date_facture": "2023-05-01",
+    "date_paiement": "2023-05-01",
+    "month_invoice": 5,
+    "ca": 7169.81,
+    "achat": 5309.45,
+    "marge": 1860.36,
+    "mensualite": 228.0,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0030",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "MacBook Pro 14 M2 Pro 16Go / 512 SSD AZERTY - new",
+        "qty": 1,
+        "purchase_price": 1832.5,
+        "selling_price": 2397.12
+      },
+      {
+        "title": "iPad Pro 12.9 M2 128 Go Wifi + 5G - new",
+        "qty": 1,
+        "purchase_price": 1245.45,
+        "selling_price": 1925.7
+      },
+      {
+        "title": "Apple Magic Keyboard pour iPad 12.9 - new",
+        "qty": 1,
+        "purchase_price": 313.22,
+        "selling_price": 363.22
+      },
+      {
+        "title": "Magic Mouse noire - new",
+        "qty": 1,
+        "purchase_price": 81.81,
+        "selling_price": 117.65
+      },
+      {
+        "title": "Magic Keyboard + Touch ID noir - new",
+        "qty": 1,
+        "purchase_price": 154.55,
+        "selling_price": 169.24
+      },
+      {
+        "title": "Apple Pencil 2 - new",
+        "qty": 1,
+        "purchase_price": 112.5,
+        "selling_price": 138.1
+      },
+      {
+        "title": "Apple Studio Display avec pied réglable en hauteur + inclinaison - Apple RFB",
+        "qty": 1,
+        "purchase_price": 1569.42,
+        "selling_price": 2018.0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-18987",
+    "client_id": "402da52d-43fe-4d5c-85a2-7452e3d4e84a",
+    "client_name": "Roger Hennebert",
+    "client_company": "Les petits rêveurs",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Accueil enfant",
+    "localisation": "Rixensart",
+    "date_dossier": "2023-05-01",
+    "date_facture": "2023-05-01",
+    "date_paiement": "2023-05-01",
+    "month_invoice": 5,
+    "ca": 4876.52,
+    "achat": 3131.0,
+    "marge": 1745.52,
+    "mensualite": 159.95,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0033",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "MacBook Air M2 8Go 256Go SSD AZERTY GR A",
+        "qty": 1,
+        "purchase_price": 1084.3,
+        "selling_price": 1984.3
+      },
+      {
+        "title": "iPad Pro 12.9 2020 128 Go Wifi Grade A",
+        "qty": 1,
+        "purchase_price": 691.0,
+        "selling_price": 1091.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go New",
+        "qty": 1,
+        "purchase_price": 987.6,
+        "selling_price": 1463.0
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "qty": 1,
+        "purchase_price": 142.0,
+        "selling_price": 217.3
+      },
+      {
+        "title": "Licence Office 2021 pour Mac",
+        "qty": 1,
+        "purchase_price": 14.0,
+        "selling_price": 64.2
+      },
+      {
+        "title": "Pack Accessoires",
+        "qty": 1,
+        "purchase_price": 65.0,
+        "selling_price": 91.02
+      },
+      {
+        "title": "Offert : Apple Pencil 2",
+        "qty": 1,
+        "purchase_price": 112.5,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-19007",
+    "client_id": "f35e77aa-e5a2-4111-b9ae-281143bf33f8",
+    "client_name": "Bernard Hansen",
+    "client_company": "Tailor Made Service",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Industrie Musicale",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-05-01",
+    "date_facture": "2023-05-01",
+    "date_paiement": "2023-05-01",
+    "month_invoice": 5,
+    "ca": 4817.07,
+    "achat": 3869.79,
+    "marge": 947.28,
+    "mensualite": 158.0,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0029",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "MacBook Pro 14 M2 Pro 16Go / 1 To SSD AZERTY - new",
+        "qty": 1,
+        "purchase_price": 2168.6,
+        "selling_price": 2688.12
+      },
+      {
+        "title": "iPhone 14 Pro Max 512 Go",
+        "qty": 1,
+        "purchase_price": 1400.83,
+        "selling_price": 1925.17
+      },
+      {
+        "title": "AirPods 3",
+        "qty": 1,
+        "purchase_price": 150.41,
+        "selling_price": 203.78
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-19329",
+    "client_id": "a75700cd-2e26-41b7-a112-fbc5fbad94eb",
+    "client_name": "Thibault Cenci",
+    "client_company": "Cenci Menuiserie SRL",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Menuiserie",
+    "localisation": "Boussu-Lez-Walcourt",
+    "date_dossier": "2023-06-01",
+    "date_facture": "2023-06-01",
+    "date_paiement": null,
+    "month_invoice": 6,
+    "ca": 3047.26,
+    "achat": 1593.33,
+    "marge": 1453.93,
+    "mensualite": 99.95,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0035",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "MacBook Pro 16 M1 Pro 512Go SSD AZERTY",
+        "qty": 1,
+        "purchase_price": 1570.0,
+        "selling_price": 3047.26
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-19681",
+    "client_id": "be4dba3c-6458-4591-95d8-b65e30e39537",
+    "client_name": "Davy Loomans",
+    "client_company": "JNS Lightning",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Construction",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-08-01",
+    "date_facture": "2023-08-01",
+    "date_paiement": "2023-08-01",
+    "month_invoice": 8,
+    "ca": 4876.52,
+    "achat": 4070.0,
+    "marge": 806.52,
+    "mensualite": 159.95,
+    "nb_ord": 0,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0036",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "",
+    "equipment": [
+      {
+        "title": "MacBook Air M2 8Go 256Go SSD AZERTY GR A",
+        "qty": 1,
+        "purchase_price": 1084.3,
+        "selling_price": 1950.0
+      },
+      {
+        "title": "iPad Pro 12.9 2021 M1 128 Go Wifi Grade A",
+        "qty": 1,
+        "purchase_price": 691.0,
+        "selling_price": 1091.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go New",
+        "qty": 2,
+        "purchase_price": 987.6,
+        "selling_price": 1604.56
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "qty": 1,
+        "purchase_price": 142.0,
+        "selling_price": 217.13
+      },
+      {
+        "title": "Office 2021 pour Mac",
+        "qty": 1,
+        "purchase_price": 0,
+        "selling_price": 90.39
+      },
+      {
+        "title": "Pack Accessoires",
+        "qty": 1,
+        "purchase_price": 65.0,
+        "selling_price": 65.0
+      },
+      {
+        "title": "Offert : AirPods 2",
+        "qty": 1,
+        "purchase_price": 112.5,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "csv"
+  },
+  {
+    "dossier_number": "180-19695",
+    "client_id": "8f542251-6ed2-4f31-9447-746e1eea1c9c",
+    "client_name": "William Elong",
+    "client_company": "Faraday Scomm",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Programmation web",
+    "localisation": "Charleroi",
+    "date_dossier": "2023-08-01",
+    "date_facture": "2023-08-01",
+    "date_paiement": "2023-08-01",
+    "month_invoice": 8,
+    "ca": 4632.62,
+    "achat": 2660.5,
+    "marge": 1972.12,
+    "mensualite": 99.95,
+    "nb_ord": 0,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0037",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "",
+    "equipment": [
+      {
+        "title": "\"ASUS VivoBook Pro 16X N7600PC-KV034T-BE i5-11300H Ordinateur portable (16\"\") WQXGA Intel® Core™ i5 11300H 16 Go DDR4-SDRAM 1000 Go SSD NVIDIA GeForce RTX 3050 Max-Q Wi-Fi 6 (802.11ax) Bluetooth 5.0 Windows 11 - RFB GR A\"",
+        "qty": 1,
+        "purchase_price": 720.0,
+        "selling_price": 1538.14
+      },
+      {
+        "title": "Macbook Pro M1 13 8 Go / 256 Go / AZERTY - RFB GR A",
+        "qty": 1,
+        "purchase_price": 825.0,
+        "selling_price": 1440.3
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go - RFB GR A",
+        "qty": 1,
+        "purchase_price": 1030.0,
+        "selling_price": 1494.0
+      },
+      {
+        "title": "Ecran Samsung 24’’ IPS incurvé - RFB GR A",
+        "qty": 1,
+        "purchase_price": 85.5,
+        "selling_price": 160.18
+      }
+    ],
+    "source_data": "csv"
+  },
+  {
+    "dossier_number": "180-18621",
+    "client_id": "14533ab3-19a8-4aa9-b031-eb217c495a85",
+    "client_name": "Jimmy Mordant",
+    "client_company": "JM Menuiserie",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Menuiserie",
+    "localisation": "Courcelles",
+    "date_dossier": "2023-03-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-12-01",
+    "month_invoice": 9,
+    "ca": 1565.93,
+    "achat": 732.07,
+    "marge": 833.86,
+    "mensualite": 57.0,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0047",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "HP ProBook 470 G8 + 8Go SoDimm + 1To NVME",
+        "qty": 1,
+        "purchase_price": 663.47,
+        "selling_price": 1565.93
+      },
+      {
+        "title": "SSD 480 Go + 8 Go DDR3L + batterie X571L",
+        "qty": 1,
+        "purchase_price": 68.6,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-19328",
+    "client_id": "102b5df7-3415-42b9-9859-e7a4e1704c93",
+    "client_name": "Antoine Tytgat",
+    "client_company": "Agence Tytan",
+    "leaser_name": "Grenke",
+    "source": "Meta",
+    "secteur": "Agence travaux",
+    "localisation": "Tournai",
+    "date_dossier": "2023-06-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-09-01",
+    "month_invoice": 9,
+    "ca": 4876.52,
+    "achat": 3338.92,
+    "marge": 1537.6,
+    "mensualite": 159.95,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0044",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "MacBook Pro M2 8Go 512Go SSD AZERTY GR A",
+        "qty": 1,
+        "purchase_price": 1084.3,
+        "selling_price": 1950.0
+      },
+      {
+        "title": "iPad Pro 12.9 2021 M1 128 Go Wifi Grade A",
+        "qty": 1,
+        "purchase_price": 691.0,
+        "selling_price": 1091.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go New",
+        "qty": 1,
+        "purchase_price": 987.6,
+        "selling_price": 1463.0
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "qty": 1,
+        "purchase_price": 142.0,
+        "selling_price": 250.3
+      },
+      {
+        "title": "AirPods 2",
+        "qty": 1,
+        "purchase_price": 131.0,
+        "selling_price": 64.2
+      },
+      {
+        "title": "Pack Accessoires",
+        "qty": 1,
+        "purchase_price": 65.0,
+        "selling_price": 91.02
+      },
+      {
+        "title": "Offert : Apple Pencil 2",
+        "qty": 1,
+        "purchase_price": 112.5,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-19721",
+    "client_id": "d36737d4-d21c-4773-bf9f-7805530d57b0",
+    "client_name": "Nicolas Vandervinne",
+    "client_company": "THE AUTOMOT'e.v. FACTORY",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Recrutement",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-09-01",
+    "month_invoice": 9,
+    "ca": 7544.03,
+    "achat": 4342.09,
+    "marge": 3201.94,
+    "mensualite": 239.9,
+    "nb_ord": 2,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0045",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "MacBook Pro M2 8Go 512Go SSD AZERTY GR A",
+        "qty": 1,
+        "purchase_price": 1050.0,
+        "selling_price": 1772.0
+      },
+      {
+        "title": "iPad Pro 12.9 2020 128 Go Wifi Grade A",
+        "qty": 1,
+        "purchase_price": 730.0,
+        "selling_price": 1246.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go New",
+        "qty": 1,
+        "purchase_price": 1080.0,
+        "selling_price": 1463.0
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "qty": 1,
+        "purchase_price": 175.0,
+        "selling_price": 240.3
+      },
+      {
+        "title": "Licence Office 2021 pour Mac",
+        "qty": 1,
+        "purchase_price": 14.0,
+        "selling_price": 64.2
+      },
+      {
+        "title": "Pack Accessoires",
+        "qty": 1,
+        "purchase_price": 56.0,
+        "selling_price": 91.02
+      },
+      {
+        "title": "iMac 27 5K 3.0 GHz 570x 256 Go AZERTY RFB GR A",
+        "qty": 1,
+        "purchase_price": 975.0,
+        "selling_price": 2667.51
+      },
+      {
+        "title": "Offert : Apple Pencil 2 + AirPods 3",
+        "qty": 1,
+        "purchase_price": 253.09,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-19781",
+    "client_id": "10820a48-c72b-4eab-8a65-d701c3b10108",
+    "client_name": "Michel Mordant",
+    "client_company": "Menuiserie Michel",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Menuiserie",
+    "localisation": "Jumet",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-09-01",
+    "month_invoice": 9,
+    "ca": 2942.0,
+    "achat": 1729.1,
+    "marge": 1212.9,
+    "mensualite": 96.5,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0042",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Mac mini M2 8Go / 512 SSD + clavier et souris Apple",
+        "qty": 1,
+        "purchase_price": 755.0,
+        "selling_price": 1565.0
+      },
+      {
+        "title": "iPad Pro 11 64 Go Wifi + 4G",
+        "qty": 1,
+        "purchase_price": 499.0,
+        "selling_price": 755.0
+      },
+      {
+        "title": "Clavier Logitech Combo pour iPad Pro 11",
+        "qty": 1,
+        "purchase_price": 147.0,
+        "selling_price": 213.9
+      },
+      {
+        "title": "Multifonctions Brother L3770CDW",
+        "qty": 1,
+        "purchase_price": 317.72,
+        "selling_price": 408.1
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-19810",
+    "client_id": "8574cb7a-37a0-4f49-bf05-c236d6ef84d7",
+    "client_name": "Magali Compere",
+    "client_company": "Magali Compere",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Infirmière",
+    "localisation": "Liège",
+    "date_dossier": "2023-01-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-09-01",
+    "month_invoice": 9,
+    "ca": 4876.52,
+    "achat": 3211.5,
+    "marge": 1665.02,
+    "mensualite": 159.95,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0046",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "MacBook Pro M2 8Go 512Go SSD AZERTY GR A",
+        "qty": 1,
+        "purchase_price": 1050.0,
+        "selling_price": 1772.0
+      },
+      {
+        "title": "iPad Pro 12.9 2020 128 Go Wifi Grade A",
+        "qty": 1,
+        "purchase_price": 730.0,
+        "selling_price": 1246.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go New",
+        "qty": 1,
+        "purchase_price": 1080.0,
+        "selling_price": 1463.0
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "qty": 1,
+        "purchase_price": 165.0,
+        "selling_price": 240.3
+      },
+      {
+        "title": "Licence Office 2021 pour Mac",
+        "qty": 1,
+        "purchase_price": 14.0,
+        "selling_price": 64.2
+      },
+      {
+        "title": "Pack Accessoires",
+        "qty": 1,
+        "purchase_price": 65.0,
+        "selling_price": 91.02
+      },
+      {
+        "title": "Offert : AirPods 2",
+        "qty": 1,
+        "purchase_price": 107.5,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-19866",
+    "client_id": "c1da41be-792a-4fbc-ac68-6a20b1ddfe6e",
+    "client_name": "Gregory Ilnicki",
+    "client_company": "Infra Route SRL",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Genie Civil",
+    "localisation": "Liège",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-10-01",
+    "month_invoice": 9,
+    "ca": 2141.48,
+    "achat": 1429.0,
+    "marge": 712.48,
+    "mensualite": 77.95,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0057",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iPhone 12 Pro Max 128 Go RFB GR A",
+        "qty": 1,
+        "purchase_price": 725.0,
+        "selling_price": 1372.25
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-19885",
+    "client_id": "48eba76a-7e2b-4301-8193-52746839de23",
+    "client_name": "Zakaria Gayet",
+    "client_company": "Winfinance #3 - Bureau Fontaine L’évêque",
+    "leaser_name": "Grenke",
+    "source": "Client existant",
+    "secteur": "Finance  - courtage",
+    "localisation": "Namur",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-09-01",
+    "month_invoice": 9,
+    "ca": 2509.0,
+    "achat": 1402.0,
+    "marge": 1107.0,
+    "mensualite": 172.43,
+    "nb_ord": 2,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0043",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Macbook Pro 16 M1 Pro / 16 Go RAM / 512 Go SSD",
+        "qty": 1,
+        "purchase_price": 1805.0,
+        "selling_price": 3047.2
+      },
+      {
+        "title": "Samsung The Frame 65’’ + frame couleur bois foncé",
+        "qty": 1,
+        "purchase_price": 924.8,
+        "selling_price": 1424.75
+      },
+      {
+        "title": "Minis Forum Mini PC W10 (serv. Impression)",
+        "qty": 1,
+        "purchase_price": 115.5,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20001",
+    "client_id": "adabeb0e-824d-4ea3-bc1f-c59e812ad53e",
+    "client_name": "Antoine Sottiaux",
+    "client_company": "LeGrow Studio #1",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Medias",
+    "localisation": "Bruxelles",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-10-01",
+    "month_invoice": 9,
+    "ca": 4995.43,
+    "achat": 2597.0,
+    "marge": 2398.43,
+    "mensualite": 179.84,
+    "nb_ord": 2,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0051",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "MacBook Pro 13 M1 8Go RAM 256Go AZERTY - RFB GR A",
+        "qty": 2,
+        "purchase_price": 799.0,
+        "selling_price": 1700.14
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go - NEW",
+        "qty": 1,
+        "purchase_price": 999.0,
+        "selling_price": 1595.15
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20007",
+    "client_id": "494dfa25-7bef-428f-ab7d-efea33bff4f6",
+    "client_name": "Bastien Heynderickx - Apik #2",
+    "client_company": "Bastien Heynderickx - Apik #2",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Web",
+    "localisation": "Braine-L’Alleud",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-10-01",
+    "month_invoice": 9,
+    "ca": 3047.26,
+    "achat": 1600.0,
+    "marge": 1447.26,
+    "mensualite": 99.95,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0052",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "Macbook Pro 16 M1 Pro 16Go / 1To / AZERTY RFB GR A",
+        "qty": 1,
+        "purchase_price": 1950.0,
+        "selling_price": 3047.26
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20032",
+    "client_id": "722fee4e-4de1-4630-a44e-54b59754edba",
+    "client_name": "Vincent Mathieu-Kempeneers",
+    "client_company": "Acadiso",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Construction",
+    "localisation": "Liege",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-09-01",
+    "month_invoice": 9,
+    "ca": 1646.79,
+    "achat": 1086.0,
+    "marge": 560.79,
+    "mensualite": 59.95,
+    "nb_ord": 0,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0049",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Microsoft Surface Pro 9 - Wifi 16 Go / 256 Go SSD",
+        "qty": 1,
+        "purchase_price": 995.0,
+        "selling_price": 1526.69
+      },
+      {
+        "title": "Microsoft Surface Pro Type Cover Platinum AZERTY",
+        "qty": 1,
+        "purchase_price": 90.91,
+        "selling_price": 120.1
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20164",
+    "client_id": "93f44f33-f70f-4317-bc0a-9c447fb4cb83",
+    "client_name": "Ness Pelgrims",
+    "client_company": "Ness Pelgrims #1",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Esthétique",
+    "localisation": "Namur",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-09-01",
+    "date_paiement": "2023-10-01",
+    "month_invoice": 9,
+    "ca": 4417.68,
+    "achat": 2140.5,
+    "marge": 2277.18,
+    "mensualite": 144.9,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0053",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iMac 24 pouces 4,5K M1 - SSD 256 Go - Rose",
+        "qty": 1,
+        "purchase_price": 1200.0,
+        "selling_price": 2365.93
+      },
+      {
+        "title": "Apple iPhone 14 Pro Max - 128 Go, Neuf - GOLD",
+        "qty": 1,
+        "purchase_price": 940.5,
+        "selling_price": 2051.75
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20334",
+    "client_id": "d78deee1-30a9-4198-a76f-e3978cca528f",
+    "client_name": "Jonathan Da Silva",
+    "client_company": "Black Box",
+    "leaser_name": "Grenke",
+    "source": "Client existant",
+    "secteur": "Photographie",
+    "localisation": "Charleroi",
+    "date_dossier": "2023-10-01",
+    "date_facture": "2023-10-01",
+    "date_paiement": "2023-10-01",
+    "month_invoice": 10,
+    "ca": 2865.85,
+    "achat": 2239.0,
+    "marge": 626.85,
+    "mensualite": 94.0,
+    "nb_ord": 0,
+    "nb_smart": 2,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0056",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Macbook Pro 14 M1 Pro / 16 Go / 1 To SSD",
+        "qty": 1,
+        "purchase_price": 1941.32,
+        "selling_price": 2434.1
+      },
+      {
+        "title": "iPhone 15 Pro Max 512 Go - NEW",
+        "qty": 1,
+        "purchase_price": 1429.0,
+        "selling_price": 1829.15
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go - RFB GRA",
+        "qty": 1,
+        "purchase_price": 810.0,
+        "selling_price": 1036.7
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20362",
+    "client_id": "8ac70f53-8ee6-4095-b18c-fe67761ceaf2",
+    "client_name": "Nicolas Ceron",
+    "client_company": "AR Saint Ghislain #6 - Tablettes/ Ecole",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Enseignement",
+    "localisation": "Mons",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-11-01",
+    "date_paiement": "2023-12-01",
+    "month_invoice": 11,
+    "ca": 34476.28,
+    "achat": 20728.5,
+    "marge": 13747.78,
+    "mensualite": 1075.0,
+    "nb_ord": 0,
+    "nb_smart": 0,
+    "nb_tab": 100,
+    "invoice_number": "ITC-2023-0064",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Samsung Galaxy Tab A8 64Go Wifi / 4Go Ram",
+        "qty": 100,
+        "purchase_price": 158.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Samsung Chargeur rapide USB-C 25W",
+        "qty": 100,
+        "purchase_price": 9.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Casque micro JBL",
+        "qty": 50,
+        "purchase_price": 14.0,
+        "selling_price": 0
+      },
+      {
+        "title": "Cover PU",
+        "qty": 100,
+        "purchase_price": 13.0,
+        "selling_price": 0
+      },
+      {
+        "title": "iPad 2020 (x7) + cover (6x) + stylets (6x) - Offert",
+        "qty": 1,
+        "purchase_price": 2028.29,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20591",
+    "client_id": "e3eeb0b0-4c17-431f-92c6-9e93a3e45877",
+    "client_name": "Sabrina Dewever",
+    "client_company": "Express immo",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Immobilier",
+    "localisation": "Namur",
+    "date_dossier": "2023-10-01",
+    "date_facture": "2023-11-01",
+    "date_paiement": "2023-11-01",
+    "month_invoice": 11,
+    "ca": 4510.67,
+    "achat": 3412.0,
+    "marge": 1098.67,
+    "mensualite": 259.95,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0063",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iPhone 14 Pro Max - 128 Go - RFB GR A",
+        "qty": 1,
+        "purchase_price": 1008.0,
+        "selling_price": 1334.0
+      },
+      {
+        "title": "MacBook Pro M3 Pro 14’’ 8Go/ 512Go - NEW",
+        "qty": 1,
+        "purchase_price": 1666.0,
+        "selling_price": 2030.07
+      },
+      {
+        "title": "iPad Pro 11 M1",
+        "qty": 1,
+        "purchase_price": 699.0,
+        "selling_price": 864.1
+      },
+      {
+        "title": "Logitech Combo Touch",
+        "qty": 1,
+        "purchase_price": 150.0,
+        "selling_price": 159.1
+      },
+      {
+        "title": "Apple Pencil 2",
+        "qty": 1,
+        "purchase_price": 80.0,
+        "selling_price": 123.4
+      },
+      {
+        "title": "Offert : iPad 2020 32Go wifi",
+        "qty": 1,
+        "purchase_price": 268.0,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20608",
+    "client_id": "fee44465-0e08-4487-b89e-4ac3358d529c",
+    "client_name": "Larock Victor",
+    "client_company": "Victor Larock",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Finances",
+    "localisation": "Wemmel",
+    "date_dossier": "2023-11-01",
+    "date_facture": "2023-11-01",
+    "date_paiement": "2023-11-01",
+    "month_invoice": 11,
+    "ca": 6661.95,
+    "achat": 3001.0,
+    "marge": 3660.95,
+    "mensualite": 136.9,
+    "nb_ord": 1,
+    "nb_smart": 1,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0060",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Oui",
+    "equipment": [
+      {
+        "title": "Apple iPhone 15 Pro Max - 256 Go, Neuf",
+        "qty": 1,
+        "purchase_price": 1084.3,
+        "selling_price": 1945.1
+      },
+      {
+        "title": "iPad Pro 12.9 pouces M1 - 128 Go, Wifi + 4G",
+        "qty": 1,
+        "purchase_price": 691.0,
+        "selling_price": 2132.33
+      },
+      {
+        "title": "Macbook Air 13 M2 - SSD 256 Go",
+        "qty": 1,
+        "purchase_price": 0,
+        "selling_price": 2584.52
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20711",
+    "client_id": "efdff76d-702a-4363-bcf7-e83b63b28fd2",
+    "client_name": "Gilles Vandeputte",
+    "client_company": "The Southern Experience",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Tourisme",
+    "localisation": "Arlon",
+    "date_dossier": "2023-11-01",
+    "date_facture": "2023-11-01",
+    "date_paiement": "2023-11-01",
+    "month_invoice": 11,
+    "ca": 1894.23,
+    "achat": 1003.0,
+    "marge": 891.23,
+    "mensualite": 160.95,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0061",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iMac 27 pouces 5K - SSD 256 Go",
+        "qty": 1,
+        "purchase_price": 1084.3,
+        "selling_price": 1895.1
+      },
+      {
+        "title": "iPad Pro 11 pouces 2020 - 256 Go, Wifi",
+        "qty": 1,
+        "purchase_price": 691.0,
+        "selling_price": 1709.25
+      },
+      {
+        "title": "Apple Smart Keyboard iPad Pro 11 Azerty - Neuf",
+        "qty": 1,
+        "purchase_price": 0,
+        "selling_price": 201.0
+      },
+      {
+        "title": "Microsoft Office Famille et Petite Entreprise 2021",
+        "qty": 1,
+        "purchase_price": 0,
+        "selling_price": 90.66
+      },
+      {
+        "title": "Apple iPhone 13 Pro - 256 Go",
+        "qty": 1,
+        "purchase_price": 0,
+        "selling_price": 1011.0
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20346",
+    "client_id": "8ac70f53-8ee6-4095-b18c-fe67761ceaf2",
+    "client_name": "Nicolas Ceron",
+    "client_company": "AR Saint Ghislain #1 - Lot 2/ Local 35",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Enseignement",
+    "localisation": "Mons",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-12-01",
+    "date_paiement": "2023-12-01",
+    "month_invoice": 12,
+    "ca": 13573.72,
+    "achat": 9450.0,
+    "marge": 4123.72,
+    "mensualite": 429.03,
+    "nb_ord": 27,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0068",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "ThinkCentre M70s SFF Intel Core i3 10100 / 256 Go / 8Go / AZERTY BE + souris ( bluelink.nl)",
+        "qty": 27,
+        "purchase_price": 248.0,
+        "selling_price": 1.5
+      },
+      {
+        "title": "Kingston Technology KCP432SS8/8 (+8Go)",
+        "qty": 27,
+        "purchase_price": 16.0,
+        "selling_price": 1.15
+      },
+      {
+        "title": "Ecran Samsung S24C360EAU (Kosatec)",
+        "qty": 27,
+        "purchase_price": 87.0,
+        "selling_price": 1.15
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20347",
+    "client_id": "8ac70f53-8ee6-4095-b18c-fe67761ceaf2",
+    "client_name": "Nicolas Ceron",
+    "client_company": "AR Saint Ghislain #2 - Lot 3-1/ Local 63",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Enseignement",
+    "localisation": "Mons",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-12-01",
+    "date_paiement": "2024-01-12",
+    "month_invoice": 12,
+    "ca": 14503.53,
+    "achat": 11361.0,
+    "marge": 3142.53,
+    "mensualite": 452.55,
+    "nb_ord": 21,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0074",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Lenovo ThinkCentre neo 50q Mini PC Intel® Core™ i5 i5-13420H + 8Go RAM",
+        "qty": 21,
+        "purchase_price": 456.0,
+        "selling_price": 1.19
+      },
+      {
+        "title": "Ecran Samsung S24C360EAU (Kosatec)",
+        "qty": 21,
+        "purchase_price": 87.0,
+        "selling_price": 1.15
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20349",
+    "client_id": "8ac70f53-8ee6-4095-b18c-fe67761ceaf2",
+    "client_name": "Nicolas Ceron",
+    "client_company": "AR Saint Ghislain #4 - Lot 3-3/ Local 71",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Enseignement",
+    "localisation": "Mons",
+    "date_dossier": "2023-09-01",
+    "date_facture": "2023-12-01",
+    "date_paiement": "2024-01-12",
+    "month_invoice": 12,
+    "ca": 14503.53,
+    "achat": 11361.0,
+    "marge": 3142.53,
+    "mensualite": 452.55,
+    "nb_ord": 21,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0073",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Lenovo ThinkCentre neo 50q Mini PC Intel® Core™ i5 i5-13420H + 8Go",
+        "qty": 21,
+        "purchase_price": 456.0,
+        "selling_price": 1.19
+      },
+      {
+        "title": "Ecran Samsung S24C360EAU (Kosatec)",
+        "qty": 21,
+        "purchase_price": 85.0,
+        "selling_price": 1.15
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20594",
+    "client_id": "c8ef74c6-ae2a-455a-bf73-2e909459c883",
+    "client_name": "Johnatan Jassin",
+    "client_company": "Engine of Passion #1",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Automobile",
+    "localisation": "Thorembais",
+    "date_dossier": "2023-11-01",
+    "date_facture": "2023-12-01",
+    "date_paiement": "2023-12-01",
+    "month_invoice": 12,
+    "ca": 3118.9,
+    "achat": 1892.0,
+    "marge": 1226.9,
+    "mensualite": 136.9,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0067",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iPhone 15 Pro Max 512Go - new",
+        "qty": 2,
+        "purchase_price": 1084.3,
+        "selling_price": 2797.17
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-20969",
+    "client_id": "f67c7202-c5ab-49fe-84e8-e0cc11b39473",
+    "client_name": "Thibaud de Clerck",
+    "client_company": "Alarmes De Clerck #1",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Alarmes",
+    "localisation": "Forchies",
+    "date_dossier": "2023-12-01",
+    "date_facture": "2023-12-01",
+    "date_paiement": "2023-12-01",
+    "month_invoice": 12,
+    "ca": 3347.56,
+    "achat": 2017.64,
+    "marge": 1329.92,
+    "mensualite": 109.8,
+    "nb_ord": 0,
+    "nb_smart": 0,
+    "nb_tab": 2,
+    "invoice_number": "ITC-2023-0066",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iPad Pro 11 M1 512Go Wifi+5G RFB GRA+",
+        "qty": 2,
+        "purchase_price": 776.0,
+        "selling_price": 1381.28
+      },
+      {
+        "title": "Logitech Combo Touch iPad Pro 11 NEW",
+        "qty": 2,
+        "purchase_price": 150.0,
+        "selling_price": 169.1
+      },
+      {
+        "title": "Apple Pencil 2 NEW",
+        "qty": 2,
+        "purchase_price": 80.0,
+        "selling_price": 123.4
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-21094",
+    "client_id": "c8ef74c6-ae2a-455a-bf73-2e909459c883",
+    "client_name": "Johnatan Jassin",
+    "client_company": "Engine of Passion #2",
+    "leaser_name": "Grenke",
+    "source": "Google",
+    "secteur": "Automobile",
+    "localisation": "Thorembais",
+    "date_dossier": "2023-12-01",
+    "date_facture": "2023-12-01",
+    "date_paiement": "2024-01-12",
+    "month_invoice": 12,
+    "ca": 2478.02,
+    "achat": 1288.0,
+    "marge": 1190.02,
+    "mensualite": 90.2,
+    "nb_ord": 1,
+    "nb_smart": 0,
+    "nb_tab": 0,
+    "invoice_number": "ITC-2023-0071",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "iPhone 15 Pro Max 512Go - new",
+        "qty": 2,
+        "purchase_price": 1084.3,
+        "selling_price": 2797.17
+      }
+    ],
+    "source_data": "excel"
+  },
+  {
+    "dossier_number": "180-21111",
+    "client_id": "4b9e3a48-2ec2-461d-a33a-acc60df2bfa2",
+    "client_name": "Marie Sergi",
+    "client_company": "Marie Sergi",
+    "leaser_name": "Grenke",
+    "source": "Recommandation",
+    "secteur": "Immobilier",
+    "localisation": "Bastogne",
+    "date_dossier": "2023-12-01",
+    "date_facture": "2023-12-01",
+    "date_paiement": "2024-01-12",
+    "month_invoice": 12,
+    "ca": 1674.0,
+    "achat": 986.07,
+    "marge": 687.93,
+    "mensualite": 60.93,
+    "nb_ord": 0,
+    "nb_smart": 0,
+    "nb_tab": 1,
+    "invoice_number": "ITC-2023-0070",
+    "contract_number": "",
+    "contract_duration": 48,
+    "status": "active",
+    "statut": "Payé",
+    "notes": "Non",
+    "equipment": [
+      {
+        "title": "Hp Envy 13 i5 / 16Go / 1 To / 13’’ / Win 10 Pro",
+        "qty": 1,
+        "purchase_price": 799.43,
+        "selling_price": 1367.42
+      },
+      {
+        "title": "Logitech MK470 Clavier / Souris Sans Fils AZERTY BE",
+        "qty": 1,
+        "purchase_price": 49.99,
+        "selling_price": 69.99
+      },
+      {
+        "title": "Ecran HP 24 M24fe 23,8’’ FHD IPS",
+        "qty": 1,
+        "purchase_price": 140.83,
+        "selling_price": 197.16
+      },
+      {
+        "title": "Chargeur HP pour Envy 13",
+        "qty": 1,
+        "purchase_price": 13.32,
+        "selling_price": 0
+      },
+      {
+        "title": "hub USB-C (station d’accueil) 9 en 1 : USB-A 3.0 / USB-C / Jack 3,5’’ / SD / HDMI / VGA / RJ45",
+        "qty": 2,
+        "purchase_price": 37.48,
+        "selling_price": 37.48
+      },
+      {
+        "title": "Logiciels",
+        "qty": 1,
+        "purchase_price": 30.0,
+        "selling_price": 0
+      }
+    ],
+    "source_data": "excel"
+  }
+]

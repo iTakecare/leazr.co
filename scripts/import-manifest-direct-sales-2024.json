@@ -1,0 +1,15 @@
+{
+  "batch_id": "import-direct-2024-20260326200141",
+  "created_at": "2026-03-26T20:01:41.527Z",
+  "dry_run": false,
+  "offers": [
+    "b2bf7738-563c-4287-ac82-7318345af24b"
+  ],
+  "offer_equipment": [
+    "00d4590e-7ec0-429f-977c-762c08869cb9"
+  ],
+  "invoices": [
+    "f16dbdf2-8ba7-4264-9bbf-fcbae8cf2428"
+  ],
+  "errors": []
+}

@@ -1,0 +1,126 @@
+{
+  "created_at": "2026-03-26T09:07:26.601Z",
+  "updates": [
+    {
+      "id": "cefd464d-bea3-41d5-926c-ed9fc0215eac",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "096aca7e-8f4e-4959-996f-36e68735af2e",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "03edefd9-1947-48a9-bd64-9d29ab2ae5ac",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "e46b707c-146b-48dd-9a82-1a77f2cdd39f",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "ca9fb172-d9b0-44f4-a78a-b93b5ea7d456",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "a87c312e-6286-4399-b6a1-c2c958e35016",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "d642942d-abdc-416d-8866-4d4777f17f6e",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "18acb2d5-a778-43c3-8dc1-6d62a3b6d29b",
+      "original_actual_purchase_price": 1055,
+      "original_actual_purchase_date": "2023-01-13T00:00:00+00:00"
+    },
+    {
+      "id": "dd2be0a3-3332-4731-bb78-906a45fe0efe",
+      "original_actual_purchase_price": 1223,
+      "original_actual_purchase_date": "2023-01-13T00:00:00+00:00"
+    },
+    {
+      "id": "e754d8f9-f267-4602-a347-bd53d3b76af7",
+      "original_actual_purchase_price": 14,
+      "original_actual_purchase_date": "2023-01-13T00:00:00+00:00"
+    },
+    {
+      "id": "70560c12-8118-4ee7-889a-d64abdc36dcf",
+      "original_actual_purchase_price": 60,
+      "original_actual_purchase_date": "2023-01-13T00:00:00+00:00"
+    },
+    {
+      "id": "dd063fa8-8d2f-4bcf-a80a-96dfdce0a3af",
+      "original_actual_purchase_price": 1256,
+      "original_actual_purchase_date": "2023-01-13T00:00:00+00:00"
+    },
+    {
+      "id": "515ce948-27ca-427e-a7c9-9793dd84d551",
+      "original_actual_purchase_price": 442,
+      "original_actual_purchase_date": "2023-01-13T00:00:00+00:00"
+    },
+    {
+      "id": "f422a554-2bda-41a1-b1f8-d6fb27605fd6",
+      "original_actual_purchase_price": 900,
+      "original_actual_purchase_date": "2023-01-13T00:00:00+00:00"
+    },
+    {
+      "id": "9fa2e605-89b1-4b42-9767-1c8cc1fccf93",
+      "original_actual_purchase_price": 205.78,
+      "original_actual_purchase_date": "2023-01-13T00:00:00+00:00"
+    },
+    {
+      "id": "af81096c-a49c-4b9c-b0a5-478dfb9619b2",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "4db799e4-7f7c-4f3d-983b-737fb5257021",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "c29e4a7f-c170-425b-af69-6cbaaabc9b04",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "b9df5e30-b33a-44b7-92ca-eccc28589619",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "a010d4ca-6b97-4396-8309-9300cb6d3215",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "7d14e1a3-f0f0-4c13-94ea-d337a97e1efc",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "9a6e6d57-1481-4020-bb83-5355a5b4993b",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "547dc687-243a-49fc-a051-ecbb91e0c51c",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    },
+    {
+      "id": "cbfc8e39-ded4-4247-8727-05b69a492143",
+      "original_actual_purchase_price": null,
+      "original_actual_purchase_date": null
+    }
+  ],
+  "inserts": []
+}

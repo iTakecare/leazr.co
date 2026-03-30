@@ -1,0 +1,2375 @@
+{
+  "ITC-2024-0002": {
+    "invoice_number": "ITC-2024-0002",
+    "dossier": "180-21116",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 16 M1 Pro 16Go 1To RFB GRA",
+        "serial_number": [],
+        "selling_price_excl_vat": 3023.43,
+        "quantity": 2
+      }
+    ],
+    "calc_total": 6046.86
+  },
+  "ITC-2024-0003": {
+    "invoice_number": "ITC-2024-0003",
+    "dossier": "180-21194",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Apple iPhone 15 Pro Max - 256 Go, Neuf",
+        "serial_number": [
+          "357926955197459"
+        ],
+        "selling_price_excl_vat": 1671.74,
+        "quantity": 1
+      },
+      {
+        "title": "iPad Pro 11 pouces 2020 - 256 Go, Wifi + 4G",
+        "serial_number": [
+          "DMPDG0CXNTH8"
+        ],
+        "selling_price_excl_vat": 2288.63,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 3960.37
+  },
+  "ITC-2024-0004": {
+    "invoice_number": "ITC-2024-0004",
+    "dossier": "180-21341",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPhone 15 Pro Max 256Go new",
+        "serial_number": [
+          "354449444842232"
+        ],
+        "selling_price_excl_vat": 1919.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1919.0
+  },
+  "ITC-2024-0005": {
+    "invoice_number": "ITC-2024-0005",
+    "dossier": "180-21491",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPhone 15 Pro Max 256Go - Noir - New",
+        "serial_number": [
+          "358560157220451"
+        ],
+        "selling_price_excl_vat": 1942.0,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 15 Pro 256Go - Noir - New",
+        "serial_number": [
+          "353281476724751"
+        ],
+        "selling_price_excl_vat": 1824.0,
+        "quantity": 1
+      },
+      {
+        "title": "MacBook Pro M3 Pro 14 11/14 36Go 512 Go SSD NEW",
+        "serial_number": [
+          "H6CLG9LHW5"
+        ],
+        "selling_price_excl_vat": 3799.96,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 7565.96
+  },
+  "ITC-2024-0006": {
+    "invoice_number": "ITC-2024-0006",
+    "dossier": "180-21508",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 16 M1 Pro 16Go 1To SSD RFB GR A",
+        "serial_number": [
+          "YR3XF4HQ6V"
+        ],
+        "selling_price_excl_vat": 2931.1,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2931.1
+  },
+  "ITC-2024-0007": {
+    "invoice_number": "ITC-2024-0007",
+    "dossier": "180-21477",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Air 13 M1 8Go 256Go SSD",
+        "serial_number": [
+          "C02GTKBDQ6L4"
+        ],
+        "selling_price_excl_vat": 1098.9,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1098.9
+  },
+  "ITC-2024-0009": {
+    "invoice_number": "ITC-2024-0009",
+    "dossier": null,
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPad Pro 12.9 M2 128Go Wifi - RFB GR A",
+        "serial_number": [
+          "KY7337PGXK"
+        ],
+        "selling_price_excl_vat": 1550.0,
+        "quantity": 1
+      },
+      {
+        "title": "iPad 2021 - 64GB - WiFi - Space Gray",
+        "serial_number": [
+          "D721P9N273"
+        ],
+        "selling_price_excl_vat": 591.3,
+        "quantity": 1
+      },
+      {
+        "title": "Logitech Combo Touch iPad 12.9",
+        "serial_number": [],
+        "selling_price_excl_vat": 233.0,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Pencil 2",
+        "serial_number": [],
+        "selling_price_excl_vat": 123.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2497.3
+  },
+  "ITC-2024-0010": {
+    "invoice_number": "ITC-2024-0010",
+    "dossier": "180-20363",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Imprimante Brother DCP-L8410CDW color laser 31ppm",
+        "serial_number": [],
+        "selling_price_excl_vat": 432.5,
+        "quantity": 3
+      },
+      {
+        "title": "Chariots pour tablettes - Ergotron Zip40",
+        "serial_number": [],
+        "selling_price_excl_vat": 2310.0,
+        "quantity": 3
+      },
+      {
+        "title": "Lecteur Graveur CD / DVD externe",
+        "serial_number": [],
+        "selling_price_excl_vat": 48.04,
+        "quantity": 2
+      },
+      {
+        "title": "Switch 48 ports",
+        "serial_number": [],
+        "selling_price_excl_vat": 343.1,
+        "quantity": 3
+      }
+    ],
+    "calc_total": 9352.88
+  },
+  "ITC-2024-0011": {
+    "invoice_number": "ITC-2024-0011",
+    "dossier": "180-21318",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPhone 13 128 Go - RFG GRA",
+        "serial_number": [
+          "350407031055083"
+        ],
+        "selling_price_excl_vat": 941.0,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Watch Serie 8 - 41mm",
+        "serial_number": [
+          "C2919Y3P6G"
+        ],
+        "selling_price_excl_vat": 308.0,
+        "quantity": 2
+      },
+      {
+        "title": "Apple Watch Serie 8 - 45mm",
+        "serial_number": [
+          "JVHNXG9VT2"
+        ],
+        "selling_price_excl_vat": 405.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1962.0
+  },
+  "ITC-2024-0012": {
+    "invoice_number": "ITC-2024-0012",
+    "dossier": "180-21626",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro M2 Pro 16’’ 16Go 512Go SSD - RFB GRA",
+        "serial_number": [],
+        "selling_price_excl_vat": 3852.0,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 14 pro Max 256 Go - RFB GR A",
+        "serial_number": [
+          "C6GR2G9KXR"
+        ],
+        "selling_price_excl_vat": 1600.0,
+        "quantity": 1
+      },
+      {
+        "title": "Ecran Samsung 27'' incurvé",
+        "serial_number": [],
+        "selling_price_excl_vat": 178.2,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 5630.2
+  },
+  "ITC-2024-0013": {
+    "invoice_number": "ITC-2024-0013",
+    "dossier": "180-21625",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Macbook Pro 16 M1 Pro - SSD 512 Go - RFB GR A",
+        "serial_number": [
+          "FTX0XKP9Q6"
+        ],
+        "selling_price_excl_vat": 2925.3,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2925.3
+  },
+  "ITC-2024-0016": {
+    "invoice_number": "ITC-2024-0016",
+    "dossier": "180-21752",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "PC Studio Langue sur mesure composé de : Boitier Corsair 5000D Alimentation Corsair RM750x 80 PLUS Gold 750 Watts Carte Mère Gigabyte Z790 AORUS Elite AX Intel LGA 1700 CPU Intel Core i7 12700KF LGA1700 be quiet! Dark Rock Pro 5 Processeur Refroidisseur d'air 120/135 mm Noir CORSAIR VENGEANCE DDR5 RAM 32Go (2x16Go) 5200MHz ASUS DUAL NVIDIA GeForce RTX 3060 V2 OC Edition 12GB Samsung 970 EVO Plus 2 To Disque SSD Interne NVMe Clavier Logitech ERGO K860 Souris Logitech M705 Marathon Windows 11 Pro",
+        "serial_number": [],
+        "selling_price_excl_vat": 3350.88,
+        "quantity": 1
+      },
+      {
+        "title": "LG UltraFine Ecran PC 4K 27\" IPS",
+        "serial_number": [],
+        "selling_price_excl_vat": 300.0,
+        "quantity": 2
+      },
+      {
+        "title": "WOODBRASS Original First Casque Audio Studio",
+        "serial_number": [],
+        "selling_price_excl_vat": 54.0,
+        "quantity": 13
+      }
+    ],
+    "calc_total": 4652.88
+  },
+  "ITC-2024-0017": {
+    "invoice_number": "ITC-2024-0017",
+    "dossier": "180-20348",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "PC fixe Core i5 /16/256/1To/CL+S BE",
+        "serial_number": [],
+        "selling_price_excl_vat": 560.0,
+        "quantity": 28
+      },
+      {
+        "title": "Tablettes Surface Go 4 N200/8 Go/ 64Go/Win11 pro",
+        "serial_number": [],
+        "selling_price_excl_vat": 720.23,
+        "quantity": 4
+      },
+      {
+        "title": "Ecran 24'' fixes",
+        "serial_number": [],
+        "selling_price_excl_vat": 102.03,
+        "quantity": 56
+      }
+    ],
+    "calc_total": 24274.6
+  },
+  "ITC-2024-0018": {
+    "invoice_number": "ITC-2024-0018",
+    "dossier": "180-20361",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Pc Portable i3 ou eq. / 256 Go / 16Go / AZERTY",
+        "serial_number": [],
+        "selling_price_excl_vat": 496.35,
+        "quantity": 46
+      }
+    ],
+    "calc_total": 22832.1
+  },
+  "ITC-2024-0019": {
+    "invoice_number": "ITC-2024-0019",
+    "dossier": "180-21887",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "ELITEBOOK 650 G9 15.6'' I5 16GB 512GB - RFB GR A",
+        "serial_number": [
+          "5Y3U5EAX3E"
+        ],
+        "selling_price_excl_vat": 1533.1,
+        "quantity": 1
+      },
+      {
+        "title": "Ecran 24'' Samsung",
+        "serial_number": [],
+        "selling_price_excl_vat": 112.5,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1645.6
+  },
+  "ITC-2024-0020": {
+    "invoice_number": "ITC-2024-0020",
+    "dossier": "180-21935",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MBP 16 M1 Pro 16Go RAM 1To - RFB GR A",
+        "serial_number": [
+          "M7DJKJQDH0"
+        ],
+        "selling_price_excl_vat": 2896.34,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2896.34
+  },
+  "ITC-2024-0021": {
+    "invoice_number": "ITC-2024-0021",
+    "dossier": "180-21807",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "LENOVO V14 SERIES : i5 12th/16 Go/512SSD 14 inches",
+        "serial_number": [
+          "PF4J554F"
+        ],
+        "selling_price_excl_vat": 1297.07,
+        "quantity": 5
+      },
+      {
+        "title": "LENOVO V15 SERIES : i5 12th/16 Go/512SSD 15 inches",
+        "serial_number": [
+          "PF4HSMD6"
+        ],
+        "selling_price_excl_vat": 1297.07,
+        "quantity": 4
+      },
+      {
+        "title": "LENOVO THINKVISION T24i",
+        "serial_number": [],
+        "selling_price_excl_vat": 214.5,
+        "quantity": 6
+      },
+      {
+        "title": "LENOVO THINKVISION T34w",
+        "serial_number": [],
+        "selling_price_excl_vat": 439.0,
+        "quantity": 6
+      },
+      {
+        "title": "Set Logitech MX Keys AZERTY",
+        "serial_number": [],
+        "selling_price_excl_vat": 224.0,
+        "quantity": 1
+      },
+      {
+        "title": "Set Logitech MX Keys QWERTY",
+        "serial_number": [],
+        "selling_price_excl_vat": 224.0,
+        "quantity": 2
+      },
+      {
+        "title": "Logitech Mouse MX Anywhere",
+        "serial_number": [],
+        "selling_price_excl_vat": 95.0,
+        "quantity": 2
+      },
+      {
+        "title": "LENOVO Dock incl. Adapter VGA HDMI USB 3.1 Eth Aud",
+        "serial_number": [],
+        "selling_price_excl_vat": 132.0,
+        "quantity": 8
+      },
+      {
+        "title": "APPLE iPhone 14 128Go RFB GR A",
+        "serial_number": [
+          "351955444259972"
+        ],
+        "selling_price_excl_vat": 1022.07,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 18534.7
+  },
+  "ITC-2024-0028": {
+    "invoice_number": "ITC-2024-0028",
+    "dossier": "180-22253",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Apple iMac 24 M1 16Go 1To SSD RFB GR A",
+        "serial_number": [
+          "C02FV036Q6X9"
+        ],
+        "selling_price_excl_vat": 2559.82,
+        "quantity": 3
+      },
+      {
+        "title": "iPad Pro 11 M1 128Go Wifi + 5G",
+        "serial_number": [
+          "356635356870272"
+        ],
+        "selling_price_excl_vat": 1137.99,
+        "quantity": 1
+      },
+      {
+        "title": "iPad Pro 12.9\" M1 128GB WiFi",
+        "serial_number": [
+          "D5C9C59KYW"
+        ],
+        "selling_price_excl_vat": 1715.0,
+        "quantity": 1
+      },
+      {
+        "title": "Logitech Combo Touch for iPad Pro 11",
+        "serial_number": [],
+        "selling_price_excl_vat": 195.0,
+        "quantity": 1
+      },
+      {
+        "title": "Logitech Combo Touch for iPad Pro 12.9",
+        "serial_number": [],
+        "selling_price_excl_vat": 215.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 10942.45
+  },
+  "ITC-2024-0029": {
+    "invoice_number": "ITC-2024-0029",
+    "dossier": "180-22416",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPhone 15 Plus 128Go - Noir",
+        "serial_number": [
+          "359529820077159"
+        ],
+        "selling_price_excl_vat": 1408.1,
+        "quantity": 1
+      },
+      {
+        "title": "AirPods Pro 2e Gen",
+        "serial_number": [
+          "SC6N4WRM7KD"
+        ],
+        "selling_price_excl_vat": 237.25,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Watch 9e gen 45mm Silver",
+        "serial_number": [
+          "SJCDFCPX7J9"
+        ],
+        "selling_price_excl_vat": 438.17,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2083.52
+  },
+  "ITC-2024-0030": {
+    "invoice_number": "ITC-2024-0030",
+    "dossier": "180-22427",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 16 M2 Pro 16Go 512Go SSD RFB GR A",
+        "serial_number": [
+          "WHWKHV491H"
+        ],
+        "selling_price_excl_vat": 3832.0,
+        "quantity": 1
+      },
+      {
+        "title": "iMac 24 M1 4,5K 16Go 512 Go SSD RFB GR A",
+        "serial_number": [
+          "H12G1HXAQ6X3"
+        ],
+        "selling_price_excl_vat": 1997.52,
+        "quantity": 1
+      },
+      {
+        "title": "iPad Pro 12.9 pouces M1 128 Go Wifi RFB GR A",
+        "serial_number": [
+          "Q7J6X71VYV"
+        ],
+        "selling_price_excl_vat": 1807.27,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 7636.79
+  },
+  "ITC-2024-0031": {
+    "invoice_number": "ITC-2024-0031",
+    "dossier": "180-22432",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iMac 24'' M1 8Go 256Go SSD RFB GRA",
+        "serial_number": [
+          "C02FQ015Q6XH"
+        ],
+        "selling_price_excl_vat": 1729.4,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1729.4
+  },
+  "ITC-2024-0033": {
+    "invoice_number": "ITC-2024-0033",
+    "dossier": "180-22550",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 14 M2 Pro 16Go 1To SSD - RFB GR A",
+        "serial_number": [
+          "K73WJG9RVM"
+        ],
+        "selling_price_excl_vat": 2333.79,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2333.79
+  },
+  "ITC-2024-0034": {
+    "invoice_number": "ITC-2024-0034",
+    "dossier": "180-22627",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iMac 24 M1 8Go / 1To SSD RFB GRA",
+        "serial_number": [
+          "C02GJ2L1Q6W8"
+        ],
+        "selling_price_excl_vat": 1700.0,
+        "quantity": 1
+      },
+      {
+        "title": "iPad Pro 12.9 M1 128Go Wifi + 5G",
+        "serial_number": [
+          "LM2N3GXDCR"
+        ],
+        "selling_price_excl_vat": 1865.0,
+        "quantity": 1
+      },
+      {
+        "title": "Logitech Combo Touch iPad Pro 12.9",
+        "serial_number": [],
+        "selling_price_excl_vat": 225.0,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Pencil 2",
+        "serial_number": [],
+        "selling_price_excl_vat": 123.11,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 3913.11
+  },
+  "ITC-2024-0035": {
+    "invoice_number": "ITC-2024-0035",
+    "dossier": "180-22594",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPad 2022 64Go 10,9 pouces Wifi RFB GRA",
+        "serial_number": [],
+        "selling_price_excl_vat": 692.31,
+        "quantity": 2
+      }
+    ],
+    "calc_total": 1384.62
+  },
+  "ITC-2024-0036": {
+    "invoice_number": "ITC-2024-0036",
+    "dossier": "180-22645",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "HP 450 G9 16Go 1To SSD - RFB GR A",
+        "serial_number": [
+          "5CD333HDLC"
+        ],
+        "selling_price_excl_vat": 1453.41,
+        "quantity": 1
+      },
+      {
+        "title": "Licence Office 2021",
+        "serial_number": [
+          "JY8DH"
+        ],
+        "selling_price_excl_vat": 90.6,
+        "quantity": 1
+      },
+      {
+        "title": "Licence NOD32 Antivirus",
+        "serial_number": [
+          "USAX"
+        ],
+        "selling_price_excl_vat": 49.4,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1593.41
+  },
+  "ITC-2024-0037": {
+    "invoice_number": "ITC-2024-0037",
+    "dossier": null,
+    "date": null,
+    "leaser_data": {
+      "name": "SAS GRENKE LOCATION",
+      "address": "Rue de Lisbonne",
+      "city": "",
+      "postal_code": "",
+      "country": "France",
+      "email": "",
+      "phone": "",
+      "vat_number": ""
+    },
+    "equipment_data": [
+      {
+        "title": "Macbook Air 13 M2 - SSD 256 Go",
+        "serial_number": [
+          "D4Y2Q7VX3H"
+        ],
+        "selling_price_excl_vat": 2100.1,
+        "quantity": 1
+      },
+      {
+        "title": "iMac 27 pouces 5K - SSD 1 To",
+        "serial_number": [
+          "C02CK1H5JV40"
+        ],
+        "selling_price_excl_vat": 2753.12,
+        "quantity": 1
+      },
+      {
+        "title": "Imprimante multifonctions Epson EcoTank ET-5800",
+        "serial_number": [
+          "X7HC017445"
+        ],
+        "selling_price_excl_vat": 1378.1,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 15 Pro Max 256Go NEW",
+        "serial_number": [
+          "357164764070705"
+        ],
+        "selling_price_excl_vat": 2135.3,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 8366.62
+  },
+  "ITC-2024-0038": {
+    "invoice_number": "ITC-2024-0038",
+    "dossier": "180-22428",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 16 M1 Pro 16Go 512 Go SSD RFB GR A",
+        "serial_number": [
+          "NQJQX6T09M"
+        ],
+        "selling_price_excl_vat": 2650.0,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 14 Pro Max 128Go RFB GR A",
+        "serial_number": [
+          "358034163201756"
+        ],
+        "selling_price_excl_vat": 1789.93,
+        "quantity": 1
+      },
+      {
+        "title": "iPad Pro 12.9 pouces M1 - 128 Go Wifi RFB GR A",
+        "serial_number": [
+          "SCM65WH3X2W"
+        ],
+        "selling_price_excl_vat": 1807.27,
+        "quantity": 1
+      },
+      {
+        "title": "Epson EcoTank A3 ET-16650",
+        "serial_number": [
+          "X6ML010362"
+        ],
+        "selling_price_excl_vat": 1300.0,
+        "quantity": 1
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad 12.9",
+        "serial_number": [],
+        "selling_price_excl_vat": 225.0,
+        "quantity": 1
+      },
+      {
+        "title": "Ecran Samsung incurvé 27’’",
+        "serial_number": [
+          "5MX4H9YTX100820"
+        ],
+        "selling_price_excl_vat": 195.0,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Pencil 2",
+        "serial_number": [],
+        "selling_price_excl_vat": 135.0,
+        "quantity": 1
+      },
+      {
+        "title": "pack acces. : mallette / souris bluetooth / hub",
+        "serial_number": [],
+        "selling_price_excl_vat": 70.0,
+        "quantity": 1
+      },
+      {
+        "title": "AirPods 3",
+        "serial_number": [],
+        "selling_price_excl_vat": 180.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 8352.2
+  },
+  "ITC-2024-0039": {
+    "invoice_number": "ITC-2024-0039",
+    "dossier": "180-22489",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "HP ProBook 450 G9 15.6 pouces 16Go 1To",
+        "serial_number": [
+          "5CD333HDMN"
+        ],
+        "selling_price_excl_vat": 2200.21,
+        "quantity": 1
+      },
+      {
+        "title": "Microsoft Surface 8 Pro - 8Go - 256Go Wifi - Win 11",
+        "serial_number": [
+          "0F00V59214901J"
+        ],
+        "selling_price_excl_vat": 2040.0,
+        "quantity": 1
+      },
+      {
+        "title": "Epson EcoTank ET-5800",
+        "serial_number": [
+          "X7HC017383"
+        ],
+        "selling_price_excl_vat": 879.0,
+        "quantity": 1
+      },
+      {
+        "title": "Apple iPhone 13 Pro Max - 128Go RFB GR A",
+        "serial_number": [
+          "JG4W5CFX0M"
+        ],
+        "selling_price_excl_vat": 1509.72,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 6628.93
+  },
+  "ITC-2024-0040": {
+    "invoice_number": "ITC-2024-0040",
+    "dossier": "180-22593",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Macbook Pro 16 M2 Pro 16Go SSD 1To RFB GR A",
+        "serial_number": [
+          "WHWKHV491H"
+        ],
+        "selling_price_excl_vat": 4863.15,
+        "quantity": 1
+      },
+      {
+        "title": "Apple iPhone 15 Pro Max - 256 Go",
+        "serial_number": [
+          "350091874255339"
+        ],
+        "selling_price_excl_vat": 1997.52,
+        "quantity": 1
+      },
+      {
+        "title": "Apple AirPods 3 - Neuf",
+        "serial_number": [],
+        "selling_price_excl_vat": 195.0,
+        "quantity": 1
+      },
+      {
+        "title": "Imprimante multifonctions Epson EcoTank ET-5800",
+        "serial_number": [
+          "X7H017445"
+        ],
+        "selling_price_excl_vat": 872.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 7927.67
+  },
+  "ITC-2024-0043": {
+    "invoice_number": "ITC-2024-0043",
+    "dossier": "180-22709",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPad Pro 11 pouces M2 - 512 Go Wifi",
+        "serial_number": [
+          "HP7Q3MGCT7"
+        ],
+        "selling_price_excl_vat": 1407.2,
+        "quantity": 1
+      },
+      {
+        "title": "Logitech Combo Touch for iPad Pro 11",
+        "serial_number": [],
+        "selling_price_excl_vat": 164.23,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1571.43
+  },
+  "ITC-2024-0044": {
+    "invoice_number": "ITC-2024-0044",
+    "dossier": "180-22814",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "HP ProBook 450 G9 15.6 pouces 16Go 1To RFB GR A",
+        "serial_number": [
+          "5CD333HDMW"
+        ],
+        "selling_price_excl_vat": 1646.98,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1646.98
+  },
+  "ITC-2024-0045": {
+    "invoice_number": "ITC-2024-0045",
+    "dossier": "180-22856",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPAD PRO 11 M1 256Go WIFI+5G RFB GR A",
+        "serial_number": [
+          "TWKN646N99"
+        ],
+        "selling_price_excl_vat": 1134.45,
+        "quantity": 1
+      },
+      {
+        "title": "LOGTECH COMBO TOUCH POUR iPAD",
+        "serial_number": [],
+        "selling_price_excl_vat": 184.23,
+        "quantity": 1
+      },
+      {
+        "title": "APPLE PENCIL 2",
+        "serial_number": [],
+        "selling_price_excl_vat": 124.45,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1443.13
+  },
+  "ITC-2024-0049": {
+    "invoice_number": "ITC-2024-0049",
+    "dossier": "180-22857",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MACBOOK PRO 16 M2 Max SSD 1To RFB GRA",
+        "serial_number": [
+          "V0MP4T6LYG"
+        ],
+        "selling_price_excl_vat": 3961.89,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 3961.89
+  },
+  "ITC-2024-0050": {
+    "invoice_number": "ITC-2024-0050",
+    "dossier": "180-22863",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Macbook Pro 16 M1 Pro - SSD 512 Go RFB GR A",
+        "serial_number": [
+          "YJYGP6CHWR"
+        ],
+        "selling_price_excl_vat": 2416.21,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2416.21
+  },
+  "ITC-2024-0055": {
+    "invoice_number": "ITC-2024-0055",
+    "dossier": "180-23141",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 13 M1 8Go/256 Go SSD AZERTY RFB GRA",
+        "serial_number": [
+          "FVFFN1E6Q05G"
+        ],
+        "selling_price_excl_vat": 1571.68,
+        "quantity": 1
+      },
+      {
+        "title": "Mac mini M2 8Go 512Go Magic Kbd + mouse OPENBOX",
+        "serial_number": [
+          "SGJXG9LM6F3"
+        ],
+        "selling_price_excl_vat": 1541.6,
+        "quantity": 1
+      },
+      {
+        "title": "Ecran Asus ProArt 279CV",
+        "serial_number": [
+          "RCLMTF111646"
+        ],
+        "selling_price_excl_vat": 498.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 3611.28
+  },
+  "ITC-2024-0056": {
+    "invoice_number": "ITC-2024-0056",
+    "dossier": "180-23011",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Lenovo V14 Gen4 - i5 - 16Go - 512 SSD - Win 11 Pro",
+        "serial_number": [
+          "PF4J7XCH",
+          "PF4J872E"
+        ],
+        "selling_price_excl_vat": 1147.64,
+        "quantity": 2
+      },
+      {
+        "title": "Souris Logitech MX",
+        "serial_number": [],
+        "selling_price_excl_vat": 95.0,
+        "quantity": 2
+      },
+      {
+        "title": "Lenovo Dock incl. Adapter VGA HDMI USB 3.1 Gen2 US",
+        "serial_number": [],
+        "selling_price_excl_vat": 120.0,
+        "quantity": 2
+      },
+      {
+        "title": "Ecran 34’’ Lenovo T34W-30",
+        "serial_number": [
+          "V30BLRLC",
+          "V30BLRLK"
+        ],
+        "selling_price_excl_vat": 459.0,
+        "quantity": 2
+      }
+    ],
+    "calc_total": 3643.28
+  },
+  "ITC-2024-0057": {
+    "invoice_number": "ITC-2024-0057",
+    "dossier": "180-23283",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MBP16 M1 Pro / 16Go / 1To SSD / AZERTY RFB GR A",
+        "serial_number": [],
+        "selling_price_excl_vat": 3151.05,
+        "quantity": 2
+      },
+      {
+        "title": "MBP16 M2 Max / 64Go / 2To SSD / AZERTY RFB GR A",
+        "serial_number": [],
+        "selling_price_excl_vat": 4933.72,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go - RFB GR A",
+        "serial_number": [],
+        "selling_price_excl_vat": 1251.0,
+        "quantity": 3
+      },
+      {
+        "title": "AirPods 3 - new",
+        "serial_number": [],
+        "selling_price_excl_vat": 179.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 15167.82
+  },
+  "ITC-2024-0063": {
+    "invoice_number": "ITC-2024-0063",
+    "dossier": "180-23147",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 16 M1 16Go/512 Go SSD AZERTY RFB GRA",
+        "serial_number": [
+          "XM2KVX1967"
+        ],
+        "selling_price_excl_vat": 3238.33,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go RFB GR A",
+        "serial_number": [
+          "HWGW7WQ4HY"
+        ],
+        "selling_price_excl_vat": 1333.33,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 4571.66
+  },
+  "ITC-2024-0064": {
+    "invoice_number": "ITC-2024-0064",
+    "dossier": "180-23142",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPad Pro 12.9 M1 256 Go Wifi +5G RFB GR A",
+        "serial_number": [
+          "XJKQPXVY7Y"
+        ],
+        "selling_price_excl_vat": 1454.67,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1454.67
+  },
+  "ITC-2024-0068": {
+    "invoice_number": "ITC-2024-0068",
+    "dossier": "180-23455",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "ThinkPad T14s Gen2 i7 16Go 1To RFB GRA",
+        "serial_number": [
+          "PC2L401E"
+        ],
+        "selling_price_excl_vat": 1289.94,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1289.94
+  },
+  "ITC-2024-0070": {
+    "invoice_number": "ITC-2024-0070",
+    "dossier": "180-23618",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Thinkpad E16 i5 /16Go/512 - NEW",
+        "serial_number": [
+          "SPF4TGCL9"
+        ],
+        "selling_price_excl_vat": 1560.08,
+        "quantity": 1
+      },
+      {
+        "title": "Thinkpad V15 i5 /16Go/512Go - OpenBox",
+        "serial_number": [
+          "PF4HYQA5"
+        ],
+        "selling_price_excl_vat": 1959.0,
+        "quantity": 1
+      },
+      {
+        "title": "LENOVO ThinkBook 16 Gen6",
+        "serial_number": [
+          "PW0A8TXX"
+        ],
+        "selling_price_excl_vat": 1473.51,
+        "quantity": 1
+      },
+      {
+        "title": "Lenovo ThinkCentre neo 50q Mini PC",
+        "serial_number": [
+          "SYJ01MWQQ"
+        ],
+        "selling_price_excl_vat": 963.0,
+        "quantity": 4
+      },
+      {
+        "title": "iPad 8e gen A12 32GB Wifi RFB GR A",
+        "serial_number": [
+          "DMQDLH4DQ1GC"
+        ],
+        "selling_price_excl_vat": 430.0,
+        "quantity": 8
+      },
+      {
+        "title": "Ecran 24 FHD HDMI VGA NEW",
+        "serial_number": [],
+        "selling_price_excl_vat": 135.0,
+        "quantity": 3
+      }
+    ],
+    "calc_total": 12689.59
+  },
+  "ITC-2024-0071": {
+    "invoice_number": "ITC-2024-0071",
+    "dossier": "180-23642",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 13 Retina 512Go SSD - RFB GR A",
+        "serial_number": [
+          "FVFDT3GSQ05H"
+        ],
+        "selling_price_excl_vat": 1537.09,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1537.09
+  },
+  "ITC-2024-0073": {
+    "invoice_number": "ITC-2024-0073",
+    "dossier": "180-23681",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iMac 27 pouces 5K - SSD 256 Go - RFB GR A",
+        "serial_number": [
+          "H4TH705PPN5V"
+        ],
+        "selling_price_excl_vat": 2399.0,
+        "quantity": 1
+      },
+      {
+        "title": "iPad Pro 12.9 pouces M1 - 512 Go, Wifi - RFB GR A",
+        "serial_number": [
+          "J4WGNP4XTN"
+        ],
+        "selling_price_excl_vat": 1731.67,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Smart Keyboard iPad Pro 12.9 Azerty",
+        "serial_number": [],
+        "selling_price_excl_vat": 255.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 4385.67
+  },
+  "ITC-2024-0074": {
+    "invoice_number": "ITC-2024-0074",
+    "dossier": "180-23894",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPad 2021 10.9 Wifi 64Go RFB GR A",
+        "serial_number": [
+          "NQQW494FNK"
+        ],
+        "selling_price_excl_vat": 491.0,
+        "quantity": 1
+      },
+      {
+        "title": "Clavier Logitech K380 Plus",
+        "serial_number": [],
+        "selling_price_excl_vat": 62.0,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Pencil 2",
+        "serial_number": [],
+        "selling_price_excl_vat": 101.0,
+        "quantity": 1
+      },
+      {
+        "title": "Accessoires tablette",
+        "serial_number": [],
+        "selling_price_excl_vat": 77.87,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 731.87
+  },
+  "ITC-2024-0080": {
+    "invoice_number": "ITC-2024-0080",
+    "dossier": "180-24109",
+    "date": null,
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Macbook Pro 16 M1 Pro 16 Go 1To RFB GR A",
+        "serial_number": [
+          "R2J41JDGT7"
+        ],
+        "selling_price_excl_vat": 2335.16,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2335.16
+  },
+  "ITC-2024-0081": {
+    "invoice_number": "ITC-2024-0081",
+    "dossier": "180-23893",
+    "date": "2024-09-07",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 13 M1 16Go RAM 256Go AZERTY - RFB GR A",
+        "serial_number": [
+          "FVFFN973Q05F"
+        ],
+        "selling_price_excl_vat": 1756.87,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1756.87
+  },
+  "ITC-2024-0082": {
+    "invoice_number": "ITC-2024-0082",
+    "dossier": "180-24297",
+    "date": "2024-09-13",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "EliteBook 840 G10 i7 13e 16Go 512 Go SSD RFB GR A",
+        "serial_number": [
+          "5CG3250F0G"
+        ],
+        "selling_price_excl_vat": 1428.57,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1428.57
+  },
+  "ITC-2024-0083": {
+    "invoice_number": "ITC-2024-0083",
+    "dossier": "180-24318",
+    "date": "2024-09-13",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Air 15 M3 16Go 512Go SSD RFB GR A",
+        "serial_number": [
+          "KC2WH6Q7H9"
+        ],
+        "selling_price_excl_vat": 2543.0,
+        "quantity": 1
+      },
+      {
+        "title": "iPad mini 6 256 Go WiFi",
+        "serial_number": [
+          "KXV0Q9QMVX"
+        ],
+        "selling_price_excl_vat": 928.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 3471.0
+  },
+  "ITC-2024-0084": {
+    "invoice_number": "ITC-2024-0084",
+    "dossier": "180-23457",
+    "date": "2024-09-13",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 14 M2 Pro 1To - RFB GR A",
+        "serial_number": [
+          "LXJF7MT77G"
+        ],
+        "selling_price_excl_vat": 3250.02,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 15 Pro Max 1To - NEW",
+        "serial_number": [
+          "K9N5YYQH22"
+        ],
+        "selling_price_excl_vat": 2753.12,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 6003.14
+  },
+  "ITC-2024-0085": {
+    "invoice_number": "ITC-2024-0085",
+    "dossier": "180-24330",
+    "date": "2024-09-13",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Pro 14 M2 Pro 1To - RFB GR A",
+        "serial_number": [
+          "T5QN95XQ0W"
+        ],
+        "selling_price_excl_vat": 2925.3,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2925.3
+  },
+  "ITC-2024-0086": {
+    "invoice_number": "ITC-2024-0086",
+    "dossier": "180-24363",
+    "date": "2024-09-13",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "HP EliteBook 840 RFB GR A",
+        "serial_number": [
+          "5CG2238Y1Y"
+        ],
+        "selling_price_excl_vat": 1756.87,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1756.87
+  },
+  "ITC-2024-0089": {
+    "invoice_number": "ITC-2024-0089",
+    "dossier": "180-24685",
+    "date": "2024-10-17",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "HP EliteBook 840 G8",
+        "serial_number": [
+          "5CG2238Y9P"
+        ],
+        "selling_price_excl_vat": 1537.09,
+        "quantity": 1
+      },
+      {
+        "title": "Samsung Galaxy S24 Ultra 256Go",
+        "serial_number": [
+          "350363932960469"
+        ],
+        "selling_price_excl_vat": 1845.53,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 3382.62
+  },
+  "ITC-2024-0090": {
+    "invoice_number": "ITC-2024-0090",
+    "dossier": "180-24394",
+    "date": "2024-10-20",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Macbook Pro 16 M1 Pro - SSD 512 Go - RFB GR A",
+        "serial_number": [
+          "MQVF12402K"
+        ],
+        "selling_price_excl_vat": 2655.0,
+        "quantity": 1
+      },
+      {
+        "title": "Lenovo Neo 50q i5 13e Gen / 32Go / 512Go",
+        "serial_number": [
+          "YJ01NZLT"
+        ],
+        "selling_price_excl_vat": 1536.0,
+        "quantity": 1
+      },
+      {
+        "title": "Clavier MX Keys + Souris Mx Anywhere 3",
+        "serial_number": [],
+        "selling_price_excl_vat": 193.68,
+        "quantity": 1
+      },
+      {
+        "title": "Ecran LG 27 LG 27UL500",
+        "serial_number": [],
+        "selling_price_excl_vat": 288.0,
+        "quantity": 1
+      },
+      {
+        "title": "LG UltraWide™ 34WQ75C-B Ecran PC Ultra Large 34\"",
+        "serial_number": [
+          "408NTJJ69660",
+          "408NTJJ3A884"
+        ],
+        "selling_price_excl_vat": 458.0,
+        "quantity": 2
+      }
+    ],
+    "calc_total": 5588.68
+  },
+  "ITC-2024-0104": {
+    "invoice_number": "ITC-2024-0104",
+    "dossier": "180-24903",
+    "date": "2024-10-29",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iMac Retina 27\" 5K - Intel i5 - 16GB Ram RFB GRA",
+        "serial_number": [
+          "C02ZN20JJV40"
+        ],
+        "selling_price_excl_vat": 2498.63,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2498.63
+  },
+  "ITC-2024-0108": {
+    "invoice_number": "ITC-2024-0108",
+    "dossier": "180-24843",
+    "date": "2024-11-14",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "HP EliteBook 840 G10 / 32Go / 512Go RFB GR A+",
+        "serial_number": [
+          "5GCG2234RT"
+        ],
+        "selling_price_excl_vat": 1963.0,
+        "quantity": 1
+      },
+      {
+        "title": "Ecran 27’’ LG incurvé FHD",
+        "serial_number": [],
+        "selling_price_excl_vat": 229.1,
+        "quantity": 1
+      },
+      {
+        "title": "Logitech MX Keys (Kit clavier souris)",
+        "serial_number": [],
+        "selling_price_excl_vat": 190.04,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2382.14
+  },
+  "ITC-2024-0109": {
+    "invoice_number": "ITC-2024-0109",
+    "dossier": "180-025291",
+    "date": "2024-11-22",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iPad Pro 11 M2 256Go WiFi - RFB GR A",
+        "serial_number": [
+          "SM2YHF5Y7FW"
+        ],
+        "selling_price_excl_vat": 1185.99,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1185.99
+  },
+  "ITC-2024-0110": {
+    "invoice_number": "ITC-2024-0110",
+    "dossier": "180-25083",
+    "date": "2024-11-22",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "MacBook Air M2 15 8/256 QWERTY",
+        "serial_number": [
+          "QG1H402RC9"
+        ],
+        "selling_price_excl_vat": 2070.68,
+        "quantity": 1
+      },
+      {
+        "title": "KBD Logitech MX QWERTY",
+        "serial_number": [],
+        "selling_price_excl_vat": 132.5,
+        "quantity": 4
+      },
+      {
+        "title": "KBD Logitech WAVE QWERTY",
+        "serial_number": [],
+        "selling_price_excl_vat": 97.0,
+        "quantity": 1
+      },
+      {
+        "title": "Mice Logitech MX Anywhere 3",
+        "serial_number": [],
+        "selling_price_excl_vat": 95.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2792.68
+  },
+  "ITC-2024-0111": {
+    "invoice_number": "ITC-2024-0111",
+    "dossier": "180-25576",
+    "date": "2024-12-10",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "ThinkBook 16 Gen6 i5/16/512",
+        "serial_number": [
+          "PW0B88MD"
+        ],
+        "selling_price_excl_vat": 1715.0,
+        "quantity": 1
+      },
+      {
+        "title": "Neo 50q i5/16/256Go",
+        "serial_number": [],
+        "selling_price_excl_vat": 1563.0,
+        "quantity": 1
+      },
+      {
+        "title": "Serveur Apple Mac Pro",
+        "serial_number": [],
+        "selling_price_excl_vat": 2474.0,
+        "quantity": 1
+      },
+      {
+        "title": "Ecran Samsung 24’’ incurvé",
+        "serial_number": [],
+        "selling_price_excl_vat": 135.0,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 16 Pro Max 256GB Desert Titanium",
+        "serial_number": [],
+        "selling_price_excl_vat": 2150.0,
+        "quantity": 1
+      },
+      {
+        "title": "Brother DCP-L8410CDW color laser 31ppm",
+        "serial_number": [],
+        "selling_price_excl_vat": 448.5,
+        "quantity": 1
+      },
+      {
+        "title": "Epson EcoTank ET-16650",
+        "serial_number": [],
+        "selling_price_excl_vat": 1203.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 9688.5
+  },
+  "ITC-2024-0112": {
+    "invoice_number": "ITC-2024-0112",
+    "dossier": "180-25566",
+    "date": "2024-12-10",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Apple MacBook Air M1 8Go / 256Go - RFB GR A",
+        "serial_number": [
+          "C02F83K2Q6L5"
+        ],
+        "selling_price_excl_vat": 1477.04,
+        "quantity": 1
+      },
+      {
+        "title": "Dell Precision 3590 Ultra 5 125U/ 32Go/512SSD",
+        "serial_number": [
+          "GD0PB54"
+        ],
+        "selling_price_excl_vat": 1997.05,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 3474.09
+  },
+  "ITC-2024-0114": {
+    "invoice_number": "ITC-2024-0114",
+    "dossier": "180-25827",
+    "date": "2024-12-24",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Acer Chromebook Plus 515 i3 / 8Go / 128SSD /15,6’’",
+        "serial_number": [],
+        "selling_price_excl_vat": 390.0,
+        "quantity": 46
+      },
+      {
+        "title": "48 x Souris Logitech USB",
+        "serial_number": [],
+        "selling_price_excl_vat": 460.0,
+        "quantity": 1
+      },
+      {
+        "title": "48 x HUB USB-C vers USB-A",
+        "serial_number": [],
+        "selling_price_excl_vat": 552.0,
+        "quantity": 1
+      },
+      {
+        "title": "Armoire pour PC ANTARES N30E",
+        "serial_number": [],
+        "selling_price_excl_vat": 1200.0,
+        "quantity": 11
+      },
+      {
+        "title": "Imprimante Epson EcoTank multifonctions",
+        "serial_number": [],
+        "selling_price_excl_vat": 308.5,
+        "quantity": 2
+      }
+    ],
+    "calc_total": 32769.0
+  },
+  "ITC-2024-0115": {
+    "invoice_number": "ITC-2024-0115",
+    "dossier": "180-25828",
+    "date": "2024-12-24",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "ReMarkable 2 Essentials Bundle - Gris",
+        "serial_number": [],
+        "selling_price_excl_vat": 1321.14,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 1321.14
+  },
+  "ITC-2024-0116": {
+    "invoice_number": "ITC-2024-0116",
+    "dossier": "180-25672",
+    "date": "2024-12-25",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Galaxy Xcover 7 Enterprise Edition 256Go",
+        "serial_number": [
+          "356298581853603"
+        ],
+        "selling_price_excl_vat": 411.59,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 411.59
+  },
+  "ITC-2024-0117": {
+    "invoice_number": "ITC-2024-0117",
+    "dossier": "180-25825",
+    "date": "2024-12-25",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "Microsoft Surface X + Pen + Cover/Kbd - RFB GR A",
+        "serial_number": [
+          "20066703253"
+        ],
+        "selling_price_excl_vat": 1660.0,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Watch 10 46mm - RFB GR A",
+        "serial_number": [
+          "GCR3466KQR"
+        ],
+        "selling_price_excl_vat": 466.33,
+        "quantity": 1
+      },
+      {
+        "title": "iPhone 15 Pro Max 1To - NEW",
+        "serial_number": [
+          "352192204099070"
+        ],
+        "selling_price_excl_vat": 1652.36,
+        "quantity": 1
+      },
+      {
+        "title": "iPad Pro 11 M1 256 Go WiFi + 5G - RFB GR A",
+        "serial_number": [
+          "T1QXPRHWLD"
+        ],
+        "selling_price_excl_vat": 1257.15,
+        "quantity": 1
+      },
+      {
+        "title": "Apple Pencil 2",
+        "serial_number": [],
+        "selling_price_excl_vat": 130.0,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 5165.84
+  },
+  "ITC-2024-0121": {
+    "invoice_number": "ITC-2024-0121",
+    "dossier": "180-25873",
+    "date": "2024-12-30",
+    "leaser_data": {
+      "name": "GRENKE LEASE",
+      "address": "Ruisbroeksesteenweg 76",
+      "city": "Ukkel",
+      "postal_code": "1180",
+      "country": "Belgique",
+      "email": "",
+      "phone": "",
+      "vat_number": "BE 0873.803.219"
+    },
+    "equipment_data": [
+      {
+        "title": "iMac 24 M1 8Go/512Go Mag KBD Numpad - RFB GR A",
+        "serial_number": [
+          "C02GJ2L1Q6W8"
+        ],
+        "selling_price_excl_vat": 2223.9,
+        "quantity": 1
+      }
+    ],
+    "calc_total": 2223.9
+  }
+}

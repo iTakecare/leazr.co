@@ -1,0 +1,1210 @@
+[
+  {
+    "filename": "20230125_24675202_Facture_ITC-2023-0002_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0002",
+    "dossier_number": "180-17993",
+    "invoice_date": "2023-01-25",
+    "equipment": [
+      {
+        "title": "iPad Pro 11 pouces 2020 - 256 Go, Wifi + 4G",
+        "serial_number": "YPGXD6Q9LJ",
+        "quantity": 1,
+        "unit_price_htva": 1858.13
+      },
+      {
+        "title": "Apple iPhone 14 Pro Max - 256 Go, Neuf MAUVE",
+        "serial_number": "356703856297907",
+        "quantity": 1,
+        "unit_price_htva": 1980.28
+      }
+    ]
+  },
+  {
+    "filename": "20230126_24708458_Facture_ITC-2023-0003_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0003",
+    "dossier_number": "180-18112",
+    "invoice_date": "2023-01-26",
+    "equipment": [
+      {
+        "title": "ThkPad L14 G3 T i5-1235U 16/512 14 W11P",
+        "serial_number": "PW0475TN",
+        "quantity": 1,
+        "unit_price_htva": 1921.7
+      }
+    ]
+  },
+  {
+    "filename": "20230201_24889446_Facture_ITC-2023-0004_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0004",
+    "dossier_number": "180-17994",
+    "invoice_date": "2023-02-01",
+    "equipment": [
+      {
+        "title": "iPad Pro 12.9 M1 1To Go Wifi + 5G RFB GR A",
+        "serial_number": "QCHQM7FM21",
+        "quantity": 1,
+        "unit_price_htva": 2196.43
+      }
+    ]
+  },
+  {
+    "filename": "20230201_24889637_Facture_ITC-2023-0005_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0005",
+    "dossier_number": "180-18022",
+    "invoice_date": "2023-02-01",
+    "equipment": [
+      {
+        "title": "Macbook Pro 13 Retina Intel - SSD 256 Go RFB A",
+        "serial_number": "C02YX6PBLVDD",
+        "quantity": 1,
+        "unit_price_htva": 1399.73
+      }
+    ]
+  },
+  {
+    "filename": "20230201_24891077_Facture_ITC-2023-0006_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0006",
+    "dossier_number": "180-18073",
+    "invoice_date": "2023-02-01",
+    "equipment": [
+      {
+        "title": "Apple iPhone 14 Pro Max - 128 Go, Neuf",
+        "serial_number": "352192204664816",
+        "quantity": 1,
+        "unit_price_htva": 2057.49
+      },
+      {
+        "title": "MBP 13 M1 /8Go/512 Go SSD RFB GR A",
+        "serial_number": "FVFFDAE5Q05F",
+        "quantity": 1,
+        "unit_price_htva": 2085.8
+      }
+    ]
+  },
+  {
+    "filename": "20230206_25130683_Facture_ITC-2023-0007_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0007",
+    "dossier_number": "180-18149",
+    "invoice_date": "2023-02-06",
+    "equipment": [
+      {
+        "title": "iPhone 12 Pro 128 Go RFB GR A",
+        "serial_number": "35423332910192",
+        "quantity": 1,
+        "unit_price_htva": 879.12
+      }
+    ]
+  },
+  {
+    "filename": "20230209_25169645_Facture_ITC-2023-0008_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0008",
+    "dossier_number": "180-18228",
+    "invoice_date": "2023-02-09",
+    "equipment": [
+      {
+        "title": "Macbook Pro 16 M1 Pro / 16 Go RAM / 512 Go SSD",
+        "serial_number": "MQGVJC4G5V",
+        "quantity": 1,
+        "unit_price_htva": 3047.2
+      },
+      {
+        "title": "Samsung The Frame 65’’ + frame couleur",
+        "serial_number": "OEFG3STTB01252",
+        "quantity": 1,
+        "unit_price_htva": 1424.75
+      }
+    ]
+  },
+  {
+    "filename": "20230216_25383726_Facture_ITC-2023-0010_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0010",
+    "dossier_number": "180-18328",
+    "invoice_date": "2023-02-16",
+    "equipment": [
+      {
+        "title": "Macbook Air 13 M1 / 8Go / 256 SSD / AZERTY RFB GR A",
+        "serial_number": "C02FX1JAQ05P",
+        "quantity": 1,
+        "unit_price_htva": 1490.1
+      },
+      {
+        "title": "Apple iPhone 13 128 Go RFB GR A",
+        "serial_number": "FVDJWK0H7T",
+        "quantity": 1,
+        "unit_price_htva": 1180.05
+      },
+      {
+        "title": "Apple AirPods 2 - new",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 125.01
+      },
+      {
+        "title": "Imprimante Epson EcoTank",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 252.1
+      }
+    ]
+  },
+  {
+    "filename": "20230216_25410060_Facture_ITC-2023-0011_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0011",
+    "dossier_number": "180-18243",
+    "invoice_date": "2023-02-16",
+    "equipment": [
+      {
+        "title": "Apple iPhone 14 Pro Max - 256 Go, Neuf mauve",
+        "serial_number": "MXXOR3J96G",
+        "quantity": 1,
+        "unit_price_htva": 2697.61
+      },
+      {
+        "title": "Apple iMac 27 pouces 5K - SSD 1 To AZERTY RFB GR A",
+        "serial_number": "C02Y92XCJV3N",
+        "quantity": 1,
+        "unit_price_htva": 2487.92
+      }
+    ]
+  },
+  {
+    "filename": "20230216_25410152_Facture_ITC-2023-0012_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0012",
+    "dossier_number": "180-17992",
+    "invoice_date": "2023-02-16",
+    "equipment": [
+      {
+        "title": "MacBook Pro 16 M2 Pro 32Go 1To SSD AZERTY NEW | SN 1 :",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 3772.8
+      }
+    ]
+  },
+  {
+    "filename": "20230218_25459922_Facture_ITC-2023-0013_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0013",
+    "dossier_number": "180-18223",
+    "invoice_date": "2023-02-18",
+    "equipment": [
+      {
+        "title": "Ecran SAMSUNG 27 pouces incurvé NEUF",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 217.08
+      },
+      {
+        "title": "Apple iPhone 13 Pro Max - 128 Go",
+        "serial_number": "NJ2H7HVGH2",
+        "quantity": 1,
+        "unit_price_htva": 1456.0
+      }
+    ]
+  },
+  {
+    "filename": "20230306_25973787_Facture_ITC-2023-0016_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0016",
+    "dossier_number": "180-18256",
+    "invoice_date": "2023-03-06",
+    "equipment": [
+      {
+        "title": "Macbook Pro M1 - 8Go - 512 SSD AZERTY RFB GR A",
+        "serial_number": "FVFGW4TLQ05F",
+        "quantity": 1,
+        "unit_price_htva": 1646.98
+      }
+    ]
+  },
+  {
+    "filename": "20230306_25982224_Facture_ITC-2023-0017_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0017",
+    "dossier_number": "180-18396",
+    "invoice_date": "2023-03-06",
+    "equipment": [
+      {
+        "title": "iPad Air M1 (5e gen.) 256 GB Wifi mauve",
+        "serial_number": "SF4LRXP9H9C",
+        "quantity": 1,
+        "unit_price_htva": 1347.0
+      },
+      {
+        "title": "Mac Mini M2 8 CPU /10 GPU - 16Go RAM - SSD 512 Go | SN1 :",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 1629.48
+      },
+      {
+        "title": "Magic Keyboard pour iPad Air (5e gen) - ES",
+        "serial_number": "VFX7QY6H3C",
+        "quantity": 1,
+        "unit_price_htva": 305.27
+      },
+      {
+        "title": "Apple Magic mouse noir - NEW",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 98.23
+      },
+      {
+        "title": "Apple HomePod Blanc - NEW",
+        "serial_number": "SQGP6XKM6YN",
+        "quantity": 1,
+        "unit_price_htva": 325.88
+      },
+      {
+        "title": "Magic Keyboard avec touch ID + NUM Noir",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 189.95
+      },
+      {
+        "title": "Apple Pencil 2e gen - NEW",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 158.1
+      },
+      {
+        "title": "AirPods Pro (2e gen) - NEW",
+        "serial_number": "M6P79WY0QM",
+        "quantity": 1,
+        "unit_price_htva": 239.0
+      },
+      {
+        "title": "Magic Trackpad noir - NEW",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 143.95
+      }
+    ]
+  },
+  {
+    "filename": "20230311_26195392_Facture_ITC-2023-0018_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0018",
+    "dossier_number": "180-18299",
+    "invoice_date": "2023-03-11",
+    "equipment": [
+      {
+        "title": "Macbook Pro 13 M2 - 8 Go - 256 SSD RFB GR A+",
+        "serial_number": "B0B3C62QYV",
+        "quantity": 1,
+        "unit_price_htva": 2892.06
+      },
+      {
+        "title": "Samsung M8 Smart Monitor 32’’",
+        "serial_number": "LS32BM801UUXEN",
+        "quantity": 1,
+        "unit_price_htva": 612.51
+      }
+    ]
+  },
+  {
+    "filename": "20230328_26717314_Facture_ITC-2023-0020_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0020",
+    "dossier_number": "180-18678",
+    "invoice_date": "2023-03-28",
+    "equipment": [
+      {
+        "title": "Apple iPhone 14 Pro Max 256 Go NEW",
+        "serial_number": "358034160020803",
+        "quantity": 1,
+        "unit_price_htva": 2031.59
+      }
+    ]
+  },
+  {
+    "filename": "20230330_26793042_Facture_ITC-2023-0021_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0021",
+    "dossier_number": "180-18618",
+    "invoice_date": "2023-03-30",
+    "equipment": [
+      {
+        "title": "iPhone 14 Pro Max 256 Go - NEW",
+        "serial_number": "SCTX7Y09PLW",
+        "quantity": 20,
+        "unit_price_htva": 1925.0
+      },
+      {
+        "title": "iPad Pro 12,9 pouces M2 128 Go Wifi + 5G - NEW",
+        "serial_number": "358705110964022",
+        "quantity": 4,
+        "unit_price_htva": 2099.0
+      },
+      {
+        "title": "MacBook Air 13’’ M2 - 8 Go - 512 SSD - AZERTY - NEW",
+        "serial_number": "SM2NKW19P6J",
+        "quantity": 2,
+        "unit_price_htva": 2315.0
+      },
+      {
+        "title": "Macbook Pro 14’’ M2 Pro - 16 Go - 512 SSD - AZERTY - NEW | SN",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 2898.39
+      }
+    ]
+  },
+  {
+    "filename": "20230408_27338198_Facture_ITC-2023-0024_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0024",
+    "dossier_number": "180-18679",
+    "invoice_date": "2023-04-08",
+    "equipment": [
+      {
+        "title": "Macbook Pro 16 M1 Max 32Go / 1To / AZERTY RFB GR A",
+        "serial_number": "D7PGQWRV0R",
+        "quantity": 1,
+        "unit_price_htva": 3405.43
+      },
+      {
+        "title": "iPhone 13 mini 128 Go RFB GR A",
+        "serial_number": "357590493948193",
+        "quantity": 1,
+        "unit_price_htva": 861.34
+      }
+    ]
+  },
+  {
+    "filename": "20230408_27338262_Facture_ITC-2023-0025_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0025",
+    "dossier_number": "180-18710",
+    "invoice_date": "2023-04-08",
+    "equipment": [
+      {
+        "title": "iPad Pro 12.9 pouces M1 - 512 Go, Wifi + 5G",
+        "serial_number": "350514050341409",
+        "quantity": 1,
+        "unit_price_htva": 2196.43
+      }
+    ]
+  },
+  {
+    "filename": "20230408_27338456_Facture_ITC-2023-0026_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0026",
+    "dossier_number": "180-18620",
+    "invoice_date": "2023-04-08",
+    "equipment": [
+      {
+        "title": "iPad Pro 12.9 128 Go Wifi 4G RFB GR A",
+        "serial_number": "DF40XG03QH",
+        "quantity": 1,
+        "unit_price_htva": 1749.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go - NEW",
+        "serial_number": "DMPDT1LDNTGR",
+        "quantity": 1,
+        "unit_price_htva": 1785.0
+      },
+      {
+        "title": "Smartkeyboard for iPad Pro 12.9 AZERTY",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 226.89
+      },
+      {
+        "title": "Apple Pencil 2 NEW",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 201.0
+      }
+    ]
+  },
+  {
+    "filename": "20230425_27983645_Facture_ITC-2023-0027_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0027",
+    "dossier_number": "180-18816",
+    "invoice_date": "2023-04-25",
+    "equipment": [
+      {
+        "title": "iPad Pro 11 2018 64 Go Wifi + 4G Grade A",
+        "serial_number": "F8QHQ00LKD81",
+        "quantity": 1,
+        "unit_price_htva": 1008.0
+      },
+      {
+        "title": "iPhone 12 64 Go Grade AB",
+        "serial_number": "351156786611744",
+        "quantity": 1,
+        "unit_price_htva": 798.0
+      },
+      {
+        "title": "Logitech Slim Folio Pro (pour 11-inch iPad Pro)",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 167.9
+      }
+    ]
+  },
+  {
+    "filename": "20230511_28570993_Facture_ITC-2023-0029_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0029",
+    "dossier_number": "180-19007",
+    "invoice_date": "2023-05-11",
+    "equipment": [
+      {
+        "title": "MacBook Pro 14 M2 Pro 16Go / 1 To SSD AZERTY",
+        "serial_number": "DPQJCYVKD7",
+        "quantity": 1,
+        "unit_price_htva": 2688.12
+      },
+      {
+        "title": "iPhone 14 Pro Max 512 Go",
+        "serial_number": "350636278098477",
+        "quantity": 1,
+        "unit_price_htva": 1925.17
+      },
+      {
+        "title": "AirPods 3",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 203.78
+      }
+    ]
+  },
+  {
+    "filename": "20230511_28571929_Facture_ITC-2023-0030_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0030",
+    "dossier_number": "180-18937",
+    "invoice_date": "2023-05-11",
+    "equipment": [
+      {
+        "title": "MacBook Pro 14 M2 Pro 16Go / 512 SSD AZERTY",
+        "serial_number": "SMY05NY713V",
+        "quantity": 1,
+        "unit_price_htva": 2397.12
+      },
+      {
+        "title": "iPad Pro 12.9 M2 128 Go Wifi + 5G",
+        "serial_number": "C9DQY252VP",
+        "quantity": 1,
+        "unit_price_htva": 1925.7
+      },
+      {
+        "title": "Apple Studio Display avec pied réglable en hauteur et inclinable",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 2018.0
+      },
+      {
+        "title": "Apple Magic Keyboard pour iPad 12.9",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 404.0
+      },
+      {
+        "title": "Magic Mouse noire - new",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 117.65
+      },
+      {
+        "title": "Magic Keyboard + Touch ID noir - new",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 169.24
+      },
+      {
+        "title": "Apple Pencil 2 - new",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 138.1
+      }
+    ]
+  },
+  {
+    "filename": "20230518_28797128_Facture_ITC-2023-0033_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0033",
+    "dossier_number": "180-18987",
+    "invoice_date": "2023-05-18",
+    "equipment": [
+      {
+        "title": "MacBook Air M2 8Go 256Go SSD AZERTY GR A",
+        "serial_number": "GCHG9LLFG3",
+        "quantity": 1,
+        "unit_price_htva": 1950.0
+      },
+      {
+        "title": "iPad Pro 12.9 2020 128 Go Wifi Grade A",
+        "serial_number": "DMPCMPA8PV03",
+        "quantity": 1,
+        "unit_price_htva": 1091.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go",
+        "serial_number": "355656669177792",
+        "quantity": 1,
+        "unit_price_htva": 1463.0
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 217.13
+      },
+      {
+        "title": "Licence Office 2021 pour Mac",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 64.2
+      },
+      {
+        "title": "Pack Accessoires : mallette + souris + hub usb-c",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 91.19
+      }
+    ]
+  },
+  {
+    "filename": "20230630_30977767_Facture_ITC-2023-0035_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0035",
+    "dossier_number": "180-19329",
+    "invoice_date": "2023-06-30",
+    "equipment": [
+      {
+        "title": "Macbook Pro 16\" 2021 Apple M1 Pro 10-core, 16-core GPU 16GB",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 3047.26
+      },
+      {
+        "title": "512GB SSD Spacegrey",
+        "serial_number": "SWLY74F5WYF",
+        "quantity": 1,
+        "unit_price_htva": 0
+      }
+    ]
+  },
+  {
+    "filename": "20230813_32120818_Facture_ITC-2023-0036_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0036",
+    "dossier_number": "180-19681",
+    "invoice_date": "2023-08-13",
+    "equipment": [
+      {
+        "title": "MacBook Air M2 8Go 256Go SSD AZERTY GR A",
+        "serial_number": "J6Q5Y921VT",
+        "quantity": 1,
+        "unit_price_htva": 1950.0
+      },
+      {
+        "title": "iPad Pro 12.9 2022 M2 256 Go Wifi Grade A",
+        "serial_number": "KJ4W7VQR3J",
+        "quantity": 1,
+        "unit_price_htva": 1091.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go",
+        "serial_number": "B0BDHZ7BQD",
+        "quantity": 1,
+        "unit_price_htva": 1463.0
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 217.13
+      },
+      {
+        "title": "Apple AirPods 2 new",
+        "serial_number": "B07PZR3PVB",
+        "quantity": 1,
+        "unit_price_htva": 64.2
+      },
+      {
+        "title": "Pack Accessoires : mallette + souris + hub usb-c",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 91.19
+      }
+    ]
+  },
+  {
+    "filename": "20230813_32121631_Facture_ITC-2023-0037_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0037",
+    "dossier_number": "180-19695",
+    "invoice_date": "2023-08-13",
+    "equipment": [
+      {
+        "title": "ASUS VivoBook Pro 16X N7600PC - RFB GR A",
+        "serial_number": "NCN0CXCZR05352F",
+        "quantity": 1,
+        "unit_price_htva": 1538.14
+      },
+      {
+        "title": "Macbook Pro M1 13 8 Go / 256 Go / AZERTY - RFB GR A",
+        "serial_number": "FVFGW4TLQ05F",
+        "quantity": 1,
+        "unit_price_htva": 1440.3
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go - RFB GR A",
+        "serial_number": "353240585303816",
+        "quantity": 1,
+        "unit_price_htva": 1494.0
+      },
+      {
+        "title": "Ecran Samsung 24’’ IPS incurvé - RFB GR A",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 160.18
+      }
+    ]
+  },
+  {
+    "filename": "20230903_32736911_Facture_ITC-2023-0042_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0042",
+    "dossier_number": "180-19781",
+    "invoice_date": "2023-09-03",
+    "equipment": [
+      {
+        "title": "Mac mini M2 8Go / 512 SSD + clavier et souris Apple",
+        "serial_number": "SHP19K06Y4P",
+        "quantity": 1,
+        "unit_price_htva": 1565.0
+      },
+      {
+        "title": "iPad Pro 11 64 Go Wifi + 4G",
+        "serial_number": "B07NZ72YCT",
+        "quantity": 1,
+        "unit_price_htva": 755.0
+      },
+      {
+        "title": "Clavier Logitech Combo pour iPad Pro 11",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 213.9
+      },
+      {
+        "title": "Multifonctions Brother L3770CDW",
+        "serial_number": "E79034K2N114569",
+        "quantity": 1,
+        "unit_price_htva": 408.1
+      }
+    ]
+  },
+  {
+    "filename": "20230906_32959845_Facture_ITC-2023-0043_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0043",
+    "dossier_number": "180-19885",
+    "invoice_date": "2023-09-06",
+    "equipment": [
+      {
+        "title": "HP Envy 17 i5 / 16 Go / 512 SSD AZERTY NEW",
+        "serial_number": "8CG23300HJ",
+        "quantity": 1,
+        "unit_price_htva": 1909.0
+      },
+      {
+        "title": "Ecran portable 15,4'' 4K portable NEW",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 350.0
+      },
+      {
+        "title": "Minis Forum Mini PC W10 (serv. Impression)",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 250.0
+      }
+    ]
+  },
+  {
+    "filename": "20230914_33220754_Facture_ITC-2023-0044_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0044",
+    "dossier_number": "180-19328",
+    "invoice_date": "2023-09-14",
+    "equipment": [
+      {
+        "title": "MacBook Pro M2 8Go 512Go SSD AZERTY GR A",
+        "serial_number": "L17R9459NQ",
+        "quantity": 1,
+        "unit_price_htva": 1950.0
+      },
+      {
+        "title": "iPad Pro 12.9 2020 128 Go Wifi Grade A",
+        "serial_number": "FNJ9Q42K3R",
+        "quantity": 1,
+        "unit_price_htva": 1091.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go New",
+        "serial_number": "359236735036839",
+        "quantity": 1,
+        "unit_price_htva": 1463.0
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 217.13
+      },
+      {
+        "title": "AirPods 2",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 64.2
+      },
+      {
+        "title": "Pack Accessoires : mallette + souris + hub usb-c",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 91.19
+      }
+    ]
+  },
+  {
+    "filename": "20230914_33220899_Facture_ITC-2023-0045_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0045",
+    "dossier_number": "180-19721",
+    "invoice_date": "2023-09-14",
+    "equipment": [
+      {
+        "title": "MacBook Pro M2 8Go 512Go SSD AZERTY GR A",
+        "serial_number": "KXYCV9KJGT",
+        "quantity": 1,
+        "unit_price_htva": 1772.0
+      },
+      {
+        "title": "iPad Pro 12.9 128 Go Wifi Grade A",
+        "serial_number": "DMPF10YJNR71",
+        "quantity": 1,
+        "unit_price_htva": 1246.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go",
+        "serial_number": "359236739550264",
+        "quantity": 1,
+        "unit_price_htva": 1463.0
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 240.3
+      },
+      {
+        "title": "Licence Office 2021 pour Mac",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 64.2
+      },
+      {
+        "title": "Pack Accessoires",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 91.02
+      },
+      {
+        "title": "iMac 27 pouces 5K - SSD 256 Go",
+        "serial_number": "H12C7HP1JV3X",
+        "quantity": 1,
+        "unit_price_htva": 2667.51
+      }
+    ]
+  },
+  {
+    "filename": "20230914_33222021_Facture_ITC-2023-0046_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0046",
+    "dossier_number": "180-19810",
+    "invoice_date": "2023-09-14",
+    "equipment": [
+      {
+        "title": "MacBook Pro M2 8Go 512Go SSD AZERTY GR A",
+        "serial_number": "CXHY734LH9",
+        "quantity": 1,
+        "unit_price_htva": 1772.0
+      },
+      {
+        "title": "iPad Pro 12.9 128 Go Wifi Grade A",
+        "serial_number": "DMPDX3GHNTGR",
+        "quantity": 1,
+        "unit_price_htva": 1246.0
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go",
+        "serial_number": "353266549629590",
+        "quantity": 1,
+        "unit_price_htva": 1463.0
+      },
+      {
+        "title": "Logitech Combo Touch pour iPad Pro",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 240.3
+      },
+      {
+        "title": "Licence Office 2021 pour Mac",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 64.2
+      },
+      {
+        "title": "Pack Accessoires",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 91.02
+      }
+    ]
+  },
+  {
+    "filename": "20230917_33323821_Facture_ITC-2023-0047_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0047",
+    "dossier_number": "180-18621",
+    "invoice_date": "2023-09-17",
+    "equipment": [
+      {
+        "title": "HP ProBook 450 G8 i5 16Go 1To RFB GR A",
+        "serial_number": "5CG1349XD6",
+        "quantity": 1,
+        "unit_price_htva": 1565.93
+      }
+    ]
+  },
+  {
+    "filename": "20230927_33714915_Facture_ITC-2023-0049_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0049",
+    "dossier_number": "180-20032",
+    "invoice_date": "2023-09-27",
+    "equipment": [
+      {
+        "title": "Surface Pro 9 - Wifi 16 Go / 256 Go SSD / Clavier |",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 1646.98
+      }
+    ]
+  },
+  {
+    "filename": "20231001_33854182_Facture_ITC-2023-0051_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0051",
+    "dossier_number": "180-20001",
+    "invoice_date": "2023-10-01",
+    "equipment": [
+      {
+        "title": "MacBook Pro 13 M1 8Go RAM 256Go AZERTY - RFB GR A",
+        "serial_number": "C02DN02YQ05G",
+        "quantity": 1,
+        "unit_price_htva": 1700.14
+      },
+      {
+        "title": "MacBook Pro 13 M1 8Go RAM 256Go AZERTY - RFB GR A",
+        "serial_number": "FVFFKTC8Q05D",
+        "quantity": 1,
+        "unit_price_htva": 1700.14
+      },
+      {
+        "title": "iPhone 14 Pro Max 128 Go - NEW",
+        "serial_number": "353751254569479",
+        "quantity": 1,
+        "unit_price_htva": 1595.15
+      }
+    ]
+  },
+  {
+    "filename": "20231001_33854242_Facture_ITC-2023-0052_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0052",
+    "dossier_number": "180-20007",
+    "invoice_date": "2023-10-01",
+    "equipment": [
+      {
+        "title": "Macbook Pro 16 M1 Pro 16Go / 1To / AZERTY RFB GR A",
+        "serial_number": "SVH431FPQFT",
+        "quantity": 1,
+        "unit_price_htva": 3047.26
+      }
+    ]
+  },
+  {
+    "filename": "20231001_33854452_Facture_ITC-2023-0053_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0053",
+    "dossier_number": "180-20164",
+    "invoice_date": "2023-10-01",
+    "equipment": [
+      {
+        "title": "iMac 24 pouces 4,5K M1 - SSD 256 Go - Azerty - Pink",
+        "serial_number": "C02GX0LQQ6WC",
+        "quantity": 1,
+        "unit_price_htva": 2365.93
+      },
+      {
+        "title": "Apple iPhone 14 Pro Max - 128 Go",
+        "serial_number": "359761979388174",
+        "quantity": 1,
+        "unit_price_htva": 2051.75
+      }
+    ]
+  },
+  {
+    "filename": "20231030_35337391_Facture_ITC-2023-0056_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0056",
+    "dossier_number": "180-20334",
+    "invoice_date": "2023-10-30",
+    "equipment": [
+      {
+        "title": "iPhone 14 Pro Max 128 Go - RFB GR A",
+        "serial_number": "355281430490570",
+        "quantity": 1,
+        "unit_price_htva": 1036.7
+      },
+      {
+        "title": "iPhone 15 Pro Max 512 Go - NEW",
+        "serial_number": "357370827125770",
+        "quantity": 1,
+        "unit_price_htva": 1829.15
+      }
+    ]
+  },
+  {
+    "filename": "20231030_35337471_Facture_ITC-2023-0057_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0057",
+    "dossier_number": "180-19866",
+    "invoice_date": "2023-10-30",
+    "equipment": [
+      {
+        "title": "iPhone 15 Pro Max 256 Go new",
+        "serial_number": "357370820914824",
+        "quantity": 1,
+        "unit_price_htva": 2141.48
+      }
+    ]
+  },
+  {
+    "filename": "20231120_36246397_Facture_ITC-2023-0060_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0060",
+    "dossier_number": "180-20608",
+    "invoice_date": "2023-11-20",
+    "equipment": [
+      {
+        "title": "Apple iPhone 15 Pro Max - 256 Go",
+        "serial_number": "358759850091108",
+        "quantity": 1,
+        "unit_price_htva": 1945.1
+      },
+      {
+        "title": "iPad Pro 12.9 pouces M1 - 256 Go, Wifi 4G RFB GR A",
+        "serial_number": "DMPTW242J28K",
+        "quantity": 1,
+        "unit_price_htva": 2132.33
+      },
+      {
+        "title": "Macbook Air 13 M2 - SSD 256 Go RFB GR A",
+        "serial_number": "FR4MPX90TK",
+        "quantity": 1,
+        "unit_price_htva": 2584.52
+      }
+    ]
+  },
+  {
+    "filename": "20231120_36250095_Facture_ITC-2023-0061_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0061",
+    "dossier_number": "180-20711",
+    "invoice_date": "2023-11-20",
+    "equipment": [
+      {
+        "title": "Macbook Pro 13 M1 8Go 256Go SSD RFB GR A",
+        "serial_number": "FVFFHGVGQ05D",
+        "quantity": 1,
+        "unit_price_htva": 1677.57
+      },
+      {
+        "title": "Ecran 27'' incurvé NEW",
+        "serial_number": "5MX4H4PW400132",
+        "quantity": 1,
+        "unit_price_htva": 126.0
+      },
+      {
+        "title": "Office 2021 Famille et petites ent. MAC ESD",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 90.66
+      }
+    ]
+  },
+  {
+    "filename": "20231130_36627224_Facture_ITC-2023-0063_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0063",
+    "dossier_number": "180-20591",
+    "invoice_date": "2023-11-30",
+    "equipment": [
+      {
+        "title": "iPhone 14 Pro Max - 128 Go - RFB GR A",
+        "serial_number": "SDF4C2LX74F",
+        "quantity": 1,
+        "unit_price_htva": 1334.0
+      },
+      {
+        "title": "MacBook Pro M3 Pro 14’’ 8Go/ 512Go - NEW",
+        "serial_number": "SPXWY0TCXKX",
+        "quantity": 1,
+        "unit_price_htva": 2030.0
+      },
+      {
+        "title": "iPad Pro 11 M1 + combo touch + iPad pencil",
+        "serial_number": "PN4YXVH7JX",
+        "quantity": 1,
+        "unit_price_htva": 1146.67
+      }
+    ]
+  },
+  {
+    "filename": "20231130_36645673_Facture_ITC-2023-0064_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0064",
+    "dossier_number": "180-20362",
+    "invoice_date": "2023-11-30",
+    "equipment": [
+      {
+        "title": "100 x Galaxy Tab A8 64Go Wifi + Cover NEW",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 33250.0
+      },
+      {
+        "title": "50 x Casque Micro pour tablettes",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 1226.28
+      }
+    ]
+  },
+  {
+    "filename": "20231206_37035539_Facture_ITC-2023-0066_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0066",
+    "dossier_number": "180-20969",
+    "invoice_date": "2023-12-06",
+    "equipment": [
+      {
+        "title": "iPad Pro 11 M1 512Go Wifi+5G RFB GRA+ | SN1 : C2WN4725F7 ,",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 1381.28
+      },
+      {
+        "title": "Logitech Combo Touch iPad Pro 11 NEW",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 169.1
+      },
+      {
+        "title": "Apple Pencil 2 NEW",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 123.4
+      }
+    ]
+  },
+  {
+    "filename": "20231206_37035644_Facture_ITC-2023-0067_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0067",
+    "dossier_number": "180-20594",
+    "invoice_date": "2023-12-06",
+    "equipment": [
+      {
+        "title": "Macbook Pro 16 M1 Pro 1 To /Ma",
+        "serial_number": "D3RX9CVGXJ",
+        "quantity": 1,
+        "unit_price_htva": 3118.9
+      }
+    ]
+  },
+  {
+    "filename": "20231211_37252288_Facture_ITC-2023-0068_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0068",
+    "dossier_number": "180-20346",
+    "invoice_date": "2023-12-11",
+    "equipment": [
+      {
+        "title": "27 x ThinkCentre M70s Core i3 10100 16 / 256 / CL+S BE |",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 10811.62
+      },
+      {
+        "title": "27 x Ecran 24'' incurvé - NEW",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 2762.1
+      }
+    ]
+  },
+  {
+    "filename": "20231225_37805881_Facture_ITC-2023-0070_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0070",
+    "dossier_number": "180-21111",
+    "invoice_date": "2023-12-25",
+    "equipment": [
+      {
+        "title": "iPad Pro 11 M1 128Go Wifi 5G RFB GRA",
+        "serial_number": "LCFM60D7L6",
+        "quantity": 1,
+        "unit_price_htva": 1338.0
+      },
+      {
+        "title": "Logitech Combo Touch iPad Pro 11",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 175.0
+      },
+      {
+        "title": "Apple Pencil 2 new",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 161.0
+      }
+    ]
+  },
+  {
+    "filename": "20231225_37805934_Facture_ITC-2023-0071_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0071",
+    "dossier_number": "180-21094",
+    "invoice_date": "2023-12-25",
+    "equipment": [
+      {
+        "title": "MacBook Air 13 M2 512 Go SSD - AZERTY RFB GRA",
+        "serial_number": "Q1W5923VK2",
+        "quantity": 1,
+        "unit_price_htva": 2269.0
+      },
+      {
+        "title": "Apple Magic Mouse",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 88.68
+      },
+      {
+        "title": "Office 2021 for Mac ESD",
+        "serial_number": null,
+        "quantity": 2,
+        "unit_price_htva": 60.17
+      }
+    ]
+  },
+  {
+    "filename": "20231228_37910001_Facture_ITC-2023-0074_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0074",
+    "dossier_number": "180-20347",
+    "invoice_date": "2023-12-28",
+    "equipment": [
+      {
+        "title": "21x i5 10e gen /256 Go/16Go/ clavier+souris / Win 11",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 14503.53
+      }
+    ]
+  },
+  {
+    "filename": "20231228_37910677_Facture_ITC-2023-0073_GRENKELEASE.pdf",
+    "invoice_number": "ITC-2023-0073",
+    "dossier_number": "180-20349",
+    "invoice_date": "2023-12-28",
+    "equipment": [
+      {
+        "title": "21x i5 10e gen /256 Go/16Go/ clavier+souris / Win 11",
+        "serial_number": null,
+        "quantity": 1,
+        "unit_price_htva": 14503.53
+      }
+    ]
+  }
+]
