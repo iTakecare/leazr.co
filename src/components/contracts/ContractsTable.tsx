@@ -56,6 +56,9 @@ import {
   ChevronDown,
   ChevronsUpDown,
   MailCheck,
+  AlertTriangle,
+  RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
@@ -277,13 +280,31 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     }
   };
 
+  const getCompanySlug = () => location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
+
   const handleViewDetails = (contractId: string) => {
-    const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
-    if (companySlug) {
-      navigate(`/${companySlug}/admin/contracts/${contractId}`);
-    } else {
-      navigate(`/contracts/${contractId}`);
-    }
+    const slug = getCompanySlug();
+    navigate(slug ? `/${slug}/admin/contracts/${contractId}` : `/contracts/${contractId}`);
+  };
+
+  const handleViewClient = (e: React.MouseEvent, clientId?: string) => {
+    e.stopPropagation();
+    if (!clientId) return;
+    const slug = getCompanySlug();
+    navigate(slug ? `/${slug}/admin/clients/${clientId}` : `/clients/${clientId}`);
+  };
+
+  const isExpiringSoon = (endDate?: string) => {
+    if (!endDate) return false;
+    const end = new Date(endDate);
+    const now = new Date();
+    const diff = (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff <= 90;
+  };
+
+  const isExpired = (endDate?: string) => {
+    if (!endDate) return false;
+    return new Date(endDate) < new Date();
   };
 
   const handleAddTracking = (contractId: string) => {
@@ -446,7 +467,17 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                     </button>
                   ) : "-"}
                 </TableCell>
-                <TableCell className="px-2 py-1.5">{contract.client_name}</TableCell>
+                <TableCell className="px-2 py-1.5">
+                  {contract.client_id ? (
+                    <button
+                      className="text-primary hover:underline flex items-center gap-1 group"
+                      onClick={(e) => handleViewClient(e, contract.client_id)}
+                    >
+                      {contract.client_name}
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                    </button>
+                  ) : contract.client_name}
+                </TableCell>
                 <TableCell className="px-2 py-1.5 whitespace-nowrap">
                   {contract.clients?.company || "-"}
                 </TableCell>
@@ -480,7 +511,18 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 </TableCell>
                 <TableCell className="px-2 py-1.5 whitespace-nowrap">
                   {contract.contract_end_date ? (
-                    formatDate(contract.contract_end_date)
+                    <span className={`flex items-center gap-1 ${
+                      isExpired(contract.contract_end_date)
+                        ? "text-red-600 font-medium"
+                        : isExpiringSoon(contract.contract_end_date)
+                        ? "text-orange-500 font-medium"
+                        : ""
+                    }`}>
+                      {(isExpiringSoon(contract.contract_end_date) || isExpired(contract.contract_end_date)) && (
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                      )}
+                      {formatDate(contract.contract_end_date)}
+                    </span>
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
@@ -567,12 +609,26 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                       )}
                       
                       {contract.status === contractStatuses.ACTIVE && (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => onStatusChange(contract.id, contractStatuses.COMPLETED)}
                           disabled={isUpdatingStatus}
                         >
                           <Clock className="mr-2 h-4 w-4" />
                           Marquer comme terminé
+                        </DropdownMenuItem>
+                      )}
+
+                      {contract.status === contractStatuses.ACTIVE && isExpiringSoon(contract.contract_end_date) && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const slug = getCompanySlug();
+                            navigate(slug ? `/${slug}/admin/offers/new?renew=${contract.id}` : `/offers/new?renew=${contract.id}`);
+                          }}
+                          className="text-orange-600"
+                        >
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Renouveler
                         </DropdownMenuItem>
                       )}
                       

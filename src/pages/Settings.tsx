@@ -17,10 +17,8 @@ import {
   Shield,
   BadgePercent,
   FolderOpen,
-  Upload,
   MessageCircle,
   Package,
-  RefreshCw,
 } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
@@ -34,7 +32,6 @@ import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscrip
 import SoftwareCatalogManager from '@/components/settings/SoftwareCatalogManager';
 import MDMConfigSection from '@/components/settings/MDMConfigSection';
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
-import HistoricalContractsImport from '@/components/settings/HistoricalContractsImport';
 import PDFContentEditor from '@/pages/AdminPages/PDFContentEditor';
 import CompanyDocuments from '@/pages/CompanyDocuments';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -135,24 +132,16 @@ const Settings: React.FC = () => {
           {/* Documents */}
           {activeTab === "documents" && (
             <Tabs defaultValue="templates">
-              <TabsList className={`grid w-full ${isUserBroker ? 'grid-cols-2' : 'grid-cols-3'} mb-6`}>
+              <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="templates" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" /> Templates PDF
                 </TabsTrigger>
                 <TabsTrigger value="company-docs" className="flex items-center gap-2">
                   <FolderOpen className="h-4 w-4" /> Documents entreprise
                 </TabsTrigger>
-                {!isUserBroker && (
-                  <TabsTrigger value="import" className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" /> Import historique
-                  </TabsTrigger>
-                )}
               </TabsList>
               <TabsContent value="templates"><PDFContentEditor /></TabsContent>
               <TabsContent value="company-docs"><CompanyDocuments /></TabsContent>
-              {!isUserBroker && (
-                <TabsContent value="import"><HistoricalContractsImport /></TabsContent>
-              )}
             </Tabs>
           )}
 
