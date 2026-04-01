@@ -179,10 +179,10 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     queryFn: async () => {
       if (!companyId) return null;
       
-      // 1. Récupérer les factures de type 'leasing' pour l'année sélectionnée
-      const { data: invoices, error } = await supabase
+      // 1. Récupérer les factures de type 'leasing' pour l'année (hors self-leasing mensuel)
+      const { data: allLeasingInvoices, error } = await supabase
         .from('invoices')
-        .select('id, amount, contract_id, invoice_date')
+        .select('id, amount, contract_id, invoice_date, billing_data')
         .eq('company_id', companyId)
         .eq('invoice_type', 'leasing')
         .is('credit_note_id', null)
@@ -191,9 +191,14 @@ export const useCompanyDashboard = (selectedYear?: number) => {
 
       if (error) throw error;
 
+      // Exclure les factures SL mensuelles (traitées séparément ci-dessous)
+      const invoices = (allLeasingInvoices || []).filter(
+        i => (i as any).billing_data?.type !== 'self_leasing_monthly'
+      );
+
       // Récupérer les achats depuis contract_equipment pour ces contrats (factures)
       // IMPORTANT: Utiliser actual_purchase_date pour filtrer par année d'achat réelle
-      const contractIds = [...new Set((invoices || []).map(i => i.contract_id).filter(Boolean))] as string[];
+      const contractIds = [...new Set(invoices.map(i => i.contract_id).filter(Boolean))] as string[];
       
       // Créer un map contract_id -> invoice_date pour le fallback
       const contractInvoiceDateMap = new Map<string, string>();
@@ -259,7 +264,9 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         .from('invoices')
         .select('id, amount, contract_id, invoice_date')
         .eq('company_id', companyId)
-        .contains('billing_data', { type: 'self_leasing_monthly' })
+        .eq('invoice_type', 'leasing')
+        .is('credit_note_id', null)
+        .eq('billing_data->>type', 'self_leasing_monthly')
         .gte('invoice_date', `${year}-01-01`)
         .lte('invoice_date', `${year}-12-31`);
 
