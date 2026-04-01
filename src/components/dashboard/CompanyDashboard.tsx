@@ -58,20 +58,33 @@ const CompanyDashboard = () => {
   // Traitement des données mensuelles réelles
   // La fonction SQL renvoie directement le CA BRUT des factures (revenue = leasing, direct_sales_revenue = ventes)
   // Les notes de crédit sont séparées et déjà déduites dans le calcul de la marge
+  // self_leasing_estimated = revenus SL estimés pour le mois EN COURS et futurs (→ prévisionnel uniquement)
+  const currentMonthNum = new Date().getMonth() + 1; // 1-indexé (avril = 4)
   const monthlyData = metrics?.monthly_data?.map(month => {
     const creditNotes = Number(month.credit_notes_amount || 0);
-    const revenueLeasing = Number(month.revenue || 0);  // CA leasing (factures leasing)
-    const directSales = Number(month.direct_sales_revenue || 0);  // CA ventes directes
-    const selfLeasingRevenue = Number(month.self_leasing_revenue || 0);  // CA self-leasing
-    
+    const revenueLeasing = Number(month.revenue || 0);
+    const directSales = Number(month.direct_sales_revenue || 0);
+    const selfLeasingRevenue = Number(month.self_leasing_revenue || 0);
+    // Estimé = revenus SL non encore facturés pour le mois courant/futurs
+    const selfLeasingEstimated = Number((month as any).self_leasing_estimated || 0);
+    const isCurrentOrFutureMonth = isCurrentYear && month.month_number >= currentMonthNum;
+
+    // Pour le mois en cours et les suivants : exclure l'estimé du CA réel
+    const effectiveSelfLeasing = isCurrentOrFutureMonth
+      ? selfLeasingRevenue  // self_leasing_revenue ne contient déjà plus l'estimé (SQL)
+      : selfLeasingRevenue;
+
     return {
       month: month.month_name,
-      ca: revenueLeasing + directSales + selfLeasingRevenue,  // CA brut total
+      monthNumber: month.month_number,
+      ca: revenueLeasing + directSales + effectiveSelfLeasing,
       caLeasing: revenueLeasing,
-      selfLeasing: selfLeasingRevenue,
+      selfLeasing: effectiveSelfLeasing,
+      // selfLeasingEstimated exposé pour l'affichage "(Prév.)" dans la cellule du mois courant
+      selfLeasingEstimated: isCurrentOrFutureMonth ? selfLeasingEstimated : 0,
       directSales: directSales,
       achats: Number(month.purchases),
-      marge: Number(month.margin),
+      marge: Number(month.margin) - (isCurrentOrFutureMonth ? selfLeasingEstimated : 0),
       margePercent: Number(month.margin_percentage),
       creditNotes: creditNotes
     };
@@ -347,7 +360,12 @@ const CompanyDashboard = () => {
                             <TableCell className="font-normal">{month.month}</TableCell>
                             <TableCell className="text-right font-normal">{formatCurrency(includeCreditNotes ? month.ca - month.creditNotes : month.ca)}</TableCell>
                             <TableCell className="text-right font-normal text-blue-700">{formatCurrency(includeCreditNotes ? month.caLeasing - month.creditNotes : month.caLeasing)}</TableCell>
-                            <TableCell className="text-right font-normal text-indigo-700">{formatCurrency(month.selfLeasing)}</TableCell>
+                            <TableCell className="text-right font-normal text-indigo-700">
+                              <div>{formatCurrency(month.selfLeasing)}</div>
+                              {month.selfLeasingEstimated > 0 && (
+                                <div className="text-xs font-normal text-muted-foreground">(Prév. : {formatCurrency(month.selfLeasing + month.selfLeasingEstimated)})</div>
+                              )}
+                            </TableCell>
                             <TableCell className="text-right font-normal text-green-700">{formatCurrency(month.directSales)}</TableCell>
                             <TableCell className="text-right font-normal text-slate-500">
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
