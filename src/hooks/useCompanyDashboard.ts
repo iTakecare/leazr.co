@@ -180,12 +180,12 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       if (!companyId) return null;
       
       // 1. Récupérer les factures de type 'leasing' pour l'année (hors self-leasing mensuel)
+      // Pas de filtre credit_note_id : on inclut toutes les factures comme le tableau mensuel SQL
       const { data: allLeasingInvoices, error } = await supabase
         .from('invoices')
         .select('id, amount, contract_id, invoice_date, billing_data')
         .eq('company_id', companyId)
         .eq('invoice_type', 'leasing')
-        .is('credit_note_id', null)
         .gte('invoice_date', `${year}-01-01`)
         .lte('invoice_date', `${year}-12-31`);
 
@@ -265,7 +265,6 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         .select('id, amount, contract_id, invoice_date')
         .eq('company_id', companyId)
         .eq('invoice_type', 'leasing')
-        .is('credit_note_id', null)
         .eq('billing_data->>type', 'self_leasing_monthly')
         .gte('invoice_date', `${year}-01-01`)
         .lte('invoice_date', `${year}-12-31`);
