@@ -59,33 +59,25 @@ const CompanyDashboard = () => {
   // La fonction SQL renvoie directement le CA BRUT des factures (revenue = leasing, direct_sales_revenue = ventes)
   // Les notes de crédit sont séparées et déjà déduites dans le calcul de la marge
   // self_leasing_estimated = revenus SL estimés pour le mois EN COURS et futurs (→ prévisionnel uniquement)
-  const currentMonthNum = new Date().getMonth() + 1; // 1-indexé (avril = 4)
-  const isCurrentYearSelected = selectedYear === currentYear;
+  // self_leasing_revenue = factures réellement émises uniquement (SQL)
+  // self_leasing_estimated = revenus attendus sans facture → affiché en (Prév.) pour tous les mois
   const monthlyData = metrics?.monthly_data?.map(month => {
     const creditNotes = Number(month.credit_notes_amount || 0);
     const revenueLeasing = Number(month.revenue || 0);
     const directSales = Number(month.direct_sales_revenue || 0);
     const selfLeasingRevenue = Number(month.self_leasing_revenue || 0);
-    // Estimé = revenus SL non encore facturés pour le mois courant/futurs
     const selfLeasingEstimated = Number((month as any).self_leasing_estimated || 0);
-    const isCurrentOrFutureMonth = isCurrentYearSelected && (month as any).month_number >= currentMonthNum;
-
-    // Pour le mois en cours et les suivants : exclure l'estimé du CA réel
-    const effectiveSelfLeasing = isCurrentOrFutureMonth
-      ? selfLeasingRevenue  // self_leasing_revenue ne contient déjà plus l'estimé (SQL)
-      : selfLeasingRevenue;
 
     return {
       month: month.month_name,
-      monthNumber: month.month_number,
-      ca: revenueLeasing + directSales + effectiveSelfLeasing,
+      monthNumber: (month as any).month_number,
+      ca: revenueLeasing + directSales + selfLeasingRevenue,
       caLeasing: revenueLeasing,
-      selfLeasing: effectiveSelfLeasing,
-      // selfLeasingEstimated exposé pour l'affichage "(Prév.)" dans la cellule du mois courant
-      selfLeasingEstimated: isCurrentOrFutureMonth ? selfLeasingEstimated : 0,
+      selfLeasing: selfLeasingRevenue,
+      selfLeasingEstimated: selfLeasingEstimated,
       directSales: directSales,
       achats: Number(month.purchases),
-      marge: Number(month.margin) - (isCurrentOrFutureMonth ? selfLeasingEstimated : 0),
+      marge: Number(month.margin),
       margePercent: Number(month.margin_percentage),
       creditNotes: creditNotes
     };
