@@ -60,6 +60,7 @@ const CompanyDashboard = () => {
   // Les notes de crédit sont séparées et déjà déduites dans le calcul de la marge
   // self_leasing_estimated = revenus SL estimés pour le mois EN COURS et futurs (→ prévisionnel uniquement)
   const currentMonthNum = new Date().getMonth() + 1; // 1-indexé (avril = 4)
+  const isCurrentYearSelected = selectedYear === currentYear;
   const monthlyData = metrics?.monthly_data?.map(month => {
     const creditNotes = Number(month.credit_notes_amount || 0);
     const revenueLeasing = Number(month.revenue || 0);
@@ -67,7 +68,7 @@ const CompanyDashboard = () => {
     const selfLeasingRevenue = Number(month.self_leasing_revenue || 0);
     // Estimé = revenus SL non encore facturés pour le mois courant/futurs
     const selfLeasingEstimated = Number((month as any).self_leasing_estimated || 0);
-    const isCurrentOrFutureMonth = isCurrentYear && month.month_number >= currentMonthNum;
+    const isCurrentOrFutureMonth = isCurrentYearSelected && (month as any).month_number >= currentMonthNum;
 
     // Pour le mois en cours et les suivants : exclure l'estimé du CA réel
     const effectiveSelfLeasing = isCurrentOrFutureMonth
