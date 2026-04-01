@@ -45,12 +45,13 @@ const getCalculationModeLabel = (mode: string): string => {
     case 'monthly_payment': return '% sur mensualité';
     case 'one_monthly_rounded_up': return '1 mensualité arrondie';
     case 'fixed_per_pc': return 'Forfait par PC';
+    case 'fixed_amount': return 'Montant fixe';
     default: return mode;
   }
 };
 
 // Modes qui n'utilisent pas de table de taux
-const modesWithoutRateTable = ['fixed_per_pc', 'one_monthly_rounded_up', 'monthly_payment'];
+const modesWithoutRateTable = ['fixed_per_pc', 'one_monthly_rounded_up', 'monthly_payment', 'fixed_amount'];
 
 const CommissionManager: React.FC = () => {
   // States pour les ambassadeurs
@@ -414,6 +415,14 @@ const CommissionManager: React.FC = () => {
                                 </p>
                               </>
                             )}
+                            {level.calculation_mode === 'fixed_amount' && (
+                              <>
+                                <p className="text-lg font-semibold">{level.fixed_rate || 0}€ (montant fixe)</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Commission fixe de {level.fixed_rate || 0}€ quel que soit le montant de la demande
+                                </p>
+                              </>
+                            )}
                           </div>
                         ) : (
                           // Affichage pour les modes avec table de taux (margin, purchase_price)
@@ -604,6 +613,14 @@ const CommissionManager: React.FC = () => {
                                 <p className="text-lg font-semibold">{level.fixed_rate || 0}%</p>
                                 <p className="text-sm text-muted-foreground">
                                   Commission = {level.fixed_rate || 0}% de la mensualité totale client
+                                </p>
+                              </>
+                            )}
+                            {level.calculation_mode === 'fixed_amount' && (
+                              <>
+                                <p className="text-lg font-semibold">{level.fixed_rate || 0}€ (montant fixe)</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Commission fixe de {level.fixed_rate || 0}€ quel que soit le montant de la demande
                                 </p>
                               </>
                             )}
