@@ -253,61 +253,56 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       }
 
       const invoiceRevenue = (invoices || []).reduce((sum, i) => sum + (i.amount || 0), 0);
-      
-      // 2. Récupérer les contrats en propre (self-leasing) actifs pour l'année
-      const { data: selfLeasingContracts } = await supabase
-        .from('contracts')
-        .select(`
-          id, monthly_payment, contract_start_date, contract_end_date, contract_duration,
-          contract_equipment(purchase_price, actual_purchase_price, quantity)
-        `)
+
+      // 2. Récupérer les factures self-leasing réellement émises pour l'année
+      const { data: slInvoices } = await supabase
+        .from('invoices')
+        .select('id, amount, contract_id, invoice_date')
         .eq('company_id', companyId)
-        .eq('is_self_leasing', true)
-        .in('status', ['signed', 'active', 'delivered'])
-        .lte('contract_start_date', `${year}-12-31`);
+        .contains('billing_data', { type: 'self_leasing_monthly' })
+        .gte('invoice_date', `${year}-01-01`)
+        .lte('invoice_date', `${year}-12-31`);
 
-      // Calculer les revenus et achats des contrats en propre
-      let selfLeasingRevenue = 0;
+      const selfLeasingRevenue = (slInvoices || []).reduce((sum, i) => sum + (i.amount || 0), 0);
+      const selfLeasingCount = [...new Set((slInvoices || []).map(i => i.contract_id).filter(Boolean))].length;
+
+      // Achats SL : amortissement mensuel × nombre de mois facturés par contrat
       let selfLeasingPurchases = 0;
-      let selfLeasingCount = 0;
+      const slContractIds = [...new Set((slInvoices || []).map(i => i.contract_id).filter(Boolean))] as string[];
+      if (slContractIds.length > 0) {
+        const { data: slContracts } = await supabase
+          .from('contracts')
+          .select(`id, contract_duration, contract_equipment(purchase_price, actual_purchase_price, quantity)`)
+          .in('id', slContractIds);
 
-      for (const contract of selfLeasingContracts || []) {
-        const startDate = contract.contract_start_date ? new Date(contract.contract_start_date) : null;
-        const endDate = contract.contract_end_date ? new Date(contract.contract_end_date) : null;
-        
-        if (!startDate) continue;
-        
-        // Calculer les mois actifs dans l'année sélectionnée
-        const yearStart = new Date(year, 0, 1);
-        const yearEnd = new Date(year, 11, 31);
-        
-        const effectiveStart = startDate > yearStart ? startDate : yearStart;
-        const effectiveEnd = endDate && endDate < yearEnd ? endDate : yearEnd;
-        
-        if (effectiveStart > effectiveEnd) continue;
-        
-        // Nombre de mois actifs
-        const monthsActive = (effectiveEnd.getFullYear() - effectiveStart.getFullYear()) * 12 
-          + effectiveEnd.getMonth() - effectiveStart.getMonth() + 1;
-        
-        selfLeasingRevenue += (contract.monthly_payment || 0) * monthsActive;
-        
-        // Achats répartis sur la durée du contrat (purchase / contract_duration)
-        const totalEquipmentPurchase = (contract.contract_equipment || []).reduce(
-          (sum: number, e: any) => sum + ((e.actual_purchase_price || e.purchase_price || 0) * (e.quantity || 1)), 0
-        );
-        const contractDuration = contract.contract_duration || 36;
-        const monthlyPurchase = totalEquipmentPurchase / contractDuration;
-        selfLeasingPurchases += monthlyPurchase * monthsActive;
-        
-        selfLeasingCount++;
+        for (const contract of slContracts || []) {
+          const invoicedMonths = (slInvoices || []).filter(i => i.contract_id === contract.id).length;
+          const totalEquipmentCost = ((contract as any).contract_equipment || []).reduce(
+            (sum: number, e: any) => sum + ((e.actual_purchase_price || e.purchase_price || 0) * (e.quantity || 1)), 0
+          );
+          const duration = (contract as any).contract_duration || 36;
+          selfLeasingPurchases += (totalEquipmentCost / duration) * invoicedMonths;
+        }
       }
 
-      // Combiner factures leasing + contrats en propre
+      // 3. Notes de crédit de l'année (déduites de la marge)
+      const { data: creditNotes } = await supabase
+        .from('credit_notes')
+        .select('id, amount, issued_at, created_at')
+        .eq('company_id', companyId);
+
+      const totalCreditNotes = (creditNotes || [])
+        .filter(cn => {
+          const date = cn.issued_at || cn.created_at;
+          return date && new Date(date).getFullYear() === year;
+        })
+        .reduce((sum, cn) => sum + (cn.amount || 0), 0);
+
+      // Combiner factures leasing + factures SL réelles
       const totalRevenue = invoiceRevenue + selfLeasingRevenue;
       const totalPurchases = invoicePurchases + selfLeasingPurchases;
-      const totalCount = (invoices?.length || 0) + selfLeasingCount;
-      
+      const totalCount = (invoices?.length || 0) + (slInvoices?.length || 0);
+
       return {
         status: 'realized',
         count: totalCount,
@@ -315,7 +310,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         self_leasing_count: selfLeasingCount,
         total_revenue: totalRevenue,
         total_purchases: totalPurchases,
-        total_margin: totalRevenue - totalPurchases
+        total_margin: totalRevenue - totalPurchases - totalCreditNotes
       } as ContractStatistics;
     },
     enabled: !companyLoading && !!companyId,
