@@ -174,6 +174,18 @@ export const calculateAmbassadorCommission = async (
       };
     }
 
+    // Mode "Montant fixe" — commission = montant fixe défini dans fixed_rate
+    if (calculationMode === 'fixed_amount') {
+      const commissionAmount = commissionLevel.fixed_rate || 0;
+
+      return {
+        amount: commissionAmount,
+        rate: commissionAmount,
+        levelName: `${commissionLevel.name} (Montant fixe: ${commissionAmount}€)`,
+        marginAmount
+      };
+    }
+
     // Récupérer les taux du niveau de commission pour les modes margin et purchase_price
     const rates = await getCommissionRates(commissionLevel.id);
     
