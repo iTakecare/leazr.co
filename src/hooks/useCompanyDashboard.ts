@@ -546,7 +546,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         .select('id, amount')
         .eq('company_id', companyId)
         .in('status', ['sent', 'pending'])
-        .lte('due_date', today);
+        .or(`due_date.lte.${today},due_date.is.null`);
       
       if (error) throw error;
       
