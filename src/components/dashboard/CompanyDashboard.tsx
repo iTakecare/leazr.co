@@ -451,32 +451,6 @@ const CompanyDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Factures en retard */}
-            {overdueInvoices.overdue_count > 0 && (
-              <Card className="shadow-none border-orange-200 bg-orange-50/40">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-orange-500" />
-                      <div>
-                        <p className="text-xs font-medium text-foreground">Factures en attente</p>
-                        <p className="text-xs text-muted-foreground">{overdueInvoices.overdue_count} · {formatCurrency(overdueInvoices.overdue_amount)}</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-100"
-                      onClick={() => navigate('/itakecare/admin/invoicing')}
-                    >
-                      <Eye className="w-3 h-3 mr-1" />
-                      Voir
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
           </div>
 
           {/* Sidebar — carte consolidée */}
@@ -580,6 +554,34 @@ const CompanyDashboard = () => {
 
               </CardContent>
             </Card>
+
+            {/* Factures en attente de paiement */}
+            {overdueInvoices.overdue_count > 0 && (
+              <Card className="shadow-none border-orange-200 bg-orange-50/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" />
+                    <span className="text-sm font-semibold text-orange-700">Factures en attente de paiement</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
+                    <span>Nombre</span>
+                    <span className="text-right font-semibold text-foreground">{overdueInvoices.overdue_count}</span>
+                    <span>Montant total</span>
+                    <span className="text-right font-semibold text-orange-600">{formatCurrency(overdueInvoices.overdue_amount)}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-8 text-xs border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+                    onClick={() => navigate('/itakecare/admin/invoicing')}
+                  >
+                    <Eye className="w-3 h-3 mr-1.5" />
+                    Voir les factures
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
           </div>
         </div>
       </div>
