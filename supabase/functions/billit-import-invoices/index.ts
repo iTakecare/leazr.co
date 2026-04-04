@@ -343,6 +343,7 @@ serve(async (req) => {
               pdf_url: pdfUrl,
               status: status,
               integration_type: 'billit',
+              amount: billitAmount, // Synchroniser le montant HTVA depuis Billit
               billing_data: {
                 billit_data: billitInvoice,
                 import_source: 'billit_reconciliation',
@@ -474,12 +475,13 @@ serve(async (req) => {
           if (matchingLeazr) {
             console.log(`🔗 Post-réconciliation: Leazr ${matchingLeazr.invoice_number} ↔ Billit orphan ${orphan.invoice_number} (montant: ${orphan.amount})`);
             
-            // Transfer external_invoice_id to Leazr invoice
+            // Transfer external_invoice_id to Leazr invoice and sync amount
             const { error: updateError } = await supabase
               .from('invoices')
               .update({
                 external_invoice_id: orphan.external_invoice_id,
                 integration_type: 'billit',
+                amount: orphan.amount, // Synchroniser le montant HTVA depuis Billit
                 updated_at: new Date().toISOString(),
               })
               .eq('id', matchingLeazr.id);
