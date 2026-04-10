@@ -54,7 +54,7 @@ const CreateOffer = () => {
   } = useAuth();
   const query = useQuery();
   const clientIdParam = query.get("client");
-  const offerIdParam = query.get("offerId");
+  const offerIdParam = query.get("offerId") || query.get("id");
   
   // Priorité: URL parameter > query parameter pour l'ID d'édition
   const offerId = editId || offerIdParam;
