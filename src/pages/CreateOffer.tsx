@@ -301,6 +301,12 @@ const CreateOffer = () => {
             setIsPurchase(offer.is_purchase || false);
             console.log("💰 STEP 3: Mode achat:", offer.is_purchase);
 
+            // Charger la durée
+            if (!offer.is_purchase && offer.duration) {
+              setSelectedDuration(offer.duration);
+              console.log("🕐 STEP 3: Duration loaded:", offer.duration);
+            }
+
             // Charger le leaser sauvegardé dans l'offre (seulement en mode leasing)
             if (!offer.is_purchase) {
               try {
