@@ -77,7 +77,7 @@ const CreateOffer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAmbassadorSelectorOpen, setIsAmbassadorSelectorOpen] = useState(false);
-  const [loadedOfferData, setLoadedOfferData] = useState(null);
+  const [loadedOfferData, setLoadedOfferData] = useState<any>(null);
   const [isPackSelectorOpen, setIsPackSelectorOpen] = useState(false);
   const [fileFeeEnabled, setFileFeeEnabled] = useState(true);
   const [fileFeeAmount, setFileFeeAmount] = useState(75);
@@ -301,26 +301,20 @@ const CreateOffer = () => {
             setIsPurchase(offer.is_purchase || false);
             console.log("💰 STEP 3: Mode achat:", offer.is_purchase);
 
-            // Charger la durée
-            if (!offer.is_purchase && offer.duration) {
-              setSelectedDuration(offer.duration);
-              console.log("🕐 STEP 3: Duration loaded:", offer.duration);
-            }
-
             // Charger le leaser sauvegardé dans l'offre (seulement en mode leasing)
             if (!offer.is_purchase) {
               try {
                 const fetchedLeasers = await getLeasers();
-                
+
                 // PRIORITÉ 1: Utiliser le leaser_id stocké dans l'offre
                 if (offer.leaser_id) {
                   console.log("🔧 STEP 3: Finding leaser by ID:", offer.leaser_id);
                   const matchingLeaser = fetchedLeasers.find(leaser => leaser.id === offer.leaser_id);
-                  
+
                   if (matchingLeaser) {
                     console.log("✅ STEP 3: Leaser found by ID:", matchingLeaser.name);
                     setSelectedLeaser(matchingLeaser);
-                    
+
                     // Vérifier si c'est du self-leasing basé sur le leaser
                     if ((matchingLeaser as any).is_own_company === true) {
                       console.log("🏢 STEP 3: Leaser is own company, activating self-leasing");
@@ -350,7 +344,7 @@ const CreateOffer = () => {
                   if (matchingLeaser) {
                     console.log("✅ STEP 3: Matching leaser found by coefficient:", matchingLeaser.name);
                     setSelectedLeaser(matchingLeaser);
-                    
+
                     if ((matchingLeaser as any).is_own_company === true && offer.type !== 'self_leasing') {
                       console.log("🏢 STEP 3: Leaser is own company, activating self-leasing");
                       setIsSelfLeasing(true);
@@ -358,6 +352,12 @@ const CreateOffer = () => {
                   } else {
                     console.log("⚠️ STEP 3: No matching leaser found for coefficient");
                   }
+                }
+
+                // Charger la durée APRÈS le leaser (même batch React)
+                if (offer.duration) {
+                  setSelectedDuration(offer.duration);
+                  console.log("🕐 STEP 3: Duration loaded:", offer.duration);
                 }
               } catch (error) {
                 console.error("❌ STEP 3: Error finding leaser:", error);
@@ -469,6 +469,15 @@ const CreateOffer = () => {
     };
     loadOfferData();
   }, [offerId, leasersLoaded, navigate, setEquipmentList, setTargetMonthlyPayment]);
+
+  // Garantir que la durée de l'offre chargée est toujours appliquée
+  useEffect(() => {
+    if (loadedOfferData && !loadedOfferData.is_purchase && loadedOfferData.duration) {
+      console.log("🕐 DURATION EFFECT: Applying duration from loaded offer:", loadedOfferData.duration);
+      setSelectedDuration(loadedOfferData.duration);
+    }
+  }, [loadedOfferData]);
+
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
     console.log("Selected product:", product);
