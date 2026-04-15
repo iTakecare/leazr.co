@@ -60,8 +60,7 @@ const AmbassadorEditPage = () => {
   };
 
   const handleCancel = () => {
-    console.log("AmbassadorEditPage - Cancel edit, navigating back to ambassador detail");
-    navigate(`/ambassadors/${id}`);
+    navigate(-1);
   };
 
   if (loading) {
@@ -86,8 +85,8 @@ const AmbassadorEditPage = () => {
             </div>
             <h2 className="text-xl font-semibold mb-4">{error || "Ambassadeur introuvable"}</h2>
             <div className="space-x-2">
-              <Button variant="outline" onClick={() => navigate("/ambassadors")}>
-                Retour à la liste des ambassadeurs
+              <Button variant="outline" onClick={() => navigate(-1)}>
+                Retour
               </Button>
               {id && (
                 <Button onClick={() => window.location.reload()}>

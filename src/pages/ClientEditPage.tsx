@@ -68,8 +68,7 @@ const ClientEditPage = () => {
   };
 
   const handleCancel = () => {
-    console.log("ClientEditPage - Cancel edit, navigating back to client detail");
-    navigate(`/clients/${id}`);
+    navigate(-1);
   };
 
   if (loading) {
@@ -94,8 +93,8 @@ const ClientEditPage = () => {
             </div>
             <h2 className="text-xl font-semibold mb-4">{error || "Client introuvable"}</h2>
             <div className="space-x-2">
-              <Button variant="outline" onClick={() => navigate("/clients")}>
-                Retour à la liste des clients
+              <Button variant="outline" onClick={() => navigate(-1)}>
+                Retour
               </Button>
               {id && (
                 <Button onClick={() => window.location.reload()}>

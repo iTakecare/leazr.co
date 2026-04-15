@@ -16,11 +16,14 @@ import { CommercialStatsCard } from './cards/CommercialStatsCard';
 import { RecentActivityCard } from './cards/RecentActivityCard';
 import { RecentNotesCard } from './cards/RecentNotesCard';
 import { PendingTasksCard } from './cards/PendingTasksCard';
+import { CallbacksWidget } from './cards/CallbacksWidget';
 import { DashboardEditMode, DashboardCard } from './DashboardEditMode';
 import { toast } from 'sonner';
+import { getPendingCallbacks, getUpcomingCallbacks, PendingCallback } from '@/services/callLogService';
 
 const DEFAULT_CARDS: DashboardCard[] = [
   { id: 'stats', label: 'Statistiques Commerciales', visible: true },
+  { id: 'callbacks', label: 'Rappels Client', visible: true },
   { id: 'recent_activity', label: 'Activité Récente', visible: true },
   { id: 'pending_tasks', label: 'Tâches en Attente', visible: true },
   { id: 'recent_notes', label: 'Notes Récentes', visible: true }
@@ -34,6 +37,7 @@ const CommercialDashboard = () => {
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [tasks, setTasks] = useState<PendingTask[]>([]);
   const [stats, setStats] = useState<CommercialStats | null>(null);
+  const [callbacks, setCallbacks] = useState<PendingCallback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -65,17 +69,26 @@ const CommercialDashboard = () => {
       
       setIsLoading(true);
       try {
-        const [activitiesData, notesData, tasksData, statsData] = await Promise.all([
+        const [activitiesData, notesData, tasksData, statsData, pendingCallbacks, upcomingCallbacks] = await Promise.all([
           getRecentActivity(companyId, 10),
           getRecentNotes(companyId, 8),
           getPendingTasks(companyId),
-          getCommercialStats(companyId, period)
+          getCommercialStats(companyId, period),
+          getPendingCallbacks(companyId),
+          getUpcomingCallbacks(companyId, 7)
         ]);
 
         setActivities(activitiesData);
         setNotes(notesData);
         setTasks(tasksData);
         setStats(statsData);
+        // Merge overdue + upcoming, deduplicate by offer_id
+        const allCallbacks = [...pendingCallbacks];
+        const existingOfferIds = new Set(pendingCallbacks.map(c => c.offer_id));
+        upcomingCallbacks.forEach(c => {
+          if (!existingOfferIds.has(c.offer_id)) allCallbacks.push(c);
+        });
+        setCallbacks(allCallbacks);
       } catch (error) {
         console.error('Error fetching commercial dashboard data:', error);
       } finally {
@@ -118,6 +131,8 @@ const CommercialDashboard = () => {
         return <PendingTasksCard key={cardId} tasks={tasks} isLoading={isLoading} />;
       case 'recent_notes':
         return <RecentNotesCard key={cardId} notes={notes} isLoading={isLoading} />;
+      case 'callbacks':
+        return <CallbacksWidget key={cardId} callbacks={callbacks} isLoading={isLoading} />;
       default:
         return null;
     }

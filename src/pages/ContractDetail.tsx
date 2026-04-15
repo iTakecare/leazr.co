@@ -90,13 +90,13 @@ const ContractDetail = () => {
             <div className="text-destructive font-medium text-center">
               {error || "Le contrat n'a pas été trouvé."}
             </div>
-            <Button 
-              onClick={() => navigateToAdmin("contracts")}
+            <Button
+              onClick={() => navigate(-1)}
               variant="outline"
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Retour à la liste des contrats
+              Retour
             </Button>
             {error?.includes("reconnecter") && (
               <Button 

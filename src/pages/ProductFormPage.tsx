@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import WaveLoader from "@/components/ui/WaveLoader";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
@@ -20,6 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 const ProductFormPage = () => {
   const { id } = useParams<{ id?: string }>();
   const { navigateToAdmin } = useRoleNavigation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("info");
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
@@ -54,8 +55,8 @@ const ProductFormPage = () => {
   }, [isLoading, isEditMode]);
 
   const handleBack = () => {
-    console.log("📄 ProductFormPage - Navigating back to catalog");
-    navigateToAdmin("catalog");
+    console.log("📄 ProductFormPage - Navigating back");
+    navigate(-1);
   };
 
   const handleSuccess = () => {
@@ -121,8 +122,8 @@ const ProductFormPage = () => {
             </Alert>
 
             <div className="mt-6 space-x-2">
-              <Button variant="outline" onClick={() => navigateToAdmin("catalog")}>
-                Retour au catalogue
+              <Button variant="outline" onClick={() => navigate(-1)}>
+                Retour
               </Button>
               {id && (
                 <Button onClick={() => window.location.reload()}>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
@@ -31,14 +31,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  MoreHorizontal, 
-  Trash2, 
-  Send, 
-  Eye, 
-  FileText, 
+  MoreHorizontal,
+  Trash2,
+  Send,
+  Eye,
+  FileText,
   ExternalLink,
   Mail,
-  Upload
+  Upload,
+  Phone
 } from "lucide-react";
 import {
   Tooltip,
@@ -60,6 +61,7 @@ import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, 
 import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
 import { useOffersReminders, ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
+import { getOfferCallbackStatus } from "@/services/callLogService";
 
 type OfferSortColumn = 'dossier_number' | 'date' | 'last_activity' | 'client' | 'company' | 'type' | 'equipment' | 'source' | 'leaser' | 'leaser_request_number' | 'purchase_amount' | 'financed_amount' | 'margin_amount' | 'margin_percent' | 'commission' | 'monthly_payment' | 'status' | 'reminder';
 
@@ -143,6 +145,14 @@ const OffersTable: React.FC<OffersTableProps> = ({
   
   // Calculate reminders for all offers
   const offersReminders = useOffersReminders(offers, sentReminders);
+
+  // Fetch callback status for all displayed offers
+  const [callbackStatuses, setCallbackStatuses] = useState<Record<string, { callback_date: string; status: string } | null>>({});
+  useEffect(() => {
+    if (offers.length === 0) return;
+    const offerIds = offers.map(o => o.id);
+    getOfferCallbackStatus(offerIds).then(setCallbackStatuses);
+  }, [offers]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -535,7 +545,30 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 >
                   {/* Numéro de demande */}
                   <TableCell className="font-mono text-[11px] py-2">
-                    {offer.dossier_number || '-'}
+                    <div className="flex items-center gap-1.5">
+                      <span>{offer.dossier_number || '-'}</span>
+                      {(() => {
+                        const cb = callbackStatuses[offer.id];
+                        if (!cb) return null;
+                        const today = new Date().toISOString().split('T')[0];
+                        const isOverdue = cb.callback_date < today;
+                        const isToday = cb.callback_date === today;
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full ${isOverdue ? 'bg-red-100 text-red-600' : isToday ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500'}`}>
+                                <Phone className="w-2.5 h-2.5" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">
+                                {isOverdue ? `⚠️ Rappel en retard (${cb.callback_date})` : isToday ? '📞 Rappel prévu aujourd\'hui' : `📅 Rappel le ${cb.callback_date}`}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })()}
+                    </div>
                   </TableCell>
                   
                   {/* Date de l'offre */}

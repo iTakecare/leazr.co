@@ -293,9 +293,9 @@ const InvoiceDetailPage = () => {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold mb-4">Facture non trouvée</h2>
-          <Button variant="outline" onClick={() => navigateToAdmin("invoicing")}>
+          <Button variant="outline" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour aux factures
+              Retour
             </Button>
       </div>
     );
@@ -306,9 +306,9 @@ const InvoiceDetailPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <button onClick={() => navigateToAdmin("invoicing")} className="inline-flex items-center text-muted-foreground hover:text-foreground mb-2">
+          <button onClick={() => navigate(-1)} className="inline-flex items-center text-muted-foreground hover:text-foreground mb-2">
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Retour aux factures
+            Retour
           </button>
           <h1 className="text-3xl font-bold tracking-tight">
             Facture {invoice.invoice_number || `FAC-${invoice.id.slice(0, 8)}`}

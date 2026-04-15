@@ -41,7 +41,8 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   const lastEquipmentPriceRef = useRef(0);
   const lastLeaserIdRef = useRef("");
   const lastEquipmentMarginRef = useRef(0);
-  
+  const lastDurationRef = useRef(duration);
+
   // Ref pour détecter le changement de durée
   const previousDurationRef = useRef(duration);
   
@@ -55,15 +56,17 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
 
   // Calcul de l'équipement individuel
   const calculateMonthlyPayment = () => {
-    if (equipment.purchasePrice === lastEquipmentPriceRef.current && 
+    if (equipment.purchasePrice === lastEquipmentPriceRef.current &&
         leaser?.id === lastLeaserIdRef.current &&
-        equipment.margin === lastEquipmentMarginRef.current) {
+        equipment.margin === lastEquipmentMarginRef.current &&
+        duration === lastDurationRef.current) {
       return;
     }
-    
+
     lastEquipmentPriceRef.current = equipment.purchasePrice;
     lastLeaserIdRef.current = leaser?.id || "";
     lastEquipmentMarginRef.current = equipment.margin;
+    lastDurationRef.current = duration;
     
     const financedAmount = calculateFinancedAmountForEquipment(equipment);
     const coef = findCoefficientForAmount(financedAmount, leaser, duration);
@@ -410,15 +413,27 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     setUseGlobalAdjustment(prev => !prev);
   };
 
-  // Fonction pour recalculer les mensualités quand la durée change (leasing en propre)
-  // NOUVELLE LOGIQUE: On utilise une baseline pour éviter la dérive
-  // Le montant financé affiché reste CONSTANT, seule la mensualité change proportionnellement au coefficient
+  // Fonction pour recalculer les mensualités quand la durée change
+  // Pour les leasers standards : recalcul direct avec le coefficient de la nouvelle durée
+  // Pour le self-leasing (is_own_company) : logique de scaling basée sur une baseline
   const recalculateMonthlyPaymentsForDuration = (newDuration: number) => {
     if (equipmentList.length === 0) return;
-    
-    // Si pas en leasing en propre, ne rien faire (comportement normal)
+
+    // Pour les leasers standards (non self-leasing), recalculer directement avec le coefficient de la nouvelle durée
     if (!leaser?.is_own_company) {
-      console.log("🔄 DURATION CHANGE - Not self-leasing, skipping recalculation");
+      console.log("🔄 DURATION CHANGE - Standard leasing, recalculating monthly payments for duration:", newDuration);
+      setEquipmentList(prevList =>
+        prevList.map(eq => {
+          if (eq.purchasePrice > 0) {
+            const financedAmount = calculateFinancedAmountForEquipment(eq);
+            const newCoef = findCoefficientForAmount(financedAmount, leaser, newDuration);
+            const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoef) / 100);
+            console.log(`📊 ${eq.title}: financed=${financedAmount}€, coef=${newCoef}% (${newDuration}m), monthly=${newMonthlyPayment}€`);
+            return { ...eq, monthlyPayment: newMonthlyPayment };
+          }
+          return eq;
+        })
+      );
       return;
     }
     

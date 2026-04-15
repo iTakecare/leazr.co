@@ -951,7 +951,7 @@ const CreateOffer = () => {
                     </div>
                   )}
 
-                  <Button variant="outline" onClick={() => navigateToAdmin('offers')} className="flex items-center gap-2 h-8 px-3" size="sm">
+                  <Button variant="outline" onClick={() => navigate(-1)} className="flex items-center gap-2 h-8 px-3" size="sm">
                     <ArrowLeft className="h-3 w-3" />
                     Annuler
                   </Button>

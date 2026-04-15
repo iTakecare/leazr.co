@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import ReactivateOfferButton from "./ReactivateOfferButton";
 import ReminderIndicator from "../ReminderIndicator";
+import { CallLogButton } from "../CallLogButton";
 import { AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 import {
@@ -53,6 +54,7 @@ interface CompactActionsSidebarProps {
   allReminders?: AllReminders | null;
   sentReminders?: OfferReminderRecord[];
   onOpenReminder?: () => void;
+  onCallLogged?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -73,7 +75,8 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onCreateTask,
   allReminders,
   sentReminders,
-  onOpenReminder
+  onOpenReminder,
+  onCallLogged
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
@@ -299,6 +302,19 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
               <span>Accéder à l'upload docs</span>
             </Button>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Suivi des appels */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Appels & Rappels</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CallLogButton
+            offerId={offer.id}
+            onCallLogged={onCallLogged}
+          />
         </CardContent>
       </Card>
 

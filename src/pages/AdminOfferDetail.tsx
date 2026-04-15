@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -45,6 +45,7 @@ import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNote
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
 import { OfferFinancialFeesEditor } from "@/components/offer/OfferFinancialFeesEditor";
 import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
+import { CallHistory } from "@/components/offers/CallHistory";
 import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
 import SendGoogleReviewModal from "@/components/offers/detail/SendGoogleReviewModal";
 import TaskDialog from "@/components/tasks/TaskDialog";
@@ -60,6 +61,7 @@ const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { navigateToAdmin, companySlug } = useRoleNavigation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   const [offer, setOffer] = useState<any>(null);
@@ -995,10 +997,10 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
             {/* Header épuré style Leazr */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
-                  onClick={() => navigateToAdmin("offers")}
+                  onClick={() => navigate(-1)}
                   className="h-9 w-9 p-0"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1063,10 +1065,11 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
               {/* Contenu principal - permettre le débordement */}
               <div className="lg:col-span-3 min-h-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-5">
+                  <TabsList className="grid w-full grid-cols-6">
                     <TabsTrigger value="overview" className="text-xs sm:text-sm">Vue d'ensemble</TabsTrigger>
                     <TabsTrigger value="financial" className="text-xs sm:text-sm">Financier</TabsTrigger>
                     <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
+                    <TabsTrigger value="calls" className="text-xs sm:text-sm">Appels</TabsTrigger>
                     <TabsTrigger value="history" className="text-xs sm:text-sm">Historique</TabsTrigger>
                     <TabsTrigger value="notes" className="text-xs sm:text-sm">Notes</TabsTrigger>
                   </TabsList>
@@ -1089,7 +1092,11 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   <TabsContent value="documents" className="space-y-4 mt-4 overflow-visible">
                     <OfferDocuments offerId={offer.id} />
                   </TabsContent>
-                  
+
+                  <TabsContent value="calls" className="space-y-4 mt-4 overflow-visible">
+                    <CallHistory offerId={offer.id} />
+                  </TabsContent>
+
                   <TabsContent value="history" className="space-y-4 mt-4 overflow-visible">
                     <ImprovedOfferHistory offerId={offer.id} />
                   </TabsContent>
@@ -1136,6 +1143,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   allReminders={allReminders}
                   sentReminders={sentReminders}
                   onOpenReminder={() => setReminderModalOpen(true)}
+                  onCallLogged={() => setActiveTab("calls")}
                 />
                 
                 {/* Configuration de l'offre */}
