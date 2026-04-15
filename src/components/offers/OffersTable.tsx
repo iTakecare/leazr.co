@@ -556,9 +556,19 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         return (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full ${isOverdue ? 'bg-red-100 text-red-600' : isToday ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500'}`}>
+                              <button
+                                className={`inline-flex items-center justify-center w-4 h-4 rounded-full cursor-pointer ${isOverdue ? 'bg-red-100 text-red-600' : isToday ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isAmbassador()) {
+                                    navigateToAmbassador(`offers/${offer.id}?tab=calls`);
+                                  } else {
+                                    navigateToAdmin(`offers/${offer.id}?tab=calls`);
+                                  }
+                                }}
+                              >
                                 <Phone className="w-2.5 h-2.5" />
-                              </span>
+                              </button>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="text-xs">

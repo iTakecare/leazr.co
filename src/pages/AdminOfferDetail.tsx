@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -70,7 +70,11 @@ const AdminOfferDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [isRequestInfoModalOpen, setIsRequestInfoModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return ["overview","financial","documents","calls","history","notes"].includes(tab ?? "") ? tab! : "overview";
+  });
   const [scoringLoading, setScoringLoading] = useState(false);
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [scoringAnalysisType, setScoringAnalysisType] = useState<'internal' | 'leaser'>('internal');

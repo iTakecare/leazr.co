@@ -33,13 +33,7 @@ export const getCallLogs = async (offerId: string): Promise<CallLog[]> => {
   try {
     const { data, error } = await supabase
       .from('offer_call_logs')
-      .select(`
-        *,
-        profiles:created_by (
-          first_name,
-          last_name
-        )
-      `)
+      .select('*')
       .eq('offer_id', offerId)
       .order('called_at', { ascending: false });
 
@@ -47,7 +41,25 @@ export const getCallLogs = async (offerId: string): Promise<CallLog[]> => {
       console.error("❌ Error fetching call logs:", error);
       return [];
     }
-    return (data || []) as CallLog[];
+    const logs = (data || []) as CallLog[];
+
+    // Fetch author profiles separately (FK is to auth.users, not profiles — can't use PostgREST join)
+    const createdByIds = [...new Set(logs.map(l => l.created_by).filter(Boolean))];
+    if (createdByIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', createdByIds);
+      const profileMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
+      (profilesData || []).forEach((p: any) => { profileMap[p.id] = p; });
+      logs.forEach(log => {
+        if (log.created_by && profileMap[log.created_by]) {
+          log.profiles = profileMap[log.created_by];
+        }
+      });
+    }
+
+    return logs;
   } catch (error) {
     console.error("❌ Exception fetching call logs:", error);
     return [];
@@ -221,8 +233,7 @@ export const getDashboardCallbacks = async (
       .from('offer_call_logs')
       .select(`
         id, offer_id, called_at, callback_date, notes, status, created_by,
-        offers (dossier_number, client_name, workflow_status),
-        profiles:created_by (first_name, last_name)
+        offers (dossier_number, client_name, workflow_status)
       `)
       .eq('company_id', companyId)
       .in('status', ['voicemail', 'no_answer'])
@@ -233,6 +244,17 @@ export const getDashboardCallbacks = async (
     if (error || !data) {
       console.error("❌ Error fetching dashboard callbacks:", error);
       return [];
+    }
+
+    // Fetch author profiles separately (FK points to auth.users, not profiles — can't use PostgREST join)
+    const createdByIds = [...new Set((data as any[]).map(d => d.created_by).filter(Boolean))];
+    const profileMap: Record<string, { first_name?: string; last_name?: string }> = {};
+    if (createdByIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', createdByIds);
+      (profilesData || []).forEach((p: any) => { profileMap[p.id] = p; });
     }
 
     // Deduplicate — keep most recent call log per offer (already sorted by called_at DESC)
@@ -279,7 +301,7 @@ export const getDashboardCallbacks = async (
     });
 
     return active.map((item) => {
-      const p = item.profiles as { first_name?: string; last_name?: string } | null;
+      const p = profileMap[item.created_by] ?? null;
       const first = p?.first_name ?? '';
       const last  = p?.last_name  ?? '';
       const fullName = `${first} ${last}`.trim() || 'Inconnu';
