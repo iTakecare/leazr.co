@@ -29,6 +29,7 @@ import SidebarMenuItem from "./SidebarMenuItem";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
 import { useTaskNotifications } from "@/hooks/useTaskNotifications";
 import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
+import { GlobalSearch } from "@/components/ui/GlobalSearch";
 
 interface SidebarProps {
   className?: string;
@@ -161,6 +162,13 @@ const Sidebar = memo(({ className }: SidebarProps) => {
           </div>
         )}
       </div>
+
+      {/* Global search */}
+      {!isCollapsed && (
+        <div className="px-3 pb-2">
+          <GlobalSearch />
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className={cn(

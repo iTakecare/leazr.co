@@ -1,11 +1,12 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Download } from "lucide-react";
+import { Plus, Filter, Download, LayoutList, Trello } from "lucide-react";
 import { ExcelExportDialog } from "@/components/offers/ExcelExportDialog";
 import { useNavigate } from "react-router-dom";
 import PageTransition from "@/components/layout/PageTransition";
 import OffersTable from "@/components/offers/OffersTable";
+import KanbanView from "@/components/offers/KanbanView";
 import OffersHeader from "@/components/offers/OffersHeader";
 import OffersSearch from "@/components/offers/OffersSearch";
 import OffersFilter from "@/components/offers/OffersFilter";
@@ -23,6 +24,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileOffersPage } from "@/components/mobile/pages";
 const Offers = () => {
   const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const {
     offers,
     filteredOffers,
@@ -118,6 +120,28 @@ const Offers = () => {
                 Importer
               </Button>
             </ExcelImportDialog>
+            {/* View toggle */}
+            <div className="flex items-center border border-slate-200 rounded-md overflow-hidden">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`h-8 px-2.5 flex items-center gap-1.5 text-xs transition-colors ${
+                  viewMode === "list" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                <LayoutList className="h-3.5 w-3.5" />
+                Liste
+              </button>
+              <button
+                onClick={() => setViewMode("kanban")}
+                className={`h-8 px-2.5 flex items-center gap-1.5 text-xs transition-colors border-l border-slate-200 ${
+                  viewMode === "kanban" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                <Trello className="h-3.5 w-3.5" />
+                Kanban
+              </button>
+            </div>
+
             <Button onClick={() => navigateToAdmin("create-offer")} size="sm" className="h-8 bg-emerald-500 hover:bg-emerald-600 text-white text-xs">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Nouvelle demande
@@ -133,8 +157,28 @@ const Offers = () => {
         {/* KPI cards */}
         <OffersKPIStats offers={offers} activeKPIFilter={activeKPIFilter} onKPIClick={setActiveKPIFilter} />
 
-        {/* Table */}
-        {loading ? <OffersLoading /> : loadingError ? <OffersError message={loadingError} onRetry={fetchOffers} /> : <OffersTable offers={filteredOffers} onStatusChange={handleUpdateWorkflowStatus} onDeleteOffer={handleDeleteOffer} onResendOffer={handleResendOffer} onGenerateOffer={handleGenerateOffer} isUpdatingStatus={isUpdatingStatus} sentReminders={reminders} onReminderSent={invalidateReminders} />}
+        {/* Table / Kanban */}
+        {loading ? (
+          <OffersLoading />
+        ) : loadingError ? (
+          <OffersError message={loadingError} onRetry={fetchOffers} />
+        ) : viewMode === "kanban" ? (
+          <KanbanView
+            offers={filteredOffers}
+            onStatusChange={handleUpdateWorkflowStatus}
+          />
+        ) : (
+          <OffersTable
+            offers={filteredOffers}
+            onStatusChange={handleUpdateWorkflowStatus}
+            onDeleteOffer={handleDeleteOffer}
+            onResendOffer={handleResendOffer}
+            onGenerateOffer={handleGenerateOffer}
+            isUpdatingStatus={isUpdatingStatus}
+            sentReminders={reminders}
+            onReminderSent={invalidateReminders}
+          />
+        )}
       </div>
     </PageTransition>;
 };
