@@ -53,13 +53,24 @@ serve(async (req) => {
     const { data: offer, error: offerError } = await supabase
       .from("offers")
       .select(
-        "dossier_number, client_name, client_company, workflow_status, monthly_payment, amount, duration, internal_score, leaser_score, created_at, type, is_purchase"
+        "dossier_number, client_name, client_id, workflow_status, monthly_payment, amount, duration, internal_score, leaser_score, created_at, type, is_purchase"
       )
       .eq("id", offer_id)
       .single();
 
     if (offerError || !offer) {
       throw new Error(`Offer not found: ${offerError?.message}`);
+    }
+
+    // Fetch client company name if client_id is available
+    let clientCompany: string | null = null;
+    if (offer.client_id) {
+      const { data: client } = await supabase
+        .from("clients")
+        .select("company")
+        .eq("id", offer.client_id)
+        .single();
+      clientCompany = client?.company ?? null;
     }
 
     // ── 2. Fetch equipment ─────────────────────────────────────────────────
@@ -145,7 +156,7 @@ serve(async (req) => {
     const context = `
 ## Dossier de financement
 - Numéro: ${offer.dossier_number ?? "N/A"}
-- Client: ${offer.client_name}${offer.client_company ? ` (${offer.client_company})` : ""}
+- Client: ${offer.client_name}${clientCompany ? ` (${clientCompany})` : ""}
 - Type: ${offer.is_purchase ? "Achat" : "Leasing"}
 - Statut actuel: ${STATUS_LABELS[offer.workflow_status] ?? offer.workflow_status}
 - Âge du dossier: ${offerAge} jours
