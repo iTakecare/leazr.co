@@ -179,6 +179,92 @@ export const getUpcomingCallbacks = async (
   }
 };
 
+export interface DashboardCallback {
+  id: string;
+  offer_id: string;
+  called_at: string;
+  callback_date: string;
+  call_notes: string | null;
+  last_call_status: 'voicemail' | 'no_answer';
+  offers: {
+    dossier_number: string;
+    client_name: string;
+    workflow_status: string;
+  };
+  latest_offer_note?: {
+    content: string;
+    created_at: string;
+  };
+}
+
+export const getDashboardCallbacks = async (
+  companyId: string,
+  daysAhead = 7
+): Promise<DashboardCallback[]> => {
+  try {
+    const future = new Date();
+    future.setDate(future.getDate() + daysAhead);
+    const futureDate = future.toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+      .from('offer_call_logs')
+      .select(`
+        id, offer_id, called_at, callback_date, notes, status,
+        offers (dossier_number, client_name, workflow_status)
+      `)
+      .eq('company_id', companyId)
+      .in('status', ['voicemail', 'no_answer'])
+      .not('callback_date', 'is', null)
+      .lte('callback_date', futureDate)
+      .order('callback_date', { ascending: true });
+
+    if (error || !data) {
+      console.error("❌ Error fetching dashboard callbacks:", error);
+      return [];
+    }
+
+    // Deduplicate — keep most recent call log per offer
+    const seen = new Set<string>();
+    const deduped = (data as any[]).filter((item) => {
+      if (seen.has(item.offer_id)) return false;
+      seen.add(item.offer_id);
+      return true;
+    });
+
+    if (deduped.length === 0) return [];
+
+    const offerIds = deduped.map((d) => d.offer_id);
+
+    // Fetch latest note per offer
+    const { data: notesData } = await supabase
+      .from('offer_notes')
+      .select('offer_id, content, created_at')
+      .in('offer_id', offerIds)
+      .order('created_at', { ascending: false });
+
+    const latestNoteMap: Record<string, { content: string; created_at: string }> = {};
+    (notesData || []).forEach((n: any) => {
+      if (!latestNoteMap[n.offer_id]) {
+        latestNoteMap[n.offer_id] = { content: n.content, created_at: n.created_at };
+      }
+    });
+
+    return deduped.map((item) => ({
+      id: item.id,
+      offer_id: item.offer_id,
+      called_at: item.called_at,
+      callback_date: item.callback_date,
+      call_notes: item.notes,
+      last_call_status: item.status,
+      offers: item.offers,
+      latest_offer_note: latestNoteMap[item.offer_id],
+    }));
+  } catch (error) {
+    console.error("❌ Exception fetching dashboard callbacks:", error);
+    return [];
+  }
+};
+
 export const getOfferCallbackStatus = async (
   offerIds: string[]
 ): Promise<Record<string, { callback_date: string; status: string } | null>> => {
