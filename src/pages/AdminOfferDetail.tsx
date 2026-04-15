@@ -46,6 +46,7 @@ import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteC
 import { OfferFinancialFeesEditor } from "@/components/offer/OfferFinancialFeesEditor";
 import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
 import { CallHistory } from "@/components/offers/CallHistory";
+import { OfferAISummary } from "@/components/offers/detail/OfferAISummary";
 import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
 import SendGoogleReviewModal from "@/components/offers/detail/SendGoogleReviewModal";
 import TaskDialog from "@/components/tasks/TaskDialog";
@@ -1079,6 +1080,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   </TabsList>
                   
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
+                    <OfferAISummary offerId={offer.id} />
                     <ClientSection offer={offer} />
                     <NewEquipmentSection offer={offer} onOfferUpdate={() => { setEquipmentRefreshKey((k) => k + 1); fetchOfferDetails(); }} />
                     <ExternalServicesSection offerId={offer.id} />
