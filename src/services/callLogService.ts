@@ -216,19 +216,26 @@ export const getDashboardCallbacks = async (
       .in('status', ['voicemail', 'no_answer'])
       .not('callback_date', 'is', null)
       .lte('callback_date', futureDate)
-      .order('callback_date', { ascending: true });
+      .order('called_at', { ascending: false }); // plus récent en premier
 
     if (error || !data) {
       console.error("❌ Error fetching dashboard callbacks:", error);
       return [];
     }
 
-    // Deduplicate — keep most recent call log per offer
+    // Deduplicate — keep most recent call log per offer (already sorted by called_at DESC)
     const seen = new Set<string>();
     const deduped = (data as any[]).filter((item) => {
       if (seen.has(item.offer_id)) return false;
       seen.add(item.offer_id);
       return true;
+    });
+
+    // Re-sort by callback_date ascending (overdue first) after dedup
+    deduped.sort((a, b) => {
+      const da = new Date(a.callback_date).getTime();
+      const db = new Date(b.callback_date).getTime();
+      return da - db;
     });
 
     if (deduped.length === 0) return [];
