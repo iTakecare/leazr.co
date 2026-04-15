@@ -10,6 +10,10 @@ export interface CallLog {
   notes: string | null;
   created_by: string | null;
   created_at: string;
+  profiles?: {
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
 }
 
 export interface PendingCallback {
@@ -29,7 +33,13 @@ export const getCallLogs = async (offerId: string): Promise<CallLog[]> => {
   try {
     const { data, error } = await supabase
       .from('offer_call_logs')
-      .select('*')
+      .select(`
+        *,
+        profiles:created_by (
+          first_name,
+          last_name
+        )
+      `)
       .eq('offer_id', offerId)
       .order('called_at', { ascending: false });
 
@@ -37,7 +47,7 @@ export const getCallLogs = async (offerId: string): Promise<CallLog[]> => {
       console.error("❌ Error fetching call logs:", error);
       return [];
     }
-    return data || [];
+    return (data || []) as CallLog[];
   } catch (error) {
     console.error("❌ Exception fetching call logs:", error);
     return [];

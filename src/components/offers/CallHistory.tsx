@@ -6,12 +6,13 @@ import {
   PhoneCall,
   Trash2,
   Calendar,
-  Clock,
+  User,
+  ArrowRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO, formatDistanceToNow, isToday, isPast } from "date-fns";
+import { format, parseISO, isToday, isPast } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getCallLogs, deleteCallLog, CallLog } from "@/services/callLogService";
 import { toast } from "sonner";
@@ -46,6 +47,15 @@ const STATUS_CONFIG = {
   },
 };
 
+const authorName = (log: CallLog): string => {
+  const p = log.profiles;
+  if (!p) return "Inconnu";
+  const first = p.first_name ?? "";
+  const last = p.last_name ?? "";
+  const full = `${first} ${last}`.trim();
+  return full || "Inconnu";
+};
+
 export const CallHistory: React.FC<CallHistoryProps> = ({ offerId }) => {
   const { user } = useAuth();
   const [logs, setLogs] = useState<CallLog[]>([]);
@@ -71,8 +81,6 @@ export const CallHistory: React.FC<CallHistoryProps> = ({ offerId }) => {
       toast.error("Erreur lors de la suppression");
     }
   };
-
-  const today = new Date().toISOString().split("T")[0];
 
   return (
     <Card>
@@ -112,66 +120,82 @@ export const CallHistory: React.FC<CallHistoryProps> = ({ offerId }) => {
             {logs.map((log) => {
               const config = STATUS_CONFIG[log.status];
               const Icon = config.icon;
-              const isOverdue =
-                log.callback_date &&
-                log.callback_date < today &&
-                !isToday(parseISO(log.callback_date));
-              const isCallbackToday =
-                log.callback_date && isToday(parseISO(log.callback_date));
+              const calledAtDate = parseISO(log.called_at);
+
+              // Callback reminder display
+              const hasCallback = log.callback_date && log.status !== "reached";
+              const cbDate = log.callback_date ? parseISO(log.callback_date) : null;
+              const cbOverdue = cbDate && isPast(cbDate) && !isToday(cbDate);
+              const cbToday = cbDate && isToday(cbDate);
 
               return (
                 <div
                   key={log.id}
                   className={`flex items-start gap-3 p-3 rounded-lg border-l-2 bg-slate-50 hover:bg-slate-100 transition-colors ${config.borderClass}`}
                 >
-                  <div className={`p-1.5 rounded-full shrink-0 ${config.iconClass}`}>
+                  {/* Status icon */}
+                  <div className={`p-1.5 rounded-full shrink-0 mt-0.5 ${config.iconClass}`}>
                     <Icon className="w-3.5 h-3.5" />
                   </div>
+
                   <div className="flex-1 min-w-0">
+                    {/* Row 1: status badge + date badge + author */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${config.badgeClass}`}
-                      >
+                      {/* Status */}
+                      <Badge variant="outline" className={`text-xs ${config.badgeClass}`}>
                         {config.label}
                       </Badge>
-                      {log.callback_date && log.status !== "reached" && (
-                        <Badge
-                          variant="outline"
-                          className={`text-xs flex items-center gap-1 ${
-                            isOverdue
-                              ? "bg-red-50 text-red-600 border-red-200"
-                              : isCallbackToday
-                              ? "bg-sky-50 text-sky-600 border-sky-200"
-                              : "bg-gray-50 text-gray-600 border-gray-200"
+
+                      {/* Date du contact (called_at) — toujours affiché */}
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-slate-100 text-slate-700 border-slate-200 flex items-center gap-1"
+                      >
+                        <Calendar className="w-3 h-3" />
+                        {format(calledAtDate, "dd/MM/yyyy", { locale: fr })}
+                        {" à "}
+                        {format(calledAtDate, "HH:mm")}
+                      </Badge>
+
+                      {/* Auteur */}
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        {authorName(log)}
+                      </span>
+                    </div>
+
+                    {/* Row 2: rappel prévu (si applicable) */}
+                    {hasCallback && cbDate && (
+                      <div className="mt-1 flex items-center gap-1">
+                        <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span
+                          className={`text-xs font-medium flex items-center gap-1 ${
+                            cbOverdue
+                              ? "text-red-600"
+                              : cbToday
+                              ? "text-orange-600"
+                              : "text-sky-600"
                           }`}
                         >
-                          <Calendar className="w-3 h-3" />
-                          {isOverdue
-                            ? `En retard — ${format(parseISO(log.callback_date), "dd/MM")}`
-                            : isCallbackToday
-                            ? "Aujourd'hui"
-                            : format(parseISO(log.callback_date), "dd/MM/yyyy")}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(parseISO(log.called_at), {
-                          addSuffix: true,
-                          locale: fr,
-                        })}
-                        {" · "}
-                        {format(parseISO(log.called_at), "dd/MM/yyyy HH:mm")}
-                      </p>
-                    </div>
+                          Rappel prévu :{" "}
+                          {cbOverdue
+                            ? `${format(cbDate, "dd/MM/yyyy")} (en retard)`
+                            : cbToday
+                            ? `aujourd'hui (${format(cbDate, "dd/MM/yyyy")})`
+                            : format(cbDate, "dd/MM/yyyy")}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Row 3: notes */}
                     {log.notes && (
-                      <p className="text-xs text-gray-600 mt-1 italic bg-white rounded px-2 py-1 border border-gray-100">
+                      <p className="text-xs text-gray-600 mt-1.5 italic bg-white rounded px-2 py-1 border border-gray-100">
                         "{log.notes}"
                       </p>
                     )}
                   </div>
+
+                  {/* Delete button — only for own logs */}
                   {log.created_by === user?.id && (
                     <Button
                       variant="ghost"
