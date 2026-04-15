@@ -382,3 +382,156 @@ function getContractStatusAction(status: string): string {
   };
   return actions[status] || 'Mis à jour';
 }
+
+// ─── Conversion Funnel ────────────────────────────────────────────────────────
+
+export interface FunnelStage {
+  id: string;
+  label: string;
+  count: number;
+  color: string;
+  conversionFromPrev: number | null; // % from previous stage
+}
+
+const FUNNEL_STAGES = [
+  { id: 'draft',                   label: 'Brouillon',       color: '#94a3b8' },
+  { id: 'sent',                    label: 'Envoyé',          color: '#3b82f6' },
+  { id: 'internal_docs_requested', label: 'Docs demandés',   color: '#f59e0b' },
+  { id: 'internal_approved',       label: 'Approuvé ITC',    color: '#10b981' },
+  { id: 'leaser_introduced',       label: 'Chez le leaser',  color: '#8b5cf6' },
+  { id: 'leaser_docs_requested',   label: 'Docs leaser',     color: '#f97316' },
+  { id: 'leaser_approved',         label: 'Accordé',         color: '#22c55e' },
+];
+
+export const getConversionFunnel = async (companyId: string): Promise<FunnelStage[]> => {
+  const { data, error } = await supabase
+    .from('offers')
+    .select('workflow_status')
+    .eq('company_id', companyId)
+    .not('workflow_status', 'in', '(rejected,without_follow_up)');
+
+  if (error || !data) return FUNNEL_STAGES.map(s => ({ ...s, count: 0, conversionFromPrev: null }));
+
+  // Count per status (include all, not just active pipeline ones)
+  const counts: Record<string, number> = {};
+  data.forEach((row: any) => {
+    counts[row.workflow_status] = (counts[row.workflow_status] || 0) + 1;
+  });
+
+  // Build funnel — each stage shows cumulative offers that have ever reached that stage
+  // Simpler: just show current count at each active stage
+  const stages: FunnelStage[] = FUNNEL_STAGES.map((s, i) => ({
+    ...s,
+    count: counts[s.id] || 0,
+    conversionFromPrev: null,
+  }));
+
+  // Compute conversion: what % of prev stage moved forward
+  for (let i = 1; i < stages.length; i++) {
+    const prev = stages[i - 1].count;
+    const curr = stages[i].count;
+    // We interpret conversion as: curr / (prev + curr + ... further) is tricky with current counts
+    // Instead, use: curr / prev * 100 (simplified — how many are currently in this stage vs prev)
+    stages[i].conversionFromPrev = prev > 0 ? Math.round((curr / prev) * 100) : null;
+  }
+
+  return stages;
+};
+
+// ─── Revenue Forecast ─────────────────────────────────────────────────────────
+
+// Probability of closing per workflow stage (conservative estimates)
+const STAGE_PROBABILITY: Record<string, number> = {
+  draft:                   0.05,
+  sent:                    0.15,
+  internal_docs_requested: 0.35,
+  internal_approved:       0.55,
+  leaser_introduced:       0.70,
+  leaser_docs_requested:   0.82,
+  leaser_approved:         0.92,
+};
+
+export interface ForecastStage {
+  id: string;
+  label: string;
+  count: number;
+  totalMonthly: number;       // sum of monthly_payment for offers in this stage
+  weightedMonthly: number;    // totalMonthly * probability
+  probability: number;
+  color: string;
+}
+
+export interface RevenueForecast {
+  stages: ForecastStage[];
+  totalPipeline: number;      // sum of all monthly_payments in pipeline
+  weightedForecast: number;   // probability-weighted monthly recurring revenue
+  forecastAnnual: number;     // weightedForecast × 12
+}
+
+const FORECAST_STAGE_META = [
+  { id: 'draft',                   label: 'Brouillon',       color: '#94a3b8' },
+  { id: 'sent',                    label: 'Envoyé',          color: '#3b82f6' },
+  { id: 'internal_docs_requested', label: 'Docs demandés',   color: '#f59e0b' },
+  { id: 'internal_approved',       label: 'Approuvé ITC',    color: '#10b981' },
+  { id: 'leaser_introduced',       label: 'Chez le leaser',  color: '#8b5cf6' },
+  { id: 'leaser_docs_requested',   label: 'Docs leaser',     color: '#f97316' },
+  { id: 'leaser_approved',         label: 'Accordé',         color: '#22c55e' },
+];
+
+export const getRevenueForecast = async (companyId: string): Promise<RevenueForecast> => {
+  const empty: RevenueForecast = {
+    stages: FORECAST_STAGE_META.map(s => ({
+      ...s,
+      count: 0,
+      totalMonthly: 0,
+      weightedMonthly: 0,
+      probability: STAGE_PROBABILITY[s.id] || 0,
+    })),
+    totalPipeline: 0,
+    weightedForecast: 0,
+    forecastAnnual: 0,
+  };
+
+  const { data, error } = await supabase
+    .from('offers')
+    .select('workflow_status, monthly_payment')
+    .eq('company_id', companyId)
+    .in('workflow_status', Object.keys(STAGE_PROBABILITY))
+    .not('is_purchase', 'is', true);
+
+  if (error || !data) return empty;
+
+  // Aggregate per stage
+  const byStatus: Record<string, { count: number; total: number }> = {};
+  data.forEach((row: any) => {
+    const s = row.workflow_status;
+    if (!byStatus[s]) byStatus[s] = { count: 0, total: 0 };
+    byStatus[s].count++;
+    byStatus[s].total += Number(row.monthly_payment || 0);
+  });
+
+  let totalPipeline = 0;
+  let weightedForecast = 0;
+
+  const stages: ForecastStage[] = FORECAST_STAGE_META.map(meta => {
+    const agg = byStatus[meta.id] || { count: 0, total: 0 };
+    const prob = STAGE_PROBABILITY[meta.id] || 0;
+    const weighted = agg.total * prob;
+    totalPipeline += agg.total;
+    weightedForecast += weighted;
+    return {
+      ...meta,
+      count: agg.count,
+      totalMonthly: agg.total,
+      weightedMonthly: weighted,
+      probability: prob,
+    };
+  });
+
+  return {
+    stages,
+    totalPipeline,
+    weightedForecast,
+    forecastAnnual: weightedForecast * 12,
+  };
+};

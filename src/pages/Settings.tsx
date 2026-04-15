@@ -19,6 +19,7 @@ import {
   FolderOpen,
   MessageCircle,
   Package,
+  Bell,
 } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
@@ -28,6 +29,7 @@ import MultiTenantUserManager from '@/components/settings/MultiTenantUserManager
 import PermissionProfilesManager from '@/components/settings/PermissionProfilesManager';
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
+import { PushNotificationToggle } from '@/components/settings/PushNotificationToggle';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
 import SoftwareCatalogManager from '@/components/settings/SoftwareCatalogManager';
 import MDMConfigSection from '@/components/settings/MDMConfigSection';
@@ -148,7 +150,7 @@ const Settings: React.FC = () => {
           {/* Communication */}
           {activeTab === "communication" && (
             <Tabs defaultValue="emails">
-              <TabsList className={`grid w-full ${isUserBroker ? 'grid-cols-1' : 'grid-cols-2'} mb-6`}>
+              <TabsList className={`grid w-full ${isUserBroker ? 'grid-cols-2' : 'grid-cols-3'} mb-6`}>
                 <TabsTrigger value="emails" className="flex items-center gap-2">
                   <Mail className="h-4 w-4" /> Emails
                 </TabsTrigger>
@@ -157,11 +159,25 @@ const Settings: React.FC = () => {
                     <MessageCircle className="h-4 w-4" /> Chat
                   </TabsTrigger>
                 )}
+                <TabsTrigger value="notifications" className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" /> Notifications
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="emails"><EmailSettings /></TabsContent>
               {!isUserBroker && (
                 <TabsContent value="chat"><ChatSettings /></TabsContent>
               )}
+              <TabsContent value="notifications">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold mb-1">Notifications push</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Recevez des alertes en temps réel directement dans votre navigateur pour vos rappels clients et tâches urgentes.
+                    </p>
+                    <PushNotificationToggle />
+                  </div>
+                </div>
+              </TabsContent>
             </Tabs>
           )}
 

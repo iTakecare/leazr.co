@@ -7,16 +7,19 @@ import {
   getRecentNotes,
   getPendingTasks,
   getCommercialStats,
+  getConversionFunnel,
   ActivityItem,
   NoteItem,
   PendingTask,
-  CommercialStats
+  CommercialStats,
+  FunnelStage,
 } from '@/services/commercialDashboardService';
 import { CommercialStatsCard } from './cards/CommercialStatsCard';
 import { RecentActivityCard } from './cards/RecentActivityCard';
 import { RecentNotesCard } from './cards/RecentNotesCard';
 import { PendingTasksCard } from './cards/PendingTasksCard';
 import { ClientsToContactCard } from './cards/ClientsToContactCard';
+import { ConversionFunnelCard } from './cards/ConversionFunnelCard';
 import { DashboardEditMode, DashboardCard } from './DashboardEditMode';
 import { toast } from 'sonner';
 import { getDashboardCallbacks, DashboardCallback } from '@/services/callLogService';
@@ -24,6 +27,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 const DEFAULT_CARDS: DashboardCard[] = [
   { id: 'callbacks', label: 'Clients à contacter', visible: true },
+  { id: 'funnel', label: 'Entonnoir de conversion', visible: true },
   { id: 'stats', label: 'Statistiques Commerciales', visible: true },
   { id: 'pending_tasks', label: 'Tâches en Attente', visible: true },
   { id: 'recent_activity', label: 'Activité Récente', visible: true },
@@ -39,6 +43,7 @@ const CommercialDashboard = () => {
   const [tasks, setTasks] = useState<PendingTask[]>([]);
   const [stats, setStats] = useState<CommercialStats | null>(null);
   const [callbacks, setCallbacks] = useState<DashboardCallback[]>([]);
+  const [funnelStages, setFunnelStages] = useState<FunnelStage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -75,18 +80,20 @@ const CommercialDashboard = () => {
       if (!companyId) return;
       setIsLoading(true);
       try {
-        const [activitiesData, notesData, tasksData, statsData, callbacksData] = await Promise.all([
+        const [activitiesData, notesData, tasksData, statsData, callbacksData, funnelData] = await Promise.all([
           getRecentActivity(companyId, 10),
           getRecentNotes(companyId, 8),
           getPendingTasks(companyId),
           getCommercialStats(companyId, period),
           getDashboardCallbacks(companyId, 14),
+          getConversionFunnel(companyId),
         ]);
         setActivities(activitiesData);
         setNotes(notesData);
         setTasks(tasksData);
         setStats(statsData);
         setCallbacks(callbacksData);
+        setFunnelStages(funnelData);
       } catch (error) {
         console.error('Error fetching commercial dashboard data:', error);
       } finally {
@@ -131,6 +138,8 @@ const CommercialDashboard = () => {
 
   const renderGridCard = (cardId: string) => {
     switch (cardId) {
+      case 'funnel':
+        return <ConversionFunnelCard key={cardId} stages={funnelStages} isLoading={isLoading} />;
       case 'stats':
         return <CommercialStatsCard key={cardId} stats={stats} isLoading={isLoading} period={period} />;
       case 'recent_activity':

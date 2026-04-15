@@ -38,6 +38,29 @@ const STATUS_OPTIONS = [
   { value: 'reached' as const, label: 'Client joint', icon: PhoneCall, color: 'green' },
 ];
 
+const NOTE_TEMPLATES: Record<string, string[]> = {
+  voicemail: [
+    "Message laissé — rappel demandé",
+    "Messagerie pleine, pas de message possible",
+    "Message laissé, envoi email de suivi",
+    "Répondeur — demande de rappel urgent",
+  ],
+  no_answer: [
+    "Sonnerie sans réponse",
+    "Numéro occupé",
+    "Hors zone / injoignable",
+    "Rappel tenté à plusieurs reprises",
+  ],
+  reached: [
+    "Intéressé — envoi du devis prévu",
+    "Réfléchit encore, rappel convenu",
+    "Accord de principe — en attente des documents",
+    "Dossier en cours de constitution",
+    "Refus définitif du client",
+    "Demande d'informations complémentaires",
+  ],
+};
+
 export const CallLogButton: React.FC<CallLogButtonProps> = ({
   offerId,
   onCallLogged,
@@ -188,14 +211,35 @@ export const CallLogButton: React.FC<CallLogButtonProps> = ({
               </div>
             )}
 
+            {/* Templates rapides */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Templates rapides</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {NOTE_TEMPLATES[status].map((tpl) => (
+                  <button
+                    key={tpl}
+                    type="button"
+                    onClick={() => setNotes(tpl)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all text-left ${
+                      notes === tpl
+                        ? 'bg-sky-600 text-white border-sky-600'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-sky-300 hover:text-sky-700 hover:bg-sky-50'
+                    }`}
+                  >
+                    {tpl}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Notes optionnelles */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Note (optionnel)</Label>
+              <Label className="text-sm font-medium">Note personnalisée (optionnel)</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Message laissé en messagerie, informations collectées..."
-                rows={3}
+                rows={2}
                 className="resize-none text-sm"
               />
             </div>

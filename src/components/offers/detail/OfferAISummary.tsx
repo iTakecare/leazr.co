@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,15 @@ export const OfferAISummary: React.FC<OfferAISummaryProps> = ({ offerId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const hasFetched = useRef(false);
+
+  // Auto-generate on mount
+  useEffect(() => {
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      generate();
+    }
+  }, [offerId]);
 
   const generate = async () => {
     setLoading(true);
@@ -147,17 +156,8 @@ export const OfferAISummary: React.FC<OfferAISummaryProps> = ({ offerId }) => {
       )}
 
       {!summary && !loading && !error && (
-        <div className="px-4 py-5 text-center">
-          <p className="text-sm text-slate-400 mb-3">
-            Générez un résumé intelligent du dossier basé sur les appels, notes et l'historique.
-          </p>
-          <Button
-            onClick={generate}
-            className="h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white px-4"
-          >
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-            Générer le résumé IA
-          </Button>
+        <div className="px-4 py-3 text-center text-xs text-slate-400">
+          Prêt à analyser…
         </div>
       )}
 

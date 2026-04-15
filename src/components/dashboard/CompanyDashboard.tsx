@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,19 +29,30 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanyDashboard } from "@/hooks/useCompanyDashboard";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useCompanyBranding } from "@/context/CompanyBrandingContext";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import DashboardPDFExportModal from "./DashboardPDFExportModal";
+import { RevenueForecastCard } from "./cards/RevenueForecastCard";
+import { getRevenueForecast, RevenueForecast } from "@/services/commercialDashboardService";
 import type { PDFYearData } from "./DashboardPDFContent";
 
 const CompanyDashboard = () => {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const { companyId } = useMultiTenant();
   const [timeFilter, setTimeFilter] = useState('month');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [includeCreditNotes, setIncludeCreditNotes] = useState(false);
   const [showPDFModal, setShowPDFModal] = useState(false);
+  const [revenueForecast, setRevenueForecast] = useState<RevenueForecast | null>(null);
+
+  useEffect(() => {
+    if (companyId) {
+      getRevenueForecast(companyId).then(setRevenueForecast);
+    }
+  }, [companyId]);
   const { metrics, recentActivity, overdueInvoices, selfLeasingProjection, isLoading, refetch } = useCompanyDashboard(selectedYear);
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
@@ -584,6 +595,10 @@ const CompanyDashboard = () => {
 
           </div>
         </div>
+
+        {/* Revenue Forecast — pipeline pondéré */}
+        <RevenueForecastCard forecast={revenueForecast} isLoading={isLoading} />
+
       </div>
 
       {/* PDF Export Modal */}

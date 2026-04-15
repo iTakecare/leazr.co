@@ -82,14 +82,17 @@ serve(async (req) => {
     for (const [userId, userLogs] of Object.entries(deduplicated)) {
       if (userId === "unknown" || !resendApiKey) continue;
 
-      // Get user profile with email
+      // Get user profile (name) from profiles table
       const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("email, first_name, last_name")
+        .from("profiles")
+        .select("first_name, last_name")
         .eq("id", userId)
         .single();
 
-      if (!profile?.email) continue;
+      // Get email from auth admin API
+      const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+      const email = authUser?.user?.email;
+      if (!email) continue;
 
       const overdueCount = userLogs.filter(
         (l) => l.callback_date < today
@@ -99,7 +102,7 @@ serve(async (req) => {
       ).length;
 
       const userName =
-        [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
+        [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") ||
         "Vous";
 
       const itemsHtml = userLogs
@@ -174,7 +177,7 @@ serve(async (req) => {
     </table>
 
     <div style="margin-top:24px;text-align:center;">
-      <a href="${supabaseUrl.replace(".supabase.co", ".leazr.co")}/admin/offers"
+      <a href="https://leazr.co/admin/offers"
          style="background:#0284c7;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500;">
         Voir les demandes →
       </a>
@@ -196,7 +199,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           from: "Leazr <notifications@leazr.co>",
-          to: [profile.email],
+          to: [email],
           subject: `📞 ${userLogs.length} rappel(s) client${overdueCount > 0 ? ` (${overdueCount} en retard)` : ""} — ${new Date().toLocaleDateString("fr-FR")}`,
           html: emailHtml,
         }),
