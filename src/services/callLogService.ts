@@ -231,16 +231,26 @@ export const getDashboardCallbacks = async (
       return true;
     });
 
+    // Exclure les offres terminées (contrat signé, finalisé, accepté...)
+    const DONE_STATUSES = new Set([
+      'accepted', 'leaser_approved', 'validated', 'financed',
+      'signed', 'completed', 'contract_sent',
+      'without_follow_up', 'internal_rejected', 'leaser_rejected', 'rejected'
+    ]);
+    const active = deduped.filter(
+      (item) => !DONE_STATUSES.has(item.offers?.workflow_status?.toLowerCase?.())
+    );
+
     // Re-sort by callback_date ascending (overdue first) after dedup
-    deduped.sort((a, b) => {
+    active.sort((a, b) => {
       const da = new Date(a.callback_date).getTime();
       const db = new Date(b.callback_date).getTime();
       return da - db;
     });
 
-    if (deduped.length === 0) return [];
+    if (active.length === 0) return [];
 
-    const offerIds = deduped.map((d) => d.offer_id);
+    const offerIds = active.map((d) => d.offer_id);
 
     // Fetch latest note per offer
     const { data: notesData } = await supabase
@@ -256,7 +266,7 @@ export const getDashboardCallbacks = async (
       }
     });
 
-    return deduped.map((item) => ({
+    return active.map((item) => ({
       id: item.id,
       offer_id: item.offer_id,
       called_at: item.called_at,

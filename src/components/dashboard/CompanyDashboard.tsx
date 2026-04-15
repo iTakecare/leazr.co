@@ -30,13 +30,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useCompanyDashboard } from "@/hooks/useCompanyDashboard";
 import { useCompanyBranding } from "@/context/CompanyBrandingContext";
-import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import DashboardPDFExportModal from "./DashboardPDFExportModal";
 import type { PDFYearData } from "./DashboardPDFContent";
-import { ClientsToContactCard } from "./cards/ClientsToContactCard";
-import { getDashboardCallbacks, DashboardCallback } from "@/services/callLogService";
 
 const CompanyDashboard = () => {
   const currentYear = new Date().getFullYear();
@@ -45,9 +42,6 @@ const CompanyDashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [includeCreditNotes, setIncludeCreditNotes] = useState(false);
   const [showPDFModal, setShowPDFModal] = useState(false);
-  const [callbacks, setCallbacks] = useState<DashboardCallback[]>([]);
-  const [callbacksLoading, setCallbacksLoading] = useState(true);
-  const { companyId } = useMultiTenant();
   const { metrics, recentActivity, overdueInvoices, selfLeasingProjection, isLoading, refetch } = useCompanyDashboard(selectedYear);
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
@@ -55,22 +49,9 @@ const CompanyDashboard = () => {
   // Générer les années disponibles (de 2022 à année courante)
   const availableYears = Array.from({ length: currentYear - 2021 }, (_, i) => 2022 + i);
 
-  // Charger les callbacks au montage
-  React.useEffect(() => {
-    if (!companyId) return;
-    setCallbacksLoading(true);
-    getDashboardCallbacks(companyId, 14)
-      .then(setCallbacks)
-      .finally(() => setCallbacksLoading(false));
-  }, [companyId]);
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refetch();
-    if (companyId) {
-      const fresh = await getDashboardCallbacks(companyId, 14);
-      setCallbacks(fresh);
-    }
     setIsRefreshing(false);
   };
 
@@ -474,12 +455,6 @@ const CompanyDashboard = () => {
 
           {/* Sidebar */}
           <div className="space-y-3">
-            {/* Clients à contacter */}
-            <ClientsToContactCard
-              callbacks={callbacks}
-              isLoading={callbacksLoading}
-              compact={true}
-            />
             <Card className="shadow-none">
               <CardContent className="p-0 divide-y divide-border">
 
