@@ -174,7 +174,7 @@ export const ClientsToContactCard: React.FC<ClientsToContactCardProps> = ({
               return (
                 <Link
                   key={cb.id}
-                  to={`/${companySlug}/admin/offers/${cb.offer_id}`}
+                  to={`/${companySlug}/admin/offers/${cb.offer_id}?tab=calls`}
                   className={cn(
                     "flex items-start gap-3 px-3 py-2.5 rounded-lg border-l-2 transition-all group",
                     urg.rowBg,
