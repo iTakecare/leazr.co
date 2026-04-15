@@ -47,11 +47,19 @@ const CommercialDashboard = () => {
   const getCardsFromPreferences = (): DashboardCard[] => {
     const layout = preferences?.dashboard_layout?.commercial;
     if (!layout?.card_order) return DEFAULT_CARDS;
-    return layout.card_order.map(id => ({
+
+    // Reconstruire à partir des préférences sauvegardées
+    const savedCards = layout.card_order.map(id => ({
       id,
       label: DEFAULT_CARDS.find(c => c.id === id)?.label || id,
       visible: layout.visible_cards?.includes(id) ?? true
     }));
+
+    // Ajouter en tête les nouvelles cartes DEFAULT absentes des préférences sauvegardées
+    const savedIds = new Set(layout.card_order);
+    const missingCards = DEFAULT_CARDS.filter(c => !savedIds.has(c.id));
+
+    return [...missingCards, ...savedCards];
   };
 
   const [cards, setCards] = useState<DashboardCard[]>(DEFAULT_CARDS);
