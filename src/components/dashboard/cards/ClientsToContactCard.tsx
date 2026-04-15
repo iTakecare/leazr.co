@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  User,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { format, parseISO, isToday, isPast, differenceInDays } from "date-fns";
@@ -68,36 +69,30 @@ export const ClientsToContactCard: React.FC<ClientsToContactCardProps> = ({
       <PhoneMissed className="h-3 w-3" />
     );
 
+  // Urgence basée sur callback_date (pour la couleur de la ligne)
   const getUrgencyConfig = (callbackDate: string) => {
     const date = parseISO(callbackDate);
     if (isPast(date) && !isToday(date)) {
-      const days = differenceInDays(today, date);
       return {
-        label: `Retard ${days}j`,
         rowBg: "bg-red-50 hover:bg-red-100",
         borderLeft: "border-l-red-400",
-        badgeCls: "bg-red-100 text-red-700",
         icon: <AlertCircle className="h-3.5 w-3.5 text-red-500" />,
-        dateCls: "text-red-600 font-semibold",
+        urgencyBadge: <span className="text-xs text-red-600 font-medium shrink-0">⚠ En retard</span>,
       };
     }
     if (isToday(date)) {
       return {
-        label: "Aujourd'hui",
         rowBg: "bg-orange-50 hover:bg-orange-100",
         borderLeft: "border-l-orange-400",
-        badgeCls: "bg-orange-100 text-orange-700",
         icon: <Clock className="h-3.5 w-3.5 text-orange-500" />,
-        dateCls: "text-orange-600 font-semibold",
+        urgencyBadge: <span className="text-xs text-orange-600 font-medium shrink-0">À rappeler</span>,
       };
     }
     return {
-      label: format(date, "dd MMM", { locale: fr }),
       rowBg: "bg-slate-50 hover:bg-slate-100",
       borderLeft: "border-l-slate-300",
-      badgeCls: "bg-slate-100 text-slate-600",
       icon: <Calendar className="h-3.5 w-3.5 text-slate-400" />,
-      dateCls: "text-slate-500",
+      urgencyBadge: null,
     };
   };
 
@@ -191,14 +186,16 @@ export const ClientsToContactCard: React.FC<ClientsToContactCardProps> = ({
 
                   {/* Infos client */}
                   <div className="flex-1 min-w-0">
+                    {/* Ligne 1 : nom + dossier + statut appel */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold truncate leading-tight">
                         {cb.offers?.client_name}
                       </span>
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {cb.offers?.dossier_number}
-                      </span>
-                      {/* Badge dernier appel */}
+                      {cb.offers?.dossier_number && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {cb.offers.dossier_number}
+                        </span>
+                      )}
                       <span
                         className={cn(
                           "inline-flex items-center gap-1 text-xs px-1.5 py-0 rounded-full shrink-0",
@@ -212,7 +209,22 @@ export const ClientsToContactCard: React.FC<ClientsToContactCardProps> = ({
                       </span>
                     </div>
 
-                    {/* Notes */}
+                    {/* Ligne 2 : date réelle de l'appel + auteur */}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-slate-400" />
+                        {format(parseISO(cb.called_at), "dd/MM/yyyy", { locale: fr })}
+                      </span>
+                      {cb.author_name && cb.author_name !== "Inconnu" && (
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <User className="h-3 w-3 text-slate-400" />
+                          {cb.author_name}
+                        </span>
+                      )}
+                      {urg.urgencyBadge}
+                    </div>
+
+                    {/* Ligne 3 : notes */}
                     <div className="mt-0.5 space-y-0.5">
                       {cb.latest_offer_note && (
                         <p className="text-xs text-slate-600 flex items-start gap-1 leading-snug">
@@ -220,7 +232,7 @@ export const ClientsToContactCard: React.FC<ClientsToContactCardProps> = ({
                           <span className="truncate italic">{cb.latest_offer_note.content}</span>
                         </p>
                       )}
-                      {cb.call_notes && (
+                      {cb.call_notes && cb.call_notes !== cb.latest_offer_note?.content && (
                         <p className="text-xs text-slate-500 flex items-start gap-1 leading-snug">
                           <Phone className="h-3 w-3 shrink-0 mt-0.5 text-slate-300" />
                           <span className="truncate">{cb.call_notes}</span>
@@ -229,13 +241,8 @@ export const ClientsToContactCard: React.FC<ClientsToContactCardProps> = ({
                     </div>
                   </div>
 
-                  {/* Date + flèche */}
-                  <div className="shrink-0 flex flex-col items-end gap-1 ml-1">
-                    <span className={cn("text-xs font-medium flex items-center gap-0.5", urg.dateCls)}>
-                      {urg.label}
-                    </span>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
+                  {/* Flèche hover */}
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 self-center" />
                 </Link>
               );
             })}

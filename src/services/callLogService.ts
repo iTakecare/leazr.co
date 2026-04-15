@@ -196,6 +196,7 @@ export interface DashboardCallback {
   callback_date: string;
   call_notes: string | null;
   last_call_status: 'voicemail' | 'no_answer';
+  author_name: string;
   offers: {
     dossier_number: string;
     client_name: string;
@@ -219,8 +220,9 @@ export const getDashboardCallbacks = async (
     const { data, error } = await supabase
       .from('offer_call_logs')
       .select(`
-        id, offer_id, called_at, callback_date, notes, status,
-        offers (dossier_number, client_name, workflow_status)
+        id, offer_id, called_at, callback_date, notes, status, created_by,
+        offers (dossier_number, client_name, workflow_status),
+        profiles:created_by (first_name, last_name)
       `)
       .eq('company_id', companyId)
       .in('status', ['voicemail', 'no_answer'])
@@ -276,16 +278,23 @@ export const getDashboardCallbacks = async (
       }
     });
 
-    return active.map((item) => ({
-      id: item.id,
-      offer_id: item.offer_id,
-      called_at: item.called_at,
-      callback_date: item.callback_date,
-      call_notes: item.notes,
-      last_call_status: item.status,
-      offers: item.offers,
-      latest_offer_note: latestNoteMap[item.offer_id],
-    }));
+    return active.map((item) => {
+      const p = item.profiles as { first_name?: string; last_name?: string } | null;
+      const first = p?.first_name ?? '';
+      const last  = p?.last_name  ?? '';
+      const fullName = `${first} ${last}`.trim() || 'Inconnu';
+      return {
+        id: item.id,
+        offer_id: item.offer_id,
+        called_at: item.called_at,
+        callback_date: item.callback_date,
+        call_notes: item.notes,
+        last_call_status: item.status,
+        author_name: fullName,
+        offers: item.offers,
+        latest_offer_note: latestNoteMap[item.offer_id],
+      };
+    });
   } catch (error) {
     console.error("❌ Exception fetching dashboard callbacks:", error);
     return [];
