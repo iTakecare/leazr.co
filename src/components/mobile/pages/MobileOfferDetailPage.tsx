@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Loader2, Phone, FileText, BarChart3, StickyNote, ArrowLeft, MoreHorizontal, Calendar, Sparkles } from "lucide-react";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { formatCurrency } from "@/utils/formatters";
@@ -20,6 +20,7 @@ import MobileEquipmentDrawer from "../MobileEquipmentDrawer";
 import MobileClientSummaryCard from "../MobileClientSummaryCard";
 import MobileBottomNav from "../MobileBottomNav";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
+import { getOfferNotes } from "@/services/offers/offerNotes";
 
 // Features
 import { CallHistory } from "@/components/offers/CallHistory";
@@ -84,6 +85,18 @@ const MobileOfferDetailPage: React.FC<MobileOfferDetailPageProps> = ({
   const [showEquipmentDrawer, setShowEquipmentDrawer] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [offerNotes, setOfferNotes] = useState<any[]>([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+
+  // Load notes when the notes tab is activated
+  useEffect(() => {
+    if (activeTab === "notes" && offer?.id && offerNotes.length === 0 && !notesLoading) {
+      setNotesLoading(true);
+      getOfferNotes(offer.id)
+        .then(setOfferNotes)
+        .catch(console.error)
+        .finally(() => setNotesLoading(false));
+    }
+  }, [activeTab, offer?.id]);
 
   // Loading state
   if (loading) {
@@ -343,8 +356,14 @@ const MobileOfferDetailPage: React.FC<MobileOfferDetailPageProps> = ({
 
           {/* ── Tab: Notes ──────────────────────────────────────────────── */}
           <TabsContent value="notes" className="px-4 mt-4 space-y-3">
-            <AmbassadorAddNoteCard offerId={offer.id} onNoteAdded={() => {}} />
-            <AmbassadorOfferNotes notes={offerNotes} loading={false} />
+            <AmbassadorAddNoteCard
+              offerId={offer.id}
+              onNoteAdded={() => {
+                // Reload notes after adding
+                getOfferNotes(offer.id).then(setOfferNotes).catch(console.error);
+              }}
+            />
+            <AmbassadorOfferNotes notes={offerNotes} loading={notesLoading} />
           </TabsContent>
 
           {/* ── Tab: IA ─────────────────────────────────────────────────── */}
