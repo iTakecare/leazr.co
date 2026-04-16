@@ -1,13 +1,14 @@
 /**
  * ContractFeesSepaCard
  *
- * Permet de prélever par SEPA :
- *  • des frais de dossier (ponctuel, optionnel)
- *  • des frais d'assurance annuelle (abonnement Mollie 12 mois)
+ * Prélèvements SEPA pour :
+ *  • frais de dossier (ponctuel, optionnel)
+ *  • frais d'assurance annuelle (abonnement Mollie 12 mois)
  *
- * Visible sur TOUS les contrats (pas seulement self-leasing).
+ * Réutilise le mandat SEPA existant (self-leasing) si disponible,
+ * sinon propose la saisie d'un IBAN dédié.
  */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   createMollieCustomer,
@@ -40,6 +41,7 @@ import {
   Building2,
   KeyRound,
   Calendar,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -50,15 +52,21 @@ interface ContractFeesSepaCardProps {
     id: string;
     client_name: string;
     client_email?: string | null;
-    // fee-related columns
+    // Mandat self-leasing existant (réutilisable)
+    mollie_customer_id?: string | null;
+    mollie_mandate_id?: string | null;
+    mollie_mandate_status?: string | null;
+    // Mandat dédié aux frais (peut être identique)
     fees_customer_id?: string | null;
     fees_mandate_id?: string | null;
     fees_iban?: string | null;
     fees_bic?: string | null;
+    // Frais de dossier
     dossier_fee_amount?: number | null;
     dossier_fee_status?: string | null;
     dossier_fee_mollie_id?: string | null;
     dossier_fee_paid_at?: string | null;
+    // Assurance annuelle
     insurance_fee_amount?: number | null;
     insurance_fee_active?: boolean | null;
     insurance_fee_mollie_id?: string | null;
@@ -99,13 +107,44 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
   companyId,
   onSuccess,
 }) => {
-  // IBAN setup state
+  // ── Détecter le mandat réutilisable ──────────────────────────────────────
+  // Le mandat self-leasing est valide et peut être réutilisé pour les frais
+  const existingMandateValid =
+    !!contract.mollie_customer_id &&
+    !!contract.mollie_mandate_id &&
+    (contract.mollie_mandate_status === "valid" ||
+      contract.mollie_mandate_status === "pending");
+
+  // Le mandat dédié aux frais est configuré
+  const feesMandate = !!contract.fees_customer_id && !!contract.fees_mandate_id;
+
+  // Le mandat effectif = dédié OR self-leasing existant
+  const hasActiveMandateForFees = feesMandate || existingMandateValid;
+
+  // Si on utilise le mandat self-leasing, récupérer les bons IDs
+  const effectiveCustomerId =
+    contract.fees_customer_id || contract.mollie_customer_id || null;
+  const effectiveMandateId =
+    contract.fees_mandate_id || contract.mollie_mandate_id || null;
+
+  // Auto-synchroniser les IDs fees depuis le mandat self-leasing si pas encore fait
+  useEffect(() => {
+    if (existingMandateValid && !feesMandate) {
+      // Marquer silencieusement que le mandat self-leasing est utilisé pour les frais
+      updateContract(contract.id, {
+        fees_customer_id: contract.mollie_customer_id,
+        fees_mandate_id: contract.mollie_mandate_id,
+      }).catch(console.error);
+    }
+  }, [existingMandateValid, feesMandate, contract.id]);
+
+  // IBAN setup (seulement si pas de mandat du tout)
   const [showIbanDialog, setShowIbanDialog] = useState(false);
   const [ibanInput, setIbanInput] = useState(contract.fees_iban || "");
   const [bicInput, setBicInput] = useState(contract.fees_bic || "");
   const [ibanLoading, setIbanLoading] = useState(false);
 
-  // Frais de dossier state
+  // Frais de dossier
   const [dossierEnabled, setDossierEnabled] = useState(
     !!contract.dossier_fee_amount && contract.dossier_fee_amount > 0
   );
@@ -114,7 +153,7 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
   );
   const [dossierLoading, setDossierLoading] = useState(false);
 
-  // Frais d'assurance state
+  // Assurance annuelle
   const [insuranceEnabled, setInsuranceEnabled] = useState(
     !!contract.insurance_fee_amount && contract.insurance_fee_amount > 0
   );
@@ -127,11 +166,10 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
   );
   const [insuranceLoading, setInsuranceLoading] = useState(false);
 
-  const hasMandateConfigure = !!contract.fees_customer_id && !!contract.fees_mandate_id;
   const dossierIsPaid = contract.dossier_fee_status === "paid";
   const insuranceIsActive = contract.insurance_fee_active;
 
-  // ── Step 1: Setup IBAN / mandate ──────────────────────────────────────────
+  // ── Setup IBAN dédié (contrats non self-leasing) ─────────────────────────
   const handleSetupIban = useCallback(async () => {
     const rawIban = ibanInput.replace(/\s/g, "").toUpperCase();
     if (rawIban.length < 15) {
@@ -140,7 +178,6 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
     }
     setIbanLoading(true);
     try {
-      // Create Mollie customer
       const custResult = await createMollieCustomer({
         name: contract.client_name,
         email: contract.client_email || "",
@@ -152,7 +189,6 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
       }
       const customerId = (custResult.data as any).id as string;
 
-      // Create direct mandate
       const mandateResult = await createDirectMollieMandate({
         customer_id: customerId,
         consumer_name: contract.client_name,
@@ -166,7 +202,6 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
       }
       const mandateId = (mandateResult.data as any).id as string;
 
-      // Save to contract
       await updateContract(contract.id, {
         fees_customer_id: customerId,
         fees_mandate_id: mandateId,
@@ -184,42 +219,31 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
     }
   }, [ibanInput, bicInput, contract, companyId, onSuccess]);
 
-  // ── Step 2a: Trigger dossier fee ──────────────────────────────────────────
+  // ── Prélèvement frais de dossier ─────────────────────────────────────────
   const handleTriggerDossierFee = useCallback(async () => {
     const amount = parseFloat(dossierAmount);
-    if (!amount || amount <= 0) {
-      toast.error("Montant invalide");
-      return;
-    }
-    if (!hasMandateConfigure) {
-      toast.error("Configurez d'abord le mandat SEPA");
-      return;
-    }
+    if (!amount || amount <= 0) { toast.error("Montant invalide"); return; }
+    if (!effectiveCustomerId) { toast.error("Aucun mandat SEPA disponible"); return; }
+
     setDossierLoading(true);
     try {
-      // Save amount first
       await updateContract(contract.id, {
         dossier_fee_amount: amount,
         dossier_fee_status: "pending",
       });
 
-      // Create one-time payment
       const result = await createMolliePaymentDirect({
-        customer_id: contract.fees_customer_id!,
+        customer_id: effectiveCustomerId,
         amount,
         description: `Frais de dossier — Contrat ${contract.id.slice(0, 8)}`,
         contract_id: contract.id,
         company_id: companyId,
       });
 
-      if (!result?.success) {
-        throw new Error(result?.error || "Échec du prélèvement");
-      }
-
-      const paymentId = result?.data?.id;
+      if (!result?.success) throw new Error(result?.error || "Échec du prélèvement");
 
       await updateContract(contract.id, {
-        dossier_fee_mollie_id: paymentId || null,
+        dossier_fee_mollie_id: result?.data?.id || null,
         dossier_fee_status: "paid",
         dossier_fee_paid_at: new Date().toISOString(),
       });
@@ -232,28 +256,20 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
     } finally {
       setDossierLoading(false);
     }
-  }, [dossierAmount, hasMandateConfigure, contract, companyId, onSuccess]);
+  }, [dossierAmount, effectiveCustomerId, contract, companyId, onSuccess]);
 
-  // ── Step 2b: Activate annual insurance ────────────────────────────────────
+  // ── Activation assurance annuelle ────────────────────────────────────────
   const handleActivateInsurance = useCallback(async () => {
     const amount = parseFloat(insuranceAmount);
-    if (!amount || amount <= 0) {
-      toast.error("Montant invalide");
-      return;
-    }
-    if (!hasMandateConfigure) {
-      toast.error("Configurez d'abord le mandat SEPA");
-      return;
-    }
+    if (!amount || amount <= 0) { toast.error("Montant invalide"); return; }
+    if (!effectiveCustomerId) { toast.error("Aucun mandat SEPA disponible"); return; }
+
     setInsuranceLoading(true);
     try {
-      await updateContract(contract.id, {
-        insurance_fee_amount: amount,
-        insurance_fee_active: false,
-      });
+      await updateContract(contract.id, { insurance_fee_amount: amount, insurance_fee_active: false });
 
       const subResult = await createMollieSubscription({
-        customer_id: contract.fees_customer_id!,
+        customer_id: effectiveCustomerId,
         amount,
         interval: "12 months",
         start_date: insuranceStartDate,
@@ -282,9 +298,9 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
     } finally {
       setInsuranceLoading(false);
     }
-  }, [insuranceAmount, insuranceStartDate, hasMandateConfigure, contract, companyId, onSuccess]);
+  }, [insuranceAmount, insuranceStartDate, effectiveCustomerId, contract, companyId, onSuccess]);
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <Card className="border-border">
@@ -300,17 +316,17 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
 
         <CardContent className="space-y-5">
 
-          {/* ── Mandat SEPA ─────────────────────────────────────────── */}
+          {/* ── Statut du mandat ──────────────────────────────────────── */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <KeyRound className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Mandat SEPA</span>
               </div>
-              {hasMandateConfigure ? (
+              {hasActiveMandateForFees ? (
                 <Badge className="bg-emerald-100 text-emerald-700 text-[11px]">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Configuré
+                  Prêt
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-[11px] text-amber-600 border-amber-300">
@@ -320,22 +336,38 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
               )}
             </div>
 
-            {hasMandateConfigure ? (
+            {hasActiveMandateForFees ? (
               <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-mono text-muted-foreground">
-                    {contract.fees_iban ? maskIban(contract.fees_iban) : "IBAN configuré"}
-                  </span>
+                <div className="flex items-center gap-2 min-w-0">
+                  {existingMandateValid && !feesMandate ? (
+                    <>
+                      <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-muted-foreground truncate">
+                        Mandat self-leasing réutilisé
+                        <span className="ml-1 font-mono text-[10px] opacity-60">
+                          ({effectiveMandateId?.slice(0, 16)}…)
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {contract.fees_iban ? maskIban(contract.fees_iban) : "IBAN configuré"}
+                      </span>
+                    </>
+                  )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs text-muted-foreground px-2"
-                  onClick={() => setShowIbanDialog(true)}
-                >
-                  Modifier
-                </Button>
+                {!existingMandateValid && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs text-muted-foreground px-2 shrink-0"
+                    onClick={() => setShowIbanDialog(true)}
+                  >
+                    Modifier
+                  </Button>
+                )}
               </div>
             ) : (
               <Button
@@ -351,7 +383,7 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
 
           <Separator />
 
-          {/* ── Frais de dossier ────────────────────────────────────── */}
+          {/* ── Frais de dossier ──────────────────────────────────────── */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -368,55 +400,49 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
                 <Switch
                   checked={dossierEnabled}
                   onCheckedChange={setDossierEnabled}
-                  disabled={!hasMandateConfigure}
+                  disabled={!hasActiveMandateForFees}
                 />
               )}
             </div>
 
             {dossierIsPaid ? (
-              <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-emerald-700 font-medium">
-                    {contract.dossier_fee_amount}€ prélevés
+              <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 flex items-center justify-between">
+                <span className="text-xs text-emerald-700 font-medium">
+                  {contract.dossier_fee_amount}€ prélevés
+                </span>
+                {contract.dossier_fee_paid_at && (
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(contract.dossier_fee_paid_at), "dd MMM yyyy", { locale: fr })}
                   </span>
-                  {contract.dossier_fee_paid_at && (
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(contract.dossier_fee_paid_at), "dd MMM yyyy", { locale: fr })}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
-            ) : dossierEnabled && hasMandateConfigure ? (
+            ) : dossierEnabled && hasActiveMandateForFees ? (
               <div className="space-y-2 pl-1">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <Label className="text-xs text-muted-foreground mb-1 block">Montant (€)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      step="0.01"
-                      value={dossierAmount}
-                      onChange={(e) => setDossierAmount(e.target.value)}
-                      className="h-8 text-sm"
-                      placeholder="250"
-                    />
-                  </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1 block">Montant (€)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={dossierAmount}
+                    onChange={(e) => setDossierAmount(e.target.value)}
+                    className="h-8 text-sm"
+                    placeholder="250"
+                  />
                 </div>
                 <Button
                   size="sm"
-                  className="w-full h-9 text-xs bg-primary hover:bg-primary/90"
+                  className="w-full h-9 text-xs"
                   onClick={handleTriggerDossierFee}
                   disabled={dossierLoading}
                 >
-                  {dossierLoading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  ) : (
-                    <Euro className="h-3.5 w-3.5 mr-1.5" />
-                  )}
+                  {dossierLoading
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    : <Euro className="h-3.5 w-3.5 mr-1.5" />}
                   Prélever {dossierAmount ? `${dossierAmount}€` : ""} maintenant
                 </Button>
               </div>
-            ) : !hasMandateConfigure && dossierEnabled ? (
+            ) : !hasActiveMandateForFees && dossierEnabled ? (
               <Alert className="py-2 border-amber-200 bg-amber-50">
                 <Info className="h-3.5 w-3.5 text-amber-600" />
                 <AlertDescription className="text-xs text-amber-700 ml-1">
@@ -428,7 +454,7 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
 
           <Separator />
 
-          {/* ── Frais d'assurance annuelle ───────────────────────────── */}
+          {/* ── Assurance annuelle ────────────────────────────────────── */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -444,7 +470,7 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
                 <Switch
                   checked={insuranceEnabled}
                   onCheckedChange={setInsuranceEnabled}
-                  disabled={!hasMandateConfigure}
+                  disabled={!hasActiveMandateForFees}
                 />
               )}
             </div>
@@ -455,8 +481,8 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
                   <span className="text-xs font-medium text-blue-700">
                     {contract.insurance_fee_amount}€ / an
                   </span>
-                  <span className="text-[11px] text-blue-500">
-                    Mollie {contract.insurance_fee_mollie_id?.slice(0, 12)}
+                  <span className="text-[11px] text-blue-500 font-mono">
+                    {contract.insurance_fee_mollie_id?.slice(0, 16)}…
                   </span>
                 </div>
                 {contract.insurance_fee_next_date && (
@@ -467,7 +493,7 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
                   </div>
                 )}
               </div>
-            ) : insuranceEnabled && hasMandateConfigure ? (
+            ) : insuranceEnabled && hasActiveMandateForFees ? (
               <div className="space-y-2 pl-1">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -483,7 +509,7 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Début</Label>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Date de début</Label>
                     <Input
                       type="date"
                       value={insuranceStartDate}
@@ -494,7 +520,7 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
                 </div>
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Info className="h-3 w-3" />
-                  Prélèvement automatique tous les 12 mois
+                  Prélèvement automatique tous les 12 mois via le même mandat
                 </p>
                 <Button
                   size="sm"
@@ -502,15 +528,13 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
                   onClick={handleActivateInsurance}
                   disabled={insuranceLoading}
                 >
-                  {insuranceLoading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  ) : (
-                    <Shield className="h-3.5 w-3.5 mr-1.5" />
-                  )}
+                  {insuranceLoading
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    : <Shield className="h-3.5 w-3.5 mr-1.5" />}
                   Activer l'assurance annuelle
                 </Button>
               </div>
-            ) : !hasMandateConfigure && insuranceEnabled ? (
+            ) : !hasActiveMandateForFees && insuranceEnabled ? (
               <Alert className="py-2 border-amber-200 bg-amber-50">
                 <Info className="h-3.5 w-3.5 text-amber-600" />
                 <AlertDescription className="text-xs text-amber-700 ml-1">
@@ -523,13 +547,13 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
         </CardContent>
       </Card>
 
-      {/* ── Dialog: IBAN setup ──────────────────────────────────────────────── */}
+      {/* ── Dialog: saisie IBAN (contrats sans mandat existant) ──────────── */}
       <Dialog open={showIbanDialog} onOpenChange={setShowIbanDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-primary" />
-              {hasMandateConfigure ? "Modifier le mandat SEPA" : "Configurer le prélèvement SEPA"}
+              Configurer le prélèvement SEPA
             </DialogTitle>
           </DialogHeader>
 
@@ -538,8 +562,8 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
               <Info className="h-3.5 w-3.5 text-blue-600" />
               <AlertDescription className="text-xs text-blue-700 ml-1">
                 Un mandat SEPA sera créé au nom de{" "}
-                <strong>{contract.client_name}</strong> via Mollie. Le client accepte
-                les prélèvements futurs selon les montants configurés.
+                <strong>{contract.client_name}</strong> via Mollie. Utilisé
+                uniquement pour les frais de dossier et l'assurance.
               </AlertDescription>
             </Alert>
 
@@ -558,7 +582,6 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
                   maxLength={34}
                 />
               </div>
-
               <div>
                 <Label className="text-sm font-medium">BIC/SWIFT (optionnel)</Label>
                 <Input
@@ -573,30 +596,13 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowIbanDialog(false)}
-              disabled={ibanLoading}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowIbanDialog(false)} disabled={ibanLoading}>
               Annuler
             </Button>
-            <Button
-              size="sm"
-              onClick={handleSetupIban}
-              disabled={ibanLoading || ibanInput.length < 15}
-            >
-              {ibanLoading ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  Configuration...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                  Créer le mandat SEPA
-                </>
-              )}
+            <Button size="sm" onClick={handleSetupIban} disabled={ibanLoading || ibanInput.length < 15}>
+              {ibanLoading
+                ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Configuration...</>
+                : <><CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />Créer le mandat SEPA</>}
             </Button>
           </DialogFooter>
         </DialogContent>
