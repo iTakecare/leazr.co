@@ -17,6 +17,7 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import EditableBillingDataTable from "@/components/invoices/EditableBillingDataTable";
 import { CreateCreditNoteDialog } from "@/components/invoicing/CreateCreditNoteDialog";
+import LeaserDocumentSendCard from "@/components/invoicing/LeaserDocumentSendCard";
 
 const InvoiceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -736,6 +737,14 @@ const InvoiceDetailPage = () => {
               </AlertDialog>
             </CardContent>
           </Card>
+
+          {/* Carte envoi bailleur — visible uniquement pour factures ITC-YYYY-NNNN */}
+          <LeaserDocumentSendCard
+            invoice={invoice}
+            onUpdate={(updatedBillingData) => {
+              setInvoice({ ...invoice, billing_data: updatedBillingData });
+            }}
+          />
 
           {/* Chronologie */}
           <Card>

@@ -1,0 +1,249 @@
+/**
+ * send-leaser-documents
+ *
+ * Envoie au bailleur (liseur) un email avec :
+ *  • les documents contractuels sélectionnés (téléchargés depuis offer-documents)
+ *  • des pièces jointes supplémentaires passées en base64
+ *  • toutes les références du dossier (facture, contrat, demande, client)
+ */
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@2.0.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function ok(data: unknown) {
+  return new Response(JSON.stringify(data), {
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
+}
+function fail(msg: string, status = 400) {
+  return new Response(JSON.stringify({ success: false, error: msg }), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
+}
+
+/** ArrayBuffer → base64 (Deno-safe, no stack overflow for large files) */
+function bufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+/** Format euro amount */
+function fmtAmount(n: number) {
+  return new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(n);
+}
+
+// ── main handler ──────────────────────────────────────────────────────────────
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    // ── Auth ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return fail("Non authentifié", 401);
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) return fail("Non authentifié", 401);
+
+    const admin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // ── Parse body ──
+    const {
+      invoice_id,
+      leaser_email,
+      leaser_name,
+      document_ids = [],        // IDs from offer_documents table
+      additional_files = [],    // [{ name, content (base64), type }]
+      invoice_info = {},        // { invoice_number, contract_number, dossier_number, leaser_request_number, client_name, amount }
+      custom_message = "",
+    } = await req.json();
+
+    if (!leaser_email) return fail("Email du bailleur requis");
+    if (document_ids.length === 0 && additional_files.length === 0)
+      return fail("Aucun document sélectionné");
+
+    // ── Download offer documents from storage ──
+    const attachments: Array<{ filename: string; content: string }> = [];
+
+    if (document_ids.length > 0) {
+      const { data: docs, error: docsErr } = await admin
+        .from("offer_documents")
+        .select("id, file_name, file_path, document_type")
+        .in("id", document_ids);
+
+      if (docsErr) console.error("Erreur récupération documents:", docsErr);
+
+      for (const doc of docs ?? []) {
+        try {
+          const { data: blob, error: dlErr } = await admin.storage
+            .from("offer-documents")
+            .download(doc.file_path);
+
+          if (dlErr || !blob) {
+            console.error(`Impossible de télécharger ${doc.file_path}:`, dlErr);
+            continue;
+          }
+
+          const buffer = await blob.arrayBuffer();
+          attachments.push({ filename: doc.file_name, content: bufferToBase64(buffer) });
+          console.log(`✅ Document joint: ${doc.file_name} (${buffer.byteLength} bytes)`);
+        } catch (e) {
+          console.error(`Erreur pour document ${doc.id}:`, e);
+        }
+      }
+    }
+
+    // ── Add additional files (already base64 from browser) ──
+    for (const f of additional_files) {
+      if (f.content && f.name) {
+        attachments.push({ filename: f.name, content: f.content });
+      }
+    }
+
+    // ── Build HTML email ──
+    const rows = [
+      ["N° de facture", invoice_info.invoice_number],
+      ["N° de contrat", invoice_info.contract_number],
+      ["N° de demande", invoice_info.dossier_number],
+      ["Réf. bailleur", invoice_info.leaser_request_number],
+      ["Client", invoice_info.client_name],
+      ["Montant facturé", invoice_info.amount ? fmtAmount(invoice_info.amount) : null],
+    ]
+      .filter(([, v]) => v)
+      .map(([k, v]) => `<tr><td class="lbl">${k}</td><td class="val">${v}</td></tr>`)
+      .join("");
+
+    const docsListHtml =
+      attachments.length > 0
+        ? `<div class="docs-box">
+           <div class="docs-title">📎 Pièces jointes (${attachments.length})</div>
+           <ul>${attachments.map((a) => `<li>${a.filename}</li>`).join("")}</ul>
+         </div>`
+        : "";
+
+    const msgHtml = custom_message
+      ? `<div class="note">${custom_message.replace(/\n/g, "<br>")}</div>`
+      : "";
+
+    const html = `<!DOCTYPE html><html lang="fr">
+<head><meta charset="UTF-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1e293b;background:#f1f5f9}
+.wrap{max-width:620px;margin:32px auto;background:white;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.hd{background:#1e293b;color:white;padding:22px 28px}
+.hd h2{font-size:17px;font-weight:600;letter-spacing:.3px}
+.hd p{font-size:12px;color:#94a3b8;margin-top:4px}
+.bd{padding:24px 28px}
+p{margin:10px 0;line-height:1.6}
+table.info{width:100%;border-collapse:collapse;margin:18px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+table.info tr:not(:last-child) td{border-bottom:1px solid #e2e8f0}
+table.info td{padding:9px 14px;font-size:13px}
+.lbl{color:#64748b;width:44%}
+.val{font-weight:600;color:#1e293b}
+.docs-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:14px 18px;margin:16px 0}
+.docs-title{font-size:12px;font-weight:600;color:#475569;margin-bottom:8px}
+.docs-box ul{padding-left:18px;font-size:13px;color:#334155;line-height:1.7}
+.note{background:#eff6ff;border-left:3px solid #3b82f6;border-radius:4px;padding:12px 16px;font-size:13px;color:#1e40af;margin:16px 0}
+.ft{text-align:center;font-size:11px;color:#94a3b8;padding:16px;border-top:1px solid #f1f5f9}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h2>📁 Documents contractuels</h2>
+    <p>Facture ${invoice_info.invoice_number ?? ""} — ${invoice_info.client_name ?? ""}</p>
+  </div>
+  <div class="bd">
+    <p>Bonjour${leaser_name ? ` <strong>${leaser_name}</strong>` : ""},</p>
+    <p>Veuillez trouver ci-joints les documents relatifs au dossier suivant :</p>
+    <table class="info"><tbody>${rows}</tbody></table>
+    ${docsListHtml}
+    ${msgHtml}
+    <p style="margin-top:20px">Pour toute question, répondez directement à cet email.</p>
+    <p>Cordialement,<br><strong>iTakecare</strong></p>
+  </div>
+  <div class="ft">Envoyé via Leazr · ${new Date().toLocaleDateString("fr-BE")}</div>
+</div>
+</body></html>`;
+
+    // ── Send via Resend ──
+    const resendKey = Deno.env.get("LEAZR_RESEND_API") || Deno.env.get("RESEND_API_KEY");
+    if (!resendKey) return fail("Clé Resend non configurée");
+
+    const resend = new Resend(resendKey);
+    const subject = [
+      "Documents contractuels",
+      invoice_info.invoice_number,
+      invoice_info.client_name,
+    ]
+      .filter(Boolean)
+      .join(" — ");
+
+    const { data: emailData, error: emailErr } = await resend.emails.send({
+      from: "iTakecare <notifications@leazr.co>",
+      to: [leaser_email],
+      subject,
+      html,
+      attachments: attachments.map((a) => ({ filename: a.filename, content: a.content })),
+    });
+
+    if (emailErr) {
+      console.error("Erreur Resend:", emailErr);
+      return fail(`Erreur envoi email: ${emailErr.message}`);
+    }
+
+    console.log(`✅ Email envoyé à ${leaser_email} (${attachments.length} pièces jointes)`);
+
+    // ── Persist sent_at in billing_data ──
+    if (invoice_id) {
+      const { data: inv } = await admin
+        .from("invoices")
+        .select("billing_data")
+        .eq("id", invoice_id)
+        .single();
+
+      if (inv) {
+        const existing = inv.billing_data ?? {};
+        await admin
+          .from("invoices")
+          .update({
+            billing_data: {
+              ...existing,
+              leaser_send: {
+                ...(existing.leaser_send ?? {}),
+                sent_at: new Date().toISOString(),
+                sent_to: leaser_email,
+                documents_count: attachments.length,
+                resend_id: emailData?.id ?? null,
+              },
+            },
+          })
+          .eq("id", invoice_id);
+      }
+    }
+
+    return ok({ success: true, sent: attachments.length, resend_id: emailData?.id });
+  } catch (e: any) {
+    console.error("Erreur send-leaser-documents:", e);
+    return fail(e.message ?? "Erreur interne", 500);
+  }
+});

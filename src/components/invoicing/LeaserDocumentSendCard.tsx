@@ -1,0 +1,611 @@
+/**
+ * LeaserDocumentSendCard
+ *
+ * Affiché sur la page de détail d'une facture dont le numéro correspond au
+ * format Billit "ITC-{année}-{numéro}" (ex. ITC-2026-000123).
+ *
+ * Permet d'envoyer au bailleur :
+ *  • les documents de la demande (carte d'identité, bilan, etc.)
+ *  • des pièces jointes supplémentaires (fichiers locaux)
+ *  • un email avec toutes les références contractuelles
+ *
+ * + deux confirmations manuelles :
+ *  ✅ Contrat signé chez le bailleur
+ *  ✅ Facture envoyée via Peppol
+ */
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Send,
+  FileText,
+  Paperclip,
+  X,
+  CheckCircle2,
+  Loader2,
+  Building2,
+  MailCheck,
+  FileBadge,
+  Info,
+  RefreshCw,
+} from "lucide-react";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { updateInvoiceBillingData, type Invoice } from "@/services/invoiceService";
+import { getOfferDocuments, DOCUMENT_TYPES, type OfferDocument } from "@/services/offers/offerDocuments";
+
+// ── pattern detection ─────────────────────────────────────────────────────────
+const ITC_PATTERN = /^ITC-\d{4}-\d+/;
+
+// ── file → base64 ─────────────────────────────────────────────────────────────
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+  });
+}
+
+// ── types ─────────────────────────────────────────────────────────────────────
+
+interface ContractSnapshot {
+  offer_id: string | null;
+  leaser_id: string | null;
+  leaser_name: string | null;
+  contract_number: string | null;
+}
+interface OfferSnapshot {
+  dossier_number: string | null;
+  leaser_request_number: string | null;
+  client_name: string | null;
+}
+
+interface LeaserDocumentSendCardProps {
+  invoice: Invoice;
+  onUpdate: (updatedBillingData: any) => void;
+}
+
+// ── component ─────────────────────────────────────────────────────────────────
+
+const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
+  invoice,
+  onUpdate,
+}) => {
+  // Only show for ITC format invoices
+  if (!invoice.invoice_number || !ITC_PATTERN.test(invoice.invoice_number)) return null;
+
+  // ── data loading ──────────────────────────────────────────────────────────
+  const [contractData, setContractData] = useState<ContractSnapshot | null>(null);
+  const [offerData, setOfferData] = useState<OfferSnapshot | null>(null);
+  const [offerDocs, setOfferDocs] = useState<OfferDocument[]>([]);
+  const [leaserEmail, setLeaserEmail] = useState("");
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // ── selection state ───────────────────────────────────────────────────────
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
+  const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
+  const [customMessage, setCustomMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── leaser_send data (persisted in billing_data) ──────────────────────────
+  const leaserSend = invoice.billing_data?.leaser_send as Record<string, any> | undefined;
+
+  // ── confirmation toggles ──────────────────────────────────────────────────
+  const [peppolSent, setPeppolSent] = useState<boolean>(leaserSend?.peppol_sent ?? false);
+  const [contractSigned, setContractSigned] = useState<boolean>(
+    leaserSend?.leaser_contract_signed ?? false
+  );
+  const [togglingPeppol, setTogglingPeppol] = useState(false);
+  const [togglingSign, setTogglingSign] = useState(false);
+
+  // ── load contract + offer + leaser ───────────────────────────────────────
+  useEffect(() => {
+    if (!invoice.contract_id) {
+      setDataLoading(false);
+      return;
+    }
+
+    const load = async () => {
+      setDataLoading(true);
+      try {
+        // Contract
+        const { data: contract } = await supabase
+          .from("contracts")
+          .select("offer_id, leaser_id, leaser_name, contract_number")
+          .eq("id", invoice.contract_id!)
+          .single();
+
+        if (!contract) { setDataLoading(false); return; }
+        setContractData(contract as ContractSnapshot);
+
+        // Leaser email
+        if (contract.leaser_id) {
+          const { data: leaser } = await supabase
+            .from("leasers")
+            .select("email")
+            .eq("id", contract.leaser_id)
+            .single();
+          if (leaser?.email) setLeaserEmail(leaser.email);
+        }
+
+        // Offer
+        if (contract.offer_id) {
+          const { data: offer } = await supabase
+            .from("offers")
+            .select("dossier_number, leaser_request_number, client_name")
+            .eq("id", contract.offer_id)
+            .single();
+          if (offer) setOfferData(offer as OfferSnapshot);
+
+          // Offer documents
+          const docs = await getOfferDocuments(contract.offer_id);
+          const approved = docs.filter((d) => d.status === "approved" || d.status === "pending");
+          setOfferDocs(approved);
+          // Pre-select all by default
+          setSelectedDocIds(new Set(approved.map((d) => d.id)));
+        }
+      } catch (e) {
+        console.error("Erreur chargement données bailleur:", e);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    load();
+  }, [invoice.contract_id]);
+
+  // Sync toggles when billing_data changes externally
+  useEffect(() => {
+    const ls = invoice.billing_data?.leaser_send;
+    if (ls) {
+      setPeppolSent(ls.peppol_sent ?? false);
+      setContractSigned(ls.leaser_contract_signed ?? false);
+    }
+  }, [invoice.billing_data?.leaser_send]);
+
+  // ── persist a leaser_send field ───────────────────────────────────────────
+  const patchLeaserSend = useCallback(
+    async (patch: Record<string, unknown>) => {
+      const updated = {
+        ...(invoice.billing_data ?? {}),
+        leaser_send: {
+          ...(invoice.billing_data?.leaser_send ?? {}),
+          ...patch,
+        },
+      };
+      await updateInvoiceBillingData(invoice.id, updated);
+      onUpdate(updated);
+    },
+    [invoice.billing_data, invoice.id, onUpdate]
+  );
+
+  // ── toggles ───────────────────────────────────────────────────────────────
+  const handlePeppolToggle = async (val: boolean) => {
+    setTogglingPeppol(true);
+    try {
+      await patchLeaserSend({
+        peppol_sent: val,
+        peppol_sent_at: val ? new Date().toISOString() : null,
+      });
+      setPeppolSent(val);
+      toast.success(val ? "Facture Peppol confirmée" : "Statut Peppol retiré");
+    } catch {
+      toast.error("Erreur mise à jour");
+    } finally {
+      setTogglingPeppol(false);
+    }
+  };
+
+  const handleSignedToggle = async (val: boolean) => {
+    setTogglingSign(true);
+    try {
+      await patchLeaserSend({
+        leaser_contract_signed: val,
+        leaser_contract_signed_at: val ? new Date().toISOString() : null,
+      });
+      setContractSigned(val);
+      toast.success(val ? "Signature bailleur confirmée" : "Statut signature retiré");
+    } catch {
+      toast.error("Erreur mise à jour");
+    } finally {
+      setTogglingSign(false);
+    }
+  };
+
+  // ── file handling ─────────────────────────────────────────────────────────
+  const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    setAdditionalFiles((prev) => {
+      const existing = new Set(prev.map((f) => f.name));
+      return [...prev, ...files.filter((f) => !existing.has(f.name))];
+    });
+    e.target.value = "";
+  };
+
+  const removeFile = (name: string) =>
+    setAdditionalFiles((prev) => prev.filter((f) => f.name !== name));
+
+  const toggleDoc = (id: string) =>
+    setSelectedDocIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  // ── send ──────────────────────────────────────────────────────────────────
+  const handleSend = async () => {
+    if (!leaserEmail.trim()) { toast.error("Email du bailleur requis"); return; }
+    if (selectedDocIds.size === 0 && additionalFiles.length === 0) {
+      toast.error("Sélectionnez au moins un document"); return;
+    }
+
+    setSending(true);
+    try {
+      // Convert additional files to base64
+      const additionalB64 = await Promise.all(
+        additionalFiles.map(async (f) => ({
+          name: f.name,
+          content: await fileToBase64(f),
+          type: f.type,
+        }))
+      );
+
+      const { data, error } = await supabase.functions.invoke("send-leaser-documents", {
+        body: {
+          invoice_id: invoice.id,
+          leaser_email: leaserEmail.trim(),
+          leaser_name: contractData?.leaser_name ?? "",
+          document_ids: Array.from(selectedDocIds),
+          additional_files: additionalB64,
+          invoice_info: {
+            invoice_number: invoice.invoice_number,
+            contract_number: contractData?.contract_number ?? "",
+            dossier_number: offerData?.dossier_number ?? "",
+            leaser_request_number: offerData?.leaser_request_number ?? "",
+            client_name:
+              offerData?.client_name ?? invoice.billing_data?.client_data?.name ?? "",
+            amount: invoice.amount,
+          },
+          custom_message: customMessage.trim() || undefined,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error ?? "Erreur inconnue");
+
+      toast.success(`Documents envoyés au bailleur (${data.sent} pièce${data.sent > 1 ? "s" : ""})`);
+      // billing_data is updated server-side; also patch client-side
+      const patchedBilling = {
+        ...(invoice.billing_data ?? {}),
+        leaser_send: {
+          ...(invoice.billing_data?.leaser_send ?? {}),
+          sent_at: new Date().toISOString(),
+          sent_to: leaserEmail.trim(),
+          documents_count: data.sent,
+        },
+      };
+      onUpdate(patchedBilling);
+      setAdditionalFiles([]);
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur lors de l'envoi");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // ── render ─────────────────────────────────────────────────────────────────
+  return (
+    <Card className="border-indigo-200 bg-indigo-50/30">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-indigo-600" />
+          Envoi bailleur
+          <Badge
+            variant="outline"
+            className="ml-1 font-mono text-[11px] border-indigo-300 text-indigo-700"
+          >
+            {invoice.invoice_number}
+          </Badge>
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Envoyez les documents contractuels au bailleur par email
+        </p>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Sent indicator */}
+        {leaserSend?.sent_at && (
+          <Alert className="py-2 border-emerald-200 bg-emerald-50">
+            <MailCheck className="h-3.5 w-3.5 text-emerald-600" />
+            <AlertDescription className="text-xs text-emerald-800 ml-1">
+              Dernière envoi le{" "}
+              <strong>
+                {format(new Date(leaserSend.sent_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+              </strong>
+              {leaserSend.sent_to && ` → ${leaserSend.sent_to}`}
+              {leaserSend.documents_count != null &&
+                ` (${leaserSend.documents_count} document${leaserSend.documents_count > 1 ? "s" : ""})`}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {dataLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            {/* ── Documents de la demande ─────────────────────────────── */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5 text-indigo-600" />
+                  Documents de la demande
+                </Label>
+                {offerDocs.length > 0 && (
+                  <button
+                    className="text-[11px] text-indigo-600 hover:underline"
+                    onClick={() =>
+                      selectedDocIds.size === offerDocs.length
+                        ? setSelectedDocIds(new Set())
+                        : setSelectedDocIds(new Set(offerDocs.map((d) => d.id)))
+                    }
+                  >
+                    {selectedDocIds.size === offerDocs.length
+                      ? "Tout désélectionner"
+                      : "Tout sélectionner"}
+                  </button>
+                )}
+              </div>
+
+              {offerDocs.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic px-2 py-1">
+                  {invoice.contract_id
+                    ? "Aucun document approuvé trouvé pour cette demande."
+                    : "Facture non liée à un contrat — documents indisponibles."}
+                </p>
+              ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {offerDocs.map((doc) => (
+                    <label
+                      key={doc.id}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer transition-colors text-xs ${
+                        selectedDocIds.has(doc.id)
+                          ? "bg-indigo-100/80 border border-indigo-200"
+                          : "bg-white border border-transparent hover:border-slate-200"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={selectedDocIds.has(doc.id)}
+                        onCheckedChange={() => toggleDoc(doc.id)}
+                        className="h-3.5 w-3.5"
+                      />
+                      <span className="truncate flex-1">
+                        {DOCUMENT_TYPES[doc.document_type] ?? doc.document_type}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                        {(doc.file_size / 1024).toFixed(0)} KB
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Pièces jointes supplémentaires ─────────────────────── */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Paperclip className="h-3.5 w-3.5 text-indigo-600" />
+                  Pièces jointes supplémentaires
+                </Label>
+                <button
+                  className="text-[11px] text-indigo-600 hover:underline flex items-center gap-0.5"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  + Ajouter
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx"
+                onChange={handleFileAdd}
+              />
+
+              {additionalFiles.length === 0 ? (
+                <div
+                  className="border-2 border-dashed border-slate-200 rounded-lg py-3 px-4 text-center cursor-pointer hover:border-indigo-300 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <p className="text-xs text-muted-foreground">
+                    Cliquez pour ajouter des fichiers (PDF, images, Word, Excel)
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {additionalFiles.map((f) => (
+                    <div
+                      key={f.name}
+                      className="flex items-center justify-between px-2.5 py-1.5 bg-white border rounded-md text-xs"
+                    >
+                      <span className="truncate flex-1 text-foreground">{f.name}</span>
+                      <span className="text-muted-foreground mx-2 shrink-0">
+                        {(f.size / 1024).toFixed(0)} KB
+                      </span>
+                      <button onClick={() => removeFile(f.name)}>
+                        <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    className="text-[11px] text-indigo-600 hover:underline mt-1 flex items-center gap-0.5"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    + Ajouter d'autres fichiers
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* ── Email du bailleur ───────────────────────────────────── */}
+            <div>
+              <Label className="text-xs font-semibold mb-1 block flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-indigo-600" />
+                Email du bailleur
+              </Label>
+              <Input
+                type="email"
+                value={leaserEmail}
+                onChange={(e) => setLeaserEmail(e.target.value)}
+                placeholder="bailleur@exemple.com"
+                className="h-8 text-sm"
+              />
+              {!leaserEmail && (
+                <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                  <Info className="h-3 w-3" />
+                  Aucun email configuré pour ce bailleur — saisissez-le manuellement
+                </p>
+              )}
+            </div>
+
+            {/* ── Message personnalisé ────────────────────────────────── */}
+            <div>
+              <Label className="text-xs font-semibold mb-1 block text-muted-foreground">
+                Message personnalisé (optionnel)
+              </Label>
+              <Textarea
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Ex : Veuillez trouver les documents pour le dossier Grenke n°..."
+                className="text-sm resize-none h-16"
+              />
+            </div>
+
+            {/* ── Récap références ────────────────────────────────────── */}
+            <div className="bg-white border rounded-lg px-3 py-2 space-y-1">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                Références incluses dans l'email
+              </p>
+              {[
+                ["Facture", invoice.invoice_number],
+                ["Contrat", contractData?.contract_number],
+                ["Demande", offerData?.dossier_number],
+                ["Réf. bailleur", offerData?.leaser_request_number],
+                [
+                  "Client",
+                  offerData?.client_name ?? invoice.billing_data?.client_data?.name,
+                ],
+              ]
+                .filter(([, v]) => v)
+                .map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{k}</span>
+                    <span className="font-mono font-medium">{v}</span>
+                  </div>
+                ))}
+            </div>
+
+            {/* ── Send button ─────────────────────────────────────────── */}
+            <Button
+              className="w-full h-9 text-sm bg-indigo-600 hover:bg-indigo-700 text-white"
+              onClick={handleSend}
+              disabled={
+                sending ||
+                !leaserEmail.trim() ||
+                (selectedDocIds.size === 0 && additionalFiles.length === 0)
+              }
+            >
+              {sending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : leaserSend?.sent_at ? (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              {leaserSend?.sent_at ? "Renvoyer les documents" : "Envoyer au bailleur"}
+            </Button>
+          </>
+        )}
+
+        {/* ── Confirmations ──────────────────────────────────────────── */}
+        <Separator />
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Confirmations
+          </p>
+
+          {/* Contrat signé */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileBadge
+                className={`h-4 w-4 ${contractSigned ? "text-emerald-600" : "text-muted-foreground"}`}
+              />
+              <div>
+                <p className="text-sm font-medium">Contrat signé chez le bailleur</p>
+                {leaserSend?.leaser_contract_signed_at && contractSigned && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {format(
+                      new Date(leaserSend.leaser_contract_signed_at),
+                      "dd MMM yyyy",
+                      { locale: fr }
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Switch
+              checked={contractSigned}
+              onCheckedChange={handleSignedToggle}
+              disabled={togglingSign}
+              className="data-[state=checked]:bg-emerald-600"
+            />
+          </div>
+
+          {/* Peppol */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle2
+                className={`h-4 w-4 ${peppolSent ? "text-blue-600" : "text-muted-foreground"}`}
+              />
+              <div>
+                <p className="text-sm font-medium">Facture envoyée via Peppol</p>
+                {leaserSend?.peppol_sent_at && peppolSent && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {format(
+                      new Date(leaserSend.peppol_sent_at),
+                      "dd MMM yyyy",
+                      { locale: fr }
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Switch
+              checked={peppolSent}
+              onCheckedChange={handlePeppolToggle}
+              disabled={togglingPeppol}
+              className="data-[state=checked]:bg-blue-600"
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default LeaserDocumentSendCard;
