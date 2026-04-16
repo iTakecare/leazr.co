@@ -16,6 +16,7 @@ import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingC
 import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
 import ContractTerminationToggle from "@/components/contracts/ContractTerminationToggle";
 import MollieSepaCard from "@/components/contracts/MollieSepaCard";
+import ContractFeesSepaCard from "@/components/contracts/ContractFeesSepaCard";
 import ContractBreakevenCard from "@/components/contracts/ContractBreakevenCard";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
@@ -209,8 +210,33 @@ const ContractDetail = () => {
                 />
               )}
 
+              {/* Prélèvements SEPA — frais de dossier & assurance (tous contrats) */}
+              {companyId && (
+                <ContractFeesSepaCard
+                  contract={{
+                    id: contract.id,
+                    client_name: contract.client_name,
+                    client_email: contract.client_email,
+                    fees_customer_id: (contract as any).fees_customer_id,
+                    fees_mandate_id: (contract as any).fees_mandate_id,
+                    fees_iban: (contract as any).fees_iban,
+                    fees_bic: (contract as any).fees_bic,
+                    dossier_fee_amount: (contract as any).dossier_fee_amount,
+                    dossier_fee_status: (contract as any).dossier_fee_status,
+                    dossier_fee_mollie_id: (contract as any).dossier_fee_mollie_id,
+                    dossier_fee_paid_at: (contract as any).dossier_fee_paid_at,
+                    insurance_fee_amount: (contract as any).insurance_fee_amount,
+                    insurance_fee_active: (contract as any).insurance_fee_active,
+                    insurance_fee_mollie_id: (contract as any).insurance_fee_mollie_id,
+                    insurance_fee_next_date: (contract as any).insurance_fee_next_date,
+                  }}
+                  companyId={companyId}
+                  onSuccess={() => refetch()}
+                />
+              )}
+
               {/* Toggle de terminaison - visible pour contrats actifs/prolongés */}
-              <ContractTerminationToggle 
+              <ContractTerminationToggle
                 contract={contract}
                 onUpdate={refetch}
               />
