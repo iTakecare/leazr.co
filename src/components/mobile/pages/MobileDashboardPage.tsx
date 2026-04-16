@@ -1,17 +1,19 @@
-import React, { useState } from "react";
-import { 
-  BarChart3, 
-  DollarSign, 
-  Users, 
-  ShoppingCart, 
-  TrendingUp, 
-  Target, 
-  FileCheck, 
-  Clock, 
-  XCircle, 
+import React, { useState, useEffect } from "react";
+import {
+  BarChart3,
+  DollarSign,
+  Users,
+  ShoppingCart,
+  TrendingUp,
+  Target,
+  FileCheck,
+  Clock,
+  XCircle,
   Sparkles,
   RefreshCw,
-  ChevronRight
+  ChevronRight,
+  Phone,
+  AlertTriangle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import MobileLayout from "../MobileLayout";
@@ -26,6 +28,9 @@ import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useCompanyDashboard } from "@/hooks/useCompanyDashboard";
 import { formatCurrency } from "@/utils/formatters";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { getDashboardCallbacks, DashboardCallback } from "@/services/callLogService";
+import { Link } from "react-router-dom";
 
 // KPI Card for mobile
 interface MobileKPICardProps {
@@ -145,14 +150,30 @@ const MobileDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>(
     preferences?.default_dashboard || 'financial'
   );
-  
-  const { 
-    metrics, 
-    isLoading, 
-    refetch 
+  const { companyId } = useMultiTenant();
+  const [callbacks, setCallbacks] = useState<DashboardCallback[]>([]);
+
+  const {
+    metrics,
+    isLoading,
+    refetch
   } = useCompanyDashboard(selectedYear);
-  
-  const { navigateToAdmin } = useRoleNavigation();
+
+  const { navigateToAdmin, companySlug } = useRoleNavigation();
+
+  // Load callbacks for today / overdue
+  useEffect(() => {
+    if (companyId) {
+      getDashboardCallbacks(companyId, 7).then(setCallbacks);
+    }
+  }, [companyId]);
+
+  const today = new Date().toDateString();
+  const overdueCallbacks = callbacks.filter(c => {
+    const d = new Date(c.callback_date);
+    return d < new Date() && d.toDateString() !== today;
+  });
+  const todayCallbacks = callbacks.filter(c => new Date(c.callback_date).toDateString() === today);
 
   // Extract data from metrics
   const monthlyData = metrics?.monthly_data || [];
@@ -281,6 +302,47 @@ const MobileDashboardPage: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
+
+        {/* ── Rappels du jour ───────────────────────────────────────── */}
+        {(overdueCallbacks.length > 0 || todayCallbacks.length > 0) && (
+          <Card className={cn(
+            "border",
+            overdueCallbacks.length > 0 ? "border-red-200 bg-red-50/60" : "border-sky-200 bg-sky-50/60"
+          )}>
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-2">
+                {overdueCallbacks.length > 0
+                  ? <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                  : <Phone className="h-4 w-4 text-sky-500 shrink-0" />}
+                <span className="text-sm font-semibold">
+                  {overdueCallbacks.length > 0
+                    ? `${overdueCallbacks.length} rappel(s) en retard`
+                    : `${todayCallbacks.length} rappel(s) aujourd'hui`}
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {[...overdueCallbacks, ...todayCallbacks].slice(0, 5).map(cb => (
+                  <Link
+                    key={cb.id}
+                    to={`/${companySlug}/admin/offers/${cb.offer_id}?tab=calls`}
+                    className="flex items-center justify-between py-1.5 px-2 bg-white/80 rounded-lg text-sm"
+                  >
+                    <span className="font-medium truncate flex-1">{cb.client_name}</span>
+                    <span className={cn(
+                      "text-xs ml-2 shrink-0",
+                      new Date(cb.callback_date) < new Date() ? "text-red-600 font-semibold" : "text-sky-600"
+                    )}>
+                      {new Date(cb.callback_date) < new Date() && new Date(cb.callback_date).toDateString() !== today
+                        ? "En retard"
+                        : "Aujourd'hui"}
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 text-slate-400 ml-1 shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabs for Financial/Commercial */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
