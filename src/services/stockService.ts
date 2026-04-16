@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type StockStatus = 'ordered' | 'in_stock' | 'assigned' | 'in_repair' | 'sold' | 'scrapped';
 export type StockCondition = 'new' | 'like_new' | 'good' | 'fair' | 'defective';
 export type RepairStatus = 'pending' | 'in_progress' | 'completed' | 'abandoned';
-export type MovementType = 'reception' | 'assign_contract' | 'unassign_contract' | 'swap_out' | 'swap_in' | 'repair_start' | 'repair_end' | 'scrap' | 'sell';
+export type MovementType = 'reception' | 'assign_contract' | 'unassign_contract' | 'swap_out' | 'swap_in' | 'repair_start' | 'repair_end' | 'scrap' | 'sell' | 'rachat_client';
 
 export interface StockItem {
   id: string;
@@ -313,7 +313,8 @@ export const recoverToStock = async (
   companyId: string,
   itemId: string,
   condition: StockCondition,
-  userId: string
+  userId: string,
+  contractId?: string | null
 ) => {
   await updateStockItem(itemId, {
     status: 'in_stock',
@@ -327,12 +328,18 @@ export const recoverToStock = async (
     movement_type: 'unassign_contract',
     from_status: 'assigned',
     to_status: 'in_stock',
+    contract_id: contractId || null,
     performed_by: userId,
     notes: `Récupération fin de contrat - condition: ${CONDITION_CONFIG[condition].label}`,
   });
 };
 
-export const sellItem = async (companyId: string, itemId: string, userId: string) => {
+export const sellItem = async (
+  companyId: string,
+  itemId: string,
+  userId: string,
+  contractId?: string | null
+) => {
   await updateStockItem(itemId, {
     status: 'sold',
     current_contract_id: null,
@@ -344,12 +351,42 @@ export const sellItem = async (companyId: string, itemId: string, userId: string
     movement_type: 'sell',
     from_status: 'assigned',
     to_status: 'sold',
+    contract_id: contractId || null,
     performed_by: userId,
     notes: 'Vente au client',
   });
 };
 
-export const scrapItem = async (companyId: string, itemId: string, userId: string) => {
+/** Rachat client : le client achète le matériel à la fin du leasing */
+export const racheterItem = async (
+  companyId: string,
+  itemId: string,
+  userId: string,
+  contractId?: string | null
+) => {
+  await updateStockItem(itemId, {
+    status: 'sold',
+    current_contract_id: null,
+    current_contract_equipment_id: null,
+  });
+  await createMovement({
+    company_id: companyId,
+    stock_item_id: itemId,
+    movement_type: 'rachat_client',
+    from_status: 'assigned',
+    to_status: 'sold',
+    contract_id: contractId || null,
+    performed_by: userId,
+    notes: 'Rachat client (payé)',
+  });
+};
+
+export const scrapItem = async (
+  companyId: string,
+  itemId: string,
+  userId: string,
+  contractId?: string | null
+) => {
   await updateStockItem(itemId, {
     status: 'scrapped',
     current_contract_id: null,
@@ -361,9 +398,25 @@ export const scrapItem = async (companyId: string, itemId: string, userId: strin
     movement_type: 'scrap',
     from_status: 'assigned',
     to_status: 'scrapped',
+    contract_id: contractId || null,
     performed_by: userId,
     notes: 'Mise au rebut',
   });
+};
+
+/** Récupère les mouvements de fin de contrat (retour / rachat / rebut) pour un contrat donné */
+export const fetchContractEndMovements = async (contractId: string) => {
+  const { data, error } = await supabase
+    .from('stock_movements' as any)
+    .select(`
+      *,
+      stock_item:stock_items(title, serial_number, condition)
+    `)
+    .eq('contract_id', contractId)
+    .in('movement_type', ['unassign_contract', 'sell', 'scrap', 'rachat_client'])
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as unknown as StockMovement[];
 };
 
 export const performSwap = async (

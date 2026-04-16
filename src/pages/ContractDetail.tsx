@@ -159,6 +159,14 @@ const ContractDetail = () => {
                 <ContractStockManager
                   contractId={contract.id}
                   companyId={companyId}
+                  contract={{
+                    status: contract.status,
+                    contract_start_date: contract.contract_start_date,
+                    contract_end_date: (contract as any).contract_end_date,
+                    contract_duration: contract.contract_duration,
+                    lease_duration: contract.lease_duration,
+                    delivery_date: contract.delivery_date,
+                  }}
                   onUpdate={refetch}
                 />
               )}
