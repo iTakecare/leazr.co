@@ -1,20 +1,16 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Settings, 
-  Zap, 
-  Mail, 
-  Building2, 
-  BadgePercent, 
+import { motion } from "framer-motion";
+import {
+  Settings,
+  Zap,
+  Mail,
+  Building2,
+  BadgePercent,
   GitBranch,
-  FileText,
   Users,
   CreditCard,
   ChevronRight,
-  Upload,
-  FolderOpen,
-  MessageCircle,
-  User,
+  Bell,
   LogOut
 } from "lucide-react";
 import MobileLayout from "../MobileLayout";
@@ -32,6 +28,7 @@ import MultiTenantUserManager from "@/components/settings/MultiTenantUserManager
 import IntegrationsManager from "@/components/settings/IntegrationsManager";
 import TrialAwareSubscriptionCard from "@/components/settings/TrialAwareSubscriptionCard";
 import WorkflowManagement from "@/components/workflows/WorkflowManagement";
+import { PushNotificationToggle } from "@/components/settings/PushNotificationToggle";
 
 interface SettingsSection {
   id: string;
@@ -96,6 +93,23 @@ const MobileSettingsPage: React.FC = () => {
       label: 'Utilisateurs',
       description: 'Équipe et permissions',
       component: <MultiTenantUserManager />,
+    },
+    {
+      id: 'notifications',
+      icon: Bell,
+      label: 'Notifications',
+      description: 'Push et alertes',
+      component: (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-base font-semibold mb-1">Notifications push</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Recevez des alertes en temps réel pour vos rappels clients et tâches urgentes, même quand l'appli est fermée.
+            </p>
+            <PushNotificationToggle />
+          </div>
+        </div>
+      ),
     },
     {
       id: 'subscription',

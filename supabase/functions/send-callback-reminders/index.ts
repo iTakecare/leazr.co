@@ -207,10 +207,36 @@ serve(async (req) => {
 
       if (emailResponse.ok) {
         emailsSent++;
-        console.log(`✅ Email sent to ${profile.email} (${userLogs.length} callbacks)`);
+        console.log(`✅ Email sent to ${email} (${userLogs.length} callbacks)`);
       } else {
         const err = await emailResponse.text();
-        console.error(`❌ Failed to send to ${profile.email}:`, err);
+        console.error(`❌ Failed to send email to ${email}:`, err);
+      }
+
+      // Also send a push notification if the user has subscribed
+      try {
+        const urgentSuffix = overdueCount > 0 ? ` (${overdueCount} en retard !)` : "";
+        const pushPayload = {
+          user_id: userId,
+          title: `📞 ${userLogs.length} rappel(s) client${urgentSuffix}`,
+          body: userLogs.slice(0, 3).map(l => (l.offers as any)?.client_name || "Client").join(", ") +
+            (userLogs.length > 3 ? ` +${userLogs.length - 3} autres` : ""),
+          url: "/admin/offers",
+          tag: "callback-reminders",
+        };
+
+        await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${supabaseServiceKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(pushPayload),
+        });
+        console.log(`📱 Push notification sent to user ${userId}`);
+      } catch (pushErr) {
+        // Non-fatal: just log the push error
+        console.warn(`⚠️ Push notification failed for user ${userId}:`, pushErr);
       }
     }
 
