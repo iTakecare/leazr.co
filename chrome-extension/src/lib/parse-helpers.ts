@@ -131,8 +131,25 @@ export function jsonLdProduct(doc: Document): {
     const type = (node as any)["@type"];
     if (type === "Product" || (Array.isArray(type) && type.includes("Product"))) {
       const offers = (node as any).offers;
-      const offer = Array.isArray(offers) ? offers[0] : offers;
-      const price = offer?.price ? Math.round(parseFloat(offer.price) * 100) : undefined;
+      // Gère : Offer simple, liste d'Offers, AggregateOffer (lowPrice)
+      let price: number | undefined;
+      let availability: string | undefined;
+      if (offers) {
+        if (offers["@type"] === "AggregateOffer" && offers.lowPrice) {
+          price = Math.round(parseFloat(offers.lowPrice) * 100);
+        } else if (Array.isArray(offers) && offers.length > 0) {
+          // Préférer l'offre "InStock" si dispo
+          const inStock = offers.find((o: any) =>
+            /InStock|in_stock/i.test(String(o.availability ?? ""))
+          );
+          const chosen = inStock ?? offers[0];
+          price = chosen?.price ? Math.round(parseFloat(chosen.price) * 100) : undefined;
+          availability = chosen?.availability;
+        } else {
+          price = offers.price ? Math.round(parseFloat(offers.price) * 100) : undefined;
+          availability = offers.availability;
+        }
+      }
       const brand = (node as any).brand?.name ?? (node as any).brand;
       const image = Array.isArray((node as any).image) ? (node as any).image[0] : (node as any).image;
       return {
@@ -140,9 +157,184 @@ export function jsonLdProduct(doc: Document): {
         brand: typeof brand === "string" ? brand : undefined,
         price_cents: price,
         image: typeof image === "string" ? image : undefined,
-        availability: offer?.availability,
+        availability,
       };
     }
   }
   return null;
+}
+
+/**
+ * Retourne true si l'élément ou un de ses ancêtres a text-decoration line-through
+ * (prix barré = ancien prix qu'on doit ignorer).
+ */
+function isStrikethrough(el: Element): boolean {
+  // 1) Balises explicites <del> et <s> dans la chaîne d'ancêtres
+  if (el.closest("del, s")) return true;
+
+  // 2) Classes parlantes
+  if (el.closest('[class*="line-through"], [class*="strikethrough"], [class*="strike"], [class*="was-price"], [class*="old-price"], [class*="original-price"], [class*="previous-price"], [class*="discount__from"], [class*="sales-price__previous"]')) {
+    return true;
+  }
+
+  // 3) Computed style sur l'élément ET ses ancêtres (jusqu'à 6 niveaux)
+  if (typeof window === "undefined") return false;
+  let cursor: Element | null = el;
+  for (let i = 0; i < 6 && cursor; i++) {
+    const cs = window.getComputedStyle(cursor);
+    // textDecorationLine est plus fiable que textDecoration (short-hand)
+    const dec = cs.textDecorationLine || cs.textDecoration || "";
+    if (/line-through/i.test(dec)) return true;
+    cursor = cursor.parentElement;
+  }
+  return false;
+}
+
+/**
+ * Retourne true si l'élément est visible (pas display:none, pas visibility:hidden,
+ * pas hors viewport avec taille 0).
+ */
+function isVisible(el: Element): boolean {
+  if (typeof window === "undefined") return true;
+  const cs = window.getComputedStyle(el);
+  if (cs.display === "none" || cs.visibility === "hidden" || parseFloat(cs.opacity) === 0) return false;
+  const rect = (el as HTMLElement).getBoundingClientRect?.();
+  if (!rect) return true;
+  return rect.width > 0 && rect.height > 0;
+}
+
+/**
+ * Collecte tous les candidats "prix" dans la page :
+ *  - élément contenant € dans son texte direct (pas juste un descendant)
+ *  - visible
+ *  - non-barré (ni lui ni aucun ancêtre)
+ *  - texte court (< 30 chars)
+ * Retourne la liste avec font-size et position.
+ */
+function collectPriceCandidates(doc: Document) {
+  const all = Array.from(doc.querySelectorAll("body *"));
+  const candidates: Array<{
+    el: Element;
+    text: string;
+    cents: number;
+    fontSize: number;
+    fontWeight: number;
+  }> = [];
+
+  for (const el of all) {
+    // Prendre seulement les éléments où le TEXTE DIRECT (sans descendants) contient €
+    // Pour éviter de considérer les parents qui englobent plusieurs prix
+    const directText = Array.from(el.childNodes)
+      .filter((n) => n.nodeType === Node.TEXT_NODE)
+      .map((n) => n.textContent ?? "")
+      .join("")
+      .trim();
+
+    if (!directText || !/€|EUR/i.test(directText)) continue;
+    if (directText.length > 40) continue;
+
+    const cents = parsePriceCents(directText);
+    if (!cents) continue;
+
+    if (!isVisible(el)) continue;
+    if (isStrikethrough(el)) continue;
+
+    const cs = typeof window !== "undefined" ? window.getComputedStyle(el) : null;
+    const fontSize = cs ? parseFloat(cs.fontSize) : 0;
+    const fw = cs?.fontWeight ?? "400";
+    const fontWeight = parseInt(fw, 10) || (fw === "bold" ? 700 : 400);
+
+    candidates.push({ el, text: directText, cents, fontSize, fontWeight });
+  }
+
+  return candidates;
+}
+
+/**
+ * Stratégie robuste pour trouver le prix principal sur n'importe quelle page produit :
+ *  1. Sélecteurs spécifiques fournis
+ *  2. Prix le plus proche du bouton "Ajouter au panier" (parmi les non-barrés)
+ *  3. Prix le plus "important" visuellement = fontSize max, puis fontWeight max
+ */
+export function findMainPrice(
+  doc: Document,
+  specificSelectors: string[] = []
+): { cents: number | null; source: string } {
+  // ═══ 1. Sélecteurs spécifiques (toujours ignorer les barrés) ═══
+  for (const sel of specificSelectors) {
+    const els = Array.from(doc.querySelectorAll(sel));
+    for (const el of els) {
+      const txt = el.textContent?.trim() ?? "";
+      if (!txt) continue;
+      if (isStrikethrough(el)) continue;
+      const cents = parsePriceCents(txt);
+      if (cents) return { cents, source: `selector:${sel}` };
+    }
+  }
+
+  // Construire la liste des candidats valides (non-barrés, visibles)
+  const candidates = collectPriceCandidates(doc);
+  if (candidates.length === 0) {
+    return { cents: null, source: "no-candidates" };
+  }
+
+  // ═══ 2. Prix à proximité du bouton "Ajouter au panier" ═══
+  const cartBtnKeywords = /dans mon panier|ajouter au panier|toevoegen|in winkelwagen|add to cart|add to basket|koop nu|acheter maintenant/i;
+  const buttons = Array.from(doc.querySelectorAll("button, a[role='button'], a.btn, [class*='add-to-cart']"));
+  const cartBtn = buttons.find((b) => cartBtnKeywords.test(b.textContent ?? ""));
+
+  if (cartBtn) {
+    // Pour chaque candidat, mesurer la distance DOM au bouton (nombre de nœuds à remonter)
+    let bestCandidate: typeof candidates[0] | null = null;
+    let bestDomDist = Infinity;
+    for (const c of candidates) {
+      const dist = domDistance(c.el, cartBtn);
+      if (dist < bestDomDist && dist <= 8) {
+        bestDomDist = dist;
+        bestCandidate = c;
+      }
+    }
+    if (bestCandidate) {
+      return {
+        cents: bestCandidate.cents,
+        source: `near-cart-btn (domDist=${bestDomDist}, fontSize=${bestCandidate.fontSize}px, text="${bestCandidate.text}")`,
+      };
+    }
+  }
+
+  // ═══ 3. Plus "gros" prix (fontSize puis fontWeight) ═══
+  candidates.sort((a, b) => {
+    if (b.fontSize !== a.fontSize) return b.fontSize - a.fontSize;
+    return b.fontWeight - a.fontWeight;
+  });
+  const best = candidates[0];
+  return {
+    cents: best.cents,
+    source: `largest-font (${best.fontSize}px/${best.fontWeight}, text="${best.text}")`,
+  };
+}
+
+/**
+ * Distance DOM entre deux éléments : nombre minimum d'arêtes à traverser dans l'arbre.
+ * Utilise le LCA (lowest common ancestor) et additionne les profondeurs.
+ */
+function domDistance(a: Element, b: Element): number {
+  // Construire le chemin de racine à a et à b
+  const pathA: Element[] = [];
+  const pathB: Element[] = [];
+  let cursor: Element | null = a;
+  while (cursor) { pathA.push(cursor); cursor = cursor.parentElement; }
+  cursor = b;
+  while (cursor) { pathB.push(cursor); cursor = cursor.parentElement; }
+
+  // Trouver le LCA
+  const setA = new Set(pathA);
+  let lcaIdxB = -1;
+  for (let i = 0; i < pathB.length; i++) {
+    if (setA.has(pathB[i])) { lcaIdxB = i; break; }
+  }
+  if (lcaIdxB === -1) return Infinity;
+  const lca = pathB[lcaIdxB];
+  const lcaIdxA = pathA.indexOf(lca);
+  return lcaIdxA + lcaIdxB;
 }

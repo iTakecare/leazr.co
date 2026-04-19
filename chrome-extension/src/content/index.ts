@@ -159,10 +159,20 @@ function escapeHtml(s: string): string {
 
 async function run() {
   const url = new URL(window.location.href);
-  const adapter = findAdapter(url);
-  if (!adapter) return;
+  console.log("[Leazr Sourcing] Content script actif sur", url.href);
 
-  if (!adapter.isProductPage(document, url)) return;
+  const adapter = findAdapter(url);
+  if (!adapter) {
+    console.log("[Leazr Sourcing] Aucun adapter pour ce host :", url.hostname);
+    return;
+  }
+  console.log(`[Leazr Sourcing] Adapter "${adapter.name}" sélectionné`);
+
+  if (!adapter.isProductPage(document, url)) {
+    console.log("[Leazr Sourcing] Pas une page produit selon l'adapter");
+    return;
+  }
+  console.log("[Leazr Sourcing] Page produit détectée, extraction en cours…");
 
   const result = adapter.extract(document, url);
   if (!result.ok) {
@@ -171,16 +181,28 @@ async function run() {
   }
 
   const context = await getContext();
+  console.log("[Leazr Sourcing] Contexte actuel :", context ?? "aucun");
   renderBadge(result.offer, context);
+  console.log("[Leazr Sourcing] Badge affiché ✅");
 }
 
-// Premier passage + observer pour SPAs qui changent d'URL
-run();
+// Premier passage : attendre 1s que les SPA aient hydraté le DOM
+// Puis retry une fois après 3s si échec (JSON-LD arrive parfois tard)
+setTimeout(() => {
+  run().catch((e) => console.error("[Leazr Sourcing] Erreur run():", e));
+}, 1000);
+
+setTimeout(() => {
+  if (!document.getElementById(BADGE_ID)) {
+    console.log("[Leazr Sourcing] Retry après hydratation tardive…");
+    run().catch((e) => console.error("[Leazr Sourcing] Erreur run() retry:", e));
+  }
+}, 3500);
 
 let lastUrl = location.href;
 new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
-    setTimeout(run, 800); // laisser le DOM se stabiliser
+    setTimeout(run, 1200); // laisser le DOM se stabiliser
   }
 }).observe(document, { childList: true, subtree: true });
