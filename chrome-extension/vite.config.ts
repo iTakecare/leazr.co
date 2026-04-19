@@ -13,10 +13,12 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     rollupOptions: {
-      // Le popup est référencé via manifest.action.default_popup et géré
-      // automatiquement par @crxjs/vite-plugin. On ne déclare ici QUE l'offscreen,
-      // qui n'apparaît pas dans le manifest (créé dynamiquement par le SW).
+      // Deux HTML à bundler :
+      //  - popup : référencé par manifest.action.default_popup
+      //  - offscreen : créé dynamiquement via chrome.offscreen.createDocument()
+      // On doit déclarer les deux explicitement ici pour que Vite les émette.
       input: {
+        popup: "src/popup/index.html",
         offscreen: "src/offscreen/offscreen.html",
       },
     },
