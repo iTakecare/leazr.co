@@ -191,6 +191,9 @@ const ClientDocumentsPage: React.FC = () => {
   // ── Upload modal ──────────────────────────────────────────────────────────
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadClientId, setUploadClientId] = useState("");
+  const [uploadClientLabel, setUploadClientLabel] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
   const [uploadOfferId, setUploadOfferId] = useState("");
   const [uploadDocType, setUploadDocType] = useState("other");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -198,6 +201,7 @@ const ClientDocumentsPage: React.FC = () => {
   const [loadingOffers, setLoadingOffers] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const clientSearchRef = useRef<HTMLInputElement>(null);
 
   // ── Load docs ─────────────────────────────────────────────────────────────
   const loadDocs = useCallback(async () => {
@@ -381,6 +385,38 @@ const ClientDocumentsPage: React.FC = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  // ── Client search for upload modal ────────────────────────────────────────
+  const filteredClientsForUpload = React.useMemo(() => {
+    if (!clientSearch.trim()) return clients.slice(0, 50);
+    const q = clientSearch.toLowerCase();
+    return clients.filter((c) =>
+      (c.name ?? "").toLowerCase().includes(q) ||
+      (c.company ?? "").toLowerCase().includes(q) ||
+      (c.email ?? "").toLowerCase().includes(q) ||
+      (c.vat_number ?? "").toLowerCase().includes(q) ||
+      (c.first_name ?? "").toLowerCase().includes(q) ||
+      (c.last_name ?? "").toLowerCase().includes(q)
+    ).slice(0, 20);
+  }, [clients, clientSearch]);
+
+  const selectUploadClient = (c: Client) => {
+    setUploadClientId(c.id);
+    setUploadClientLabel(
+      [c.name || [c.first_name, c.last_name].filter(Boolean).join(" "), c.company]
+        .filter(Boolean).join(" — ") || c.email || c.id.slice(0, 8)
+    );
+    setClientSearch("");
+    setClientDropdownOpen(false);
+    setUploadOfferId("");
+  };
+
+  const clearUploadClient = () => {
+    setUploadClientId("");
+    setUploadClientLabel("");
+    setClientSearch("");
+    setUploadOfferId("");
   };
 
   // ── Expand all / collapse all helpers ─────────────────────────────────────
@@ -720,20 +756,76 @@ const ClientDocumentsPage: React.FC = () => {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
+              {/* Client — combobox avec recherche multi-critères */}
               <div>
                 <Label className="text-sm font-medium mb-1 block">Client *</Label>
-                <Select value={uploadClientId} onValueChange={setUploadClientId}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Sélectionner un client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name || c.company || c.email || c.id.slice(0, 8)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {uploadClientId ? (
+                  /* Client sélectionné */
+                  <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-indigo-50 border-indigo-200 text-sm">
+                    <Building2 className="h-4 w-4 text-indigo-500 shrink-0" />
+                    <span className="flex-1 font-medium text-indigo-800 truncate">{uploadClientLabel}</span>
+                    <button onClick={clearUploadClient} title="Changer de client">
+                      <X className="h-3.5 w-3.5 text-indigo-400 hover:text-destructive" />
+                    </button>
+                  </div>
+                ) : (
+                  /* Recherche */
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        ref={clientSearchRef}
+                        value={clientSearch}
+                        onChange={(e) => { setClientSearch(e.target.value); setClientDropdownOpen(true); }}
+                        onFocus={() => setClientDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setClientDropdownOpen(false), 150)}
+                        placeholder="Nom, entreprise, email, n° TVA…"
+                        className="pl-8 h-9 text-sm"
+                      />
+                      {clientSearch && (
+                        <button
+                          className="absolute right-2.5 top-2.5"
+                          onMouseDown={(e) => { e.preventDefault(); setClientSearch(""); }}
+                        >
+                          <X className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                    {clientDropdownOpen && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                        {filteredClientsForUpload.length === 0 ? (
+                          <p className="px-3 py-3 text-sm text-muted-foreground italic text-center">
+                            Aucun client trouvé
+                          </p>
+                        ) : (
+                          filteredClientsForUpload.map((c) => {
+                            const displayName = c.name || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || c.id.slice(0, 8);
+                            return (
+                              <button
+                                key={c.id}
+                                onMouseDown={(e) => { e.preventDefault(); selectUploadClient(c); }}
+                                className="w-full flex flex-col px-3 py-2.5 hover:bg-indigo-50 transition-colors text-left border-b last:border-0"
+                              >
+                                <span className="text-sm font-medium text-foreground">{displayName}</span>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {c.company && c.company !== c.name && (
+                                    <span className="text-[11px] text-muted-foreground">{c.company}</span>
+                                  )}
+                                  {c.email && (
+                                    <span className="text-[11px] text-muted-foreground">{c.email}</span>
+                                  )}
+                                  {c.vat_number && (
+                                    <span className="text-[11px] font-mono text-muted-foreground">{c.vat_number}</span>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <Label className="text-sm font-medium mb-1 block">Demande liée *</Label>
