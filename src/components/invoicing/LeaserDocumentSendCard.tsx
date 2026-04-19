@@ -99,6 +99,12 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── CC emails ─────────────────────────────────────────────────────────────
+  const [ccEmails, setCcEmails] = useState<string[]>([
+    "hello@itakecare.be",
+    "sales@itakecare.be",
+  ]);
+
   // ── leaser_send data (persisted in billing_data) ──────────────────────────
   const leaserSend = invoice.billing_data?.leaser_send as Record<string, any> | undefined;
 
@@ -266,6 +272,7 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
           invoice_id: invoice.id,
           leaser_email: leaserEmail.trim(),
           leaser_name: contractData?.leaser_name ?? "",
+          cc_emails: ccEmails.map((e) => e.trim()).filter(Boolean),
           document_ids: Array.from(selectedDocIds),
           additional_files: additionalB64,
           invoice_info: {
@@ -480,6 +487,47 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
                   Aucun email configuré pour ce bailleur — saisissez-le manuellement
                 </p>
               )}
+            </div>
+
+            {/* ── CC emails ───────────────────────────────────────────── */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <MailCheck className="h-3.5 w-3.5 text-indigo-600" />
+                  Copie (CC)
+                </Label>
+                <button
+                  className="text-[11px] text-indigo-600 hover:underline"
+                  onClick={() => setCcEmails((prev) => [...prev, ""])}
+                >
+                  + Ajouter
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {ccEmails.map((email, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5">
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) =>
+                        setCcEmails((prev) =>
+                          prev.map((v, i) => (i === idx ? e.target.value : v))
+                        )
+                      }
+                      placeholder="copie@exemple.com"
+                      className="h-7 text-xs flex-1"
+                    />
+                    <button
+                      onClick={() =>
+                        setCcEmails((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                      title="Retirer"
+                    >
+                      <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* ── Message personnalisé ────────────────────────────────── */}

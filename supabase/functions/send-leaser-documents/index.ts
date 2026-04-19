@@ -72,6 +72,7 @@ serve(async (req) => {
       invoice_id,
       leaser_email,
       leaser_name,
+      cc_emails = [],           // adresses en copie (CC)
       document_ids = [],        // IDs from offer_documents table
       additional_files = [],    // [{ name, content (base64), type }]
       invoice_info = {},        // { invoice_number, contract_number, dossier_number, leaser_request_number, client_name, amount }
@@ -81,6 +82,9 @@ serve(async (req) => {
     if (!leaser_email) return fail("Email du bailleur requis");
     if (document_ids.length === 0 && additional_files.length === 0)
       return fail("Aucun document sélectionné");
+
+    // Filtrer les CC vides
+    const validCc: string[] = (cc_emails as string[]).map((e) => e.trim()).filter(Boolean);
 
     // ── Download offer documents from storage ──
     const attachments: Array<{ filename: string; content: string }> = [];
@@ -201,6 +205,7 @@ table.info td{padding:9px 14px;font-size:13px}
     const { data: emailData, error: emailErr } = await resend.emails.send({
       from: "iTakecare <notifications@leazr.co>",
       to: [leaser_email],
+      ...(validCc.length > 0 ? { cc: validCc } : {}),
       subject,
       html,
       attachments: attachments.map((a) => ({ filename: a.filename, content: a.content })),
@@ -232,6 +237,7 @@ table.info td{padding:9px 14px;font-size:13px}
                 ...(existing.leaser_send ?? {}),
                 sent_at: new Date().toISOString(),
                 sent_to: leaser_email,
+                cc_emails: validCc,
                 documents_count: attachments.length,
                 resend_id: emailData?.id ?? null,
               },
