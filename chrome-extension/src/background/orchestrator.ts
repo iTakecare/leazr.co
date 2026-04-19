@@ -186,7 +186,9 @@ export async function runMultiSourceSearch(
   const limit = request.limit_per_source ?? DEFAULT_LIMIT_PER_SOURCE;
   const timeout = request.timeout_ms ?? DEFAULT_TIMEOUT_MS;
 
-  const searchable = adapters.filter((a) => a.buildSearchUrl && a.extractSearchResults);
+  const searchable = adapters.filter(
+    (a) => (a.buildSearchUrl || a.buildSearchUrls) && a.extractSearchResults
+  );
   const enabled = request.sources?.length
     ? searchable.filter((a) => request.sources!.includes(a.key))
     : searchable;
