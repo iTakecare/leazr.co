@@ -28,6 +28,11 @@ chrome.runtime.onInstalled.addListener(() => {
 // ═══════════════════════════════════════════════════════════
 chrome.runtime.onMessage.addListener(
   (msg: ExtensionMessage & { offer?: CapturedOffer; context?: SourcingContext }, _sender, sendResponse) => {
+    // Ignorer les messages destinés à l'offscreen document (laisse l'offscreen répondre)
+    if (msg?.type === "offscreen_parse_search" || msg?.type === "offscreen_ready") {
+      return false;
+    }
+
     (async () => {
       try {
         switch (msg.type) {

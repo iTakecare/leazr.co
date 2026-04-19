@@ -1,22 +1,91 @@
 /**
  * Orchestrateur multi-source.
  *
- * Reçoit une query, appelle en parallèle tous les adapters qui supportent
- * la recherche, fait les fetch() HTML depuis le service worker (bypass CORS
- * et utilise les cookies du navigateur de l'utilisateur), parse avec DOMParser.
- *
- * Envoie des messages de progression via un port Chrome runtime au fur et à
- * mesure, et retourne le résultat agrégé à la fin.
+ * Fait un fetch() depuis le service worker pour chaque fournisseur, puis
+ * délègue le parsing HTML à un offscreen document (DOMParser indisponible
+ * dans un service worker MV3).
  */
 import { adapters } from "../content/adapters";
 import type { CapturedOffer, SearchRequest, SearchProgressMessage, SearchResponse, SiteAdapter } from "../lib/types";
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 const DEFAULT_LIMIT_PER_SOURCE = 3;
+const OFFSCREEN_DOCUMENT_PATH = "src/offscreen/offscreen.html";
+
+let offscreenCreating: Promise<void> | null = null;
 
 /**
- * Fait un fetch() + parse HTML + appelle extractSearchResults de l'adapter.
- * Timeout après `timeout_ms`.
+ * Crée le offscreen document s'il n'existe pas déjà.
+ * Idempotent + safe contre les races.
+ */
+async function ensureOffscreenDocument(): Promise<void> {
+  // @ts-expect-error — chrome.runtime.getContexts existe depuis Chrome 116
+  const hasGetContexts = typeof chrome.runtime.getContexts === "function";
+
+  if (hasGetContexts) {
+    // @ts-expect-error
+    const contexts = await chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"] });
+    if (contexts && contexts.length > 0) return;
+  }
+
+  // Éviter les doubles créations si plusieurs searches en parallèle appellent ensure()
+  if (offscreenCreating) return offscreenCreating;
+
+  offscreenCreating = (async () => {
+    try {
+      await chrome.offscreen.createDocument({
+        url: OFFSCREEN_DOCUMENT_PATH,
+        reasons: [chrome.offscreen.Reason.DOM_PARSER],
+        justification: "Parse HTML from supplier search pages to extract product offers",
+      });
+      // Laisser le temps au script offscreen de s'initialiser
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    } catch (e: any) {
+      // Si quelqu'un d'autre l'a créé entre-temps, ignorer
+      if (!/already|already exists/i.test(e?.message ?? "")) {
+        throw e;
+      }
+    } finally {
+      offscreenCreating = null;
+    }
+  })();
+
+  return offscreenCreating;
+}
+
+/** Envoie un message à l'offscreen et attend la réponse */
+function sendToOffscreen<T>(payload: Record<string, unknown>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(payload, (resp: T & { error?: string }) => {
+      const lastErr = chrome.runtime.lastError;
+      if (lastErr) return reject(new Error(lastErr.message));
+      if (!resp) return reject(new Error("Pas de réponse de l'offscreen"));
+      if ((resp as any).error) return reject(new Error((resp as any).error));
+      resolve(resp);
+    });
+  });
+}
+
+/** Parse le HTML dans l'offscreen document via l'adapter correspondant */
+async function parseSearchHtml(
+  html: string,
+  url: string,
+  adapter_key: string,
+  limit: number
+): Promise<CapturedOffer[]> {
+  await ensureOffscreenDocument();
+  const resp = await sendToOffscreen<{ offers: CapturedOffer[] }>({
+    type: "offscreen_parse_search",
+    html,
+    url,
+    adapter_key,
+    limit,
+  });
+  return resp.offers ?? [];
+}
+
+/**
+ * Fait un fetch() + parse HTML via offscreen + appelle extractSearchResults.
  */
 async function searchOne(
   adapter: SiteAdapter,
@@ -37,7 +106,7 @@ async function searchOne(
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      credentials: "include", // passe les cookies du navigateur (utile pour sites B2B loggés)
+      credentials: "include",
       headers: {
         Accept: "text/html,application/xhtml+xml",
         "Accept-Language": "fr-BE,fr;q=0.9,en;q=0.8,nl;q=0.7",
@@ -51,16 +120,14 @@ async function searchOne(
     }
 
     const html = await response.text();
-    const doc = new DOMParser().parseFromString(html, "text/html");
-
-    // Certains sites injectent le contenu via JS, vérifier qu'on a bien du HTML rendu
-    if (!doc.body || doc.body.innerHTML.length < 500) {
-      return { source: adapter.key, error: "HTML vide ou insuffisant (page rendue côté client ?)" };
+    if (html.length < 500) {
+      return { source: adapter.key, error: "Réponse HTML vide/trop courte" };
     }
 
-    const offers = adapter.extractSearchResults(doc, new URL(url), limit);
+    // Parser dans l'offscreen document
+    const offers = await parseSearchHtml(html, url, adapter.key, limit);
     if (offers.length === 0) {
-      return { source: adapter.key, error: "Aucun résultat extrait de la page" };
+      return { source: adapter.key, error: "Aucun résultat extrait" };
     }
 
     return { source: adapter.key, offers };
@@ -75,9 +142,6 @@ async function searchOne(
 
 /**
  * Lance la recherche sur toutes les sources en parallèle.
- *
- * `onProgress` est appelé pour chaque événement (début, fin de source, etc.)
- * Le tableau retourné contient toutes les offres agrégées.
  */
 export async function runMultiSourceSearch(
   request: SearchRequest,
@@ -87,7 +151,6 @@ export async function runMultiSourceSearch(
   const limit = request.limit_per_source ?? DEFAULT_LIMIT_PER_SOURCE;
   const timeout = request.timeout_ms ?? DEFAULT_TIMEOUT_MS;
 
-  // Filtrer les adapters qui supportent la recherche
   const searchable = adapters.filter((a) => a.buildSearchUrl && a.extractSearchResults);
   const enabled = request.sources?.length
     ? searchable.filter((a) => request.sources!.includes(a.key))
@@ -98,7 +161,9 @@ export async function runMultiSourceSearch(
   const allOffers: Array<CapturedOffer & { source: string }> = [];
   const errors: Array<{ source: string; error: string }> = [];
 
-  // Promise.allSettled : si une source échoue, on continue avec les autres
+  // Pré-chauffer l'offscreen pour éviter la latence au premier appel
+  ensureOffscreenDocument().catch(() => { /* pas grave, retry automatique via searchOne */ });
+
   await Promise.allSettled(
     enabled.map(async (adapter) => {
       onProgress({ type: "source_started", source: adapter.key });
@@ -108,7 +173,6 @@ export async function runMultiSourceSearch(
         errors.push(result);
         onProgress({ type: "source_failed", source: adapter.key, error: result.error });
       } else {
-        // Tag chaque offre avec sa source
         const withSource = result.offers.map((o) => ({ ...o, source: adapter.key }));
         allOffers.push(...withSource);
         onProgress({ type: "source_result", source: adapter.key, offers: result.offers });
@@ -117,17 +181,7 @@ export async function runMultiSourceSearch(
   );
 
   const duration_ms = Math.round(performance.now() - start);
+  onProgress({ type: "search_completed", total_offers: allOffers.length, duration_ms });
 
-  onProgress({
-    type: "search_completed",
-    total_offers: allOffers.length,
-    duration_ms,
-  });
-
-  return {
-    success: true,
-    offers: allOffers,
-    errors,
-    duration_ms,
-  };
+  return { success: true, offers: allOffers, errors, duration_ms };
 }

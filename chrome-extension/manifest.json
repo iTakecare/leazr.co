@@ -63,7 +63,8 @@
     "storage",
     "activeTab",
     "scripting",
-    "notifications"
+    "notifications",
+    "offscreen"
   ],
   "host_permissions": [
     "https://cifbetjefyfocafanlhv.supabase.co/*",
@@ -93,7 +94,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icons/*.png"],
+      "resources": ["icons/*.png", "src/offscreen/*.html"],
       "matches": ["<all_urls>"]
     }
   ]
