@@ -341,6 +341,33 @@ const ClientDocumentsPage: React.FC = () => {
     });
   };
 
+  // ── Preview modal ─────────────────────────────────────────────────────────
+  const [previewDoc, setPreviewDoc] = useState<DocWithOffer | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handlePreview = async (doc: DocWithOffer) => {
+    setPreviewDoc(doc);
+    setPreviewUrl(null);
+    setPreviewLoading(true);
+    try {
+      const { data } = await supabase.storage
+        .from("offer-documents")
+        .createSignedUrl(doc.file_path, 3600);
+      setPreviewUrl(data?.signedUrl ?? null);
+    } catch {
+      toast.error("Impossible de charger l'aperçu");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const isImage = (doc: DocWithOffer) =>
+    doc.mime_type?.startsWith("image/") ||
+    /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(doc.file_name);
+  const isPdf = (doc: DocWithOffer) =>
+    doc.mime_type === "application/pdf" || /\.pdf$/i.test(doc.file_name);
+
   // ── Download ──────────────────────────────────────────────────────────────
   const handleDownload = async (doc: DocWithOffer) => {
     const url = await downloadDocument(doc.file_path);
@@ -681,9 +708,11 @@ const ClientDocumentsPage: React.FC = () => {
                                         return (
                                           <div
                                             key={doc.id}
-                                            className={`flex items-center gap-3 py-2 text-sm border-b last:border-0 ${
-                                              idx % 2 === 0 ? "" : "bg-slate-50/50 -mx-4 px-4"
+                                            className={`flex items-center gap-3 py-2 text-sm border-b last:border-0 cursor-pointer hover:bg-indigo-50/40 transition-colors rounded -mx-4 px-4 ${
+                                              idx % 2 === 0 ? "" : "bg-slate-50/50"
                                             }`}
+                                            onClick={() => handlePreview(doc)}
+                                            title="Cliquer pour prévisualiser"
                                           >
                                             {/* File icon */}
                                             <div className="flex items-center gap-1.5 shrink-0">
@@ -692,7 +721,7 @@ const ClientDocumentsPage: React.FC = () => {
                                             </div>
 
                                             {/* Name */}
-                                            <span className="flex-1 truncate font-medium" title={doc.file_name}>
+                                            <span className="flex-1 truncate font-medium text-indigo-700 hover:underline" title={doc.file_name}>
                                               {doc.file_name}
                                             </span>
 
@@ -722,7 +751,7 @@ const ClientDocumentsPage: React.FC = () => {
                                               variant="ghost"
                                               size="icon"
                                               className="h-7 w-7 shrink-0"
-                                              onClick={() => handleDownload(doc)}
+                                              onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
                                               title="Télécharger"
                                             >
                                               <Download className="h-3.5 w-3.5 text-muted-foreground hover:text-indigo-600" />
@@ -895,6 +924,82 @@ const ClientDocumentsPage: React.FC = () => {
                   ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Envoi…</>
                   : <><Upload className="h-4 w-4 mr-2" />Ajouter</>
                 }
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── Modale prévisualisation document ── */}
+        <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) { setPreviewDoc(null); setPreviewUrl(null); } }}>
+          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+            <DialogHeader className="px-6 pt-5 pb-3 border-b">
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4 text-indigo-600 shrink-0" />
+                <span className="truncate">{previewDoc?.file_name}</span>
+              </DialogTitle>
+              {previewDoc && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {docTypeLabel(previewDoc.document_type)} · {fmtSize(previewDoc.file_size)} ·{" "}
+                  {format(new Date(previewDoc.created_at), "dd MMM yyyy", { locale: fr })}
+                </p>
+              )}
+            </DialogHeader>
+
+            <div className="flex-1 overflow-auto min-h-0 bg-slate-50 flex items-center justify-center p-4">
+              {previewLoading ? (
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                  <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+                  <span className="text-sm">Chargement de l'aperçu…</span>
+                </div>
+              ) : previewUrl && previewDoc ? (
+                isImage(previewDoc) ? (
+                  <img
+                    src={previewUrl}
+                    alt={previewDoc.file_name}
+                    className="max-w-full max-h-[60vh] object-contain rounded shadow"
+                  />
+                ) : isPdf(previewDoc) ? (
+                  <iframe
+                    src={previewUrl}
+                    title={previewDoc.file_name}
+                    className="w-full h-[65vh] rounded border border-slate-200 bg-white"
+                  />
+                ) : (
+                  <div className="text-center space-y-3">
+                    <FileText className="h-16 w-16 text-slate-300 mx-auto" />
+                    <p className="text-sm text-muted-foreground">
+                      Aperçu non disponible pour ce type de fichier.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(previewUrl, "_blank")}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Ouvrir dans un nouvel onglet
+                    </Button>
+                  </div>
+                )
+              ) : (
+                <div className="text-center text-sm text-muted-foreground">
+                  Impossible de charger l'aperçu
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="px-6 py-3 border-t bg-white">
+              <Button
+                variant="outline"
+                onClick={() => { setPreviewDoc(null); setPreviewUrl(null); }}
+              >
+                Fermer
+              </Button>
+              <Button
+                variant="default"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={() => previewDoc && handleDownload(previewDoc)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger
               </Button>
             </DialogFooter>
           </DialogContent>

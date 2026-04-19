@@ -81,6 +81,11 @@ interface ClientSnapshot {
   name: string;
 }
 
+interface LogoData {
+  company_logo_url: string | null;
+  leaser_logo_url: string | null;
+}
+
 interface OtherDoc {
   doc: OfferDocument;
   dossier_number: string | null;
@@ -105,6 +110,7 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
   const [contractData, setContractData] = useState<ContractSnapshot | null>(null);
   const [offerData, setOfferData] = useState<OfferSnapshot | null>(null);
   const [clientData, setClientData] = useState<ClientSnapshot | null>(null);
+  const [logoData, setLogoData] = useState<LogoData>({ company_logo_url: null, leaser_logo_url: null });
   const [offerDocs, setOfferDocs] = useState<OfferDocument[]>([]);
   const [otherClientDocs, setOtherClientDocs] = useState<OtherDoc[]>([]);
   const [showOtherDocs, setShowOtherDocs] = useState(false);
@@ -155,15 +161,28 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
         if (!contract) { setDataLoading(false); return; }
         setContractData(contract as ContractSnapshot);
 
-        // Leaser email
+        // Leaser email + logo
+        let leaserLogoUrl: string | null = null;
         if (contract.leaser_id) {
           const { data: leaser } = await supabase
             .from("leasers")
-            .select("email")
+            .select("email, logo_url")
             .eq("id", contract.leaser_id)
             .single();
           if (leaser?.email) setLeaserEmail(leaser.email);
+          leaserLogoUrl = leaser?.logo_url ?? null;
         }
+
+        // Company logo (site_settings)
+        const { data: siteSett } = await supabase
+          .from("site_settings")
+          .select("logo_url")
+          .limit(1)
+          .single();
+        setLogoData({
+          company_logo_url: siteSett?.logo_url ?? null,
+          leaser_logo_url: leaserLogoUrl,
+        });
 
         // Offer
         if (contract.offer_id) {
@@ -345,6 +364,8 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
           custom_message: customMessage.trim() || undefined,
           peppol_sent: peppolSent,
           contract_signed: contractSigned,
+          company_logo_url: logoData.company_logo_url,
+          leaser_logo_url: logoData.leaser_logo_url,
         },
       });
 

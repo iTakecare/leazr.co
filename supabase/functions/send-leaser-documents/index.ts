@@ -79,6 +79,8 @@ serve(async (req) => {
       custom_message = "",
       peppol_sent = false,      // facture envoyée via Peppol
       contract_signed = false,  // contrat signé chez le bailleur
+      company_logo_url = null,  // logo de la société (iTakecare)
+      leaser_logo_url = null,   // logo du bailleur
     } = await req.json();
 
     if (!leaser_email) return fail("Email du bailleur requis");
@@ -172,12 +174,29 @@ serve(async (req) => {
   </div>
 </div>`;
 
+    // Construire le bloc logos (affiché au-dessus du header foncé)
+    const hasLogos = company_logo_url || leaser_logo_url;
+    const logosHtml = hasLogos ? `
+<div class="logos-bar">
+  ${company_logo_url
+    ? `<img src="${company_logo_url}" alt="Logo société" class="logo-img" />`
+    : `<div class="logo-placeholder">📦</div>`}
+  <div class="logo-sep"></div>
+  ${leaser_logo_url
+    ? `<img src="${leaser_logo_url}" alt="Logo bailleur" class="logo-img" />`
+    : `<div class="logo-placeholder">🏦</div>`}
+</div>` : "";
+
     const html = `<!DOCTYPE html><html lang="fr">
 <head><meta charset="UTF-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1e293b;background:#f1f5f9}
 .wrap{max-width:620px;margin:32px auto;background:white;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-.hd{background:#1e293b;color:white;padding:22px 28px}
+.logos-bar{background:#ffffff;padding:16px 28px;display:flex;align-items:center;justify-content:center;gap:20px;border-bottom:1px solid #e2e8f0}
+.logo-img{max-height:48px;max-width:140px;object-fit:contain}
+.logo-sep{width:1px;height:36px;background:#cbd5e1}
+.logo-placeholder{font-size:24px;opacity:.5}
+.hd{background:#1e293b;color:white;padding:20px 28px}
 .hd h2{font-size:17px;font-weight:600;letter-spacing:.3px}
 .hd p{font-size:12px;color:#94a3b8;margin-top:4px}
 .bd{padding:24px 28px}
@@ -202,6 +221,7 @@ table.info td{padding:9px 14px;font-size:13px}
 </style></head>
 <body>
 <div class="wrap">
+  ${logosHtml}
   <div class="hd">
     <h2>📁 Documents contractuels</h2>
     <p>Facture ${invoice_info.invoice_number ?? ""} — ${clientDisplay ?? ""}</p>
