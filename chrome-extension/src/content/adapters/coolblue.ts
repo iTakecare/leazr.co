@@ -137,14 +137,20 @@ export const coolblueAdapter: SiteAdapter = {
   },
 
   extractSearchResults: (doc, _url, limit = 5): CapturedOffer[] => {
-    // Trouver les cards de résultats
+    // ═══ Stratégie 1 : JSON-LD ItemList (le plus fiable) ═══
+    // Coolblue sert un Schema.org ItemList avec tous les Product + prix en SSR
+    const fromJsonLd = extractFromJsonLdItemList(doc, limit);
+    if (fromJsonLd.length > 0) {
+      console.log(`[Leazr][coolblue] ${fromJsonLd.length} offres extraites via JSON-LD`);
+      return fromJsonLd;
+    }
+
+    // ═══ Stratégie 2 : fallback DOM cards ═══
     const cardSelectors = [
       '[data-testid="product-card"]',
-      '[data-testid*="product-card"]',
       "article[data-product-id]",
       ".product-card",
-      '[class*="productCard"]',
-      "[data-test-id='product-card']",
+      '[class*="product-card"]',
     ];
 
     let cards: Element[] = [];
@@ -156,7 +162,7 @@ export const coolblueAdapter: SiteAdapter = {
       }
     }
 
-    // Fallback : déduire les cards depuis les liens vers /produit/ ou /deuxieme-chance-produit/
+    // Fallback liens
     if (cards.length === 0) {
       const links = Array.from(
         doc.querySelectorAll<HTMLAnchorElement>(
@@ -169,12 +175,10 @@ export const coolblueAdapter: SiteAdapter = {
           const href = a.getAttribute("href") ?? "";
           if (seen.has(href)) return null;
           seen.add(href);
-          // Remonter jusqu'à un container de taille raisonnable
           let parent: Element | null = a;
           for (let i = 0; i < 4; i++) {
             parent = parent?.parentElement ?? null;
             if (!parent) break;
-            // Heuristique : un container large qui contient un prix
             if (parent.querySelector('[class*="price"], [class*="sales-price"]')) {
               return parent;
             }
@@ -188,16 +192,151 @@ export const coolblueAdapter: SiteAdapter = {
     for (const card of cards.slice(0, limit * 3)) {
       const offer = extractCardOffer(card);
       if (offer) {
-        // Éviter les doublons d'URL
         if (!offers.some((o) => o.url === offer.url)) offers.push(offer);
       }
       if (offers.length >= limit) break;
     }
 
-    console.log(`[Leazr][coolblue] ${offers.length}/${cards.length} offres extraites (limit=${limit})`);
+    console.log(`[Leazr][coolblue] ${offers.length}/${cards.length} offres via DOM fallback`);
     return offers;
   },
 };
+
+/** Extrait les offres depuis le JSON-LD ItemList (Schema.org) */
+function extractFromJsonLdItemList(doc: Document, limit: number): CapturedOffer[] {
+  const scripts = doc.querySelectorAll<HTMLScriptElement>('script[type="application/ld+json"]');
+  const offers: CapturedOffer[] = [];
+
+  for (const script of Array.from(scripts)) {
+    if (offers.length >= limit) break;
+    try {
+      const data = JSON.parse(script.textContent ?? "");
+      const itemList = findItemList(data);
+      if (!itemList) continue;
+
+      const items = Array.isArray(itemList.itemListElement) ? itemList.itemListElement : [];
+      for (const item of items) {
+        if (offers.length >= limit) break;
+
+        // item peut être soit un Product direct, soit un ListItem wrappant un Product
+        const product =
+          item?.["@type"] === "Product"
+            ? item
+            : item?.item && item.item["@type"] === "Product"
+            ? item.item
+            : null;
+        if (!product) continue;
+
+        const offer = productToOffer(product);
+        if (offer && !offers.some((o) => o.url === offer.url)) {
+          offers.push(offer);
+        }
+      }
+    } catch {
+      // JSON invalide, on skip
+    }
+  }
+
+  return offers;
+}
+
+/** Cherche récursivement un ItemList dans un objet JSON-LD (gère @graph, arrays, etc.) */
+function findItemList(data: unknown): any {
+  if (!data || typeof data !== "object") return null;
+  const d = data as any;
+  if (d["@type"] === "ItemList" && Array.isArray(d.itemListElement)) return d;
+  if (Array.isArray(d)) {
+    for (const item of d) {
+      const found = findItemList(item);
+      if (found) return found;
+    }
+  }
+  if (Array.isArray(d["@graph"])) {
+    for (const item of d["@graph"]) {
+      const found = findItemList(item);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Convertit un Product Schema.org en CapturedOffer */
+function productToOffer(product: any): CapturedOffer | null {
+  const name = product.name;
+  const url = product["@id"] || product.url;
+  if (!name || !url) return null;
+
+  // Image : peut être string, tableau, ou objet {url}
+  let image_url: string | undefined;
+  const img = product.image;
+  if (typeof img === "string") image_url = img;
+  else if (Array.isArray(img) && img.length > 0) {
+    image_url = typeof img[0] === "string" ? img[0] : img[0]?.url;
+  } else if (img?.url) image_url = img.url;
+
+  // Offer : soit direct, soit dans un array, soit AggregateOffer avec lowPrice
+  const offers = product.offers;
+  let price_cents: number | undefined;
+  let availability: string | undefined;
+  let itemCondition: string | undefined;
+  if (offers) {
+    if (offers["@type"] === "AggregateOffer") {
+      const lp = offers.lowPrice ?? offers.price;
+      if (lp !== undefined) price_cents = Math.round(parseFloat(String(lp)) * 100);
+      availability = offers.availability;
+    } else if (Array.isArray(offers) && offers.length > 0) {
+      const o = offers[0];
+      if (o.price !== undefined) price_cents = Math.round(parseFloat(String(o.price)) * 100);
+      availability = o.availability;
+      itemCondition = o.itemCondition;
+    } else {
+      if (offers.price !== undefined) price_cents = Math.round(parseFloat(String(offers.price)) * 100);
+      availability = offers.availability;
+      itemCondition = offers.itemCondition;
+    }
+  }
+
+  if (!price_cents || price_cents <= 0) return null;
+
+  // Brand
+  let brand: string | undefined;
+  if (typeof product.brand === "string") brand = product.brand;
+  else if (product.brand?.name) brand = product.brand.name;
+
+  // Stock status
+  const stock_status =
+    availability && /InStock|in_stock/i.test(availability)
+      ? "in_stock"
+      : availability && /OutOfStock/i.test(availability)
+      ? "out_of_stock"
+      : "unknown";
+
+  // Condition
+  const isDeuxiemeChance = /deuxieme-chance|tweedekans/i.test(url);
+  const condition =
+    isDeuxiemeChance ||
+    (itemCondition && /Refurbished|Used/i.test(itemCondition))
+      ? "grade_a"
+      : "new";
+
+  return {
+    title: String(name),
+    brand,
+    price_cents,
+    currency: "EUR",
+    condition,
+    url: String(url),
+    image_url,
+    stock_status,
+    captured_host: "www.coolblue.be",
+    raw_specs: {
+      is_deuxieme_chance: isDeuxiemeChance,
+      from_json_ld: true,
+      availability,
+      itemCondition,
+    },
+  };
+}
 
 /** Extrait une offre depuis une card de résultat de recherche */
 function extractCardOffer(card: Element): CapturedOffer | null {
