@@ -9,7 +9,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X, Package, CheckCircle2, Download } from "lucide-react";
+import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X, Package, CheckCircle2, Download, Sparkles } from "lucide-react";
+import SourcingSearchModal, { type SourcingSearchTarget } from "@/components/sourcing/SourcingSearchModal";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -95,6 +97,10 @@ const EquipmentOrders: React.FC = () => {
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [addedToStock, setAddedToStock] = useState<Set<string>>(new Set());
+  const [sourcingTarget, setSourcingTarget] = useState<SourcingSearchTarget | null>(null);
+  const [sourcingQuery, setSourcingQuery] = useState("");
+  // Map "sourceType-id" → { total, lowest_price_cents, any_approved }
+  const [sourcingByLine, setSourcingByLine] = useState<Record<string, { total: number; lowest_price_cents: number | null; any_approved: boolean }>>({});
 
   const getCompanySlug = () => {
     const match = location.pathname.match(/^\/([^/]+)\/admin/);
@@ -114,12 +120,63 @@ const EquipmentOrders: React.FC = () => {
       ]);
       setItems(eqItems);
       setSuppliers(suppList);
+      await fetchSourcingIndicators(eqItems);
     } catch (err) {
       console.error('Error fetching equipment orders:', err);
       toast.error("Erreur lors du chargement des commandes");
     } finally {
       setLoading(false);
     }
+  };
+
+  /** Charge les indicateurs "offres sourcées" pour chaque ligne */
+  const fetchSourcingIndicators = async (eqItems: EquipmentOrderItem[]) => {
+    // Séparer les IDs par source_type pour pouvoir faire 2 requêtes IN ciblées
+    const offerIds = eqItems.filter((i) => i.source_type === "offer").map((i) => i.id);
+    const contractIds = eqItems.filter((i) => i.source_type === "contract").map((i) => i.id);
+
+    const [offerData, contractData] = await Promise.all([
+      offerIds.length > 0
+        ? supabase
+            .from("order_line_sourcing")
+            .select("offer_equipment_id, total_cost_cents, status")
+            .in("offer_equipment_id", offerIds)
+            .in("status", ["proposed", "approved", "selected", "ordered"])
+        : Promise.resolve({ data: [] as any[] }),
+      contractIds.length > 0
+        ? supabase
+            .from("order_line_sourcing")
+            .select("contract_equipment_id, total_cost_cents, status")
+            .in("contract_equipment_id", contractIds)
+            .in("status", ["proposed", "approved", "selected", "ordered"])
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const map: Record<string, { total: number; lowest_price_cents: number | null; any_approved: boolean }> = {};
+    const ingest = (row: any, keyFk: "offer_equipment_id" | "contract_equipment_id", sourceType: "offer" | "contract") => {
+      const fkId = row[keyFk];
+      if (!fkId) return;
+      const key = `${sourceType}-${fkId}`;
+      if (!map[key]) map[key] = { total: 0, lowest_price_cents: null, any_approved: false };
+      map[key].total++;
+      const c = row.total_cost_cents;
+      if (typeof c === "number" && (map[key].lowest_price_cents === null || c < map[key].lowest_price_cents!)) {
+        map[key].lowest_price_cents = c;
+      }
+      if (["approved", "selected", "ordered"].includes(row.status)) map[key].any_approved = true;
+    };
+    for (const r of offerData.data ?? []) ingest(r, "offer_equipment_id", "offer");
+    for (const r of contractData.data ?? []) ingest(r, "contract_equipment_id", "contract");
+    setSourcingByLine(map);
+  };
+
+  const openSourcingFor = (item: EquipmentOrderItem) => {
+    setSourcingQuery(item.title);
+    setSourcingTarget({
+      type: item.source_type === "offer" ? "offer_equipment" : "contract_equipment",
+      id: item.id,
+      label: item.title,
+    });
   };
 
   const handleStatusChange = async (item: EquipmentOrderItem, newStatus: OrderStatus) => {
@@ -494,6 +551,25 @@ const EquipmentOrders: React.FC = () => {
                           <span className="ml-2 text-primary">({getUnitsSummary(item.units!)})</span>
                         )}
                       </div>
+                      {sourcingByLine[`${item.source_type}-${item.id}`] && sourcingByLine[`${item.source_type}-${item.id}`].total > 0 && (
+                        <Badge
+                          variant="outline"
+                          className={`mt-1 text-[10px] gap-1 ${
+                            sourcingByLine[`${item.source_type}-${item.id}`].any_approved
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-amber-200 bg-amber-50 text-amber-700"
+                          }`}
+                          title={`${sourcingByLine[`${item.source_type}-${item.id}`].total} offre(s) sourcée(s)`}
+                        >
+                          <Sparkles className="h-2.5 w-2.5" />
+                          {sourcingByLine[`${item.source_type}-${item.id}`].total} sourc.
+                          {sourcingByLine[`${item.source_type}-${item.id}`].lowest_price_cents !== null && (
+                            <span className="ml-1 font-mono">
+                              dès {formatCurrency(sourcingByLine[`${item.source_type}-${item.id}`].lowest_price_cents! / 100)} HT
+                            </span>
+                          )}
+                        </Badge>
+                      )}
                       {item.quantity > 1 && !hasUnits && (
                         <Button
                           size="sm"
@@ -568,6 +644,15 @@ const EquipmentOrders: React.FC = () => {
                         {!hasUnits && item.order_status === 'received' && addedToStock.has(item.id) && (
                           <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                          title="Sourcer avec l'extension"
+                          onClick={(e) => { e.stopPropagation(); openSourcingFor(item); }}
+                        >
+                          <Sparkles className="h-4 w-4" />
+                        </Button>
                         <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); navigateToSource(item); }}>
                           <ExternalLink className="h-4 w-4" />
                         </Button>
@@ -717,6 +802,18 @@ const EquipmentOrders: React.FC = () => {
           })}
         </Accordion>
       )}
+
+      {/* ── Modale de sourcing multi-fournisseurs ── */}
+      <SourcingSearchModal
+        open={!!sourcingTarget}
+        onOpenChange={(open) => { if (!open) setSourcingTarget(null); }}
+        query={sourcingQuery}
+        target={sourcingTarget ?? undefined}
+        onOfferSelected={() => {
+          setSourcingTarget(null);
+          fetchData(); // rafraîchir pour mettre à jour le badge "sourc."
+        }}
+      />
     </div>
   );
 };
