@@ -76,6 +76,11 @@ interface OfferSnapshot {
   client_name: string | null;
 }
 
+interface ClientSnapshot {
+  company: string | null;
+  name: string;
+}
+
 interface OtherDoc {
   doc: OfferDocument;
   dossier_number: string | null;
@@ -99,6 +104,7 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
   // ── data loading ──────────────────────────────────────────────────────────
   const [contractData, setContractData] = useState<ContractSnapshot | null>(null);
   const [offerData, setOfferData] = useState<OfferSnapshot | null>(null);
+  const [clientData, setClientData] = useState<ClientSnapshot | null>(null);
   const [offerDocs, setOfferDocs] = useState<OfferDocument[]>([]);
   const [otherClientDocs, setOtherClientDocs] = useState<OtherDoc[]>([]);
   const [showOtherDocs, setShowOtherDocs] = useState(false);
@@ -166,7 +172,18 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
             .select("client_id, dossier_number, leaser_request_number, client_name")
             .eq("id", contract.offer_id)
             .single();
-          if (offer) setOfferData(offer as OfferSnapshot);
+          if (offer) {
+            setOfferData(offer as OfferSnapshot);
+            // Fetch client company name
+            if (offer.client_id) {
+              const { data: client } = await supabase
+                .from("clients")
+                .select("company, name")
+                .eq("id", offer.client_id)
+                .single();
+              if (client) setClientData(client as ClientSnapshot);
+            }
+          }
 
           // Offer documents (current offer)
           const docs = await getOfferDocuments(contract.offer_id);
@@ -322,6 +339,7 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
             leaser_request_number: offerData?.leaser_request_number ?? "",
             client_name:
               offerData?.client_name ?? invoice.billing_data?.client_data?.name ?? "",
+            client_company: clientData?.company ?? null,
             amount: invoice.amount,
           },
           custom_message: customMessage.trim() || undefined,

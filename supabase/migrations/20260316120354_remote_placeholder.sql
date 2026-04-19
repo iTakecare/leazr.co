@@ -1,0 +1,1 @@
+-- Placeholder: migration appliquée directement sur le remote

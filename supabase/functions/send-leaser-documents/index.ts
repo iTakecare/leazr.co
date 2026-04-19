@@ -127,12 +127,17 @@ serve(async (req) => {
     }
 
     // ── Build HTML email ──
+    // Affichage client : "Société (Prénom Nom)" ou juste "Nom" si pas de société
+    const clientDisplay = invoice_info.client_company
+      ? `${invoice_info.client_company} — ${invoice_info.client_name}`
+      : invoice_info.client_name;
+
     const rows = [
       ["N° de facture", invoice_info.invoice_number],
       ["N° de contrat", invoice_info.contract_number],
       ["N° de demande interne", invoice_info.dossier_number],
       ["Réf. bailleur", invoice_info.leaser_request_number],
-      ["Client", invoice_info.client_name],
+      ["Client", clientDisplay],
       ["Montant facturé", invoice_info.amount ? fmtAmount(invoice_info.amount) : null],
     ]
       .filter(([, v]) => v)
@@ -199,7 +204,7 @@ table.info td{padding:9px 14px;font-size:13px}
 <div class="wrap">
   <div class="hd">
     <h2>📁 Documents contractuels</h2>
-    <p>Facture ${invoice_info.invoice_number ?? ""} — ${invoice_info.client_name ?? ""}</p>
+    <p>Facture ${invoice_info.invoice_number ?? ""} — ${clientDisplay ?? ""}</p>
   </div>
   <div class="bd">
     <p>Bonjour,</p>
