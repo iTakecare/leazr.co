@@ -13,8 +13,10 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     rollupOptions: {
+      // Le popup est référencé via manifest.action.default_popup et géré
+      // automatiquement par @crxjs/vite-plugin. On ne déclare ici QUE l'offscreen,
+      // qui n'apparaît pas dans le manifest (créé dynamiquement par le SW).
       input: {
-        popup: "src/popup/index.html",
         offscreen: "src/offscreen/offscreen.html",
       },
     },
