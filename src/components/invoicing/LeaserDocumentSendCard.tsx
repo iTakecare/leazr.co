@@ -26,6 +26,13 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Send,
   FileText,
   Paperclip,
@@ -41,6 +48,9 @@ import {
   ChevronDown,
   ChevronRight,
   FolderKanban,
+  Eye,
+  Edit3,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -325,55 +335,124 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
       return next;
     });
 
-  // ── send ──────────────────────────────────────────────────────────────────
-  const handleSend = async () => {
-    if (!leaserEmail.trim()) { toast.error("Email du bailleur requis"); return; }
-    if (selectedDocIds.size === 0 && additionalFiles.length === 0) {
-      toast.error("Sélectionnez au moins un document"); return;
-    }
+  // ── Preview email modal state ─────────────────────────────────────────────
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [previewSubject, setPreviewSubject] = useState<string>("");
+  const [previewAttachmentNames, setPreviewAttachmentNames] = useState<string[]>([]);
+  const [editedSubject, setEditedSubject] = useState<string>("");
+  const [editedMessage, setEditedMessage] = useState<string>("");
+  const [showEdit, setShowEdit] = useState(false);
 
+  // Corps JSON commun (preview + envoi réel)
+  const buildRequestBody = useCallback(async (opts: { preview: boolean; subject?: string; message?: string }) => {
+    const additionalB64 = await Promise.all(
+      additionalFiles.map(async (f) => ({
+        name: f.name,
+        content: await fileToBase64(f),
+        type: f.type,
+      }))
+    );
+    return {
+      invoice_id: invoice.id,
+      leaser_email: leaserEmail.trim(),
+      leaser_name: contractData?.leaser_name ?? "",
+      cc_emails: ccEmails.map((e) => e.trim()).filter(Boolean),
+      document_ids: Array.from(selectedDocIds),
+      additional_files: additionalB64,
+      invoice_info: {
+        invoice_number: invoice.invoice_number,
+        contract_number: contractData?.contract_number ?? "",
+        dossier_number: offerData?.dossier_number ?? "",
+        leaser_request_number: offerData?.leaser_request_number ?? "",
+        client_name:
+          offerData?.client_name ?? invoice.billing_data?.client_data?.name ?? "",
+        client_company: clientData?.company ?? null,
+        amount: invoice.amount,
+      },
+      custom_message: opts.message ?? (customMessage.trim() || undefined),
+      custom_subject: opts.subject ?? undefined,
+      preview_only: opts.preview,
+      peppol_sent: peppolSent,
+      contract_signed: contractSigned,
+      company_logo_url: logoData.company_logo_url,
+      leaser_logo_url: logoData.leaser_logo_url,
+    };
+  }, [
+    additionalFiles, invoice, leaserEmail, contractData, ccEmails, selectedDocIds,
+    offerData, clientData, customMessage, peppolSent, contractSigned, logoData,
+  ]);
+
+  // Validation commune
+  const validateSend = () => {
+    if (!leaserEmail.trim()) { toast.error("Email du bailleur requis"); return false; }
+    if (selectedDocIds.size === 0 && additionalFiles.length === 0) {
+      toast.error("Sélectionnez au moins un document"); return false;
+    }
+    return true;
+  };
+
+  // ── Ouvrir la preview ─────────────────────────────────────────────────────
+  const handleOpenPreview = async () => {
+    if (!validateSend()) return;
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setShowEdit(false);
+    try {
+      const body = await buildRequestBody({ preview: true });
+      const { data, error } = await supabase.functions.invoke("send-leaser-documents", { body });
+      if (error) throw new Error(error.message);
+      if (!data?.preview) throw new Error(data?.error ?? "Erreur génération aperçu");
+      setPreviewHtml(data.html ?? "");
+      setPreviewSubject(data.subject ?? "");
+      setEditedSubject(data.subject ?? "");
+      setEditedMessage(customMessage);
+      setPreviewAttachmentNames(data.attachment_names ?? []);
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur lors de la génération de l'aperçu");
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // ── Rafraîchir l'aperçu après modifs ──────────────────────────────────────
+  const refreshPreview = useCallback(async () => {
+    setPreviewLoading(true);
+    try {
+      const body = await buildRequestBody({
+        preview: true,
+        subject: editedSubject.trim() || undefined,
+        message: editedMessage.trim() || undefined,
+      });
+      const { data, error } = await supabase.functions.invoke("send-leaser-documents", { body });
+      if (error) throw new Error(error.message);
+      if (!data?.preview) throw new Error(data?.error ?? "Erreur génération aperçu");
+      setPreviewHtml(data.html ?? "");
+      setPreviewSubject(data.subject ?? "");
+      setPreviewAttachmentNames(data.attachment_names ?? []);
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur lors du rafraîchissement");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [buildRequestBody, editedSubject, editedMessage]);
+
+  // ── Confirmer l'envoi depuis la modale ────────────────────────────────────
+  const handleConfirmSend = async () => {
     setSending(true);
     try {
-      // Convert additional files to base64
-      const additionalB64 = await Promise.all(
-        additionalFiles.map(async (f) => ({
-          name: f.name,
-          content: await fileToBase64(f),
-          type: f.type,
-        }))
-      );
-
-      const { data, error } = await supabase.functions.invoke("send-leaser-documents", {
-        body: {
-          invoice_id: invoice.id,
-          leaser_email: leaserEmail.trim(),
-          leaser_name: contractData?.leaser_name ?? "",
-          cc_emails: ccEmails.map((e) => e.trim()).filter(Boolean),
-          document_ids: Array.from(selectedDocIds),
-          additional_files: additionalB64,
-          invoice_info: {
-            invoice_number: invoice.invoice_number,
-            contract_number: contractData?.contract_number ?? "",
-            dossier_number: offerData?.dossier_number ?? "",
-            leaser_request_number: offerData?.leaser_request_number ?? "",
-            client_name:
-              offerData?.client_name ?? invoice.billing_data?.client_data?.name ?? "",
-            client_company: clientData?.company ?? null,
-            amount: invoice.amount,
-          },
-          custom_message: customMessage.trim() || undefined,
-          peppol_sent: peppolSent,
-          contract_signed: contractSigned,
-          company_logo_url: logoData.company_logo_url,
-          leaser_logo_url: logoData.leaser_logo_url,
-        },
+      const body = await buildRequestBody({
+        preview: false,
+        subject: editedSubject.trim() || undefined,
+        message: editedMessage.trim() || undefined,
       });
-
+      const { data, error } = await supabase.functions.invoke("send-leaser-documents", { body });
       if (error) throw new Error(error.message);
       if (!data?.success) throw new Error(data?.error ?? "Erreur inconnue");
 
       toast.success(`Documents envoyés au bailleur (${data.sent} pièce${data.sent > 1 ? "s" : ""})`);
-      // billing_data is updated server-side; also patch client-side
       const patchedBilling = {
         ...(invoice.billing_data ?? {}),
         leaser_send: {
@@ -385,6 +464,7 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
       };
       onUpdate(patchedBilling);
       setAdditionalFiles([]);
+      setPreviewOpen(false);
     } catch (e: any) {
       toast.error(e.message ?? "Erreur lors de l'envoi");
     } finally {
@@ -712,10 +792,10 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
                 ))}
             </div>
 
-            {/* ── Send button ─────────────────────────────────────────── */}
+            {/* ── Preview + Send button ────────────────────────────────── */}
             <Button
               className="w-full h-9 text-sm bg-indigo-600 hover:bg-indigo-700 text-white"
-              onClick={handleSend}
+              onClick={handleOpenPreview}
               disabled={
                 sending ||
                 !leaserEmail.trim() ||
@@ -727,9 +807,9 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
               ) : leaserSend?.sent_at ? (
                 <RefreshCw className="h-4 w-4 mr-2" />
               ) : (
-                <Send className="h-4 w-4 mr-2" />
+                <Eye className="h-4 w-4 mr-2" />
               )}
-              {leaserSend?.sent_at ? "Renvoyer les documents" : "Envoyer au bailleur"}
+              {leaserSend?.sent_at ? "Revoir et renvoyer" : "Aperçu & envoyer"}
             </Button>
           </>
         )}
@@ -797,6 +877,140 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
           </div>
         </div>
       </CardContent>
+
+      {/* ── Modale d'aperçu de l'email ────────────────────────────────────── */}
+      <Dialog open={previewOpen} onOpenChange={(o) => { if (!o && !sending) setPreviewOpen(false); }}>
+        <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-3 border-b">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Mail className="h-4 w-4 text-indigo-600" />
+              Aperçu de l'email bailleur
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Vérifiez le contenu avant envoi · {previewAttachmentNames.length} pièce{previewAttachmentNames.length > 1 ? "s" : ""} jointe{previewAttachmentNames.length > 1 ? "s" : ""}
+            </p>
+          </DialogHeader>
+
+          {/* Metadata panel */}
+          <div className="px-6 py-3 bg-slate-50 border-b text-sm space-y-2">
+            <div className="grid grid-cols-[80px_1fr] gap-2 items-start">
+              <span className="text-xs font-medium text-muted-foreground pt-1.5">À</span>
+              <span className="font-mono text-xs bg-white border border-slate-200 rounded px-2 py-1.5 truncate">
+                {leaserEmail}
+              </span>
+            </div>
+            {ccEmails.filter(Boolean).length > 0 && (
+              <div className="grid grid-cols-[80px_1fr] gap-2 items-start">
+                <span className="text-xs font-medium text-muted-foreground pt-1.5">CC</span>
+                <span className="font-mono text-xs bg-white border border-slate-200 rounded px-2 py-1.5 truncate">
+                  {ccEmails.filter(Boolean).join(", ")}
+                </span>
+              </div>
+            )}
+            <div className="grid grid-cols-[80px_1fr] gap-2 items-start">
+              <span className="text-xs font-medium text-muted-foreground pt-1.5">Sujet</span>
+              {showEdit ? (
+                <Input
+                  value={editedSubject}
+                  onChange={(e) => setEditedSubject(e.target.value)}
+                  onBlur={refreshPreview}
+                  className="h-8 text-xs font-mono"
+                />
+              ) : (
+                <span className="font-medium text-xs bg-white border border-slate-200 rounded px-2 py-1.5 truncate">
+                  {previewSubject}
+                </span>
+              )}
+            </div>
+            {previewAttachmentNames.length > 0 && (
+              <div className="grid grid-cols-[80px_1fr] gap-2 items-start">
+                <span className="text-xs font-medium text-muted-foreground pt-1.5">Pièces</span>
+                <div className="flex flex-wrap gap-1">
+                  {previewAttachmentNames.map((n, i) => (
+                    <Badge key={i} variant="outline" className="text-[10px] font-mono bg-white">
+                      <Paperclip className="h-2.5 w-2.5 mr-1" />{n}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Editable message section */}
+          {showEdit && (
+            <div className="px-6 py-3 border-b bg-amber-50/50">
+              <Label className="text-xs font-medium mb-1.5 block flex items-center gap-1.5">
+                <Edit3 className="h-3 w-3" />
+                Message personnalisé (optionnel)
+              </Label>
+              <Textarea
+                value={editedMessage}
+                onChange={(e) => setEditedMessage(e.target.value)}
+                onBlur={refreshPreview}
+                placeholder="Ajoutez un message qui apparaîtra dans l'email…"
+                rows={3}
+                className="text-xs resize-none"
+              />
+            </div>
+          )}
+
+          {/* Rendered email preview */}
+          <div className="flex-1 overflow-auto min-h-0 bg-slate-100 p-4">
+            {previewLoading ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+                <span className="text-sm">Génération de l'aperçu…</span>
+              </div>
+            ) : (
+              <iframe
+                srcDoc={previewHtml}
+                title="Aperçu email"
+                sandbox="allow-same-origin"
+                className="w-full min-h-[500px] h-full bg-white border border-slate-200 rounded shadow-sm"
+              />
+            )}
+          </div>
+
+          <DialogFooter className="px-6 py-3 border-t bg-white flex-row items-center justify-between sm:justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (showEdit) {
+                  // Reset on close edit
+                  setEditedSubject(previewSubject);
+                  setEditedMessage(customMessage);
+                }
+                setShowEdit(!showEdit);
+              }}
+              disabled={sending}
+            >
+              <Edit3 className="h-3.5 w-3.5 mr-1.5" />
+              {showEdit ? "Masquer l'édition" : "Modifier"}
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setPreviewOpen(false)}
+                disabled={sending}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleConfirmSend}
+                disabled={sending || previewLoading}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                {sending ? (
+                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Envoi…</>
+                ) : (
+                  <><Send className="h-4 w-4 mr-2" />Envoyer maintenant</>
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

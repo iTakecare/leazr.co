@@ -77,6 +77,8 @@ serve(async (req) => {
       additional_files = [],    // [{ name, content (base64), type }]
       invoice_info = {},        // { invoice_number, contract_number, dossier_number, leaser_request_number, client_name, amount }
       custom_message = "",
+      custom_subject = null,    // sujet personnalisé (optionnel)
+      preview_only = false,     // si true, renvoie juste le HTML sans envoyer
       peppol_sent = false,      // facture envoyée via Peppol
       contract_signed = false,  // contrat signé chez le bailleur
       company_logo_url = null,  // logo de la société (iTakecare)
@@ -240,18 +242,36 @@ table.info td{padding:9px 14px;font-size:13px}
 </div>
 </body></html>`;
 
+    // Sujet : personnalisé si fourni, sinon généré automatiquement
+    const defaultSubject = [
+      "Documents contractuels",
+      invoice_info.invoice_number,
+      invoice_info.client_company || invoice_info.client_name,
+    ]
+      .filter(Boolean)
+      .join(" — ");
+    const subject = (custom_subject && String(custom_subject).trim()) || defaultSubject;
+
+    // ── Mode preview : retourner le HTML + sujet, ne pas envoyer ──
+    if (preview_only) {
+      return ok({
+        success: true,
+        preview: true,
+        html,
+        subject,
+        default_subject: defaultSubject,
+        attachments_count: attachments.length,
+        attachment_names: attachments.map((a) => a.filename),
+        to: leaser_email,
+        cc: validCc,
+      });
+    }
+
     // ── Send via Resend ──
     const resendKey = Deno.env.get("LEAZR_RESEND_API") || Deno.env.get("RESEND_API_KEY");
     if (!resendKey) return fail("Clé Resend non configurée");
 
     const resend = new Resend(resendKey);
-    const subject = [
-      "Documents contractuels",
-      invoice_info.invoice_number,
-      invoice_info.client_name,
-    ]
-      .filter(Boolean)
-      .join(" — ");
 
     // reply_to = hello@itakecare.be + les adresses CC (pour que le bailleur réponde à tous)
     const replyToAddresses = ["hello@itakecare.be", ...validCc.filter((e) => e !== "hello@itakecare.be")];

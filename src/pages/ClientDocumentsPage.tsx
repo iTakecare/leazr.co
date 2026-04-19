@@ -297,6 +297,17 @@ const ClientDocumentsPage: React.FC = () => {
   // ── Grouped tree ──────────────────────────────────────────────────────────
   const groupedDocs = React.useMemo(() => groupDocs(filteredDocs), [filteredDocs]);
 
+  // Liste aplatie dans l'ordre d'affichage (pour navigation preview)
+  const orderedDocs = React.useMemo(() => {
+    const arr: DocWithOffer[] = [];
+    for (const c of groupedDocs) {
+      for (const o of c.offers) {
+        for (const d of o.docs) arr.push(d);
+      }
+    }
+    return arr;
+  }, [groupedDocs]);
+
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = React.useMemo(() => {
     const base = selectedClientId === "all" ? docs : docs.filter((d) => d.client_id === selectedClientId);
@@ -342,12 +353,13 @@ const ClientDocumentsPage: React.FC = () => {
   };
 
   // ── Preview modal ─────────────────────────────────────────────────────────
-  const [previewDoc, setPreviewDoc] = useState<DocWithOffer | null>(null);
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  const handlePreview = async (doc: DocWithOffer) => {
-    setPreviewDoc(doc);
+  const previewDoc = previewIdx !== null ? orderedDocs[previewIdx] ?? null : null;
+
+  const loadPreviewUrl = useCallback(async (doc: DocWithOffer) => {
     setPreviewUrl(null);
     setPreviewLoading(true);
     try {
@@ -360,7 +372,44 @@ const ClientDocumentsPage: React.FC = () => {
     } finally {
       setPreviewLoading(false);
     }
+  }, []);
+
+  const handlePreview = async (doc: DocWithOffer) => {
+    const idx = orderedDocs.findIndex((d) => d.id === doc.id);
+    if (idx === -1) return;
+    setPreviewIdx(idx);
+    await loadPreviewUrl(doc);
   };
+
+  const closePreview = () => { setPreviewIdx(null); setPreviewUrl(null); };
+
+  const goPrev = useCallback(() => {
+    if (previewIdx === null) return;
+    const next = previewIdx - 1;
+    if (next < 0) return;
+    setPreviewIdx(next);
+    loadPreviewUrl(orderedDocs[next]);
+  }, [previewIdx, orderedDocs, loadPreviewUrl]);
+
+  const goNext = useCallback(() => {
+    if (previewIdx === null) return;
+    const next = previewIdx + 1;
+    if (next >= orderedDocs.length) return;
+    setPreviewIdx(next);
+    loadPreviewUrl(orderedDocs[next]);
+  }, [previewIdx, orderedDocs, loadPreviewUrl]);
+
+  // Raccourcis clavier dans la modale
+  useEffect(() => {
+    if (previewIdx === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") goPrev();
+      else if (e.key === "ArrowRight") goNext();
+      else if (e.key === "Escape") closePreview();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [previewIdx, goPrev, goNext]);
 
   const isImage = (doc: DocWithOffer) =>
     doc.mime_type?.startsWith("image/") ||
@@ -930,7 +979,7 @@ const ClientDocumentsPage: React.FC = () => {
         </Dialog>
 
         {/* ── Modale prévisualisation document ── */}
-        <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) { setPreviewDoc(null); setPreviewUrl(null); } }}>
+        <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) closePreview(); }}>
           <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
             <DialogHeader className="px-6 pt-5 pb-3 border-b">
               <DialogTitle className="flex items-center gap-2 text-base">
@@ -938,14 +987,42 @@ const ClientDocumentsPage: React.FC = () => {
                 <span className="truncate">{previewDoc?.file_name}</span>
               </DialogTitle>
               {previewDoc && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {docTypeLabel(previewDoc.document_type)} · {fmtSize(previewDoc.file_size)} ·{" "}
-                  {format(new Date(previewDoc.created_at), "dd MMM yyyy", { locale: fr })}
-                </p>
+                <div className="flex items-center justify-between gap-2 mt-0.5">
+                  <p className="text-xs text-muted-foreground truncate">
+                    {docTypeLabel(previewDoc.document_type)} · {fmtSize(previewDoc.file_size)} ·{" "}
+                    {format(new Date(previewDoc.created_at), "dd MMM yyyy", { locale: fr })}
+                    {previewDoc.client_name && ` · ${previewDoc.client_name}`}
+                  </p>
+                  <span className="text-xs font-medium text-muted-foreground shrink-0 tabular-nums">
+                    {(previewIdx ?? 0) + 1} / {orderedDocs.length}
+                  </span>
+                </div>
               )}
             </DialogHeader>
 
-            <div className="flex-1 overflow-auto min-h-0 bg-slate-50 flex items-center justify-center p-4">
+            <div className="flex-1 overflow-auto min-h-0 bg-slate-50 flex items-center justify-center p-4 relative">
+              {/* Bouton précédent */}
+              {previewIdx !== null && previewIdx > 0 && (
+                <button
+                  onClick={goPrev}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 shadow-md rounded-full h-10 w-10 flex items-center justify-center transition-colors"
+                  title="Document précédent (←)"
+                >
+                  <ChevronLeft className="h-5 w-5 text-slate-600" />
+                </button>
+              )}
+
+              {/* Bouton suivant */}
+              {previewIdx !== null && previewIdx < orderedDocs.length - 1 && (
+                <button
+                  onClick={goNext}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 shadow-md rounded-full h-10 w-10 flex items-center justify-center transition-colors"
+                  title="Document suivant (→)"
+                >
+                  <ChevronRight className="h-5 w-5 text-slate-600" />
+                </button>
+              )}
+
               {previewLoading ? (
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
@@ -986,21 +1063,21 @@ const ClientDocumentsPage: React.FC = () => {
               )}
             </div>
 
-            <DialogFooter className="px-6 py-3 border-t bg-white">
-              <Button
-                variant="outline"
-                onClick={() => { setPreviewDoc(null); setPreviewUrl(null); }}
-              >
-                Fermer
-              </Button>
-              <Button
-                variant="default"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                onClick={() => previewDoc && handleDownload(previewDoc)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Télécharger
-              </Button>
+            <DialogFooter className="px-6 py-3 border-t bg-white flex-row items-center justify-between sm:justify-between">
+              <span className="text-xs text-muted-foreground hidden sm:block">
+                Utilisez ← → pour naviguer · Échap pour fermer
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={closePreview}>Fermer</Button>
+                <Button
+                  variant="default"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  onClick={() => previewDoc && handleDownload(previewDoc)}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Télécharger
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
