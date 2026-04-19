@@ -84,16 +84,15 @@ interface DocWithOffer {
   dossier_number: string | null;
 }
 
-// Grouped structure
-interface OfferGroup {
-  offer_id: string;
-  dossier_number: string | null;
+// Grouped structure : Client → Type de document → Documents
+interface TypeGroup {
+  document_type: string;
   docs: DocWithOffer[];
 }
 interface ClientGroup {
   client_id: string | null;
   client_name: string | null;
-  offers: OfferGroup[];
+  types: TypeGroup[];
   totalDocs: number;
 }
 
@@ -139,7 +138,7 @@ function docTypeLabel(type: string) {
   return ALL_DOC_TYPES[type] ?? type;
 }
 
-/** Group flat docs into ClientGroup[] */
+/** Group flat docs into ClientGroup[] : Client → Type de document → Documents */
 function groupDocs(docs: DocWithOffer[]): ClientGroup[] {
   const clientMap = new Map<string, ClientGroup>();
 
@@ -149,19 +148,28 @@ function groupDocs(docs: DocWithOffer[]): ClientGroup[] {
       clientMap.set(cKey, {
         client_id: doc.client_id,
         client_name: doc.client_name,
-        offers: [],
+        types: [],
         totalDocs: 0,
       });
     }
     const cGroup = clientMap.get(cKey)!;
     cGroup.totalDocs++;
 
-    let oGroup = cGroup.offers.find((o) => o.offer_id === doc.offer_id);
-    if (!oGroup) {
-      oGroup = { offer_id: doc.offer_id, dossier_number: doc.dossier_number, docs: [] };
-      cGroup.offers.push(oGroup);
+    let tGroup = cGroup.types.find((t) => t.document_type === doc.document_type);
+    if (!tGroup) {
+      tGroup = { document_type: doc.document_type, docs: [] };
+      cGroup.types.push(tGroup);
     }
-    oGroup.docs.push(doc);
+    tGroup.docs.push(doc);
+  }
+
+  // Trier les types par nombre de documents desc, puis par label alphabétique
+  for (const c of clientMap.values()) {
+    c.types.sort((a, b) => {
+      if (b.docs.length !== a.docs.length) return b.docs.length - a.docs.length;
+      return (ALL_DOC_TYPES[a.document_type] ?? a.document_type)
+        .localeCompare(ALL_DOC_TYPES[b.document_type] ?? b.document_type);
+    });
   }
 
   // Sort clients by totalDocs desc
@@ -186,7 +194,8 @@ const ClientDocumentsPage: React.FC = () => {
 
   // ── Tree expand state ─────────────────────────────────────────────────────
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
-  const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
+  // Clés "clientKey::document_type" pour différencier par client
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
 
   // ── Upload modal ──────────────────────────────────────────────────────────
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -301,8 +310,8 @@ const ClientDocumentsPage: React.FC = () => {
   const orderedDocs = React.useMemo(() => {
     const arr: DocWithOffer[] = [];
     for (const c of groupedDocs) {
-      for (const o of c.offers) {
-        for (const d of o.docs) arr.push(d);
+      for (const t of c.types) {
+        for (const d of t.docs) arr.push(d);
       }
     }
     return arr;
@@ -344,10 +353,11 @@ const ClientDocumentsPage: React.FC = () => {
       return next;
     });
   };
-  const toggleOffer = (oId: string) => {
-    setExpandedOffers((prev) => {
+  const toggleType = (cKey: string, docType: string) => {
+    const key = `${cKey}::${docType}`;
+    setExpandedTypes((prev) => {
       const next = new Set(prev);
-      next.has(oId) ? next.delete(oId) : next.add(oId);
+      next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
   };
@@ -498,11 +508,14 @@ const ClientDocumentsPage: React.FC = () => {
   // ── Expand all / collapse all helpers ─────────────────────────────────────
   const expandAll = () => {
     setExpandedClients(new Set(groupedDocs.map((g) => g.client_id ?? "__unknown__")));
-    setExpandedOffers(new Set(groupedDocs.flatMap((g) => g.offers.map((o) => o.offer_id))));
+    setExpandedTypes(new Set(groupedDocs.flatMap((g) => {
+      const cKey = g.client_id ?? "__unknown__";
+      return g.types.map((t) => `${cKey}::${t.document_type}`);
+    })));
   };
   const collapseAll = () => {
     setExpandedClients(new Set());
-    setExpandedOffers(new Set());
+    setExpandedTypes(new Set());
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -693,65 +706,66 @@ const ClientDocumentsPage: React.FC = () => {
                             {cGroup.totalDocs} doc{cGroup.totalDocs !== 1 ? "s" : ""}
                           </Badge>
                           <Badge variant="outline" className="text-xs text-muted-foreground ml-1">
-                            {cGroup.offers.length} demande{cGroup.offers.length !== 1 ? "s" : ""}
+                            {cGroup.types.length} type{cGroup.types.length !== 1 ? "s" : ""}
                           </Badge>
                         </button>
 
-                        {/* ── Offers ───────────────────────────────────── */}
+                        {/* ── Types de documents ──────────────────────── */}
                         {isClientOpen && (
                           <div className="divide-y">
-                            {cGroup.offers.map((oGroup) => {
-                              const isOfferOpen = expandedOffers.has(oGroup.offer_id);
+                            {cGroup.types.map((tGroup) => {
+                              const typeKey = `${cKey}::${tGroup.document_type}`;
+                              const isTypeOpen = expandedTypes.has(typeKey);
 
                               return (
-                                <div key={oGroup.offer_id}>
-                                  {/* Offer row */}
+                                <div key={typeKey}>
+                                  {/* Type row */}
                                   <button
-                                    onClick={() => toggleOffer(oGroup.offer_id)}
+                                    onClick={() => toggleType(cKey, tGroup.document_type)}
                                     className="w-full flex items-center gap-3 px-4 py-2.5 pl-8 hover:bg-slate-50 transition-colors text-left"
                                   >
-                                    {isOfferOpen
+                                    {isTypeOpen
                                       ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                       : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                     }
-                                    <FolderKanban className={`h-4 w-4 shrink-0 ${isOfferOpen ? "text-amber-500" : "text-amber-400"}`} />
+                                    {isTypeOpen
+                                      ? <FolderOpen className="h-4 w-4 shrink-0 text-amber-500" />
+                                      : <Folder className="h-4 w-4 shrink-0 text-amber-400" />
+                                    }
                                     <span className="text-sm font-medium flex-1">
-                                      {oGroup.dossier_number
-                                        ? <span className="font-mono">{oGroup.dossier_number}</span>
-                                        : <span className="text-muted-foreground italic">Demande sans numéro</span>
-                                      }
+                                      {docTypeLabel(tGroup.document_type)}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
-                                      {oGroup.docs.length} fichier{oGroup.docs.length !== 1 ? "s" : ""}
+                                      {tGroup.docs.length} fichier{tGroup.docs.length !== 1 ? "s" : ""}
                                     </span>
 
                                     {/* Mini status dots */}
                                     <div className="flex items-center gap-1 ml-2">
-                                      {oGroup.docs.filter(d => d.status === "pending").length > 0 && (
+                                      {tGroup.docs.filter(d => d.status === "pending").length > 0 && (
                                         <span className="inline-flex items-center gap-0.5 text-[10px] bg-amber-50 border border-amber-200 text-amber-700 px-1.5 py-0.5 rounded-full">
                                           <Clock className="h-2.5 w-2.5" />
-                                          {oGroup.docs.filter(d => d.status === "pending").length}
+                                          {tGroup.docs.filter(d => d.status === "pending").length}
                                         </span>
                                       )}
-                                      {oGroup.docs.filter(d => d.status === "approved").length > 0 && (
+                                      {tGroup.docs.filter(d => d.status === "approved").length > 0 && (
                                         <span className="inline-flex items-center gap-0.5 text-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded-full">
                                           <CheckCircle2 className="h-2.5 w-2.5" />
-                                          {oGroup.docs.filter(d => d.status === "approved").length}
+                                          {tGroup.docs.filter(d => d.status === "approved").length}
                                         </span>
                                       )}
-                                      {oGroup.docs.filter(d => d.status === "rejected").length > 0 && (
+                                      {tGroup.docs.filter(d => d.status === "rejected").length > 0 && (
                                         <span className="inline-flex items-center gap-0.5 text-[10px] bg-red-50 border border-red-200 text-red-700 px-1.5 py-0.5 rounded-full">
                                           <XCircle className="h-2.5 w-2.5" />
-                                          {oGroup.docs.filter(d => d.status === "rejected").length}
+                                          {tGroup.docs.filter(d => d.status === "rejected").length}
                                         </span>
                                       )}
                                     </div>
                                   </button>
 
                                   {/* Documents */}
-                                  {isOfferOpen && (
+                                  {isTypeOpen && (
                                     <div className="bg-white pl-16 pr-4 pb-1">
-                                      {oGroup.docs.map((doc, idx) => {
+                                      {tGroup.docs.map((doc, idx) => {
                                         const st = STATUS_CONFIG[doc.status] ?? STATUS_CONFIG.pending;
                                         const StIcon = st.icon;
                                         return (
@@ -774,10 +788,21 @@ const ClientDocumentsPage: React.FC = () => {
                                               {doc.file_name}
                                             </span>
 
-                                            {/* Type */}
-                                            <span className="text-xs text-muted-foreground truncate max-w-[130px] hidden sm:block">
-                                              {docTypeLabel(doc.document_type)}
-                                            </span>
+                                            {/* Demande (dossier) badge */}
+                                            {doc.dossier_number ? (
+                                              <Badge
+                                                variant="outline"
+                                                className="text-[10px] font-mono bg-amber-50 border-amber-200 text-amber-700 shrink-0 hidden md:inline-flex"
+                                                title={`Demande : ${doc.dossier_number}`}
+                                              >
+                                                <FolderKanban className="h-2.5 w-2.5 mr-1" />
+                                                {doc.dossier_number}
+                                              </Badge>
+                                            ) : (
+                                              <span className="text-[10px] text-muted-foreground italic shrink-0 hidden md:block">
+                                                Sans demande
+                                              </span>
+                                            )}
 
                                             {/* Status */}
                                             <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${st.badge} whitespace-nowrap shrink-0`}>
@@ -791,7 +816,7 @@ const ClientDocumentsPage: React.FC = () => {
                                             </span>
 
                                             {/* Date */}
-                                            <span className="text-xs text-muted-foreground w-20 text-right shrink-0 hidden md:block">
+                                            <span className="text-xs text-muted-foreground w-20 text-right shrink-0 hidden lg:block">
                                               {format(new Date(doc.created_at), "dd MMM yyyy", { locale: fr })}
                                             </span>
 
