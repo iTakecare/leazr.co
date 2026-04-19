@@ -97,31 +97,44 @@ async function fetchAndParse(
   const timeoutId = setTimeout(() => controller.abort(), timeout_ms);
 
   try {
+    // Fetch SANS credentials par défaut : les cookies Coolblue Business du user
+    // peuvent déclencher des challenges Cloudflare ou redirections B2B spécifiques.
+    // On ouvre incognito en quelque sorte, pour avoir un comportement prévisible.
+    console.log(`[fetchAndParse] Requesting ${url}`);
     const response = await fetch(url, {
       signal: controller.signal,
-      credentials: "include",
+      credentials: "omit",
+      redirect: "follow",
       headers: {
-        Accept: "text/html,application/xhtml+xml",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "fr-BE,fr;q=0.9,en;q=0.8,nl;q=0.7",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       },
     });
     clearTimeout(timeoutId);
+
+    console.log(`[fetchAndParse] Response ${response.status} (${response.headers.get("content-type")})`);
 
     if (!response.ok) {
       return { error: `HTTP ${response.status}`, status: response.status };
     }
 
     const html = await response.text();
+    console.log(`[fetchAndParse] Got ${html.length} bytes of HTML`);
     if (html.length < 500) {
-      return { error: "Réponse HTML vide/trop courte" };
+      return { error: `HTML trop court (${html.length} bytes — page rendue côté client ?)` };
     }
 
     const offers = await parseSearchHtml(html, url, adapter.key, limit);
+    console.log(`[fetchAndParse] Parsed ${offers.length} offers from ${url}`);
     return { offers };
   } catch (e: any) {
     clearTimeout(timeoutId);
     if (e.name === "AbortError") return { error: "Timeout" };
-    return { error: e.message ?? "Erreur inconnue" };
+    const msg = e?.message ?? String(e);
+    console.error(`[fetchAndParse] Error on ${url}:`, e);
+    return { error: `Fetch: ${msg}` };
   }
 }
 
