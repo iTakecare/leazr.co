@@ -1,13 +1,15 @@
 /**
  * Content script injecté UNIQUEMENT sur leazr.co.
- * Son rôle : relayer les messages de progression envoyés par le background
- * de l'extension vers la page React de Leazr (via window.postMessage).
  *
- * Expose aussi un marqueur `window.__LEAZR_SOURCING_EXTENSION__` pour que
- * la page puisse détecter l'installation de l'extension.
+ * Communique avec la page React via CustomEvent (fonctionne à travers
+ * les isolated worlds Chrome — pas besoin d'injecter un script inline
+ * qui pourrait être bloqué par CSP).
+ *
+ * Rôle :
+ *  1. Annonce la présence de l'extension (au démarrage + sur demande)
+ *  2. Relaie les messages de progression du background vers la page
  */
 
-// Marqueur de présence de l'extension + version
 const manifestVersion = chrome.runtime.getManifest().version;
 const marker = {
   installed: true,
@@ -15,25 +17,49 @@ const marker = {
   extension_id: chrome.runtime.id,
 };
 
-// On injecte un script dans la page pour pouvoir poser une globale
-// (chrome.runtime côté content script ≠ chrome.runtime côté page)
-const script = document.createElement("script");
-script.textContent = `
-  window.__LEAZR_SOURCING_EXTENSION__ = ${JSON.stringify(marker)};
-  window.dispatchEvent(new CustomEvent('leazr-sourcing-extension-ready', { detail: ${JSON.stringify(marker)} }));
-`;
-(document.head || document.documentElement).appendChild(script);
-script.remove();
+/** Envoie un CustomEvent "leazr-sourcing-extension-ready" à la page */
+function announce() {
+  try {
+    window.dispatchEvent(
+      new CustomEvent("leazr-sourcing-extension-ready", { detail: marker })
+    );
+  } catch (e) {
+    console.warn("[Leazr Sourcing Bridge] dispatch failed:", e);
+  }
+}
 
-// Relay des messages du background vers la page via window.postMessage
+// Announce immédiatement (run_at: document_start)
+announce();
+
+// Re-announce après le DOMContentLoaded et window.load (la page React peut
+// écouter tardivement)
+document.addEventListener("DOMContentLoaded", announce, { once: true });
+window.addEventListener("load", announce, { once: true });
+
+// Et répéter quelques fois pour couvrir le cas où React hydrate très tard
+let attempts = 0;
+const heartbeat = setInterval(() => {
+  announce();
+  if (++attempts >= 20) clearInterval(heartbeat); // 20 × 500ms = 10s
+}, 500);
+
+// Répondre aux demandes explicites de la page (détection à la demande)
+window.addEventListener("leazr-sourcing-detect", () => {
+  announce();
+});
+
+// Relay des messages de progression (background SW → page React)
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type === "leazr_sourcing_progress") {
-    window.postMessage(
-      { __leazr_sourcing: true, ...msg.payload },
-      window.location.origin
-    );
+    try {
+      window.dispatchEvent(
+        new CustomEvent("leazr-sourcing-progress", { detail: msg.payload })
+      );
+    } catch (e) {
+      console.warn("[Leazr Sourcing Bridge] relay failed:", e);
+    }
   }
   return false;
 });
 
-console.log("[Leazr Sourcing Bridge] Content script actif sur", window.location.href);
+console.log("[Leazr Sourcing Bridge] Content script actif · ext_id:", chrome.runtime.id);
