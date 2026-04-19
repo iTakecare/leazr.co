@@ -165,6 +165,90 @@ export function jsonLdProduct(doc: Document): {
 }
 
 /**
+ * Filtre des offres par pertinence à partir de la query.
+ *
+ * Règles :
+ *  - Tokens exclusifs (pro/air/mini/max/ultra/plus) DOIVENT figurer dans le titre
+ *    et leurs opposés sont rejetés (Pro ≠ Air, Mini ≠ Pro/Max, etc.)
+ *  - Les autres tokens de la query : au moins 50% doivent matcher (substring ok
+ *    pour les tokens courts type "m5", exact match pour les longs).
+ *  - Tri par score décroissant.
+ *
+ * Commun à tous les adapters — appeler depuis extractSearchResults ou depuis
+ * l'orchestrator avant retour.
+ */
+import type { CapturedOffer as Offer } from "./types";
+export function filterOffersByRelevance<T extends Offer>(offers: T[], query: string): T[] {
+  if (!query.trim()) return offers;
+
+  const STOPWORDS = new Set([
+    "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou",
+    "en", "pour", "avec", "sans", "the", "and", "or", "of", "in", "with",
+    "apple", // la marque est déjà implicite sur les adapters Apple
+  ]);
+  const EXCLUSIVE = new Set(["pro", "air", "max", "mini", "ultra", "plus"]);
+  const OPPOSITES: Record<string, string[]> = {
+    pro: ["air", "mini"],
+    air: ["pro", "mini", "max"],
+    mini: ["pro", "air", "max", "ultra"],
+    max: ["air", "mini"],
+    ultra: ["mini"],
+  };
+
+  const normalize = (s: string): string[] =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
+
+  const queryTokens = normalize(query);
+  if (queryTokens.length === 0) return offers;
+
+  const requiredExclusives = queryTokens.filter((t) => EXCLUSIVE.has(t));
+  const nonExclusiveTokens = queryTokens.filter((t) => !EXCLUSIVE.has(t));
+  const minRequired =
+    nonExclusiveTokens.length <= 2
+      ? nonExclusiveTokens.length
+      : Math.ceil(nonExclusiveTokens.length / 2);
+
+  const forbiddenInTitle = new Set<string>();
+  for (const exc of requiredExclusives) {
+    for (const opp of OPPOSITES[exc] ?? []) forbiddenInTitle.add(opp);
+  }
+
+  const scored = offers
+    .map((offer) => {
+      const titleTokensArr = normalize((offer.title ?? "") + " " + (offer.brand ?? ""));
+      const titleTokens = new Set(titleTokensArr);
+
+      for (const forbidden of forbiddenInTitle) {
+        if (titleTokens.has(forbidden)) return { offer, score: -1 };
+      }
+      for (const exc of requiredExclusives) {
+        if (!titleTokens.has(exc)) return { offer, score: -1 };
+      }
+
+      const matched = nonExclusiveTokens.filter((t) => {
+        if (titleTokens.has(t)) return true;
+        for (const tt of titleTokens) {
+          if (tt === t) return true;
+          if (t.length <= 3 && tt.includes(t)) return true;
+          if (t.length > 3 && tt.includes(t) && t.length >= tt.length - 2) return true;
+        }
+        return false;
+      });
+      return { offer, score: matched.length };
+    })
+    .filter((x) => x.score >= minRequired);
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.map((x) => x.offer);
+}
+
+/**
  * Retourne true si l'élément ou un de ses ancêtres a text-decoration line-through
  * (prix barré = ancien prix qu'on doit ignorer).
  */

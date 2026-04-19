@@ -4,12 +4,14 @@
  */
 import type { SiteAdapter } from "../../lib/types";
 import { coolblueAdapter } from "./coolblue";
+import { mediamarktAdapter } from "./mediamarkt";
+import { appleRefurbishedAdapter } from "./apple-refurbished";
 
 export const adapters: SiteAdapter[] = [
   coolblueAdapter,
-  // mediamarktAdapter,
+  mediamarktAdapter,
+  appleRefurbishedAdapter,
   // amazonAdapter,
-  // appleRefurbishedAdapter,
   // backmarketAdapter,
   // gomiboAdapter,
   // chappAdapter,

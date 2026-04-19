@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-import { Truck, Package, Check, Ban, Save, Edit2 } from "lucide-react";
+import { Truck, Package, Check, Ban, Save, Edit2, Sparkles } from "lucide-react";
+import SourcingSearchModal, { type SourcingSearchTarget } from "@/components/sourcing/SourcingSearchModal";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
@@ -56,6 +57,10 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<EquipmentOrderUpdate>({});
   const [saving, setSaving] = useState(false);
+  const [sourcingTarget, setSourcingTarget] = useState<SourcingSearchTarget | null>(null);
+  const [sourcingQuery, setSourcingQuery] = useState("");
+  // Map equipment_id → { total, lowest_price_cents, has_approved }
+  const [sourcingByLine, setSourcingByLine] = useState<Record<string, { total: number; lowest_price_cents: number | null; any_approved: boolean }>>({});
 
   const tableName = sourceType === 'offer' ? 'offer_equipment' : 'contract_equipment';
   const fkColumn = sourceType === 'offer' ? 'offer_id' : 'contract_id';
@@ -82,11 +87,39 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
       ]);
 
       if (eqResult.error) throw eqResult.error;
-      setEquipment((eqResult.data || []).map((eq: any) => ({
+      const equipList = (eqResult.data || []).map((eq: any) => ({
         ...eq,
         order_status: eq.order_status || 'to_order',
-      })));
+      }));
+      setEquipment(equipList);
       setSuppliers(suppResult);
+
+      // Fetch les offres de sourcing déjà collectées pour ces équipements
+      const eqIds = equipList.map((e: any) => e.id);
+      if (eqIds.length > 0) {
+        const fkForSourcing = sourceType === 'offer' ? 'offer_equipment_id' : 'contract_equipment_id';
+        const { data: sourcingData } = await supabase
+          .from('order_line_sourcing')
+          .select('id, total_cost_cents, status, ' + fkForSourcing)
+          .in(fkForSourcing, eqIds)
+          .in('status', ['proposed', 'approved', 'selected', 'ordered']);
+        const map: Record<string, { total: number; lowest_price_cents: number | null; any_approved: boolean }> = {};
+        for (const row of sourcingData ?? []) {
+          const key = (row as any)[fkForSourcing];
+          if (!key) continue;
+          if (!map[key]) map[key] = { total: 0, lowest_price_cents: null, any_approved: false };
+          map[key].total++;
+          const cost = (row as any).total_cost_cents;
+          if (typeof cost === 'number' && (map[key].lowest_price_cents === null || cost < map[key].lowest_price_cents!)) {
+            map[key].lowest_price_cents = cost;
+          }
+          const s = (row as any).status;
+          if (s === 'approved' || s === 'selected' || s === 'ordered') {
+            map[key].any_approved = true;
+          }
+        }
+        setSourcingByLine(map);
+      }
     } catch (err: any) {
       console.error('[EquipmentOrderTracker] Error fetching data:', {
         error: err,
@@ -235,6 +268,27 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
                           Commandé le {format(new Date(eq.order_date), 'dd/MM/yyyy', { locale: fr })}
                         </div>
                       )}
+                      {sourcingByLine[eq.id] && sourcingByLine[eq.id].total > 0 && (
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] gap-1 ${
+                              sourcingByLine[eq.id].any_approved
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : "border-amber-200 bg-amber-50 text-amber-700"
+                            }`}
+                            title={`${sourcingByLine[eq.id].total} offre(s) collectée(s) via sourcing`}
+                          >
+                            <Sparkles className="h-2.5 w-2.5" />
+                            {sourcingByLine[eq.id].total} sourc.
+                            {sourcingByLine[eq.id].lowest_price_cents !== null && (
+                              <span className="ml-1 font-mono">
+                                dès {formatCurrency(sourcingByLine[eq.id].lowest_price_cents! / 100)} HT
+                              </span>
+                            )}
+                          </Badge>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       {isEditing ? (
@@ -295,15 +349,41 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
                       )}
                     </TableCell>
                     <TableCell>
-                      {isEditing ? (
-                        <Button size="sm" onClick={handleSave} disabled={saving}>
-                          <Save className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        <Button size="sm" variant="ghost" onClick={() => startEditing(eq)}>
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-0.5">
+                        {isEditing ? (
+                          <Button size="sm" onClick={handleSave} disabled={saving}>
+                            <Save className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                              title="Sourcer avec l'extension"
+                              onClick={() => {
+                                setSourcingQuery(eq.title);
+                                setSourcingTarget({
+                                  type: sourceType === "offer" ? "offer_equipment" : "contract_equipment",
+                                  id: eq.id,
+                                  label: eq.title,
+                                });
+                              }}
+                            >
+                              <Sparkles className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              title="Modifier la ligne"
+                              onClick={() => startEditing(eq)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -312,6 +392,20 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
           </Table>
         </div>
       </CardContent>
+
+      {/* ── Modale de sourcing multi-fournisseurs ── */}
+      <SourcingSearchModal
+        open={!!sourcingTarget}
+        onOpenChange={(open) => { if (!open) setSourcingTarget(null); }}
+        query={sourcingQuery}
+        target={sourcingTarget ?? undefined}
+        onOfferSelected={() => {
+          setSourcingTarget(null);
+          // Rafraîchir pour afficher les éventuels indicateurs d'offre sourcée
+          fetchData();
+          onUpdate?.();
+        }}
+      />
     </Card>
   );
 };

@@ -6,6 +6,7 @@
  * dans un service worker MV3).
  */
 import { adapters } from "../content/adapters";
+import { filterOffersByRelevance } from "../lib/parse-helpers";
 import type { CapturedOffer, SearchRequest, SearchProgressMessage, SearchResponse, SiteAdapter } from "../lib/types";
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -254,12 +255,16 @@ async function searchOne(
       if (adapter.key === "coolblue" && finalOffers.some((o) => (o.raw_specs as any)?.needs_price_enrichment)) {
         finalOffers = await enrichRefurbishedPrices(finalOffers);
       }
+      // Filtre de pertinence centralisé (Pro/Air discrimination, etc.)
+      const before = finalOffers.length;
+      finalOffers = filterOffersByRelevance(finalOffers, query).slice(0, limit);
+      console.log(`[Orchestrator][${adapter.key}] (${label}) relevance: ${finalOffers.length}/${before} retained`);
+
       if (finalOffers.length === 0) {
-        lastError = "Prix introuvables après enrichissement";
+        lastError = "Aucun résultat pertinent";
         if (!isLast) continue;
         return { source: adapter.key, error: lastError };
       }
-      console.log(`[Orchestrator][${adapter.key}] (${label}) ${finalOffers.length} offres (après enrichissement)`);
       return { source: adapter.key, offers: finalOffers };
     }
   }
