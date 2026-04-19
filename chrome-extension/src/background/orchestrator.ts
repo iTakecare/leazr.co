@@ -290,6 +290,13 @@ export async function runMultiSourceSearch(
     ? searchable.filter((a) => request.sources!.includes(a.key))
     : searchable;
 
+  console.log(
+    `[Orchestrator] Total adapters=${adapters.length}, searchable=${searchable.length}, enabled=${enabled.length}`,
+    `\n  adapters: ${adapters.map((a) => a.key).join(", ")}`,
+    `\n  searchable: ${searchable.map((a) => a.key).join(", ")}`,
+    `\n  enabled: ${enabled.map((a) => a.key).join(", ")}`
+  );
+
   onProgress({ type: "search_started", sources: enabled.map((a) => a.key) });
 
   const allOffers: Array<CapturedOffer & { source: string }> = [];
