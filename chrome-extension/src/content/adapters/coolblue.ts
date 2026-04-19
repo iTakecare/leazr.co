@@ -225,41 +225,30 @@ export const coolblueAdapter: SiteAdapter = {
 function detectAppleCategory(q: string): string | null {
   const clean = q.replace(/[éèêë]/g, "e").replace(/\s+/g, " ").trim();
 
-  // MacBook Pro
-  if (/\bmacbook\s*pro\b/i.test(clean)) {
-    return "https://www.coolblue.be/fr/pc-portables/apple-macbook-pro";
-  }
   // MacBook Air
   if (/\bmacbook\s*air\b/i.test(clean)) {
-    return "https://www.coolblue.be/fr/pc-portables/apple-macbook-air";
+    return "https://www.coolblue.be/fr/macbook-air";
   }
-  // MacBook (générique)
+  // MacBook (Pro ou générique) — /fr/macbook-pro ne renvoie pas 200, on prend
+  // la page générale /fr/apple-macbook qui contient tous les MacBook
   if (/\bmacbook\b/i.test(clean)) {
-    return "https://www.coolblue.be/fr/pc-portables/apple-macbook";
+    return "https://www.coolblue.be/fr/apple-macbook";
   }
   // iPhone
   if (/\biphone\b/i.test(clean)) {
     return "https://www.coolblue.be/fr/smartphones/apple-iphone";
   }
-  // iPad Pro
-  if (/\bipad\s*pro\b/i.test(clean)) {
-    return "https://www.coolblue.be/fr/tablettes/apple-ipad-pro";
-  }
-  // iPad Air
-  if (/\bipad\s*air\b/i.test(clean)) {
-    return "https://www.coolblue.be/fr/tablettes/apple-ipad-air";
-  }
-  // iPad (générique)
+  // iPad (Pro, Air, ou générique) — on laisse le filtre de pertinence trier
   if (/\bipad\b/i.test(clean)) {
     return "https://www.coolblue.be/fr/tablettes/apple-ipad";
   }
   // Apple Watch
   if (/\bapple\s*watch\b/i.test(clean)) {
-    return "https://www.coolblue.be/fr/smartwatches/apple-watch";
+    return "https://www.coolblue.be/fr/apple-watch";
   }
   // AirPods
   if (/\bairpods\b/i.test(clean)) {
-    return "https://www.coolblue.be/fr/ecouteurs/apple-airpods";
+    return "https://www.coolblue.be/fr/ecouteurs/apple";
   }
 
   return null;

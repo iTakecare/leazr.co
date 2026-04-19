@@ -87,19 +87,12 @@ async function parseSearchHtml(
 /**
  * Fait un fetch() + parse HTML via offscreen + appelle extractSearchResults.
  */
-async function searchOne(
+async function fetchAndParse(
   adapter: SiteAdapter,
-  query: string,
+  url: string,
   limit: number,
   timeout_ms: number
-): Promise<{ source: string; offers: CapturedOffer[] } | { source: string; error: string }> {
-  if (!adapter.buildSearchUrl || !adapter.extractSearchResults) {
-    return { source: adapter.key, error: "Adapter ne supporte pas la recherche multi-source" };
-  }
-
-  const url = adapter.buildSearchUrl(query);
-  console.log(`[Orchestrator][${adapter.key}] Fetching ${url}`);
-
+): Promise<{ offers: CapturedOffer[] } | { error: string; status?: number }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout_ms);
 
@@ -112,32 +105,64 @@ async function searchOne(
         "Accept-Language": "fr-BE,fr;q=0.9,en;q=0.8,nl;q=0.7",
       },
     });
-
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      return { source: adapter.key, error: `HTTP ${response.status}` };
+      return { error: `HTTP ${response.status}`, status: response.status };
     }
 
     const html = await response.text();
     if (html.length < 500) {
-      return { source: adapter.key, error: "Réponse HTML vide/trop courte" };
+      return { error: "Réponse HTML vide/trop courte" };
     }
 
-    // Parser dans l'offscreen document
     const offers = await parseSearchHtml(html, url, adapter.key, limit);
-    if (offers.length === 0) {
-      return { source: adapter.key, error: "Aucun résultat extrait" };
-    }
-
-    return { source: adapter.key, offers };
+    return { offers };
   } catch (e: any) {
     clearTimeout(timeoutId);
-    if (e.name === "AbortError") {
-      return { source: adapter.key, error: "Timeout" };
-    }
-    return { source: adapter.key, error: e.message ?? "Erreur inconnue" };
+    if (e.name === "AbortError") return { error: "Timeout" };
+    return { error: e.message ?? "Erreur inconnue" };
   }
+}
+
+async function searchOne(
+  adapter: SiteAdapter,
+  query: string,
+  limit: number,
+  timeout_ms: number
+): Promise<{ source: string; offers: CapturedOffer[] } | { source: string; error: string }> {
+  if (!adapter.buildSearchUrl || !adapter.extractSearchResults) {
+    return { source: adapter.key, error: "Adapter ne supporte pas la recherche multi-source" };
+  }
+
+  const primaryUrl = adapter.buildSearchUrl(query);
+  console.log(`[Orchestrator][${adapter.key}] Fetching ${primaryUrl}`);
+  let result = await fetchAndParse(adapter, primaryUrl, limit, timeout_ms);
+
+  // Fallback Coolblue : si la page catégorie renvoie 404 ou 0 résultat, retomber
+  // sur la recherche libre /zoeken?query=...
+  if (
+    adapter.key === "coolblue" &&
+    "error" in result &&
+    !primaryUrl.includes("/zoeken")
+  ) {
+    const fallbackUrl = `https://www.coolblue.be/fr/zoeken?query=${encodeURIComponent(query)}`;
+    console.log(
+      `[Orchestrator][${adapter.key}] Fallback vers ${fallbackUrl} (raison: ${result.error})`
+    );
+    const fallbackResult = await fetchAndParse(adapter, fallbackUrl, limit, timeout_ms);
+    if (!("error" in fallbackResult)) {
+      result = fallbackResult;
+    }
+  }
+
+  if ("error" in result) {
+    return { source: adapter.key, error: result.error };
+  }
+  if (result.offers.length === 0) {
+    return { source: adapter.key, error: "Aucun résultat pertinent" };
+  }
+  return { source: adapter.key, offers: result.offers };
 }
 
 /**
