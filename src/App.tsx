@@ -68,6 +68,7 @@ import InvoicingPage from "@/pages/InvoicingPage";
 import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
 import InvoiceEditPage from "@/pages/InvoiceEditPage";
 import CompanyDocuments from "@/pages/CompanyDocuments";
+import ClientDocumentsPage from "@/pages/ClientDocumentsPage";
 import ClientDuplicates from "@/pages/admin/ClientDuplicates";
 import ImportHistoricalData from "@/pages/admin/ImportHistoricalData";
 import EquipmentOrders from "@/pages/admin/EquipmentOrders";
@@ -293,6 +294,7 @@ const AppRoutes = () => (
       <Route path="contracts/:id" element={<Layout><ContractDetail /></Layout>} />
       <Route path="settings" element={<Layout><Settings /></Layout>} />
       <Route path="documents" element={<Layout><CompanyDocuments /></Layout>} />
+      <Route path="client-documents" element={<Layout><ClientDocumentsPage /></Layout>} />
       <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
       <Route path="catalog/import" element={<Layout><CatalogImportPage /></Layout>} />
       <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
