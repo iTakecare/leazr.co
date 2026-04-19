@@ -1,0 +1,69 @@
+{
+  "manifest_version": 3,
+  "name": "Leazr Sourcing Helper",
+  "version": "0.1.0",
+  "description": "Capture des offres produit sur les sites fournisseurs et envoie-les dans Leazr pour le sourcing de matériel reconditionné.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_title": "Leazr Sourcing",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.coolblue.be/*",
+        "https://*.coolblue.nl/*",
+        "https://*.mediamarkt.be/*",
+        "https://*.gomibo.be/*",
+        "https://*.amazon.fr/*",
+        "https://*.amazon.de/*",
+        "https://*.amazon.nl/*",
+        "https://*.amazon.com.be/*",
+        "https://*.amazon.com/*",
+        "https://www.apple.com/be*/shop/refurbished/*",
+        "https://www.apple.com/fr*/shop/refurbished/*",
+        "https://*.backmarket.com/*",
+        "https://*.backmarket.be/*",
+        "https://*.backmarket.fr/*",
+        "https://*.chapp.be/*",
+        "https://*.dipli.com/*",
+        "https://*.gamers-outlet.be/*",
+        "https://*.lcd-phone.com/*",
+        "https://*.ingrammicro.com/*",
+        "https://*.okamac.com/*"
+      ],
+      "js": ["src/content/index.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://cifbetjefyfocafanlhv.supabase.co/*",
+    "https://*.leazr.co/*",
+    "https://leazr.co/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

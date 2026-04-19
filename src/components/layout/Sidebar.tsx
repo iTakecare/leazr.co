@@ -22,7 +22,8 @@ import {
   CheckSquare,
   Warehouse,
   Headset,
-  FolderOpen
+  FolderOpen,
+  Sparkles
 } from "lucide-react";
 import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
@@ -86,6 +87,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         items: [
           { icon: Package, label: "Catalogue", href: `${basePrefix}/admin/catalog`, moduleSlug: "catalog" },
           { icon: Truck, label: "Commandes", href: `${basePrefix}/admin/equipment-orders`, moduleSlug: "contracts", alwaysVisible: false },
+          { icon: Sparkles, label: "Sourcing", href: `${basePrefix}/admin/sourcing`, moduleSlug: "catalog", alwaysVisible: true },
           { icon: Warehouse, label: "Stock", href: `${basePrefix}/admin/stock`, moduleSlug: "contracts", alwaysVisible: false },
         ]
       },
