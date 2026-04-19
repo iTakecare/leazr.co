@@ -77,6 +77,8 @@ serve(async (req) => {
       additional_files = [],    // [{ name, content (base64), type }]
       invoice_info = {},        // { invoice_number, contract_number, dossier_number, leaser_request_number, client_name, amount }
       custom_message = "",
+      peppol_sent = false,      // facture envoyée via Peppol
+      contract_signed = false,  // contrat signé chez le bailleur
     } = await req.json();
 
     if (!leaser_email) return fail("Email du bailleur requis");
@@ -128,7 +130,7 @@ serve(async (req) => {
     const rows = [
       ["N° de facture", invoice_info.invoice_number],
       ["N° de contrat", invoice_info.contract_number],
-      ["N° de demande", invoice_info.dossier_number],
+      ["N° de demande interne", invoice_info.dossier_number],
       ["Réf. bailleur", invoice_info.leaser_request_number],
       ["Client", invoice_info.client_name],
       ["Montant facturé", invoice_info.amount ? fmtAmount(invoice_info.amount) : null],
@@ -149,6 +151,22 @@ serve(async (req) => {
       ? `<div class="note">${custom_message.replace(/\n/g, "<br>")}</div>`
       : "";
 
+    // Confirmations statut
+    const confirmHtml = `
+<div class="confirm-box">
+  <div class="confirm-title">Statut du dossier</div>
+  <div class="confirm-row">
+    <span class="confirm-icon ${contract_signed ? "ok" : "pending"}">${contract_signed ? "✅" : "⏳"}</span>
+    <span class="confirm-label">Contrat signé chez le bailleur</span>
+    <span class="confirm-status ${contract_signed ? "ok" : "pending"}">${contract_signed ? "Confirmé" : "En attente"}</span>
+  </div>
+  <div class="confirm-row">
+    <span class="confirm-icon ${peppol_sent ? "ok" : "pending"}">${peppol_sent ? "✅" : "⏳"}</span>
+    <span class="confirm-label">Facture envoyée via Peppol</span>
+    <span class="confirm-status ${peppol_sent ? "ok" : "pending"}">${peppol_sent ? "Envoyée" : "En attente"}</span>
+  </div>
+</div>`;
+
     const html = `<!DOCTYPE html><html lang="fr">
 <head><meta charset="UTF-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -168,6 +186,13 @@ table.info td{padding:9px 14px;font-size:13px}
 .docs-title{font-size:12px;font-weight:600;color:#475569;margin-bottom:8px}
 .docs-box ul{padding-left:18px;font-size:13px;color:#334155;line-height:1.7}
 .note{background:#eff6ff;border-left:3px solid #3b82f6;border-radius:4px;padding:12px 16px;font-size:13px;color:#1e40af;margin:16px 0}
+.confirm-box{border:1px solid #e2e8f0;border-radius:7px;padding:14px 18px;margin:16px 0;background:#f8fafc}
+.confirm-title{font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.confirm-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.confirm-row:last-child{border-bottom:none}
+.confirm-label{flex:1;color:#334155}
+.confirm-status.ok{color:#059669;font-weight:600;font-size:12px}
+.confirm-status.pending{color:#b45309;font-weight:600;font-size:12px}
 .ft{text-align:center;font-size:11px;color:#94a3b8;padding:16px;border-top:1px solid #f1f5f9}
 </style></head>
 <body>
@@ -177,9 +202,10 @@ table.info td{padding:9px 14px;font-size:13px}
     <p>Facture ${invoice_info.invoice_number ?? ""} — ${invoice_info.client_name ?? ""}</p>
   </div>
   <div class="bd">
-    <p>Bonjour${leaser_name ? ` <strong>${leaser_name}</strong>` : ""},</p>
+    <p>Bonjour,</p>
     <p>Veuillez trouver ci-joints les documents relatifs au dossier suivant :</p>
     <table class="info"><tbody>${rows}</tbody></table>
+    ${confirmHtml}
     ${docsListHtml}
     ${msgHtml}
     <p style="margin-top:20px">Pour toute question, répondez directement à cet email.</p>
@@ -202,10 +228,14 @@ table.info td{padding:9px 14px;font-size:13px}
       .filter(Boolean)
       .join(" — ");
 
+    // reply_to = hello@itakecare.be + les adresses CC (pour que le bailleur réponde à tous)
+    const replyToAddresses = ["hello@itakecare.be", ...validCc.filter((e) => e !== "hello@itakecare.be")];
+
     const { data: emailData, error: emailErr } = await resend.emails.send({
       from: "iTakecare <notifications@leazr.co>",
       to: [leaser_email],
       ...(validCc.length > 0 ? { cc: validCc } : {}),
+      reply_to: replyToAddresses,
       subject,
       html,
       attachments: attachments.map((a) => ({ filename: a.filename, content: a.content })),

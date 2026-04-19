@@ -325,6 +325,8 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
             amount: invoice.amount,
           },
           custom_message: customMessage.trim() || undefined,
+          peppol_sent: peppolSent,
+          contract_signed: contractSigned,
         },
       });
 
