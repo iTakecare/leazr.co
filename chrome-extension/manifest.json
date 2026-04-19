@@ -51,9 +51,7 @@
     {
       "matches": [
         "https://*.leazr.co/*",
-        "https://leazr.co/*",
-        "http://localhost:*/*",
-        "http://127.0.0.1:*/*"
+        "https://leazr.co/*"
       ],
       "js": ["src/content/leazr-bridge.ts"],
       "run_at": "document_start"
@@ -87,9 +85,7 @@
   "externally_connectable": {
     "matches": [
       "https://*.leazr.co/*",
-      "https://leazr.co/*",
-      "http://localhost:*/*",
-      "http://127.0.0.1:*/*"
+      "https://leazr.co/*"
     ]
   },
   "web_accessible_resources": [
