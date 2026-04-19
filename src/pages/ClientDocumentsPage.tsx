@@ -128,10 +128,22 @@ const STATUS_CONFIG = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtSize(bytes: number) {
+function fmtSize(bytes: number | null | undefined) {
+  if (bytes == null || isNaN(bytes)) return "—";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function safeFmtDate(value: string | null | undefined, fmt = "dd MMM yyyy") {
+  if (!value) return "—";
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, fmt, { locale: fr });
+  } catch {
+    return "—";
+  }
 }
 
 function docTypeLabel(type: string) {
@@ -167,8 +179,9 @@ function groupDocs(docs: DocWithOffer[]): ClientGroup[] {
   for (const c of clientMap.values()) {
     c.types.sort((a, b) => {
       if (b.docs.length !== a.docs.length) return b.docs.length - a.docs.length;
-      return (ALL_DOC_TYPES[a.document_type] ?? a.document_type)
-        .localeCompare(ALL_DOC_TYPES[b.document_type] ?? b.document_type);
+      const aLabel = (ALL_DOC_TYPES[a.document_type] ?? a.document_type ?? "") as string;
+      const bLabel = (ALL_DOC_TYPES[b.document_type] ?? b.document_type ?? "") as string;
+      return aLabel.localeCompare(bLabel);
     });
   }
 
@@ -827,7 +840,7 @@ const ClientDocumentsPage: React.FC = () => {
 
                                             {/* Date */}
                                             <span className="text-xs text-muted-foreground w-20 text-right shrink-0 hidden lg:block">
-                                              {format(new Date(doc.created_at), "dd MMM yyyy", { locale: fr })}
+                                              {safeFmtDate(doc.created_at)}
                                             </span>
 
                                             {/* Download */}
@@ -955,7 +968,7 @@ const ClientDocumentsPage: React.FC = () => {
                     )}
                     {uploadOffers.map((o) => (
                       <SelectItem key={o.id} value={o.id}>
-                        {o.dossier_number ?? `Demande du ${format(new Date(o.created_at), "dd/MM/yyyy")}`}
+                        {o.dossier_number ?? `Demande du ${safeFmtDate(o.created_at, "dd/MM/yyyy")}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1024,8 +1037,8 @@ const ClientDocumentsPage: React.FC = () => {
               {previewDoc && (
                 <div className="flex items-center justify-between gap-2 mt-0.5">
                   <p className="text-xs text-muted-foreground truncate">
-                    {docTypeLabel(previewDoc.document_type)} · {fmtSize(previewDoc.file_size)} ·{" "}
-                    {format(new Date(previewDoc.created_at), "dd MMM yyyy", { locale: fr })}
+                    {docTypeLabel(previewDoc.document_type ?? "other")} · {fmtSize(previewDoc.file_size)} ·{" "}
+                    {safeFmtDate(previewDoc.created_at)}
                     {previewDoc.client_name && ` · ${previewDoc.client_name}`}
                   </p>
                   <span className="text-xs font-medium text-muted-foreground shrink-0 tabular-nums">
