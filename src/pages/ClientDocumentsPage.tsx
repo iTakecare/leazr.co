@@ -342,7 +342,7 @@ const ClientDocumentsPage: React.FC = () => {
     };
   }, [docs, selectedClientId]);
 
-  // ── Client doc counts ─────────────────────────────────────────────────────
+  // ── Client doc counts + date du dernier doc par client ───────────────────
   const clientDocCounts = React.useMemo(() => {
     const counts: Record<string, number> = {};
     docs.forEach((d) => {
@@ -352,12 +352,49 @@ const ClientDocumentsPage: React.FC = () => {
     return counts;
   }, [docs]);
 
-  const clientsWithDocs = React.useMemo(() =>
-    clients
-      .filter((c) => clientDocCounts[c.id] > 0)
-      .sort((a, b) => (clientDocCounts[b.id] ?? 0) - (clientDocCounts[a.id] ?? 0)),
-    [clients, clientDocCounts]
-  );
+  const clientLastDocAt = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const d of docs) {
+      const key = d.client_id ?? "__unknown__";
+      const ts = d.created_at ? new Date(d.created_at).getTime() : 0;
+      if (!isNaN(ts) && ts > (map[key] ?? 0)) map[key] = ts;
+    }
+    return map;
+  }, [docs]);
+
+  // ── Tri de la liste clients ───────────────────────────────────────────────
+  type ClientSortMode = "activity" | "recent" | "name_asc" | "name_desc" | "docs_desc";
+  const [clientSortMode, setClientSortMode] = useState<ClientSortMode>("activity");
+
+  const clientLabel = (c: Client) =>
+    (c.name || c.company || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || c.id).toString();
+
+  const clientsWithDocs = React.useMemo(() => {
+    const filtered = clients.filter((c) => clientDocCounts[c.id] > 0);
+    const arr = [...filtered];
+    switch (clientSortMode) {
+      case "activity":
+        arr.sort((a, b) => (clientLastDocAt[b.id] ?? 0) - (clientLastDocAt[a.id] ?? 0));
+        break;
+      case "recent":
+        arr.sort((a, b) => {
+          const ta = a.created_at ? new Date(a.created_at as any).getTime() : 0;
+          const tb = b.created_at ? new Date(b.created_at as any).getTime() : 0;
+          return tb - ta;
+        });
+        break;
+      case "name_asc":
+        arr.sort((a, b) => clientLabel(a).localeCompare(clientLabel(b), "fr", { sensitivity: "base" }));
+        break;
+      case "name_desc":
+        arr.sort((a, b) => clientLabel(b).localeCompare(clientLabel(a), "fr", { sensitivity: "base" }));
+        break;
+      case "docs_desc":
+        arr.sort((a, b) => (clientDocCounts[b.id] ?? 0) - (clientDocCounts[a.id] ?? 0));
+        break;
+    }
+    return arr;
+  }, [clients, clientDocCounts, clientLastDocAt, clientSortMode]);
 
   // ── Tree toggles ──────────────────────────────────────────────────────────
   const toggleClient = (cKey: string) => {
@@ -620,11 +657,23 @@ const ClientDocumentsPage: React.FC = () => {
             {/* ── Left panel ──────────────────────────────────────────── */}
             <div className="w-60 shrink-0">
               <Card className="sticky top-4">
-                <CardHeader className="pb-2 pt-4 px-4">
+                <CardHeader className="pb-2 pt-4 px-4 space-y-2">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Users className="h-4 w-4 text-indigo-600" />
                     Clients
                   </CardTitle>
+                  <Select value={clientSortMode} onValueChange={(v) => setClientSortMode(v as any)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Trier par…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="activity" className="text-xs">Activité récente</SelectItem>
+                      <SelectItem value="recent" className="text-xs">Client récent</SelectItem>
+                      <SelectItem value="name_asc" className="text-xs">Nom (A → Z)</SelectItem>
+                      <SelectItem value="name_desc" className="text-xs">Nom (Z → A)</SelectItem>
+                      <SelectItem value="docs_desc" className="text-xs">Plus de documents</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </CardHeader>
                 <CardContent className="px-2 pb-4">
                   <button
