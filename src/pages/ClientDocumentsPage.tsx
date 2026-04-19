@@ -383,29 +383,51 @@ const ClientDocumentsPage: React.FC = () => {
 
   const previewDoc = previewIdx !== null ? orderedDocs[previewIdx] ?? null : null;
 
+  // Référence pour pouvoir révoquer le blob URL précédent lors du changement de doc
+  const lastBlobUrlRef = useRef<string | null>(null);
+
   const loadPreviewUrl = useCallback(async (doc: DocWithOffer) => {
+    // Révoquer le précédent blob URL pour éviter les fuites mémoire
+    if (lastBlobUrlRef.current) {
+      URL.revokeObjectURL(lastBlobUrlRef.current);
+      lastBlobUrlRef.current = null;
+    }
     setPreviewUrl(null);
     setPreviewLoading(true);
     try {
-      const { data, error } = await supabase.storage
+      // Télécharger le fichier en blob → créer un URL de blob local (same-origin)
+      // évite les blocages X-Frame-Options / CSP sur les PDFs dans les iframes.
+      const { data: blob, error } = await supabase.storage
         .from("offer-documents")
-        .createSignedUrl(doc.file_path, 3600);
+        .download(doc.file_path);
       if (error) {
-        console.error("createSignedUrl error:", error, "path:", doc.file_path);
+        console.error("download error:", error, "path:", doc.file_path);
         toast.error(`Aperçu impossible : ${error.message}`);
         return;
       }
-      if (!data?.signedUrl) {
-        toast.error("URL d'aperçu introuvable");
+      if (!blob) {
+        toast.error("Fichier introuvable");
         return;
       }
-      setPreviewUrl(data.signedUrl);
+      const url = URL.createObjectURL(blob);
+      lastBlobUrlRef.current = url;
+      setPreviewUrl(url);
     } catch (e: any) {
       console.error("Preview load exception:", e);
       toast.error(`Erreur aperçu : ${e.message ?? e}`);
     } finally {
       setPreviewLoading(false);
     }
+  }, []);
+
+  // Cleanup du blob URL à la fermeture ou démontage
+  useEffect(() => {
+    return () => {
+      if (lastBlobUrlRef.current) {
+        URL.revokeObjectURL(lastBlobUrlRef.current);
+        lastBlobUrlRef.current = null;
+      }
+    };
   }, []);
 
   const handlePreview = async (doc: DocWithOffer) => {
@@ -415,7 +437,14 @@ const ClientDocumentsPage: React.FC = () => {
     await loadPreviewUrl(doc);
   };
 
-  const closePreview = () => { setPreviewIdx(null); setPreviewUrl(null); };
+  const closePreview = () => {
+    setPreviewIdx(null);
+    setPreviewUrl(null);
+    if (lastBlobUrlRef.current) {
+      URL.revokeObjectURL(lastBlobUrlRef.current);
+      lastBlobUrlRef.current = null;
+    }
+  };
 
   const goPrev = useCallback(() => {
     if (previewIdx === null) return;
