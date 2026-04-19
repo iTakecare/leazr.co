@@ -47,6 +47,16 @@
       ],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.leazr.co/*",
+        "https://leazr.co/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*"
+      ],
+      "js": ["src/content/leazr-bridge.ts"],
+      "run_at": "document_start"
     }
   ],
   "permissions": [
@@ -58,8 +68,29 @@
   "host_permissions": [
     "https://cifbetjefyfocafanlhv.supabase.co/*",
     "https://*.leazr.co/*",
-    "https://leazr.co/*"
+    "https://leazr.co/*",
+    "https://*.coolblue.be/*",
+    "https://*.coolblue.nl/*",
+    "https://*.mediamarkt.be/*",
+    "https://*.gomibo.be/*",
+    "https://*.amazon.fr/*",
+    "https://*.amazon.de/*",
+    "https://*.amazon.nl/*",
+    "https://*.amazon.com.be/*",
+    "https://www.apple.com/*",
+    "https://*.backmarket.com/*",
+    "https://*.backmarket.be/*",
+    "https://*.chapp.be/*",
+    "https://*.gamers-outlet.be/*"
   ],
+  "externally_connectable": {
+    "matches": [
+      "https://*.leazr.co/*",
+      "https://leazr.co/*",
+      "http://localhost:*/*",
+      "http://127.0.0.1:*/*"
+    ]
+  },
   "web_accessible_resources": [
     {
       "resources": ["icons/*.png"],

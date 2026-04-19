@@ -74,14 +74,46 @@ export type AdapterResult =
 export interface SiteAdapter {
   /** Nom du site (debug, telemetry) */
   name: string;
-  /** Retourne true si cet adapter gère cette URL */
+  /** Clé stable utilisée pour le mapping côté Leazr (correspond à suppliers.sourcing_adapter) */
+  key: string;
+  /** Nom affiché dans la modale de résultats (jamais anonymisé côté admin) */
+  displayName: string;
+  /** Retourne true si cet adapter gère cette URL (utilisé par le content script) */
   matches: (url: URL) => boolean;
   /** Détecte si la page courante est une page produit (vs liste/home) */
   isProductPage: (doc: Document, url: URL) => boolean;
   /** Extrait l'offre depuis la page produit courante */
   extract: (doc: Document, url: URL) => AdapterResult;
-  /** (Optionnel) Extraction batch depuis une page de résultats */
-  extractList?: (doc: Document, url: URL) => CapturedOffer[];
+
+  /** [Multi-source search] construit l'URL de la page de résultats pour une requête */
+  buildSearchUrl?: (query: string) => string;
+  /** [Multi-source search] extrait les N premiers résultats d'une page de listing */
+  extractSearchResults?: (doc: Document, url: URL, limit?: number) => CapturedOffer[];
+}
+
+/** Requête de recherche envoyée depuis Leazr à l'extension */
+export interface SearchRequest {
+  type: "multi_source_search";
+  query: string;
+  limit_per_source?: number;       // top N par source (défaut 3)
+  timeout_ms?: number;              // timeout global (défaut 20000)
+  sources?: string[];               // clés d'adapters à interroger (toutes si non spécifié)
+}
+
+/** Progression envoyée par l'extension au fur et à mesure */
+export type SearchProgressMessage =
+  | { type: "search_started"; sources: string[] }
+  | { type: "source_started"; source: string }
+  | { type: "source_result"; source: string; offers: CapturedOffer[] }
+  | { type: "source_failed"; source: string; error: string }
+  | { type: "search_completed"; total_offers: number; duration_ms: number };
+
+/** Réponse finale à un sendMessage simple (non-streaming) */
+export interface SearchResponse {
+  success: boolean;
+  offers: Array<CapturedOffer & { source: string }>;
+  errors: Array<{ source: string; error: string }>;
+  duration_ms: number;
 }
 
 /** Messages entre content script / popup / background via chrome.runtime */
@@ -91,4 +123,6 @@ export type ExtensionMessage =
   | { type: "submit_offer"; offer: CapturedOffer; notes?: string }
   | { type: "context_updated"; context: SourcingContext | null }
   | { type: "auth_changed"; profile: LeazrProfile | null }
-  | { type: "ping" };
+  | { type: "ping" }
+  | { type: "handshake" }
+  | SearchRequest;

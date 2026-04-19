@@ -22,6 +22,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Search, Sparkles, Loader2, Package, CheckCircle2, Clock, XCircle, ExternalLink, Link2, Chrome } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import SourcingSearchModal from "@/components/sourcing/SourcingSearchModal";
+import { detectExtension } from "@/services/sourcing/extensionBridge";
 
 interface PendingItem {
   id: string;
@@ -48,6 +50,13 @@ const SourcingOptimizerPage: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
   const [loadingPending, setLoadingPending] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalQuery, setModalQuery] = useState("");
+  const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    detectExtension().then((info) => setExtensionInstalled(info.installed));
+  }, []);
 
   const loadPending = async () => {
     setLoadingPending(true);
@@ -73,18 +82,17 @@ const SourcingOptimizerPage: React.FC = () => {
     loadPending();
   }, []);
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!query.trim()) {
       toast.error("Entrez un terme de recherche");
       return;
     }
-    setSearching(true);
-    try {
-      // À implémenter prochaine session : edge function sourcing-search
-      toast.info("La recherche multi-sources temps réel arrive prochainement");
-    } finally {
-      setSearching(false);
+    if (extensionInstalled === false) {
+      toast.error("Extension Chrome non installée — nécessaire pour la recherche multi-source");
+      return;
     }
+    setModalQuery(query.trim());
+    setModalOpen(true);
   };
 
   return (
@@ -101,11 +109,23 @@ const SourcingOptimizerPage: React.FC = () => {
               Recherchez en temps réel les meilleures offres de matériel reconditionné chez vos fournisseurs
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Chrome className="h-4 w-4" />
-              Installer l'extension
-            </Button>
+          <div className="flex gap-2 items-center">
+            {extensionInstalled === true ? (
+              <Badge variant="outline" className="gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-700">
+                <CheckCircle2 className="h-3 w-3" />
+                Extension connectée
+              </Badge>
+            ) : extensionInstalled === false ? (
+              <Button variant="outline" size="sm" className="gap-2">
+                <Chrome className="h-4 w-4" />
+                Installer l'extension
+              </Button>
+            ) : (
+              <Badge variant="outline" className="gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Détection…
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -145,13 +165,15 @@ const SourcingOptimizerPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* MVP placeholder — résultats de recherche arriveront ici */}
-        <Alert className="mb-6 border-amber-200 bg-amber-50">
-          <AlertDescription className="text-sm">
-            <strong>🚧 MVP en cours :</strong> la recherche multi-sources temps réel arrive dans la prochaine itération.
-            Pour l'instant, tu peux déjà collecter des offres via l'extension Chrome — elles apparaîtront ci-dessous.
-          </AlertDescription>
-        </Alert>
+        {extensionInstalled === false && (
+          <Alert className="mb-6 border-amber-200 bg-amber-50">
+            <AlertDescription className="text-sm">
+              <strong>Extension Chrome non détectée.</strong> Pour utiliser la recherche multi-fournisseurs en temps réel,
+              installe l'extension Leazr Sourcing Helper. Tu peux quand même collecter manuellement des offres via
+              un clic-droit ou le bouton "Coller URL".
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Offres collectées (via extension principalement pour l'instant) */}
         <Card>
@@ -226,6 +248,16 @@ const SourcingOptimizerPage: React.FC = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Modale recherche multi-source */}
+        <SourcingSearchModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          query={modalQuery}
+          onOfferSelected={() => {
+            loadPending(); // refresh la liste des offres collectées
+          }}
+        />
       </Container>
     </PageTransition>
   );
