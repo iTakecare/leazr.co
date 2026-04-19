@@ -138,6 +138,66 @@ async function fetchAndParse(
   }
 }
 
+/**
+ * Pour les offres Coolblue refurb qui ont needs_price_enrichment, fetch
+ * la page détail et extrait le prix via offscreen.
+ */
+async function enrichRefurbishedPrices(offers: CapturedOffer[]): Promise<CapturedOffer[]> {
+  const toEnrich = offers.filter((o) => (o.raw_specs as any)?.needs_price_enrichment);
+  if (toEnrich.length === 0) return offers;
+
+  console.log(`[Orchestrator] Enrichissement de ${toEnrich.length} prix refurb…`);
+
+  await ensureOffscreenDocument();
+
+  const enriched = await Promise.allSettled(
+    toEnrich.map(async (offer) => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const resp = await fetch(offer.url, {
+          signal: controller.signal,
+          credentials: "omit",
+          headers: {
+            Accept: "text/html",
+            "Accept-Language": "fr-BE,fr;q=0.9",
+            "User-Agent":
+              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+          },
+        });
+        clearTimeout(timeoutId);
+        if (!resp.ok) return { url: offer.url, price_cents: null };
+        const html = await resp.text();
+        const result = await sendToOffscreen<{ price_cents: number | null }>({
+          type: "offscreen_enrich_coolblue_price",
+          html,
+        });
+        return { url: offer.url, price_cents: result.price_cents };
+      } catch (e) {
+        console.warn(`[Orchestrator] Enrich failed for ${offer.url}:`, e);
+        return { url: offer.url, price_cents: null };
+      }
+    })
+  );
+
+  // Merger les prix dans les offres originales
+  const priceMap = new Map<string, number>();
+  for (const r of enriched) {
+    if (r.status === "fulfilled" && r.value.price_cents) {
+      priceMap.set(r.value.url, r.value.price_cents);
+    }
+  }
+
+  return offers
+    .map((o) => {
+      const p = priceMap.get(o.url);
+      if (p) return { ...o, price_cents: p };
+      return o;
+    })
+    // Filtrer les offres dont on n'a pas pu récupérer le prix
+    .filter((o) => o.price_cents > 0);
+}
+
 async function searchOne(
   adapter: SiteAdapter,
   query: string,
@@ -179,9 +239,18 @@ async function searchOne(
       console.log(`[Orchestrator][${adapter.key}] (${label}) 0 résultats pertinents`);
       if (!isLast) continue;
     } else {
-      // Succès : on retourne les offres
-      console.log(`[Orchestrator][${adapter.key}] (${label}) ${result.offers.length} offres`);
-      return { source: adapter.key, offers: result.offers };
+      // Succès : enrichir les prix si nécessaire (Coolblue refurb)
+      let finalOffers = result.offers;
+      if (adapter.key === "coolblue" && finalOffers.some((o) => (o.raw_specs as any)?.needs_price_enrichment)) {
+        finalOffers = await enrichRefurbishedPrices(finalOffers);
+      }
+      if (finalOffers.length === 0) {
+        lastError = "Prix introuvables après enrichissement";
+        if (!isLast) continue;
+        return { source: adapter.key, error: lastError };
+      }
+      console.log(`[Orchestrator][${adapter.key}] (${label}) ${finalOffers.length} offres (après enrichissement)`);
+      return { source: adapter.key, offers: finalOffers };
     }
   }
 

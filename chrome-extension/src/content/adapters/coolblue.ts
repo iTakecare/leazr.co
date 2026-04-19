@@ -157,8 +157,21 @@ export const coolblueAdapter: SiteAdapter = {
     // Récupérer la query depuis l'URL pour pouvoir filtrer les résultats par pertinence
     const query = decodeURIComponent(url.searchParams.get("query") ?? "");
 
-    // ═══ Stratégie 1 : JSON-LD ItemList (le plus fiable) ═══
-    const fromJsonLd = extractFromJsonLdItemList(doc, limit * 4); // on sur-récupère pour filtrer ensuite
+    // ═══ Stratégie 0 : page "Deuxième Chance" catégorie ═══
+    // Coolblue ne met PAS les prix dans le SSR de cette page (React Server
+    // Components chargés en JS). On extrait titre + URL + image + ID et on
+    // laisse l'orchestrator enrichir les prix via les pages détail.
+    if (/\/deuxieme-chance\//.test(url.pathname)) {
+      const offers = extractRefurbishedListCards(doc, limit);
+      const filtered = filterByRelevance(offers, query).slice(0, limit);
+      console.log(
+        `[Leazr][coolblue] ${filtered.length}/${offers.length} offres refurb extraites (prix à enrichir)`
+      );
+      return filtered;
+    }
+
+    // ═══ Stratégie 1 : JSON-LD ItemList (le plus fiable, page /zoeken) ═══
+    const fromJsonLd = extractFromJsonLdItemList(doc, limit * 4);
     if (fromJsonLd.length > 0) {
       const filtered = filterByRelevance(fromJsonLd, query).slice(0, limit);
       console.log(
@@ -398,6 +411,117 @@ function filterByRelevance(offers: CapturedOffer[], query: string): CapturedOffe
 
   scored.sort((a, b) => b.score - a.score);
   return scored.map((x) => x.offer);
+}
+
+/**
+ * Extraction spécifique aux pages /fr/deuxieme-chance/<category> :
+ * - pas de JSON-LD ItemList
+ * - pas de prix en SSR (hydratés en JS)
+ * → on récupère titre + url + image + id et on marque price_cents = 0
+ *   avec raw_specs.needs_price_enrichment = true.
+ */
+function extractRefurbishedListCards(doc: Document, limit: number): CapturedOffer[] {
+  const html = doc.body?.innerHTML ?? "";
+  // Récupérer les IDs produit uniques
+  const idRegex = /\/fr\/produit-deuxieme-chance\/(\d+)/g;
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = idRegex.exec(html)) !== null) {
+    if (!seen.has(m[1])) {
+      seen.add(m[1]);
+      ids.push(m[1]);
+    }
+  }
+
+  const offers: CapturedOffer[] = [];
+  for (const id of ids.slice(0, limit * 3)) {
+    if (offers.length >= limit) break;
+
+    // Pour chaque ID, chercher l'anchor + le texte titre + l'image
+    const anchors = Array.from(
+      doc.querySelectorAll<HTMLAnchorElement>(
+        `a[href*="/fr/produit-deuxieme-chance/${id}"]`
+      )
+    );
+    if (anchors.length === 0) continue;
+
+    // Titre : chercher le plus long texte dans les anchors ou leurs parents
+    let title = "";
+    for (const a of anchors) {
+      const text = (a.textContent ?? "").trim();
+      if (text.length > title.length && text.length < 200) title = text;
+    }
+    // Fallback : alt de l'image dans la card
+    if (!title) {
+      for (const a of anchors) {
+        const img = a.querySelector<HTMLImageElement>("img");
+        if (img?.alt && img.alt.length > 5) {
+          title = img.alt;
+          break;
+        }
+      }
+    }
+    if (!title) continue;
+
+    // Image : premier <img> trouvé dans les anchors
+    let image_url: string | undefined;
+    for (const a of anchors) {
+      const img = a.querySelector<HTMLImageElement>("img");
+      if (img?.src) {
+        image_url = img.src;
+        break;
+      }
+    }
+
+    offers.push({
+      title,
+      price_cents: 0, // à enrichir
+      currency: "EUR",
+      condition: "grade_a", // toutes les pages /deuxieme-chance/ = reconditionné
+      url: `https://www.coolblue.be/fr/produit-deuxieme-chance/${id}`,
+      image_url,
+      stock_status: "unknown",
+      captured_host: "www.coolblue.be",
+      raw_specs: {
+        is_deuxieme_chance: true,
+        from_refurb_list: true,
+        needs_price_enrichment: true,
+        product_id: id,
+      },
+    });
+  }
+
+  return offers;
+}
+
+/**
+ * Enrichit une offre en fetchant sa page détail et en extrayant le prix
+ * depuis le payload React Server Components Next.js (qui contient bien le
+ * prix, contrairement à la page liste).
+ *
+ * Appelée par l'orchestrator pour les offres marquées needs_price_enrichment.
+ */
+export function enrichCoolbluePriceFromDetail(html: string): { price_cents: number | null } {
+  // Pattern 1 : JSON RSC "includingVat":1842
+  const m1 = html.match(/"includingVat":(\d+(?:\.\d+)?)/);
+  if (m1) {
+    return { price_cents: Math.round(parseFloat(m1[1]) * 100) };
+  }
+  // Pattern 2 : JSON RSC "price":1842
+  const m2 = html.match(/"currentPrice":\[[^\]]*"price":(\d+(?:\.\d+)?)/);
+  if (m2) {
+    return { price_cents: Math.round(parseFloat(m2[1]) * 100) };
+  }
+  // Pattern 3 : HTML rendu avec commentaires <!-- --> entre chiffres
+  // Exemple: <span>€ <!-- -->1.842<!-- -->,-</span>
+  const m3 = html.match(/€\s*(?:<!--[^>]*-->)?\s*([\d.,]+)\s*(?:<!--[^>]*-->)?\s*,-/);
+  if (m3) {
+    const cleaned = m3[1].replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(cleaned);
+    if (!isNaN(n)) return { price_cents: Math.round(n * 100) };
+  }
+  return { price_cents: null };
 }
 
 /** Extrait les offres depuis le JSON-LD ItemList (Schema.org) */
