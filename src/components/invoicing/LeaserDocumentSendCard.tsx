@@ -37,6 +37,10 @@ import {
   FileBadge,
   Info,
   RefreshCw,
+  Lightbulb,
+  ChevronDown,
+  ChevronRight,
+  FolderKanban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -66,9 +70,16 @@ interface ContractSnapshot {
   contract_number: string | null;
 }
 interface OfferSnapshot {
+  client_id: string | null;
   dossier_number: string | null;
   leaser_request_number: string | null;
   client_name: string | null;
+}
+
+interface OtherDoc {
+  doc: OfferDocument;
+  dossier_number: string | null;
+  offer_id: string;
 }
 
 interface LeaserDocumentSendCardProps {
@@ -89,6 +100,8 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
   const [contractData, setContractData] = useState<ContractSnapshot | null>(null);
   const [offerData, setOfferData] = useState<OfferSnapshot | null>(null);
   const [offerDocs, setOfferDocs] = useState<OfferDocument[]>([]);
+  const [otherClientDocs, setOtherClientDocs] = useState<OtherDoc[]>([]);
+  const [showOtherDocs, setShowOtherDocs] = useState(false);
   const [leaserEmail, setLeaserEmail] = useState("");
   const [dataLoading, setDataLoading] = useState(true);
 
@@ -150,17 +163,44 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
         if (contract.offer_id) {
           const { data: offer } = await supabase
             .from("offers")
-            .select("dossier_number, leaser_request_number, client_name")
+            .select("client_id, dossier_number, leaser_request_number, client_name")
             .eq("id", contract.offer_id)
             .single();
           if (offer) setOfferData(offer as OfferSnapshot);
 
-          // Offer documents
+          // Offer documents (current offer)
           const docs = await getOfferDocuments(contract.offer_id);
           const approved = docs.filter((d) => d.status === "approved" || d.status === "pending");
           setOfferDocs(approved);
           // Pre-select all by default
           setSelectedDocIds(new Set(approved.map((d) => d.id)));
+
+          // Documents d'autres demandes du même client
+          if (offer?.client_id) {
+            const { data: otherOffers } = await supabase
+              .from("offers")
+              .select("id, dossier_number")
+              .eq("client_id", offer.client_id)
+              .neq("id", contract.offer_id);
+
+            if (otherOffers && otherOffers.length > 0) {
+              const allOther: OtherDoc[] = [];
+              for (const other of otherOffers) {
+                const otherDocs = await getOfferDocuments(other.id);
+                const otherApproved = otherDocs.filter(
+                  (d) => d.status === "approved" || d.status === "pending"
+                );
+                allOther.push(
+                  ...otherApproved.map((doc) => ({
+                    doc,
+                    dossier_number: other.dossier_number as string | null,
+                    offer_id: other.id,
+                  }))
+                );
+              }
+              setOtherClientDocs(allOther);
+            }
+          }
         }
       } catch (e) {
         console.error("Erreur chargement données bailleur:", e);
@@ -409,6 +449,70 @@ const LeaserDocumentSendCard: React.FC<LeaserDocumentSendCardProps> = ({
                 </div>
               )}
             </div>
+
+            {/* ── Suggestions : docs d'autres demandes du même client ─── */}
+            {otherClientDocs.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setShowOtherDocs((v) => !v)}
+                  className="w-full flex items-center gap-1.5 mb-2 text-left"
+                >
+                  {showOtherDocs
+                    ? <ChevronDown className="h-3.5 w-3.5 text-amber-600" />
+                    : <ChevronRight className="h-3.5 w-3.5 text-amber-600" />
+                  }
+                  <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+                  <span className="text-xs font-semibold text-amber-700 flex-1">
+                    Documents d'autres demandes de ce client
+                  </span>
+                  <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">
+                    {otherClientDocs.length} disponible{otherClientDocs.length > 1 ? "s" : ""}
+                  </span>
+                </button>
+
+                {showOtherDocs && (
+                  <div className="space-y-1 max-h-48 overflow-y-auto pr-1 border border-amber-100 rounded-lg p-1.5 bg-amber-50/30">
+                    {/* Group by dossier */}
+                    {Array.from(
+                      new Map(otherClientDocs.map((o) => [o.offer_id, o.dossier_number])).entries()
+                    ).map(([offerId, dossier]) => {
+                      const docsForOffer = otherClientDocs.filter((o) => o.offer_id === offerId);
+                      return (
+                        <div key={offerId}>
+                          {/* Demande header */}
+                          <div className="flex items-center gap-1.5 px-2 py-1 text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                            <FolderKanban className="h-3 w-3 text-amber-500" />
+                            {dossier ?? "Demande sans numéro"}
+                          </div>
+                          {docsForOffer.map(({ doc }) => (
+                            <label
+                              key={doc.id}
+                              className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md cursor-pointer transition-colors text-xs ${
+                                selectedDocIds.has(doc.id)
+                                  ? "bg-amber-100 border border-amber-300"
+                                  : "bg-white border border-transparent hover:border-amber-200"
+                              }`}
+                            >
+                              <Checkbox
+                                checked={selectedDocIds.has(doc.id)}
+                                onCheckedChange={() => toggleDoc(doc.id)}
+                                className="h-3.5 w-3.5"
+                              />
+                              <span className="truncate flex-1">
+                                {DOCUMENT_TYPES[doc.document_type] ?? doc.document_type}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                                {(doc.file_size / 1024).toFixed(0)} KB
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── Pièces jointes supplémentaires ─────────────────────── */}
             <div>
