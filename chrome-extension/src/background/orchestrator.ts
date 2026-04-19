@@ -10,7 +10,7 @@ import type { CapturedOffer, SearchRequest, SearchProgressMessage, SearchRespons
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 const DEFAULT_LIMIT_PER_SOURCE = 3;
-const OFFSCREEN_DOCUMENT_PATH = "src/offscreen/offscreen.html";
+const OFFSCREEN_DOCUMENT_PATH = "offscreen.html";
 
 let offscreenCreating: Promise<void> | null = null;
 

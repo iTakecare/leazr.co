@@ -13,13 +13,11 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     rollupOptions: {
-      // Deux HTML à bundler :
-      //  - popup : référencé par manifest.action.default_popup
-      //  - offscreen : créé dynamiquement via chrome.offscreen.createDocument()
-      // On doit déclarer les deux explicitement ici pour que Vite les émette.
+      // Les deux HTML sont maintenant à la racine pour simplifier le chemin
+      // dans le manifest (popup.html / offscreen.html au lieu de src/...).
       input: {
-        popup: "src/popup/index.html",
-        offscreen: "src/offscreen/offscreen.html",
+        popup: "popup.html",
+        offscreen: "offscreen.html",
       },
     },
   },
