@@ -131,16 +131,24 @@ export const coolblueAdapter: SiteAdapter = {
     };
   },
 
-  buildSearchUrl: (query: string) => {
+  buildSearchUrls: (query: string) => {
     const normalized = query.trim().toLowerCase();
-
-    // Produits Apple : la recherche libre Coolblue est très bruitée. On redirige
-    // vers la page catégorie filtrée qui est bien plus pertinente.
-    const appleCategoryUrl = detectAppleCategory(normalized);
-    if (appleCategoryUrl) return appleCategoryUrl;
-
     const q = encodeURIComponent(query.trim());
-    return `https://www.coolblue.be/fr/zoeken?query=${q}`;
+
+    const candidates: string[] = [];
+
+    // 1. Priorité absolue : page catégorie "Deuxième Chance"
+    const refurbCategoryUrl = detectAppleRefurbishedCategory(normalized);
+    if (refurbCategoryUrl) candidates.push(refurbCategoryUrl);
+
+    // 2. Fallback : page catégorie neuf (si deuxieme chance vide ou inexistante)
+    const newCategoryUrl = detectAppleCategory(normalized);
+    if (newCategoryUrl) candidates.push(newCategoryUrl);
+
+    // 3. Dernier recours : recherche libre /zoeken
+    candidates.push(`https://www.coolblue.be/fr/zoeken?query=${q}`);
+
+    return candidates;
   },
 
   extractSearchResults: (doc, url, limit = 5): CapturedOffer[] => {
@@ -222,6 +230,46 @@ export const coolblueAdapter: SiteAdapter = {
  * (ex: ?processor=apple-m5). On ne les ajoute pas ici (difficile à généraliser),
  * on laisse le filtre de pertinence client s'en charger.
  */
+/**
+ * Retourne l'URL Coolblue Deuxième Chance correspondant au produit Apple
+ * demandé, ou null s'il n'y a pas de page deuxieme chance dédiée.
+ * URLs vérifiées sur coolblue.be/fr.
+ */
+function detectAppleRefurbishedCategory(q: string): string | null {
+  const clean = q.replace(/[éèêë]/g, "e").replace(/\s+/g, " ").trim();
+
+  // MacBook Pro (page dédiée)
+  if (/\bmacbook\s*pro\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/deuxieme-chance/apple-macbook-pro";
+  }
+  // MacBook Air (page dédiée)
+  if (/\bmacbook\s*air\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/deuxieme-chance/apple-macbook-air";
+  }
+  // MacBook générique
+  if (/\bmacbook\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/deuxieme-chance/apple-macbook";
+  }
+  // iPhone
+  if (/\biphone\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/deuxieme-chance/apple-iphone";
+  }
+  // iPad (toutes variantes)
+  if (/\bipad\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/deuxieme-chance/apple-ipad";
+  }
+  // Apple Watch
+  if (/\bapple\s*watch\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/deuxieme-chance/apple-watch";
+  }
+  // AirPods
+  if (/\bairpods\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/deuxieme-chance/apple-airpods";
+  }
+
+  return null;
+}
+
 function detectAppleCategory(q: string): string | null {
   const clean = q.replace(/[éèêë]/g, "e").replace(/\s+/g, " ").trim();
 

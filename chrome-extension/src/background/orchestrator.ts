@@ -131,38 +131,48 @@ async function searchOne(
   limit: number,
   timeout_ms: number
 ): Promise<{ source: string; offers: CapturedOffer[] } | { source: string; error: string }> {
-  if (!adapter.buildSearchUrl || !adapter.extractSearchResults) {
+  if (!adapter.extractSearchResults) {
     return { source: adapter.key, error: "Adapter ne supporte pas la recherche multi-source" };
   }
 
-  const primaryUrl = adapter.buildSearchUrl(query);
-  console.log(`[Orchestrator][${adapter.key}] Fetching ${primaryUrl}`);
-  let result = await fetchAndParse(adapter, primaryUrl, limit, timeout_ms);
+  // Construire la liste d'URLs à essayer dans l'ordre de préférence
+  const urls: string[] = adapter.buildSearchUrls
+    ? adapter.buildSearchUrls(query)
+    : adapter.buildSearchUrl
+    ? [adapter.buildSearchUrl(query)]
+    : [];
 
-  // Fallback Coolblue : si la page catégorie renvoie 404 ou 0 résultat, retomber
-  // sur la recherche libre /zoeken?query=...
-  if (
-    adapter.key === "coolblue" &&
-    "error" in result &&
-    !primaryUrl.includes("/zoeken")
-  ) {
-    const fallbackUrl = `https://www.coolblue.be/fr/zoeken?query=${encodeURIComponent(query)}`;
-    console.log(
-      `[Orchestrator][${adapter.key}] Fallback vers ${fallbackUrl} (raison: ${result.error})`
-    );
-    const fallbackResult = await fetchAndParse(adapter, fallbackUrl, limit, timeout_ms);
-    if (!("error" in fallbackResult)) {
-      result = fallbackResult;
+  if (urls.length === 0) {
+    return { source: adapter.key, error: "Aucune URL candidate" };
+  }
+
+  let lastError = "Aucune URL n'a donné de résultats";
+
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+    const isLast = i === urls.length - 1;
+    const label = i === 0 ? "primary" : i === urls.length - 1 ? "last-fallback" : `fallback-${i}`;
+    console.log(`[Orchestrator][${adapter.key}] (${label}) Fetching ${url}`);
+
+    const result = await fetchAndParse(adapter, url, limit, timeout_ms);
+
+    if ("error" in result) {
+      lastError = result.error;
+      console.log(`[Orchestrator][${adapter.key}] (${label}) ${result.error}`);
+      // Continuer vers le prochain candidat (sauf si c'était le dernier)
+      if (!isLast) continue;
+    } else if (result.offers.length === 0) {
+      lastError = "Aucun résultat pertinent";
+      console.log(`[Orchestrator][${adapter.key}] (${label}) 0 résultats pertinents`);
+      if (!isLast) continue;
+    } else {
+      // Succès : on retourne les offres
+      console.log(`[Orchestrator][${adapter.key}] (${label}) ${result.offers.length} offres`);
+      return { source: adapter.key, offers: result.offers };
     }
   }
 
-  if ("error" in result) {
-    return { source: adapter.key, error: result.error };
-  }
-  if (result.offers.length === 0) {
-    return { source: adapter.key, error: "Aucun résultat pertinent" };
-  }
-  return { source: adapter.key, offers: result.offers };
+  return { source: adapter.key, error: lastError };
 }
 
 /**

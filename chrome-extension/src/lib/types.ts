@@ -87,6 +87,13 @@ export interface SiteAdapter {
 
   /** [Multi-source search] construit l'URL de la page de résultats pour une requête */
   buildSearchUrl?: (query: string) => string;
+  /**
+   * [Multi-source search] construit plusieurs URLs candidates à essayer dans
+   * l'ordre de préférence. Ex: [deuxieme-chance, neuf, /zoeken?query=].
+   * L'orchestrator s'arrête à la première URL qui donne au moins un résultat
+   * pertinent. Si implémentée, remplace buildSearchUrl.
+   */
+  buildSearchUrls?: (query: string) => string[];
   /** [Multi-source search] extrait les N premiers résultats d'une page de listing */
   extractSearchResults?: (doc: Document, url: URL, limit?: number) => CapturedOffer[];
 }
