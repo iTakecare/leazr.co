@@ -383,6 +383,24 @@ const ClientDocumentsPage: React.FC = () => {
 
   const previewDoc = previewIdx !== null ? orderedDocs[previewIdx] ?? null : null;
 
+  // Bornes de navigation : on reste dans les docs du même client que le doc courant.
+  // Puisque orderedDocs est déjà trié par client → type → doc, les docs d'un même
+  // client sont contigus et [firstIdx ... lastIdx] définit la plage navigable.
+  const clientBounds = React.useMemo(() => {
+    if (!previewDoc) return null;
+    const cKey = previewDoc.client_id ?? "__unknown__";
+    let firstIdx = -1;
+    let lastIdx = -1;
+    for (let i = 0; i < orderedDocs.length; i++) {
+      const k = orderedDocs[i].client_id ?? "__unknown__";
+      if (k === cKey) {
+        if (firstIdx === -1) firstIdx = i;
+        lastIdx = i;
+      }
+    }
+    return { firstIdx, lastIdx, total: lastIdx - firstIdx + 1 };
+  }, [previewDoc, orderedDocs]);
+
   // Référence pour pouvoir révoquer le blob URL précédent lors du changement de doc
   const lastBlobUrlRef = useRef<string | null>(null);
 
@@ -447,20 +465,20 @@ const ClientDocumentsPage: React.FC = () => {
   };
 
   const goPrev = useCallback(() => {
-    if (previewIdx === null) return;
+    if (previewIdx === null || !clientBounds) return;
     const next = previewIdx - 1;
-    if (next < 0) return;
+    if (next < clientBounds.firstIdx) return; // ne sort pas du client
     setPreviewIdx(next);
     loadPreviewUrl(orderedDocs[next]);
-  }, [previewIdx, orderedDocs, loadPreviewUrl]);
+  }, [previewIdx, orderedDocs, loadPreviewUrl, clientBounds]);
 
   const goNext = useCallback(() => {
-    if (previewIdx === null) return;
+    if (previewIdx === null || !clientBounds) return;
     const next = previewIdx + 1;
-    if (next >= orderedDocs.length) return;
+    if (next > clientBounds.lastIdx) return; // ne sort pas du client
     setPreviewIdx(next);
     loadPreviewUrl(orderedDocs[next]);
-  }, [previewIdx, orderedDocs, loadPreviewUrl]);
+  }, [previewIdx, orderedDocs, loadPreviewUrl, clientBounds]);
 
   // Raccourcis clavier dans la modale
   useEffect(() => {
@@ -1072,30 +1090,32 @@ const ClientDocumentsPage: React.FC = () => {
                     {previewDoc.client_name && ` · ${previewDoc.client_name}`}
                   </p>
                   <span className="text-xs font-medium text-muted-foreground shrink-0 tabular-nums">
-                    {(previewIdx ?? 0) + 1} / {orderedDocs.length}
+                    {clientBounds && previewIdx !== null
+                      ? `${previewIdx - clientBounds.firstIdx + 1} / ${clientBounds.total}`
+                      : `${(previewIdx ?? 0) + 1} / ${orderedDocs.length}`}
                   </span>
                 </div>
               )}
             </DialogHeader>
 
             <div className="flex-1 overflow-auto min-h-0 bg-slate-50 flex items-center justify-center p-4 relative">
-              {/* Bouton précédent */}
-              {previewIdx !== null && previewIdx > 0 && (
+              {/* Bouton précédent (bloqué au premier doc du client) */}
+              {previewIdx !== null && clientBounds && previewIdx > clientBounds.firstIdx && (
                 <button
                   onClick={goPrev}
                   className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 shadow-md rounded-full h-10 w-10 flex items-center justify-center transition-colors"
-                  title="Document précédent (←)"
+                  title="Document précédent du client (←)"
                 >
                   <ChevronLeft className="h-5 w-5 text-slate-600" />
                 </button>
               )}
 
-              {/* Bouton suivant */}
-              {previewIdx !== null && previewIdx < orderedDocs.length - 1 && (
+              {/* Bouton suivant (bloqué au dernier doc du client) */}
+              {previewIdx !== null && clientBounds && previewIdx < clientBounds.lastIdx && (
                 <button
                   onClick={goNext}
                   className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white border border-slate-200 shadow-md rounded-full h-10 w-10 flex items-center justify-center transition-colors"
-                  title="Document suivant (→)"
+                  title="Document suivant du client (→)"
                 >
                   <ChevronRight className="h-5 w-5 text-slate-600" />
                 </button>
