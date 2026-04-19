@@ -132,17 +132,29 @@ export const coolblueAdapter: SiteAdapter = {
   },
 
   buildSearchUrl: (query: string) => {
+    const normalized = query.trim().toLowerCase();
+
+    // Produits Apple : la recherche libre Coolblue est très bruitée. On redirige
+    // vers la page catégorie filtrée qui est bien plus pertinente.
+    const appleCategoryUrl = detectAppleCategory(normalized);
+    if (appleCategoryUrl) return appleCategoryUrl;
+
     const q = encodeURIComponent(query.trim());
     return `https://www.coolblue.be/fr/zoeken?query=${q}`;
   },
 
-  extractSearchResults: (doc, _url, limit = 5): CapturedOffer[] => {
+  extractSearchResults: (doc, url, limit = 5): CapturedOffer[] => {
+    // Récupérer la query depuis l'URL pour pouvoir filtrer les résultats par pertinence
+    const query = decodeURIComponent(url.searchParams.get("query") ?? "");
+
     // ═══ Stratégie 1 : JSON-LD ItemList (le plus fiable) ═══
-    // Coolblue sert un Schema.org ItemList avec tous les Product + prix en SSR
-    const fromJsonLd = extractFromJsonLdItemList(doc, limit);
+    const fromJsonLd = extractFromJsonLdItemList(doc, limit * 4); // on sur-récupère pour filtrer ensuite
     if (fromJsonLd.length > 0) {
-      console.log(`[Leazr][coolblue] ${fromJsonLd.length} offres extraites via JSON-LD`);
-      return fromJsonLd;
+      const filtered = filterByRelevance(fromJsonLd, query).slice(0, limit);
+      console.log(
+        `[Leazr][coolblue] ${filtered.length}/${fromJsonLd.length} offres pertinentes via JSON-LD`
+      );
+      return filtered;
     }
 
     // ═══ Stratégie 2 : fallback DOM cards ═══
@@ -201,6 +213,109 @@ export const coolblueAdapter: SiteAdapter = {
     return offers;
   },
 };
+
+/**
+ * Détecte les produits Apple populaires dans la query et renvoie l'URL de la
+ * page catégorie correspondante (bien plus pertinente que /zoeken).
+ *
+ * Les pages catégorie Coolblue permettent d'ajouter des filtres via query params
+ * (ex: ?processor=apple-m5). On ne les ajoute pas ici (difficile à généraliser),
+ * on laisse le filtre de pertinence client s'en charger.
+ */
+function detectAppleCategory(q: string): string | null {
+  const clean = q.replace(/[éèêë]/g, "e").replace(/\s+/g, " ").trim();
+
+  // MacBook Pro
+  if (/\bmacbook\s*pro\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/pc-portables/apple-macbook-pro";
+  }
+  // MacBook Air
+  if (/\bmacbook\s*air\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/pc-portables/apple-macbook-air";
+  }
+  // MacBook (générique)
+  if (/\bmacbook\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/pc-portables/apple-macbook";
+  }
+  // iPhone
+  if (/\biphone\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/smartphones/apple-iphone";
+  }
+  // iPad Pro
+  if (/\bipad\s*pro\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/tablettes/apple-ipad-pro";
+  }
+  // iPad Air
+  if (/\bipad\s*air\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/tablettes/apple-ipad-air";
+  }
+  // iPad (générique)
+  if (/\bipad\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/tablettes/apple-ipad";
+  }
+  // Apple Watch
+  if (/\bapple\s*watch\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/smartwatches/apple-watch";
+  }
+  // AirPods
+  if (/\bairpods\b/i.test(clean)) {
+    return "https://www.coolblue.be/fr/ecouteurs/apple-airpods";
+  }
+
+  return null;
+}
+
+/**
+ * Filtre les offres pour ne garder que celles dont le titre contient
+ * les tokens significatifs de la query (taille > 2, excluant les stopwords).
+ *
+ * Règle : on garde une offre si au moins la moitié des tokens "importants"
+ * de la query est présente dans le titre. Pour des requêtes courtes (1-2 mots
+ * importants), tous doivent matcher.
+ */
+function filterByRelevance(offers: CapturedOffer[], query: string): CapturedOffer[] {
+  if (!query.trim()) return offers;
+
+  const STOPWORDS = new Set([
+    "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou", "a", "au",
+    "en", "pour", "avec", "sans", "pro", "the", "and", "or", "of", "in", "with",
+  ]);
+
+  const normalize = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // enlever accents
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((t) => t.length > 2 && !STOPWORDS.has(t));
+
+  const queryTokens = normalize(query);
+  if (queryTokens.length === 0) return offers;
+
+  // Seuil minimal de tokens à matcher
+  const minRequired = queryTokens.length <= 2 ? queryTokens.length : Math.ceil(queryTokens.length / 2);
+
+  const scored = offers
+    .map((offer) => {
+      const titleTokens = new Set(normalize(offer.title + " " + (offer.brand ?? "")));
+      const matched = queryTokens.filter((t) => {
+        // Match exact OU substring pour les modèles type "m5"
+        if (titleTokens.has(t)) return true;
+        for (const tt of titleTokens) {
+          if (tt.includes(t) || t.includes(tt)) return true;
+        }
+        return false;
+      });
+      return { offer, score: matched.length };
+    })
+    .filter((x) => x.score >= minRequired);
+
+  // Trier par score décroissant puis garder l'ordre initial pour égalité
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored.map((x) => x.offer);
+}
 
 /** Extrait les offres depuis le JSON-LD ItemList (Schema.org) */
 function extractFromJsonLdItemList(doc: Document, limit: number): CapturedOffer[] {
