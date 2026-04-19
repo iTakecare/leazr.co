@@ -496,30 +496,65 @@ function extractRefurbishedListCards(doc: Document, limit: number): CapturedOffe
 }
 
 /**
- * Enrichit une offre en fetchant sa page détail et en extrayant le prix
- * depuis le payload React Server Components Next.js (qui contient bien le
- * prix, contrairement à la page liste).
+ * Enrichit une offre en fetchant sa page détail et en extrayant le prix HTVA
+ * depuis le payload React Server Components Next.js.
  *
- * Appelée par l'orchestrator pour les offres marquées needs_price_enrichment.
+ * iTakecare fait du leasing B2B → on veut toujours le prix HORS TVA.
+ * Coolblue expose les deux dans son RSC :
+ *   - "priceExcludingVat":1522.3140495867767  (HTVA, précis)
+ *   - "includingVat":1842                     (TVAC, arrondi)
+ *   - "excludingVat":1522.3140495867767       (HTVA dans salesPrice)
+ * On préfère la valeur HTVA directement. Si seulement TVAC dispo → /1.21
+ * (TVA belge standard).
  */
-export function enrichCoolbluePriceFromDetail(html: string): { price_cents: number | null } {
-  // Pattern 1 : JSON RSC "includingVat":1842
-  const m1 = html.match(/"includingVat":(\d+(?:\.\d+)?)/);
+export function enrichCoolbluePriceFromDetail(html: string):
+  | { price_cents: number; source: string }
+  | { price_cents: null } {
+  // Priorité 1 : priceExcludingVat dans currentPrice RSC
+  const m1 = html.match(/"priceExcludingVat":(\d+(?:\.\d+)?)/);
   if (m1) {
-    return { price_cents: Math.round(parseFloat(m1[1]) * 100) };
+    return {
+      price_cents: Math.round(parseFloat(m1[1]) * 100),
+      source: "priceExcludingVat",
+    };
   }
-  // Pattern 2 : JSON RSC "price":1842
-  const m2 = html.match(/"currentPrice":\[[^\]]*"price":(\d+(?:\.\d+)?)/);
+  // Priorité 2 : excludingVat dans salesPrice
+  const m2 = html.match(/"excludingVat":(\d+(?:\.\d+)?)/);
   if (m2) {
-    return { price_cents: Math.round(parseFloat(m2[1]) * 100) };
+    return {
+      price_cents: Math.round(parseFloat(m2[1]) * 100),
+      source: "excludingVat",
+    };
   }
-  // Pattern 3 : HTML rendu avec commentaires <!-- --> entre chiffres
-  // Exemple: <span>€ <!-- -->1.842<!-- -->,-</span>
-  const m3 = html.match(/€\s*(?:<!--[^>]*-->)?\s*([\d.,]+)\s*(?:<!--[^>]*-->)?\s*,-/);
+  // Priorité 3 : includingVat → divisé par 1.21 (TVA BE 21%)
+  const m3 = html.match(/"includingVat":(\d+(?:\.\d+)?)/);
   if (m3) {
-    const cleaned = m3[1].replace(/\./g, "").replace(",", ".");
-    const n = parseFloat(cleaned);
-    if (!isNaN(n)) return { price_cents: Math.round(n * 100) };
+    const tvac = parseFloat(m3[1]);
+    return {
+      price_cents: Math.round((tvac / 1.21) * 100),
+      source: "includingVat/1.21",
+    };
+  }
+  // Priorité 4 : "price":NNNN (TVAC) — même fallback via /1.21
+  const m4 = html.match(/"currentPrice":\[[^\]]*"price":(\d+(?:\.\d+)?)/);
+  if (m4) {
+    const tvac = parseFloat(m4[1]);
+    return {
+      price_cents: Math.round((tvac / 1.21) * 100),
+      source: "currentPrice.price/1.21",
+    };
+  }
+  // Priorité 5 : HTML rendu "€ <!-- -->1.842<!-- -->,-" (TVAC → /1.21)
+  const m5 = html.match(/€\s*(?:<!--[^>]*-->)?\s*([\d.,]+)\s*(?:<!--[^>]*-->)?\s*,-/);
+  if (m5) {
+    const cleaned = m5[1].replace(/\./g, "").replace(",", ".");
+    const tvac = parseFloat(cleaned);
+    if (!isNaN(tvac)) {
+      return {
+        price_cents: Math.round((tvac / 1.21) * 100),
+        source: "html-rendered/1.21",
+      };
+    }
   }
   return { price_cents: null };
 }
@@ -597,28 +632,31 @@ function productToOffer(product: any): CapturedOffer | null {
   } else if (img?.url) image_url = img.url;
 
   // Offer : soit direct, soit dans un array, soit AggregateOffer avec lowPrice
+  // NB : les prix JSON-LD sont TVAC → on convertit en HTVA via /1.21 (TVA BE 21%)
   const offers = product.offers;
-  let price_cents: number | undefined;
+  let price_cents_tvac: number | undefined;
   let availability: string | undefined;
   let itemCondition: string | undefined;
   if (offers) {
     if (offers["@type"] === "AggregateOffer") {
       const lp = offers.lowPrice ?? offers.price;
-      if (lp !== undefined) price_cents = Math.round(parseFloat(String(lp)) * 100);
+      if (lp !== undefined) price_cents_tvac = Math.round(parseFloat(String(lp)) * 100);
       availability = offers.availability;
     } else if (Array.isArray(offers) && offers.length > 0) {
       const o = offers[0];
-      if (o.price !== undefined) price_cents = Math.round(parseFloat(String(o.price)) * 100);
+      if (o.price !== undefined) price_cents_tvac = Math.round(parseFloat(String(o.price)) * 100);
       availability = o.availability;
       itemCondition = o.itemCondition;
     } else {
-      if (offers.price !== undefined) price_cents = Math.round(parseFloat(String(offers.price)) * 100);
+      if (offers.price !== undefined) price_cents_tvac = Math.round(parseFloat(String(offers.price)) * 100);
       availability = offers.availability;
       itemCondition = offers.itemCondition;
     }
   }
 
-  if (!price_cents || price_cents <= 0) return null;
+  if (!price_cents_tvac || price_cents_tvac <= 0) return null;
+  // Conversion TVAC → HTVA
+  const price_cents = Math.round(price_cents_tvac / 1.21);
 
   // Brand
   let brand: string | undefined;
@@ -654,6 +692,8 @@ function productToOffer(product: any): CapturedOffer | null {
     raw_specs: {
       is_deuxieme_chance: isDeuxiemeChance,
       from_json_ld: true,
+      vat_excluded: true,
+      price_cents_tvac,
       availability,
       itemCondition,
     },

@@ -191,7 +191,17 @@ async function enrichRefurbishedPrices(offers: CapturedOffer[]): Promise<Capture
   return offers
     .map((o) => {
       const p = priceMap.get(o.url);
-      if (p) return { ...o, price_cents: p };
+      if (p) {
+        return {
+          ...o,
+          price_cents: p,
+          raw_specs: {
+            ...(o.raw_specs as Record<string, unknown>),
+            vat_excluded: true,
+            needs_price_enrichment: false,
+          },
+        };
+      }
       return o;
     })
     // Filtrer les offres dont on n'a pas pu récupérer le prix

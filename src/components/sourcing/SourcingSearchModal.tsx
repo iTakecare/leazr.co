@@ -331,6 +331,9 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
                       <span className="text-lg font-bold text-indigo-700">
                         {(offer.price_cents / 100).toFixed(2).replace(".", ",")} €
                       </span>
+                      <span className="text-[10px] font-semibold text-indigo-500 bg-indigo-50 border border-indigo-200 rounded px-1 py-px">
+                        HT
+                      </span>
                       {offer.delivery_cost_cents && offer.delivery_cost_cents > 0 && (
                         <span className="text-xs text-muted-foreground">
                           + {(offer.delivery_cost_cents / 100).toFixed(2).replace(".", ",")} € livr.
@@ -338,7 +341,7 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground mb-2">
-                      Total :{" "}
+                      Total HT :{" "}
                       <strong className="text-slate-800">
                         {(totalCostCents / 100).toFixed(2).replace(".", ",")} €
                       </strong>
@@ -405,7 +408,8 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
 
         <DialogFooter className="px-6 py-3 border-t bg-white flex-row justify-between sm:justify-between">
           <span className="text-xs text-muted-foreground self-center">
-            {sortedOffers.length > 0 && `${sortedOffers.length} offres classées par coût total croissant`}
+            {sortedOffers.length > 0 &&
+              `${sortedOffers.length} offres (prix HT) classées par coût total croissant`}
           </span>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fermer
