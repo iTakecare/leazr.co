@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { Truck, Package, Check, Ban, Save, Edit2, Sparkles } from "lucide-react";
 import SourcingSearchModal, { type SourcingSearchTarget } from "@/components/sourcing/SourcingSearchModal";
+import { buildQueryFromEquipment } from "@/services/sourcing/buildQueryFromEquipment";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
@@ -361,12 +362,20 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
                               variant="ghost"
                               className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                               title="Sourcer avec l'extension"
-                              onClick={() => {
-                                setSourcingQuery(eq.title);
+                              onClick={async () => {
+                                const { query, specs } = await buildQueryFromEquipment({
+                                  id: eq.id,
+                                  title: eq.title,
+                                  source_type: sourceType,
+                                });
+                                console.log("[Sourcing] Query enrichie:", query, "specs:", specs);
+                                setSourcingQuery(query);
                                 setSourcingTarget({
                                   type: sourceType === "offer" ? "offer_equipment" : "contract_equipment",
                                   id: eq.id,
-                                  label: eq.title,
+                                  label: Object.keys(specs).length > 0
+                                    ? `${eq.title} (${Object.entries(specs).map(([k, v]) => `${k}: ${v}`).join(" · ")})`
+                                    : eq.title,
                                 });
                               }}
                             >

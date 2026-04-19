@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X, Package, CheckCircle2, Download, Sparkles } from "lucide-react";
 import SourcingSearchModal, { type SourcingSearchTarget } from "@/components/sourcing/SourcingSearchModal";
+import { buildQueryFromEquipment } from "@/services/sourcing/buildQueryFromEquipment";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
@@ -170,12 +171,21 @@ const EquipmentOrders: React.FC = () => {
     setSourcingByLine(map);
   };
 
-  const openSourcingFor = (item: EquipmentOrderItem) => {
-    setSourcingQuery(item.title);
+  const openSourcingFor = async (item: EquipmentOrderItem) => {
+    // Fetch attributs (RAM, stockage, CPU, couleur…) pour enrichir la query
+    const { query, specs } = await buildQueryFromEquipment({
+      id: item.id,
+      title: item.title,
+      source_type: item.source_type!,
+    });
+    console.log("[Sourcing] Query enrichie :", query, "specs:", specs);
+    setSourcingQuery(query);
     setSourcingTarget({
       type: item.source_type === "offer" ? "offer_equipment" : "contract_equipment",
       id: item.id,
-      label: item.title,
+      label: Object.keys(specs).length > 0
+        ? `${item.title} (${Object.entries(specs).map(([k, v]) => `${k}: ${v}`).join(" · ")})`
+        : item.title,
     });
   };
 
