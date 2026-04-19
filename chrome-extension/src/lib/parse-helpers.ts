@@ -224,12 +224,24 @@ export function filterOffersByRelevance<T extends Offer>(offers: T[], query: str
       const titleTokensArr = normalize((offer.title ?? "") + " " + (offer.brand ?? ""));
       const titleTokens = new Set(titleTokensArr);
 
+      // Opposites strictement interdits dans le titre (Pro ≠ Air)
       for (const forbidden of forbiddenInTitle) {
         if (titleTokens.has(forbidden)) return { offer, score: -1 };
       }
-      for (const exc of requiredExclusives) {
-        if (!titleTokens.has(exc)) return { offer, score: -1 };
+
+      // Modificateurs exclusifs : si la query en contient plusieurs (ex: "Pro Max"
+      // qui vient d'un item polymorphique), on accepte qu'AU MOINS UN soit dans
+      // le titre (logique OR). Si un seul exclusive dans la query, il doit être
+      // dans le titre (logique stricte).
+      if (requiredExclusives.length === 1) {
+        if (!titleTokens.has(requiredExclusives[0])) return { offer, score: -1 };
+      } else if (requiredExclusives.length > 1) {
+        const anyMatch = requiredExclusives.some((exc) => titleTokens.has(exc));
+        if (!anyMatch) return { offer, score: -1 };
       }
+
+      // Bonus de score si TOUS les exclusives matchent (meilleur produit)
+      const exclusivesMatched = requiredExclusives.filter((exc) => titleTokens.has(exc)).length;
 
       const matched = nonExclusiveTokens.filter((t) => {
         if (titleTokens.has(t)) return true;
@@ -240,7 +252,8 @@ export function filterOffersByRelevance<T extends Offer>(offers: T[], query: str
         }
         return false;
       });
-      return { offer, score: matched.length };
+
+      return { offer, score: matched.length + exclusivesMatched * 0.5 };
     })
     .filter((x) => x.score >= minRequired);
 

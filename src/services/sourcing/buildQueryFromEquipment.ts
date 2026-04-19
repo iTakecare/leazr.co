@@ -130,16 +130,18 @@ export async function buildQueryFromEquipment(
     return ka.localeCompare(kb);
   });
 
-  const titleLower = equipment.title.toLowerCase();
+  // Nettoyer le title des alternatives "Pro / Max", "16/512Go", etc.
+  // → garder seulement la première option pour éviter les contraintes OR
+  const cleanTitle = removeAlternatives(equipment.title.trim());
+
+  const titleLower = cleanTitle.toLowerCase();
   const titleTokens = titleLower.split(/\s+/).map((t) => t.toLowerCase());
 
-  const parts: string[] = [equipment.title.trim()];
+  const parts: string[] = [cleanTitle];
   for (const [, value] of sortedEntries) {
-    const v = value.trim();
+    const v = removeAlternatives(value.trim());
     if (!v) continue;
     const vLower = v.toLowerCase();
-    // Éviter les doublons : si la valeur (ou l'un de ses tokens) est déjà
-    // présente mot-à-mot dans le title, on skip
     const vTokens = vLower.split(/\s+/);
     const allAlreadyInTitle = vTokens.every(
       (t) => t.length < 2 || titleTokens.some((tt) => tt === t || tt.includes(t))
@@ -149,4 +151,18 @@ export async function buildQueryFromEquipment(
   }
 
   return { query: parts.join(" "), specs };
+}
+
+/**
+ * Enlève les alternatives de type "A / B", "A|B", "A ou B" dans un texte.
+ * Exemple : "MacBook Pro 16 M4 Pro / Max" → "MacBook Pro 16 M4 Pro"
+ * Utile pour les items polymorphiques dans la DB Leazr.
+ */
+function removeAlternatives(text: string): string {
+  return text
+    .replace(/\s*\/\s*[A-Za-z0-9]+/g, "") // "Pro / Max" → "Pro"
+    .replace(/\s*\|\s*[A-Za-z0-9]+/g, "") // "Pro | Max" → "Pro"
+    .replace(/\s+ou\s+[A-Za-z0-9]+/gi, "") // "Pro ou Max" → "Pro"
+    .replace(/\s+or\s+[A-Za-z0-9]+/gi, "")
+    .trim();
 }
