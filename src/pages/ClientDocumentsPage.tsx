@@ -373,12 +373,22 @@ const ClientDocumentsPage: React.FC = () => {
     setPreviewUrl(null);
     setPreviewLoading(true);
     try {
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from("offer-documents")
         .createSignedUrl(doc.file_path, 3600);
-      setPreviewUrl(data?.signedUrl ?? null);
-    } catch {
-      toast.error("Impossible de charger l'aperçu");
+      if (error) {
+        console.error("createSignedUrl error:", error, "path:", doc.file_path);
+        toast.error(`Aperçu impossible : ${error.message}`);
+        return;
+      }
+      if (!data?.signedUrl) {
+        toast.error("URL d'aperçu introuvable");
+        return;
+      }
+      setPreviewUrl(data.signedUrl);
+    } catch (e: any) {
+      console.error("Preview load exception:", e);
+      toast.error(`Erreur aperçu : ${e.message ?? e}`);
     } finally {
       setPreviewLoading(false);
     }
