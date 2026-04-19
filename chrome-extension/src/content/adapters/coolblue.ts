@@ -133,21 +133,23 @@ export const coolblueAdapter: SiteAdapter = {
 
   buildSearchUrls: (query: string) => {
     const normalized = query.trim().toLowerCase();
-    const q = encodeURIComponent(query.trim());
 
     const candidates: string[] = [];
 
-    // 1. Priorité absolue : page catégorie "Deuxième Chance"
+    // Priorité absolue : page catégorie "Deuxième Chance"
+    // iTakecare leases refurbished only — NE PAS fallback vers du neuf,
+    // c'est contre-productif (l'admin devra de toute façon chercher du refurb).
     const refurbCategoryUrl = detectAppleRefurbishedCategory(normalized);
-    if (refurbCategoryUrl) candidates.push(refurbCategoryUrl);
+    if (refurbCategoryUrl) {
+      candidates.push(refurbCategoryUrl);
+      // Pour les Apple, on reste strictement sur le reconditionné.
+      return candidates;
+    }
 
-    // 2. Fallback : page catégorie neuf (si deuxieme chance vide ou inexistante)
-    const newCategoryUrl = detectAppleCategory(normalized);
-    if (newCategoryUrl) candidates.push(newCategoryUrl);
-
-    // 3. Dernier recours : recherche libre /zoeken
+    // Pour les queries non-Apple, on utilise la recherche générale qui inclut
+    // probablement aussi les deuxième chance quand ils existent
+    const q = encodeURIComponent(query.trim());
     candidates.push(`https://www.coolblue.be/fr/zoeken?query=${q}`);
-
     return candidates;
   },
 
@@ -313,44 +315,88 @@ function detectAppleCategory(q: string): string | null {
 function filterByRelevance(offers: CapturedOffer[], query: string): CapturedOffer[] {
   if (!query.trim()) return offers;
 
+  // Stopwords : mots à IGNORER dans la query (articles, conjonctions)
+  // On EXCLUT volontairement : 'pro', 'air', 'max', 'mini' — ce sont des
+  // discriminants de gamme Apple (MacBook Pro ≠ MacBook Air !).
   const STOPWORDS = new Set([
-    "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou", "a", "au",
-    "en", "pour", "avec", "sans", "pro", "the", "and", "or", "of", "in", "with",
+    "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou",
+    "en", "pour", "avec", "sans", "the", "and", "or", "of", "in", "with",
   ]);
 
-  const normalize = (s: string) =>
+  // Mots TOUJOURS requis s'ils apparaissent dans la query (ne peuvent pas être
+  // match par substring — un MacBook Pro ne doit jamais matcher "Air").
+  const EXCLUSIVE_MODIFIERS = new Set(["pro", "air", "max", "mini", "ultra", "plus"]);
+
+  const normalize = (s: string): string[] =>
     s
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // enlever accents
+      .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9\s]/g, " ")
       .split(/\s+/)
-      .filter((t) => t.length > 2 && !STOPWORDS.has(t));
+      .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
 
   const queryTokens = normalize(query);
   if (queryTokens.length === 0) return offers;
 
-  // Seuil minimal de tokens à matcher
-  const minRequired = queryTokens.length <= 2 ? queryTokens.length : Math.ceil(queryTokens.length / 2);
+  // Les tokens exclusifs dans la query doivent impérativement apparaître dans le titre
+  const requiredExclusives = queryTokens.filter((t) => EXCLUSIVE_MODIFIERS.has(t));
+
+  // Seuil minimal de tokens ordinaires à matcher
+  const nonExclusiveTokens = queryTokens.filter((t) => !EXCLUSIVE_MODIFIERS.has(t));
+  const minRequired =
+    nonExclusiveTokens.length <= 2
+      ? nonExclusiveTokens.length
+      : Math.ceil(nonExclusiveTokens.length / 2);
+
+  // Anti-modifier : si la query dit "Pro", on rejette les titres qui contiennent
+  // "Air" / "Mini" / "Max" (et vice-versa)
+  const OPPOSITE_MODIFIERS: Record<string, string[]> = {
+    pro: ["air", "mini"],
+    air: ["pro", "mini", "max"],
+    mini: ["pro", "air", "max", "ultra"],
+    max: ["air", "mini"],
+    ultra: ["mini"],
+  };
+  const forbiddenInTitle = new Set<string>();
+  for (const exc of requiredExclusives) {
+    for (const opp of OPPOSITE_MODIFIERS[exc] ?? []) forbiddenInTitle.add(opp);
+  }
 
   const scored = offers
     .map((offer) => {
-      const titleTokens = new Set(normalize(offer.title + " " + (offer.brand ?? "")));
-      const matched = queryTokens.filter((t) => {
-        // Match exact OU substring pour les modèles type "m5"
+      const titleTokensArr = normalize(offer.title + " " + (offer.brand ?? ""));
+      const titleTokens = new Set(titleTokensArr);
+
+      // Rejet si un modificateur opposé apparaît dans le titre
+      for (const forbidden of forbiddenInTitle) {
+        if (titleTokens.has(forbidden)) return { offer, score: -1 };
+      }
+
+      // Tous les modificateurs exclusifs de la query doivent être présents dans le titre
+      for (const exc of requiredExclusives) {
+        if (!titleTokens.has(exc)) return { offer, score: -1 };
+      }
+
+      // Compter les matches des tokens non-exclusifs
+      const matched = nonExclusiveTokens.filter((t) => {
         if (titleTokens.has(t)) return true;
+        // Substring autorisé pour les codes modèles type "m5", "14"
         for (const tt of titleTokens) {
-          if (tt.includes(t) || t.includes(tt)) return true;
+          if (tt === t) return true;
+          // Substring SEULEMENT si le token query est court (≤ 3) pour éviter
+          // 'macbook' matchant sur 'book'
+          if (t.length <= 3 && tt.includes(t)) return true;
+          if (t.length > 3 && tt.includes(t) && t.length >= tt.length - 2) return true;
         }
         return false;
       });
+
       return { offer, score: matched.length };
     })
     .filter((x) => x.score >= minRequired);
 
-  // Trier par score décroissant puis garder l'ordre initial pour égalité
   scored.sort((a, b) => b.score - a.score);
-
   return scored.map((x) => x.offer);
 }
 
