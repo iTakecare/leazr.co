@@ -9,11 +9,14 @@
  *  - Prix en EUR TVAC → on convertit en HT via /1.21
  */
 import type { SiteAdapter, CapturedOffer, AdapterResult } from "../../lib/types";
+import { publicHealthCheck } from "../../lib/health-check";
 
 export const appleRefurbishedAdapter: SiteAdapter = {
   name: "apple-refurbished",
   key: "apple_refurbished",
   displayName: "Apple Refurbished",
+  loginUrl: "https://www.apple.com/be-fr/shop/refurbished/mac",
+  checkConnection: () => publicHealthCheck("https://www.apple.com/be-fr/shop/refurbished/mac"),
 
   matches: (url) =>
     /www\.apple\.com$/.test(url.hostname) && /\/shop\/refurbished\//.test(url.pathname),

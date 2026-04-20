@@ -11,12 +11,14 @@
  */
 import { callFunction, getSupabase } from "../lib/supabase";
 import { runMultiSourceSearch } from "./orchestrator";
+import { adapters } from "../content/adapters";
 import type {
   CapturedOffer,
   SourcingContext,
   ExtensionMessage,
   SearchRequest,
   SearchProgressMessage,
+  SourceConnectionStatus,
 } from "../lib/types";
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -29,7 +31,12 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener(
   (msg: ExtensionMessage & { offer?: CapturedOffer; context?: SourcingContext }, _sender, sendResponse) => {
     // Ignorer les messages destinés à l'offscreen document (laisse l'offscreen répondre)
-    if (msg?.type === "offscreen_parse_search" || msg?.type === "offscreen_ready") {
+    if (
+      msg?.type === "offscreen_parse_search" ||
+      msg?.type === "offscreen_enrich_price" ||
+      msg?.type === "offscreen_enrich_coolblue_price" ||
+      msg?.type === "offscreen_ready"
+    ) {
       return false;
     }
 
@@ -45,6 +52,10 @@ chrome.runtime.onMessage.addListener(
             sendResponse(await submitOffer(msg.offer, msg.context));
             return;
 
+          case "check_all_sources_status" as any:
+            sendResponse({ success: true, sources: await checkAllSources() });
+            return;
+
           default:
             sendResponse({ success: false, error: `Message inconnu: ${(msg as any).type}` });
         }
@@ -56,6 +67,45 @@ chrome.runtime.onMessage.addListener(
     return true;
   }
 );
+
+/** Vérifie en parallèle le statut de chaque source */
+async function checkAllSources() {
+  const results = await Promise.all(
+    adapters.map(async (a) => {
+      const base = {
+        key: a.key,
+        displayName: a.displayName,
+        requiresCookies: !!a.requiresCookies,
+        loginUrl: a.loginUrl,
+      };
+      if (!a.checkConnection) {
+        return {
+          ...base,
+          status: {
+            connected: true,
+            message: "Pas de test défini — considéré comme OK",
+            last_checked_at: new Date().toISOString(),
+          } as SourceConnectionStatus,
+        };
+      }
+      try {
+        const status = await a.checkConnection();
+        return { ...base, status };
+      } catch (e: any) {
+        return {
+          ...base,
+          status: {
+            connected: false,
+            reason: "unknown" as const,
+            message: e?.message ?? "Erreur check",
+            last_checked_at: new Date().toISOString(),
+          } as SourceConnectionStatus,
+        };
+      }
+    })
+  );
+  return results;
+}
 
 // ═══════════════════════════════════════════════════════════
 // Messages externes (depuis la page Leazr via externally_connectable)

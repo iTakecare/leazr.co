@@ -11,11 +11,14 @@
  * l'offscreen route vers la bonne fonction d'extraction).
  */
 import type { SiteAdapter, CapturedOffer, AdapterResult } from "../../lib/types";
+import { publicHealthCheck } from "../../lib/health-check";
 
 export const gomiboAdapter: SiteAdapter = {
   name: "gomibo",
   key: "gomibo",
   displayName: "Gomibo",
+  loginUrl: "https://gomibo.be/fr",
+  checkConnection: () => publicHealthCheck("https://gomibo.be/fr"),
 
   matches: (url) => /(^|\.)gomibo\.be$/.test(url.hostname),
 

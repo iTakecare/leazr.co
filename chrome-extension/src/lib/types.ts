@@ -108,10 +108,34 @@ export interface SiteAdapter {
   /**
    * Si true, cet adapter ne doit être interrogé QUE si l'user a des cookies
    * valides pour ce site dans son navigateur. Sinon skip silencieusement
-   * avec un message clair. (futur)
+   * avec un message clair.
    */
   requiresCookies?: boolean;
+
+  /** URL à ouvrir pour que l'user se (re)connecte sur le site source */
+  loginUrl?: string;
+
+  /**
+   * Vérifie si la source est opérationnelle (site up + cookies valides
+   * si requis). Retourne un statut qui est affiché dans la popup.
+   */
+  checkConnection?: () => Promise<SourceConnectionStatus>;
 }
+
+export type SourceConnectionStatus =
+  | {
+      connected: true;
+      user_info?: string; // ex: "Bienvenue Gianni"
+      message?: string;
+      last_checked_at: string;
+    }
+  | {
+      connected: false;
+      reason: "not_logged_in" | "site_down" | "blocked" | "unknown";
+      message?: string;
+      login_url?: string;
+      last_checked_at: string;
+    };
 
 /** Requête de recherche envoyée depuis Leazr à l'extension */
 export interface SearchRequest {

@@ -2,7 +2,15 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { User } from "@supabase/supabase-js";
 import { getSupabase } from "../lib/supabase";
-import type { SourcingContext } from "../lib/types";
+import type { SourcingContext, SourceConnectionStatus } from "../lib/types";
+
+interface SourceStatusRow {
+  key: string;
+  displayName: string;
+  requiresCookies: boolean;
+  loginUrl?: string;
+  status: SourceConnectionStatus;
+}
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -11,8 +19,25 @@ function App() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [context, setContext] = useState<SourcingContext | null>(null);
+  const [tab, setTab] = useState<"home" | "sources">("home");
+  const [sources, setSources] = useState<SourceStatusRow[] | null>(null);
+  const [checkingSources, setCheckingSources] = useState(false);
 
   const supa = getSupabase();
+
+  const refreshSources = async () => {
+    setCheckingSources(true);
+    try {
+      const resp = await new Promise<{ success: boolean; sources?: SourceStatusRow[]; error?: string }>((resolve) => {
+        chrome.runtime.sendMessage({ type: "check_all_sources_status" }, (r) => resolve(r));
+      });
+      if (resp?.success && resp.sources) setSources(resp.sources);
+    } catch (e) {
+      console.error("refresh sources failed", e);
+    } finally {
+      setCheckingSources(false);
+    }
+  };
 
   // Init: check session + context
   useEffect(() => {
@@ -119,6 +144,132 @@ function App() {
         <span className="badge">v0.1</span>
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid #e2e8f0" }}>
+        <button
+          className="btn btn-ghost"
+          onClick={() => setTab("home")}
+          style={{
+            flex: 1,
+            borderRadius: 0,
+            borderBottom: tab === "home" ? "2px solid #4f46e5" : "2px solid transparent",
+            color: tab === "home" ? "#3730a3" : "#64748b",
+            fontWeight: tab === "home" ? 700 : 500,
+          }}
+        >
+          Accueil
+        </button>
+        <button
+          className="btn btn-ghost"
+          onClick={() => {
+            setTab("sources");
+            if (!sources) refreshSources();
+          }}
+          style={{
+            flex: 1,
+            borderRadius: 0,
+            borderBottom: tab === "sources" ? "2px solid #4f46e5" : "2px solid transparent",
+            color: tab === "sources" ? "#3730a3" : "#64748b",
+            fontWeight: tab === "sources" ? 700 : 500,
+          }}
+        >
+          Sources
+        </button>
+      </div>
+
+      {tab === "sources" && (
+        <div className="section">
+          <div className="row" style={{ justifyContent: "space-between", marginBottom: 8 }}>
+            <h2 style={{ margin: 0 }}>Statut des fournisseurs</h2>
+            <button
+              className="btn btn-ghost"
+              style={{ width: "auto", fontSize: 11 }}
+              onClick={refreshSources}
+              disabled={checkingSources}
+            >
+              {checkingSources ? "⏳" : "↻"} Retester
+            </button>
+          </div>
+          {!sources && checkingSources && (
+            <div className="empty">Vérification en cours…</div>
+          )}
+          {sources && (
+            <div className="stack">
+              {sources.map((s) => {
+                const ok = s.status.connected;
+                return (
+                  <div
+                    key={s.key}
+                    className="card"
+                    style={{
+                      borderLeft: `4px solid ${ok ? "#10b981" : "#ef4444"}`,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 8,
+                    }}
+                  >
+                    <span style={{ fontSize: 18, marginTop: 2 }}>
+                      {ok ? "🟢" : "🔴"}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 12 }}>
+                        {s.displayName}
+                        {s.requiresCookies && (
+                          <span
+                            style={{
+                              marginLeft: 4,
+                              fontSize: 9,
+                              color: "#4338ca",
+                              background: "#eef2ff",
+                              padding: "1px 4px",
+                              borderRadius: 3,
+                            }}
+                          >
+                            AUTH
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                        {ok
+                          ? ("user_info" in s.status && s.status.user_info) ||
+                            "Connectée"
+                          : "reason" in s.status && s.status.reason === "not_logged_in"
+                          ? "Non connecté (cookies manquants)"
+                          : "message" in s.status && s.status.message
+                          ? s.status.message
+                          : "Indisponible"}
+                      </div>
+                      {!ok && s.loginUrl && (
+                        <button
+                          className="btn btn-ghost"
+                          style={{
+                            marginTop: 6,
+                            width: "auto",
+                            fontSize: 11,
+                            color: "#4f46e5",
+                            borderColor: "#c7d2fe",
+                          }}
+                          onClick={() => chrome.tabs.create({ url: s.loginUrl! })}
+                        >
+                          🔗 Ouvrir le site
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 10, lineHeight: 1.5 }}>
+            <strong>AUTH</strong> = source qui a besoin que tu sois connecté dans Chrome
+            (Amazon Business par ex). Aucun mot de passe n'est stocké dans l'extension :
+            elle réutilise tes cookies actifs.
+          </div>
+        </div>
+      )}
+
+      {tab === "home" && (
+        <>
       <div className="section">
         <h2>Commande en cours</h2>
         {context ? (
@@ -165,6 +316,8 @@ function App() {
           4. Cliquez sur « Ajouter à la commande »
         </div>
       </div>
+        </>
+      )}
 
       <div className="user-info">
         <span>{user.email}</span>

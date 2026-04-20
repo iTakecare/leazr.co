@@ -35,14 +35,19 @@
  * = "grade_a" (retour/neuf certifié).
  */
 import type { SiteAdapter, CapturedOffer, AdapterResult, ProductCondition } from "../../lib/types";
+import { publicHealthCheck } from "../../lib/health-check";
 
 const CHAPP_SHEET_CSV =
   "https://docs.google.com/spreadsheets/d/1n3xjxiwVJsjD22mm5tX4E0lGuL_KR0_q9rNulPeb3b8/export?format=csv";
+const CHAPP_SHEET_VIEW =
+  "https://docs.google.com/spreadsheets/d/1n3xjxiwVJsjD22mm5tX4E0lGuL_KR0_q9rNulPeb3b8/edit";
 
 export const chappAdapter: SiteAdapter = {
   name: "chapp",
   key: "chapp",
   displayName: "Chapp (Google Sheet)",
+  loginUrl: CHAPP_SHEET_VIEW,
+  checkConnection: () => publicHealthCheck(CHAPP_SHEET_CSV, { expectString: "Type,Modelyear" }),
 
   matches: (url) => /chapp\.(be|store)$/.test(url.hostname),
 
