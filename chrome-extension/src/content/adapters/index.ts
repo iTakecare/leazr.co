@@ -8,6 +8,7 @@ import { mediamarktOutletAdapter, mediamarktMainAdapter } from "./mediamarkt";
 import { appleRefurbishedAdapter } from "./apple-refurbished";
 import { gomiboAdapter } from "./gomibo";
 import { chappAdapter } from "./chapp";
+import { amazonAdapter } from "./amazon";
 
 export const adapters: SiteAdapter[] = [
   coolblueAdapter,
@@ -16,6 +17,7 @@ export const adapters: SiteAdapter[] = [
   gomiboAdapter,
   chappAdapter,
   appleRefurbishedAdapter,
+  amazonAdapter,
 ];
 
 export function findAdapter(url: URL): SiteAdapter | null {

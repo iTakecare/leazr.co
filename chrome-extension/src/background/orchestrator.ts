@@ -101,8 +101,11 @@ async function fetchAndParse(
     // Fetch SANS credentials par défaut : les cookies Coolblue Business du user
     // peuvent déclencher des challenges Cloudflare ou redirections B2B spécifiques.
     // On ouvre incognito en quelque sorte, pour avoir un comportement prévisible.
-    console.log(`[fetchAndParse] Requesting ${url}`);
-    const response = await fetch(url, {
+    // Defaults : fetch anonyme (credentials omit) + UA Chrome
+    // L'adapter peut override via adapter.fetchOptions — notamment
+    // credentials:"include" pour réutiliser les cookies du navigateur
+    // (Amazon Business, Ingram Micro, Backmarket Pro…).
+    const defaultOptions: RequestInit = {
       signal: controller.signal,
       credentials: "omit",
       redirect: "follow",
@@ -112,7 +115,17 @@ async function fetchAndParse(
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       },
-    });
+    };
+    const merged: RequestInit = {
+      ...defaultOptions,
+      ...(adapter.fetchOptions ?? {}),
+      headers: {
+        ...(defaultOptions.headers as Record<string, string>),
+        ...((adapter.fetchOptions?.headers as Record<string, string>) ?? {}),
+      },
+    };
+    console.log(`[fetchAndParse] Requesting ${url} (credentials=${merged.credentials})`);
+    const response = await fetch(url, merged);
     clearTimeout(timeoutId);
 
     console.log(`[fetchAndParse] Response ${response.status} (${response.headers.get("content-type")})`);

@@ -96,6 +96,21 @@ export interface SiteAdapter {
   buildSearchUrls?: (query: string) => string[];
   /** [Multi-source search] extrait les N premiers résultats d'une page de listing */
   extractSearchResults?: (doc: Document, url: URL, limit?: number) => CapturedOffer[];
+
+  /**
+   * Options de fetch additionnelles pour cet adapter (merged avec les defaults).
+   * Utile pour activer `credentials: "include"` sur les sites B2B où l'user
+   * doit être connecté dans son navigateur pour voir les prix (Amazon Business,
+   * Ingram Micro, Backmarket Pro…).
+   */
+  fetchOptions?: Partial<RequestInit>;
+
+  /**
+   * Si true, cet adapter ne doit être interrogé QUE si l'user a des cookies
+   * valides pour ce site dans son navigateur. Sinon skip silencieusement
+   * avec un message clair. (futur)
+   */
+  requiresCookies?: boolean;
 }
 
 /** Requête de recherche envoyée depuis Leazr à l'extension */
