@@ -7,12 +7,14 @@ import { coolblueAdapter } from "./coolblue";
 import { mediamarktOutletAdapter, mediamarktMainAdapter } from "./mediamarkt";
 import { appleRefurbishedAdapter } from "./apple-refurbished";
 import { gomiboAdapter } from "./gomibo";
+import { chappAdapter } from "./chapp";
 
 export const adapters: SiteAdapter[] = [
   coolblueAdapter,
   mediamarktOutletAdapter,
   mediamarktMainAdapter,
   gomiboAdapter,
+  chappAdapter,
   appleRefurbishedAdapter,
 ];
 

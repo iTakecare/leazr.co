@@ -82,7 +82,8 @@
     "https://*.backmarket.com/*",
     "https://*.backmarket.be/*",
     "https://*.chapp.be/*",
-    "https://*.gamers-outlet.be/*"
+    "https://*.gamers-outlet.be/*",
+    "https://docs.google.com/*"
   ],
   "externally_connectable": {
     "matches": [
