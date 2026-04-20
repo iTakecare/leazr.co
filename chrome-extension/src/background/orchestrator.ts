@@ -10,7 +10,7 @@ import { filterOffersByRelevance } from "../lib/parse-helpers";
 import type { CapturedOffer, SearchRequest, SearchProgressMessage, SearchResponse, SiteAdapter } from "../lib/types";
 
 const DEFAULT_TIMEOUT_MS = 20_000;
-const DEFAULT_LIMIT_PER_SOURCE = 3;
+const DEFAULT_LIMIT_PER_SOURCE = 5;
 
 /**
  * Raccourcit une query enrichie en ne gardant que les tokens les plus
@@ -260,7 +260,10 @@ async function searchOne(
   query: string,
   limit: number,
   timeout_ms: number
-): Promise<{ source: string; offers: CapturedOffer[] } | { source: string; error: string }> {
+): Promise<
+  | { source: string; offers: CapturedOffer[]; all_offers?: CapturedOffer[] }
+  | { source: string; error: string; offers?: CapturedOffer[]; all_offers?: CapturedOffer[] }
+> {
   if (!adapter.extractSearchResults) {
     return { source: adapter.key, error: "Adapter ne supporte pas la recherche multi-source" };
   }
@@ -312,21 +315,31 @@ async function searchOne(
       if (!isLast) continue;
     } else {
       // Succès : enrichir les prix si nécessaire (Coolblue refurb / Gomibo)
-      let finalOffers = result.offers;
-      if (finalOffers.some((o) => (o.raw_specs as any)?.needs_price_enrichment)) {
-        finalOffers = await enrichRefurbishedPrices(finalOffers, adapter.key);
+      let allOffers = result.offers;
+      if (allOffers.some((o) => (o.raw_specs as any)?.needs_price_enrichment)) {
+        allOffers = await enrichRefurbishedPrices(allOffers, adapter.key);
       }
       // Filtre de pertinence centralisé (Pro/Air discrimination, etc.)
-      const before = finalOffers.length;
-      finalOffers = filterOffersByRelevance(finalOffers, query).slice(0, limit);
-      console.log(`[Orchestrator][${adapter.key}] (${label}) relevance: ${finalOffers.length}/${before} retained`);
+      const filtered = filterOffersByRelevance(allOffers, query);
+      const top = filtered.slice(0, limit);
+      console.log(`[Orchestrator][${adapter.key}] (${label}) ${top.length}/${filtered.length} filtered, ${allOffers.length} total`);
 
-      if (finalOffers.length === 0) {
+      if (filtered.length === 0) {
         lastError = "Aucun résultat pertinent";
         if (!isLast) continue;
-        return { source: adapter.key, error: lastError };
+        // Dernière chance : on retourne quand même les offres non filtrées pour l'UX "élargir"
+        return {
+          source: adapter.key,
+          offers: [],
+          all_offers: allOffers.slice(0, Math.min(allOffers.length, 20)),
+          error: lastError,
+        };
       }
-      return { source: adapter.key, offers: finalOffers };
+      return {
+        source: adapter.key,
+        offers: top,
+        all_offers: allOffers.slice(0, Math.min(allOffers.length, 20)),
+      };
     }
   }
 
@@ -371,13 +384,28 @@ export async function runMultiSourceSearch(
       onProgress({ type: "source_started", source: adapter.key });
       const result = await searchOne(adapter, request.query, limit, timeout);
 
-      if ("error" in result) {
-        errors.push(result);
+      if ("error" in result && (!result.offers || result.offers.length === 0)) {
+        errors.push({ source: result.source, error: result.error });
         onProgress({ type: "source_failed", source: adapter.key, error: result.error });
+        // On envoie quand même les all_offers s'il y en a, pour permettre
+        // l'élargissement côté modale même en cas d'absence de pertinents
+        if (result.all_offers && result.all_offers.length > 0) {
+          onProgress({
+            type: "source_result",
+            source: adapter.key,
+            offers: [],
+            all_offers: result.all_offers,
+          });
+        }
       } else {
-        const withSource = result.offers.map((o) => ({ ...o, source: adapter.key }));
+        const withSource = (result.offers ?? []).map((o) => ({ ...o, source: adapter.key }));
         allOffers.push(...withSource);
-        onProgress({ type: "source_result", source: adapter.key, offers: result.offers });
+        onProgress({
+          type: "source_result",
+          source: adapter.key,
+          offers: result.offers ?? [],
+          all_offers: result.all_offers,
+        });
       }
     })
   );

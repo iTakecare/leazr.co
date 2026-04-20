@@ -36,7 +36,12 @@ export interface OfferFromExtension {
 export type SearchProgressEvent =
   | { type: "search_started"; sources: string[] }
   | { type: "source_started"; source: string }
-  | { type: "source_result"; source: string; offers: OfferFromExtension[] }
+  | {
+      type: "source_result";
+      source: string;
+      offers: OfferFromExtension[];
+      all_offers?: OfferFromExtension[];
+    }
   | { type: "source_failed"; source: string; error: string }
   | { type: "search_completed"; total_offers: number; duration_ms: number };
 

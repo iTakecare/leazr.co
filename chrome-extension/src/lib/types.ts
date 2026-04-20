@@ -150,7 +150,12 @@ export interface SearchRequest {
 export type SearchProgressMessage =
   | { type: "search_started"; sources: string[] }
   | { type: "source_started"; source: string }
-  | { type: "source_result"; source: string; offers: CapturedOffer[] }
+  | {
+      type: "source_result";
+      source: string;
+      offers: CapturedOffer[]; // offres qui passent le filtre de pertinence
+      all_offers?: CapturedOffer[]; // toutes les offres trouvées (incluant celles filtrées)
+    }
   | { type: "source_failed"; source: string; error: string }
   | { type: "search_completed"; total_offers: number; duration_ms: number };
 

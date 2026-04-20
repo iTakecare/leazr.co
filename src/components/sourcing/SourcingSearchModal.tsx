@@ -56,7 +56,8 @@ export interface SourcingSearchModalProps {
 interface SourceState {
   key: string;
   status: "idle" | "running" | "success" | "failed";
-  offers: OfferFromExtension[];
+  offers: OfferFromExtension[]; // pertinentes (filtrées)
+  all_offers: OfferFromExtension[]; // toutes trouvées (avant filtre pertinence)
   error?: string;
 }
 
@@ -70,10 +71,13 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
   const [extensionAvailable, setExtensionAvailable] = useState<boolean | null>(null);
   const [searching, setSearching] = useState(false);
   const [sources, setSources] = useState<Record<string, SourceState>>({});
-  const [allOffers, setAllOffers] = useState<OfferFromExtension[]>([]);
+  const [allOffers, setAllOffers] = useState<OfferFromExtension[]>([]); // pertinentes uniquement
+  const [allOffersUnfiltered, setAllOffersUnfiltered] = useState<OfferFromExtension[]>([]); // tout
   const [completedAt, setCompletedAt] = useState<number | null>(null);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<Set<string>>(new Set()); // empty = tout montrer
   const hasStarted = useRef(false);
 
   // Détecter l'extension à l'ouverture
@@ -97,8 +101,11 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
       hasStarted.current = false;
       setSources({});
       setAllOffers([]);
+      setAllOffersUnfiltered([]);
       setCompletedAt(null);
       setError(null);
+      setShowAll(false);
+      setSourceFilter(new Set());
     }
   }, [open]);
 
@@ -106,26 +113,47 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
     switch (evt.type) {
       case "search_started":
         setSources(() =>
-          Object.fromEntries(evt.sources.map((s) => [s, { key: s, status: "idle", offers: [] }]))
+          Object.fromEntries(
+            evt.sources.map((s) => [s, { key: s, status: "idle", offers: [], all_offers: [] }])
+          )
         );
         break;
       case "source_started":
-        setSources((prev) => ({ ...prev, [evt.source]: { ...(prev[evt.source] ?? { key: evt.source, offers: [] }), status: "running" } }));
-        break;
-      case "source_result":
         setSources((prev) => ({
           ...prev,
-          [evt.source]: { key: evt.source, status: "success", offers: evt.offers },
+          [evt.source]: {
+            ...(prev[evt.source] ?? { key: evt.source, offers: [], all_offers: [] }),
+            status: "running",
+          },
         }));
-        setAllOffers((prev) => [
+        break;
+      case "source_result": {
+        const allFromSource = evt.all_offers ?? evt.offers;
+        setSources((prev) => ({
           ...prev,
-          ...evt.offers.map((o) => ({ ...o, source: evt.source })),
+          [evt.source]: {
+            key: evt.source,
+            status: evt.offers.length > 0 ? "success" : "failed",
+            offers: evt.offers,
+            all_offers: allFromSource,
+            error: evt.offers.length === 0 ? "Aucun résultat pertinent" : undefined,
+          },
+        }));
+        setAllOffers((prev) => [...prev, ...evt.offers.map((o) => ({ ...o, source: evt.source }))]);
+        setAllOffersUnfiltered((prev) => [
+          ...prev,
+          ...allFromSource.map((o) => ({ ...o, source: evt.source })),
         ]);
         break;
+      }
       case "source_failed":
         setSources((prev) => ({
           ...prev,
-          [evt.source]: { key: evt.source, status: "failed", offers: [], error: evt.error },
+          [evt.source]: {
+            ...(prev[evt.source] ?? { key: evt.source, offers: [], all_offers: [] }),
+            status: "failed",
+            error: evt.error,
+          },
         }));
         break;
       case "search_completed":
@@ -205,12 +233,25 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
     }
   };
 
-  // Classement global : tri par coût total croissant
-  const sortedOffers = [...allOffers].sort((a, b) => {
+  // Base de travail : filtré par pertinence OU étendu (tout)
+  const baseOffers = showAll ? allOffersUnfiltered : allOffers;
+
+  // Appliquer le filtre par source si l'user a coché/décoché des sources
+  const filteredOffers = sourceFilter.size === 0
+    ? baseOffers
+    : baseOffers.filter((o) => sourceFilter.has(o.source));
+
+  // Tri par coût total croissant
+  const sortedOffers = [...filteredOffers].sort((a, b) => {
     const totalA = a.price_cents + (a.delivery_cost_cents ?? 0);
     const totalB = b.price_cents + (b.delivery_cost_cents ?? 0);
     return totalA - totalB;
   });
+
+  // Stats pour UI
+  const strictCount = allOffers.length;
+  const wideCount = allOffersUnfiltered.length;
+  const hiddenByStrict = wideCount - strictCount;
 
   const sourcesArr = Object.values(sources);
   const completedSources = sourcesArr.filter((s) => s.status === "success" || s.status === "failed").length;
@@ -258,29 +299,83 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
               </div>
               <Progress value={progress} className="h-1.5" />
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {sourcesArr.map((s) => (
-                  <Badge
-                    key={s.key}
-                    variant="outline"
-                    className={`text-[10px] gap-1 ${
-                      s.status === "success"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : s.status === "failed"
-                        ? "border-red-200 bg-red-50 text-red-700"
-                        : s.status === "running"
-                        ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-                        : "bg-white"
-                    }`}
-                  >
-                    {s.status === "success" && <CheckCircle2 className="h-2.5 w-2.5" />}
-                    {s.status === "failed" && <X className="h-2.5 w-2.5" />}
-                    {s.status === "running" && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
-                    {s.key}
-                    {s.status === "success" && ` · ${s.offers.length}`}
-                    {s.status === "failed" && s.error && ` · ${s.error.slice(0, 20)}`}
-                  </Badge>
-                ))}
+                {sourcesArr.map((s) => {
+                  const isIncluded = sourceFilter.size === 0 || sourceFilter.has(s.key);
+                  const clickable = s.all_offers.length > 0 || s.offers.length > 0;
+                  return (
+                    <button
+                      key={s.key}
+                      disabled={!clickable}
+                      onClick={() => {
+                        if (!clickable) return;
+                        setSourceFilter((prev) => {
+                          const next = new Set(prev);
+                          // Si aucun filtre, cliquer = garder uniquement cette source
+                          if (prev.size === 0) {
+                            // Toggle: on ajoute toutes les autres et on retire celle cliquée
+                            sourcesArr.forEach((src) => {
+                              if (src.key !== s.key) next.add(src.key);
+                            });
+                          } else if (prev.has(s.key)) {
+                            next.delete(s.key);
+                          } else {
+                            next.add(s.key);
+                          }
+                          // Si toutes cochées → reset (équivalent "tout")
+                          if (next.size === sourcesArr.length) next.clear();
+                          return next;
+                        });
+                      }}
+                      className={`text-[10px] gap-1 inline-flex items-center px-2 py-0.5 rounded-full border transition-opacity ${
+                        !isIncluded ? "opacity-40" : ""
+                      } ${
+                        s.status === "success"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : s.status === "failed"
+                          ? "border-red-200 bg-red-50 text-red-700"
+                          : s.status === "running"
+                          ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                          : "bg-white border-slate-200"
+                      } ${clickable ? "cursor-pointer hover:shadow-sm" : "cursor-not-allowed"}`}
+                      title={clickable ? "Cliquer pour filtrer" : "Aucun résultat à filtrer"}
+                    >
+                      {s.status === "success" && <CheckCircle2 className="h-2.5 w-2.5" />}
+                      {s.status === "failed" && <X className="h-2.5 w-2.5" />}
+                      {s.status === "running" && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                      {s.key}
+                      {s.status === "success" && ` · ${showAll ? s.all_offers.length : s.offers.length}`}
+                      {s.status === "failed" && s.all_offers.length > 0 && ` · ${s.all_offers.length} (auto-rejetées)`}
+                      {s.status === "failed" && s.all_offers.length === 0 && s.error && ` · ${s.error.slice(0, 20)}`}
+                    </button>
+                  );
+                })}
               </div>
+              {/* Toggle élargir la recherche */}
+              {completedAt && hiddenByStrict > 0 && (
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  <div className="text-xs text-muted-foreground">
+                    {showAll ? (
+                      <>
+                        <strong className="text-slate-800">{sortedOffers.length}</strong> offres au
+                        total ({hiddenByStrict} hors spec stricte)
+                      </>
+                    ) : (
+                      <>
+                        <strong className="text-slate-800">{strictCount}</strong> pertinentes —{" "}
+                        <span className="text-amber-700">{hiddenByStrict} masquées par filtre strict</span>
+                      </>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => setShowAll((v) => !v)}
+                  >
+                    {showAll ? "⇠ Mode strict" : "Élargir la recherche →"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
