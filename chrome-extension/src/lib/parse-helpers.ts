@@ -185,7 +185,33 @@ export function filterOffersByRelevance<T extends Offer>(offers: T[], query: str
     "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou",
     "en", "pour", "avec", "sans", "the", "and", "or", "of", "in", "with",
     "apple", // la marque est déjà implicite sur les adapters Apple
+    // Unités peu discriminantes
+    "pouces", "pouce", "inch", "inches",
   ]);
+
+  // Synonymes de couleur cross-langue (FR, NL, EN)
+  // Si la query contient "argent", le titre peut contenir "silver" ou "zilver"
+  const COLOR_SYNONYMS: Record<string, string[]> = {
+    argent: ["silver", "zilver"],
+    silver: ["argent", "zilver"],
+    zilver: ["argent", "silver"],
+    noir: ["black", "zwart", "sideral"],
+    black: ["noir", "zwart", "sideral"],
+    zwart: ["noir", "black"],
+    blanc: ["white", "wit"],
+    white: ["blanc", "wit"],
+    wit: ["blanc", "white"],
+    gris: ["gray", "grey", "grijs"],
+    grijs: ["gris", "gray", "grey"],
+    bleu: ["blue", "blauw"],
+    blauw: ["bleu", "blue"],
+    rose: ["pink", "roze"],
+    roze: ["rose", "pink"],
+    vert: ["green", "groen"],
+    groen: ["vert", "green"],
+    jaune: ["yellow", "geel"],
+    geel: ["jaune", "yellow"],
+  };
   const EXCLUSIVE = new Set(["pro", "air", "max", "mini", "ultra", "plus"]);
   const OPPOSITES: Record<string, string[]> = {
     pro: ["air", "mini"],
@@ -245,6 +271,23 @@ export function filterOffersByRelevance<T extends Offer>(offers: T[], query: str
 
       const matched = nonExclusiveTokens.filter((t) => {
         if (titleTokens.has(t)) return true;
+
+        // Synonymes de couleur (FR/EN/NL)
+        const synonyms = COLOR_SYNONYMS[t];
+        if (synonyms && synonyms.some((s) => titleTokens.has(s))) return true;
+
+        // Normalisation "16go" / "16gb" / "256mo" / "1to" / "1tb"
+        // pour que le filtre traite "16Go" == "16 GB" == "16GB"
+        const normUnits = (s: string) =>
+          s
+            .replace(/([\d]+)\s*(go|gb|gib)/g, "$1gb")
+            .replace(/([\d]+)\s*(to|tb|tib)/g, "$1tb")
+            .replace(/([\d]+)\s*(mo|mb|mib)/g, "$1mb");
+        const tNorm = normUnits(t);
+        for (const tt of titleTokens) {
+          if (normUnits(tt) === tNorm) return true;
+        }
+
         for (const tt of titleTokens) {
           if (tt === t) return true;
           if (t.length <= 3 && tt.includes(t)) return true;

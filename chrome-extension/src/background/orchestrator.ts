@@ -11,6 +11,37 @@ import type { CapturedOffer, SearchRequest, SearchProgressMessage, SearchRespons
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 const DEFAULT_LIMIT_PER_SOURCE = 3;
+
+/**
+ * Raccourcit une query enrichie en ne gardant que les tokens les plus
+ * discriminants :
+ *  - Le nom du produit (premiers mots, sans unités)
+ *  - Le modèle/gamme (Pro, Air, Max, Mini, etc.)
+ *  - Taille/génération (14", 16", M4, M5)
+ *
+ * Exemples :
+ *  "iMac 24 pouces M4 16Go 256Go Argent"  → "iMac 24 M4"
+ *  "MacBook Pro 14 M4 16Go 512Go Noir"    → "MacBook Pro 14 M4"
+ *  "iPhone 16 Pro Max 256Go Titane"       → "iPhone 16 Pro Max"
+ */
+function shortenQuery(query: string): string | null {
+  const SKIP = new Set(["pouces", "pouce", "inch", "inches"]);
+  const tokens = query.split(/\s+/).filter((t) => {
+    const lower = t.toLowerCase();
+    if (SKIP.has(lower)) return false;
+    // Skip les specs type "16Go", "256Go", "1To", "2TB", "32GB"
+    if (/^\d+\s*(go|gb|mo|mb|to|tb|gib|mib|tib)$/i.test(t)) return false;
+    // Skip les couleurs en fin de query (peu discriminant entre sources)
+    if (/^(argent|silver|zilver|noir|black|zwart|blanc|white|wit|gris|gray|grijs|bleu|blue|blauw|rose|pink|roze|vert|green|groen|titane|titanium|sideral|space|sable|argenté|etoile)$/i.test(t))
+      return false;
+    return true;
+  });
+  if (tokens.length === 0) return null;
+  // Garder les 4 premiers tokens significatifs
+  const short = tokens.slice(0, 4).join(" ");
+  return short;
+}
+
 const OFFSCREEN_DOCUMENT_PATH = "offscreen.html";
 
 let offscreenCreating: Promise<void> | null = null;
@@ -234,12 +265,27 @@ async function searchOne(
     return { source: adapter.key, error: "Adapter ne supporte pas la recherche multi-source" };
   }
 
-  // Construire la liste d'URLs à essayer dans l'ordre de préférence
+  // Construire la liste d'URLs à essayer dans l'ordre de préférence.
+  // Si la query est longue (>3 tokens significatifs), ajouter en fin de
+  // liste une URL avec une query raccourcie (fallback pour les sites qui
+  // matchent mal les queries très précises type "iMac 24 pouces M4 16Go…").
   const urls: string[] = adapter.buildSearchUrls
-    ? adapter.buildSearchUrls(query)
+    ? [...adapter.buildSearchUrls(query)]
     : adapter.buildSearchUrl
     ? [adapter.buildSearchUrl(query)]
     : [];
+
+  // Détecter une version "courte" de la query et ajouter les URLs correspondantes
+  // en dernier fallback
+  const shortQuery = shortenQuery(query);
+  if (shortQuery && shortQuery !== query && (adapter.buildSearchUrls || adapter.buildSearchUrl)) {
+    const shortUrls = adapter.buildSearchUrls
+      ? adapter.buildSearchUrls(shortQuery)
+      : [adapter.buildSearchUrl!(shortQuery)];
+    for (const u of shortUrls) {
+      if (!urls.includes(u)) urls.push(u);
+    }
+  }
 
   if (urls.length === 0) {
     return { source: adapter.key, error: "Aucune URL candidate" };
