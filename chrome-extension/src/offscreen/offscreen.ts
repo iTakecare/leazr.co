@@ -11,6 +11,7 @@
  */
 import { adapters } from "../content/adapters";
 import { enrichCoolbluePriceFromDetail } from "../content/adapters/coolblue";
+import { enrichGomiboPriceFromDetail } from "../content/adapters/gomibo";
 
 // Signaler au service worker qu'on est prêt (utile pour éviter les race conditions
 // au premier appel juste après createDocument)
@@ -50,7 +51,30 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
-  // ═══ Enrichissement d'une offre Coolblue refurb (prix depuis page détail) ═══
+  // ═══ Enrichissement d'une offre (prix depuis page détail) — multi-adapter ═══
+  if (msg?.type === "offscreen_enrich_price") {
+    try {
+      const { html, adapter_key } = msg as { html: string; adapter_key: string };
+      let result: { price_cents: number | null; source?: string };
+      switch (adapter_key) {
+        case "coolblue":
+          result = enrichCoolbluePriceFromDetail(html);
+          break;
+        case "gomibo":
+          result = enrichGomiboPriceFromDetail(html);
+          break;
+        default:
+          result = { price_cents: null, source: `no enricher for ${adapter_key}` };
+      }
+      sendResponse(result);
+    } catch (e: any) {
+      console.error("[Offscreen] Erreur enrich:", e);
+      sendResponse({ price_cents: null, error: e.message });
+    }
+    return true;
+  }
+
+  // Backward compat : old message name
   if (msg?.type === "offscreen_enrich_coolblue_price") {
     try {
       const { html } = msg as { html: string };

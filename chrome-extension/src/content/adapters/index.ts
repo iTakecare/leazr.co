@@ -1,23 +1,19 @@
 /**
  * Registry des adapters. L'ordre importe : le premier qui match gagne.
- * À enrichir progressivement (Mediamarkt, Amazon, Apple, Backmarket, etc.).
+ * Les adapters sont tous activés pour la recherche multi-source.
  */
 import type { SiteAdapter } from "../../lib/types";
 import { coolblueAdapter } from "./coolblue";
-import { mediamarktAdapter } from "./mediamarkt";
+import { mediamarktOutletAdapter, mediamarktMainAdapter } from "./mediamarkt";
 import { appleRefurbishedAdapter } from "./apple-refurbished";
+import { gomiboAdapter } from "./gomibo";
 
 export const adapters: SiteAdapter[] = [
   coolblueAdapter,
-  mediamarktAdapter,
+  mediamarktOutletAdapter,
+  mediamarktMainAdapter,
+  gomiboAdapter,
   appleRefurbishedAdapter,
-  // amazonAdapter,
-  // backmarketAdapter,
-  // gomiboAdapter,
-  // chappAdapter,
-  // gamersOutletAdapter,
-  // dipliAdapter,
-  // lcdPhoneAdapter,
 ];
 
 export function findAdapter(url: URL): SiteAdapter | null {

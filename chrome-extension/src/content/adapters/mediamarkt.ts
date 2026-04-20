@@ -1,10 +1,8 @@
 /**
- * Adapter Mediamarkt BE — priorité à l'outlet (reconditionné/retour/ouverture boîte)
- *   - outlet.mediamarkt.be : OpenCart, prix visibles en SSR
- *   - www.mediamarkt.be : JSON-LD ItemList + Product sur la recherche
- *
- * iTakecare cherche du reconditionné, donc l'outlet est prioritaire.
- * Fallback sur le store principal si l'outlet n'a rien de pertinent.
+ * Deux adapters distincts Mediamarkt pour que l'user voie chaque source
+ * indépendamment dans la modale :
+ *   - mediamarkt_outlet (outlet.mediamarkt.be — reconditionné/retour)
+ *   - mediamarkt_main (www.mediamarkt.be — neuf, JSON-LD ItemList)
  */
 import type { SiteAdapter, CapturedOffer, AdapterResult } from "../../lib/types";
 import {
@@ -14,19 +12,109 @@ import {
   jsonLdProduct,
 } from "../../lib/parse-helpers";
 
-export const mediamarktAdapter: SiteAdapter = {
+// ═══════════════════════════════════════════════════════════════════════════
+// ADAPTER 1 : outlet.mediamarkt.be (OpenCart, reconditionné/retour)
+// ═══════════════════════════════════════════════════════════════════════════
+export const mediamarktOutletAdapter: SiteAdapter = {
+  name: "mediamarkt-outlet",
+  key: "mediamarkt_outlet",
+  displayName: "Mediamarkt Outlet",
+
+  matches: (url) => url.hostname === "outlet.mediamarkt.be",
+
+  isProductPage: (_doc, url) => /route=product\/product/.test(url.search),
+
+  extract: (doc, url): AdapterResult => {
+    const title =
+      firstText(doc, ["h1", ".product-title", "h1.product-name"]) ??
+      doc.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.content;
+    if (!title) return { ok: false, reason: "Titre introuvable" };
+
+    const price_cents_tvac = parsePriceCents(
+      firstText(doc, [".price-new", ".product-price", "h2.price"])
+    );
+    if (!price_cents_tvac) return { ok: false, reason: "Prix introuvable" };
+
+    const image_url =
+      firstAttr(doc, ["#image-product", "img.product-image"], "src") ?? undefined;
+
+    return {
+      ok: true,
+      offer: {
+        title: title.trim(),
+        price_cents: Math.round(price_cents_tvac / 1.21),
+        currency: "EUR",
+        condition: "grade_a",
+        url: url.href,
+        image_url: image_url ?? undefined,
+        stock_status: "unknown",
+        captured_host: url.hostname,
+        raw_specs: { is_outlet: true, price_cents_tvac, vat_excluded: true },
+      },
+    };
+  },
+
+  buildSearchUrls: (query: string) => {
+    const q = encodeURIComponent(query.trim());
+    return [`https://outlet.mediamarkt.be/index.php?route=product/search&search=${q}`];
+  },
+
+  extractSearchResults: (doc, _url, limit = 5): CapturedOffer[] => {
+    const cards = Array.from(doc.querySelectorAll(".product-grid .card, div.card.h-100"));
+    const offers: CapturedOffer[] = [];
+
+    for (const card of cards.slice(0, limit * 3)) {
+      if (offers.length >= limit) break;
+
+      const link = card.querySelector<HTMLAnchorElement>(
+        'a[href*="route=product/product"]'
+      );
+      if (!link) continue;
+
+      const href = link.href || link.getAttribute("href") || "";
+      const url = href.replace(/&amp;/g, "&");
+      if (!url) continue;
+
+      const title =
+        link.textContent?.trim() ||
+        card.querySelector<HTMLElement>(".card-title")?.textContent?.trim() ||
+        card.querySelector<HTMLImageElement>("img")?.alt?.trim();
+      if (!title) continue;
+
+      const price_cents_tvac = findPriceInOutletCard(card);
+      if (!price_cents_tvac) continue;
+
+      const img = card.querySelector<HTMLImageElement>("img");
+      const image_url = img?.src ?? undefined;
+
+      offers.push({
+        title,
+        price_cents: Math.round(price_cents_tvac / 1.21),
+        currency: "EUR",
+        condition: "grade_a",
+        url,
+        image_url,
+        stock_status: "unknown",
+        captured_host: "outlet.mediamarkt.be",
+        raw_specs: { is_outlet: true, price_cents_tvac, vat_excluded: true },
+      });
+    }
+    console.log(`[Leazr][mediamarkt/outlet] ${offers.length} offres extraites`);
+    return offers;
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ADAPTER 2 : www.mediamarkt.be (neuf, JSON-LD ItemList)
+// ═══════════════════════════════════════════════════════════════════════════
+export const mediamarktMainAdapter: SiteAdapter = {
   name: "mediamarkt",
   key: "mediamarkt",
   displayName: "Mediamarkt BE",
 
-  matches: (url) => /(^|\.)mediamarkt\.be$/.test(url.hostname),
+  matches: (url) => url.hostname === "www.mediamarkt.be",
 
-  isProductPage: (_doc, url) => {
-    if (url.hostname === "outlet.mediamarkt.be") {
-      return /route=product\/product/.test(url.search);
-    }
-    return /\/fr\/product\//.test(url.pathname);
-  },
+  isProductPage: (_doc, url) => /\/fr\/product\//.test(url.pathname),
 
   extract: (doc, url): AdapterResult => {
     const jld = jsonLdProduct(doc);
@@ -45,7 +133,6 @@ export const mediamarktAdapter: SiteAdapter = {
 
     const image_url = jld?.image ?? firstAttr(doc, ["img.product-image", 'img[itemprop="image"]'], "src") ?? undefined;
 
-    const isOutlet = url.hostname === "outlet.mediamarkt.be";
     return {
       ok: true,
       offer: {
@@ -53,124 +140,56 @@ export const mediamarktAdapter: SiteAdapter = {
         brand: jld?.brand,
         price_cents: Math.round(price_cents_tvac / 1.21),
         currency: "EUR",
-        condition: isOutlet ? "grade_a" : "new",
+        condition: "new",
         url: url.href,
         image_url: image_url ?? undefined,
         stock_status: "unknown",
         captured_host: url.hostname,
-        raw_specs: {
-          is_outlet: isOutlet,
-          price_cents_tvac,
-          vat_excluded: true,
-        },
+        raw_specs: { price_cents_tvac, vat_excluded: true },
       },
     };
   },
 
   buildSearchUrls: (query: string) => {
     const q = encodeURIComponent(query.trim());
-    return [
-      // Priorité 1 : outlet (reconditionné, retours, ouvertures boîte) → déjà moins cher
-      `https://outlet.mediamarkt.be/index.php?route=product/search&search=${q}`,
-      // Priorité 2 : store principal (neuf, JSON-LD ItemList)
-      `https://www.mediamarkt.be/fr/search.html?query=${q}`,
-    ];
+    return [`https://www.mediamarkt.be/fr/search.html?query=${q}`];
   },
 
-  extractSearchResults: (doc, url, limit = 5): CapturedOffer[] => {
-    const isOutlet = url.hostname === "outlet.mediamarkt.be";
-    return isOutlet
-      ? extractOutletResults(doc, limit)
-      : extractMainStoreResults(doc, limit);
+  extractSearchResults: (doc, _url, limit = 5): CapturedOffer[] => {
+    const scripts = doc.querySelectorAll<HTMLScriptElement>('script[type="application/ld+json"]');
+    const offers: CapturedOffer[] = [];
+    const seen = new Set<string>();
+
+    for (const script of Array.from(scripts)) {
+      if (offers.length >= limit) break;
+      try {
+        const data = JSON.parse(script.textContent ?? "");
+        const itemList = findItemList(data);
+        if (!itemList) continue;
+        const items = Array.isArray(itemList.itemListElement) ? itemList.itemListElement : [];
+        for (const item of items) {
+          if (offers.length >= limit) break;
+          const product =
+            item?.["@type"] === "Product"
+              ? item
+              : item?.item?.["@type"] === "Product"
+              ? item.item
+              : null;
+          if (!product) continue;
+          const o = mainProductToOffer(product);
+          if (o && !seen.has(o.url)) {
+            seen.add(o.url);
+            offers.push(o);
+          }
+        }
+      } catch { /* skip */ }
+    }
+    console.log(`[Leazr][mediamarkt/main] ${offers.length} offres extraites via JSON-LD`);
+    return offers;
   },
 };
 
-/** Parse les résultats du site outlet (OpenCart, pas de JSON-LD ItemList) */
-function extractOutletResults(doc: Document, limit: number): CapturedOffer[] {
-  // Cartes Bootstrap : <div class="card h-100">...</div> dans .product-grid
-  const cards = Array.from(doc.querySelectorAll(".product-grid .card, div.card.h-100"));
-  const offers: CapturedOffer[] = [];
-
-  for (const card of cards.slice(0, limit * 3)) {
-    if (offers.length >= limit) break;
-
-    const link = card.querySelector<HTMLAnchorElement>(
-      'a[href*="route=product/product"]'
-    );
-    if (!link) continue;
-
-    const href = link.href || link.getAttribute("href") || "";
-    // OpenCart encode les & dans les HTML, les corriger
-    const url = href.replace(/&amp;/g, "&");
-    if (!url) continue;
-
-    const title =
-      link.textContent?.trim() ||
-      card.querySelector<HTMLHeadingElement>(".card-title")?.textContent?.trim() ||
-      card.querySelector<HTMLImageElement>("img")?.alt?.trim();
-    if (!title) continue;
-
-    // Prix : chercher le plus gros prix non barré de la card
-    const price_cents_tvac = findPriceInCard(card);
-    if (!price_cents_tvac) continue;
-
-    const img = card.querySelector<HTMLImageElement>("img");
-    const image_url = img?.src ?? undefined;
-
-    offers.push({
-      title,
-      price_cents: Math.round(price_cents_tvac / 1.21),
-      currency: "EUR",
-      condition: "grade_a", // outlet = reconditionné/retour
-      url,
-      image_url,
-      stock_status: "unknown",
-      captured_host: "outlet.mediamarkt.be",
-      raw_specs: {
-        is_outlet: true,
-        price_cents_tvac,
-        vat_excluded: true,
-      },
-    });
-  }
-
-  console.log(`[Leazr][mediamarkt/outlet] ${offers.length} offres extraites`);
-  return offers;
-}
-
-/** Parse les résultats de la recherche du store principal (JSON-LD ItemList) */
-function extractMainStoreResults(doc: Document, limit: number): CapturedOffer[] {
-  const scripts = doc.querySelectorAll<HTMLScriptElement>('script[type="application/ld+json"]');
-  const offers: CapturedOffer[] = [];
-
-  for (const script of Array.from(scripts)) {
-    if (offers.length >= limit) break;
-    try {
-      const data = JSON.parse(script.textContent ?? "");
-      const itemList = findItemList(data);
-      if (!itemList) continue;
-
-      const items = Array.isArray(itemList.itemListElement) ? itemList.itemListElement : [];
-      for (const item of items) {
-        if (offers.length >= limit) break;
-        const product =
-          item?.["@type"] === "Product"
-            ? item
-            : item?.item && item.item["@type"] === "Product"
-            ? item.item
-            : null;
-        if (!product) continue;
-
-        const o = mainStoreProductToOffer(product);
-        if (o && !offers.some((x) => x.url === o.url)) offers.push(o);
-      }
-    } catch { /* JSON invalide, skip */ }
-  }
-  console.log(`[Leazr][mediamarkt/main] ${offers.length} offres extraites via JSON-LD`);
-  return offers;
-}
-
-function mainStoreProductToOffer(product: any): CapturedOffer | null {
+function mainProductToOffer(product: any): CapturedOffer | null {
   const name = product.name;
   const url = product["@id"] || product.url;
   if (!name || !url) return null;
@@ -180,7 +199,6 @@ function mainStoreProductToOffer(product: any): CapturedOffer | null {
   if (typeof img === "string") image_url = img;
   else if (Array.isArray(img)) image_url = typeof img[0] === "string" ? img[0] : img[0]?.url;
 
-  // Offer — MediaMarkt expose aussi TVAC
   const offers = product.offers;
   let price_tvac: number | undefined;
   let availability: string | undefined;
@@ -194,7 +212,7 @@ function mainStoreProductToOffer(product: any): CapturedOffer | null {
   return {
     title: String(name),
     brand: typeof product.brand === "string" ? product.brand : product.brand?.name,
-    price_cents: Math.round(price_tvac / 1.21), // HT
+    price_cents: Math.round(price_tvac / 1.21),
     currency: "EUR",
     condition: "new",
     url: String(url),
@@ -206,11 +224,7 @@ function mainStoreProductToOffer(product: any): CapturedOffer | null {
         ? "out_of_stock"
         : "unknown",
     captured_host: "www.mediamarkt.be",
-    raw_specs: {
-      from_json_ld: true,
-      price_cents_tvac: price_tvac,
-      vat_excluded: true,
-    },
+    raw_specs: { from_json_ld: true, price_cents_tvac: price_tvac, vat_excluded: true },
   };
 }
 
@@ -223,8 +237,7 @@ function findItemList(data: unknown): any {
   return null;
 }
 
-/** Cherche le prix non-barré dans une card OpenCart */
-function findPriceInCard(card: Element): number | null {
+function findPriceInOutletCard(card: Element): number | null {
   const all = Array.from(card.querySelectorAll("*"));
   const candidates: Array<{ cents: number; fontSize: number }> = [];
   for (const el of all) {
@@ -235,7 +248,6 @@ function findPriceInCard(card: Element): number | null {
       .trim();
     if (!directText || !/€/.test(directText)) continue;
     if (directText.length > 30) continue;
-    // Exclure prix barrés
     if (
       el.closest(
         "del, s, [class*='strikethrough'], [class*='line-through'], [class*='old-price'], [class*='was-price'], [class*='text-muted']"
@@ -253,9 +265,8 @@ function findPriceInCard(card: Element): number | null {
     candidates.push({ cents, fontSize: fs });
   }
   if (candidates.length === 0) return null;
-  // Prendre le plus gros ou le plus petit selon la convention : chez OpenCart outlet,
-  // le prix promo est généralement plus petit mais mis en évidence (rouge). On prend
-  // le PLUS BAS non-barré (= prix outlet) pour être safe.
+  // Sur OpenCart outlet, le prix promo (en rouge/lead) est celui qu'on veut
+  // — typiquement le plus PETIT non-barré.
   candidates.sort((a, b) => a.cents - b.cents);
   return candidates[0].cents;
 }

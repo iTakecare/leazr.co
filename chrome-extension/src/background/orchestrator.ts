@@ -140,14 +140,15 @@ async function fetchAndParse(
 }
 
 /**
- * Pour les offres Coolblue refurb qui ont needs_price_enrichment, fetch
- * la page détail et extrait le prix via offscreen.
+ * Pour les offres qui ont needs_price_enrichment, fetch la page détail et
+ * extrait le prix via l'offscreen. L'adapter_key détermine quel extracteur
+ * est utilisé côté offscreen (coolblue, gomibo, …).
  */
-async function enrichRefurbishedPrices(offers: CapturedOffer[]): Promise<CapturedOffer[]> {
+async function enrichRefurbishedPrices(offers: CapturedOffer[], adapterKey: string): Promise<CapturedOffer[]> {
   const toEnrich = offers.filter((o) => (o.raw_specs as any)?.needs_price_enrichment);
   if (toEnrich.length === 0) return offers;
 
-  console.log(`[Orchestrator] Enrichissement de ${toEnrich.length} prix refurb…`);
+  console.log(`[Orchestrator][${adapterKey}] Enrichissement de ${toEnrich.length} prix…`);
 
   await ensureOffscreenDocument();
 
@@ -170,7 +171,8 @@ async function enrichRefurbishedPrices(offers: CapturedOffer[]): Promise<Capture
         if (!resp.ok) return { url: offer.url, price_cents: null };
         const html = await resp.text();
         const result = await sendToOffscreen<{ price_cents: number | null }>({
-          type: "offscreen_enrich_coolblue_price",
+          type: "offscreen_enrich_price",
+          adapter_key: adapterKey,
           html,
         });
         return { url: offer.url, price_cents: result.price_cents };
@@ -250,10 +252,10 @@ async function searchOne(
       console.log(`[Orchestrator][${adapter.key}] (${label}) 0 résultats pertinents`);
       if (!isLast) continue;
     } else {
-      // Succès : enrichir les prix si nécessaire (Coolblue refurb)
+      // Succès : enrichir les prix si nécessaire (Coolblue refurb / Gomibo)
       let finalOffers = result.offers;
-      if (adapter.key === "coolblue" && finalOffers.some((o) => (o.raw_specs as any)?.needs_price_enrichment)) {
-        finalOffers = await enrichRefurbishedPrices(finalOffers);
+      if (finalOffers.some((o) => (o.raw_specs as any)?.needs_price_enrichment)) {
+        finalOffers = await enrichRefurbishedPrices(finalOffers, adapter.key);
       }
       // Filtre de pertinence centralisé (Pro/Air discrimination, etc.)
       const before = finalOffers.length;
