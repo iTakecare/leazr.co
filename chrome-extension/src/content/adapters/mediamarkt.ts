@@ -11,6 +11,7 @@ import {
   parsePriceCents,
   jsonLdProduct,
 } from "../../lib/parse-helpers";
+import { publicHealthCheck } from "../../lib/health-check";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ADAPTER 1 : outlet.mediamarkt.be (OpenCart, reconditionné/retour)
@@ -19,6 +20,8 @@ export const mediamarktOutletAdapter: SiteAdapter = {
   name: "mediamarkt-outlet",
   key: "mediamarkt_outlet",
   displayName: "Mediamarkt Outlet",
+  loginUrl: "https://outlet.mediamarkt.be/",
+  checkConnection: () => publicHealthCheck("https://outlet.mediamarkt.be/"),
 
   matches: (url) => url.hostname === "outlet.mediamarkt.be",
 
@@ -71,8 +74,13 @@ export const mediamarktOutletAdapter: SiteAdapter = {
       );
       if (!link) continue;
 
-      const href = link.href || link.getAttribute("href") || "";
-      const url = href.replace(/&amp;/g, "&");
+      // getAttribute pour avoir l'URL brute (évite la résolution
+      // chrome-extension:// dans un DOMParser hors navigateur)
+      const rawHref = link.getAttribute("href") || "";
+      const decoded = rawHref.replace(/&amp;/g, "&");
+      const url = decoded.startsWith("http")
+        ? decoded
+        : `https://outlet.mediamarkt.be${decoded.startsWith("/") ? "" : "/"}${decoded}`;
       if (!url) continue;
 
       const title =
@@ -111,6 +119,8 @@ export const mediamarktMainAdapter: SiteAdapter = {
   name: "mediamarkt",
   key: "mediamarkt",
   displayName: "Mediamarkt BE",
+  loginUrl: "https://www.mediamarkt.be/fr",
+  checkConnection: () => publicHealthCheck("https://www.mediamarkt.be/fr"),
 
   matches: (url) => url.hostname === "www.mediamarkt.be",
 

@@ -29,6 +29,9 @@ export const amazonAdapter: SiteAdapter = {
 
   isProductPage: (_doc, url) => /\/dp\/|\/gp\/product\//.test(url.pathname),
 
+  requiresCookies: true,
+  loginUrl: "https://www.amazon.fr/business",
+
   // ═══ Cookies du navigateur réutilisés pour les prix pro ═══
   fetchOptions: {
     credentials: "include",
@@ -40,6 +43,49 @@ export const amazonAdapter: SiteAdapter = {
       "Sec-Fetch-Site": "none",
       "Upgrade-Insecure-Requests": "1",
     },
+  },
+
+  checkConnection: async () => {
+    const now = new Date().toISOString();
+    try {
+      const resp = await fetch("https://www.amazon.fr/gp/your-account/order-history", {
+        credentials: "include",
+        redirect: "follow",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+          "Accept-Language": "fr-FR,fr;q=0.9",
+        },
+      });
+      // Amazon redirect vers /ap/signin si pas connecté
+      if (/\/(ap\/)?signin/i.test(resp.url)) {
+        return {
+          connected: false,
+          reason: "not_logged_in",
+          message: "Tu n'es pas connecté à Amazon Business dans Chrome",
+          login_url: "https://www.amazon.fr/business",
+          last_checked_at: now,
+        };
+      }
+      const html = await resp.text();
+      // Amazon place le prénom dans .nav-line-1 ou aria-label
+      const nameMatch =
+        html.match(/Bonjour[,\s]+([A-Za-zÀ-ÿ\- ]{2,30})/) ||
+        html.match(/Hello[,\s]+([A-Za-zÀ-ÿ\- ]{2,30})/);
+      return {
+        connected: true,
+        user_info: nameMatch ? nameMatch[1].trim() : undefined,
+        last_checked_at: now,
+      };
+    } catch (e: any) {
+      return {
+        connected: false,
+        reason: "site_down",
+        message: e?.message ?? "Erreur réseau",
+        login_url: "https://www.amazon.fr/business",
+        last_checked_at: now,
+      };
+    }
   },
 
   extract: (doc, url): AdapterResult => {
@@ -123,10 +169,15 @@ export const amazonAdapter: SiteAdapter = {
       if (!price_raw) continue;
       const price_cents = isBusinessHT ? price_raw : Math.round(price_raw / 1.21);
 
-      // URL
+      // URL : ATTENTION — dans un DOMParser hors du navigateur,
+      // link.href est résolu par rapport à chrome-extension:// ce qui casse
+      // l'URL. On utilise getAttribute puis on reconstruit en absolu.
       const link = card.querySelector<HTMLAnchorElement>("h2 a, .a-link-normal");
-      const href = link?.href;
-      if (!href) continue;
+      const rawHref = link?.getAttribute("href");
+      if (!rawHref) continue;
+      const href = rawHref.startsWith("http")
+        ? rawHref
+        : `https://${url.hostname}${rawHref.startsWith("/") ? "" : "/"}${rawHref}`;
 
       // Image
       const img = card.querySelector<HTMLImageElement>("img.s-image");
@@ -142,7 +193,7 @@ export const amazonAdapter: SiteAdapter = {
         price_cents,
         currency: "EUR",
         condition: isWarehouse ? "grade_a" : "new",
-        url: href.startsWith("http") ? href : `https://www.amazon.fr${href}`,
+        url: href,
         image_url,
         stock_status: "unknown",
         captured_host: url.hostname,

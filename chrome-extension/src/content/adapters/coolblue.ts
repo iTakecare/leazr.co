@@ -16,6 +16,7 @@ import {
   findMainPrice,
   parsePriceCents,
 } from "../../lib/parse-helpers";
+import { publicHealthCheck } from "../../lib/health-check";
 
 const PRODUCT_PATH_RE =
   /\/(produit|product|deuxieme-chance-produit|tweedekans-product|2ehands-product|seconde-main|refurbished|outlet)\/\d+/i;
@@ -24,6 +25,8 @@ export const coolblueAdapter: SiteAdapter = {
   name: "coolblue",
   key: "coolblue",
   displayName: "Coolblue",
+  loginUrl: "https://www.coolblue.be/fr",
+  checkConnection: () => publicHealthCheck("https://www.coolblue.be/fr", { expectString: "coolblue" }),
 
   matches: (url) => /coolblue\.(be|nl|com)$/.test(url.hostname),
 
@@ -713,9 +716,11 @@ function extractCardOffer(card: Element): CapturedOffer | null {
   const link = card.querySelector<HTMLAnchorElement>(
     "a[href*='/produit/'], a[href*='/deuxieme-chance-produit/']"
   );
-  const href = link?.href ?? link?.getAttribute("href") ?? "";
+  // getAttribute pour avoir l'URL brute (link.href est résolu vs
+  // chrome-extension:// dans un DOMParser hors navigateur)
+  const href = link?.getAttribute("href") ?? "";
   if (!href) return null;
-  const absoluteUrl = href.startsWith("http") ? href : `https://www.coolblue.be${href}`;
+  const absoluteUrl = href.startsWith("http") ? href : `https://www.coolblue.be${href.startsWith("/") ? "" : "/"}${href}`;
 
   // Prix : plus gros prix non-barré dans la card
   const price_cents = findPriceInElement(card);
