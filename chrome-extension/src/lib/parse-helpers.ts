@@ -178,8 +178,124 @@ export function jsonLdProduct(doc: Document): {
  * l'orchestrator avant retour.
  */
 import type { CapturedOffer as Offer } from "./types";
+/**
+ * Détecte la "signature produit" dans une query (MacBook Pro, iMac, Mac Mini, iPad, etc.)
+ * et retourne les tokens obligatoires qui DOIVENT figurer dans le titre d'une offre,
+ * sinon elle est rejetée même en mode élargi. Cela évite d'afficher des iMac quand
+ * on cherche MacBook Pro.
+ *
+ * Reconnus (ordre important — le plus spécifique d'abord) :
+ *  - "macbook pro"  → ["macbook", "pro"]
+ *  - "macbook air"  → ["macbook", "air"]
+ *  - "macbook"      → ["macbook"]
+ *  - "mac mini"     → ["mac", "mini"]
+ *  - "mac studio"   → ["mac", "studio"]
+ *  - "mac pro"      → ["mac", "pro"] (but NOT macbook)
+ *  - "imac"         → ["imac"]
+ *  - "iphone"       → ["iphone"]
+ *  - "ipad"         → ["ipad"]
+ *  - "apple watch" / "watch" → ["watch"]
+ *  - "airpods"      → ["airpods"]
+ *  - "surface"      → ["surface"]
+ *  - Sinon : null (pas de contrainte type)
+ */
+export function inferProductTypeTokens(query: string): {
+  required: string[];
+  forbidden: string[];
+} | null {
+  const q = query
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  // MacBook Pro : doit contenir macbook + pro, ne doit PAS contenir air/mini
+  if (/\bmacbook\s+pro\b/.test(q))
+    return { required: ["macbook", "pro"], forbidden: ["air", "mini"] };
+  // MacBook Air
+  if (/\bmacbook\s+air\b/.test(q))
+    return { required: ["macbook", "air"], forbidden: ["pro", "mini"] };
+  // MacBook générique
+  if (/\bmacbook\b/.test(q))
+    return { required: ["macbook"], forbidden: [] };
+  // Mac Mini
+  if (/\bmac\s+mini\b/.test(q))
+    return { required: ["mac", "mini"], forbidden: ["book", "pro", "studio", "imac"] };
+  // Mac Studio
+  if (/\bmac\s+studio\b/.test(q))
+    return { required: ["mac", "studio"], forbidden: ["book", "mini", "imac"] };
+  // Mac Pro (attention, NOT MacBook Pro)
+  if (/\bmac\s+pro\b/.test(q) && !/\bmacbook\b/.test(q))
+    return { required: ["mac", "pro"], forbidden: ["book", "air", "mini", "studio", "imac"] };
+  // iMac
+  if (/\bimac\b/.test(q))
+    return { required: ["imac"], forbidden: ["macbook", "mini", "studio"] };
+  // iPad Pro / Air / Mini
+  if (/\bipad\s+pro\b/.test(q))
+    return { required: ["ipad", "pro"], forbidden: ["mini", "air"] };
+  if (/\bipad\s+air\b/.test(q))
+    return { required: ["ipad", "air"], forbidden: ["pro", "mini"] };
+  if (/\bipad\s+mini\b/.test(q))
+    return { required: ["ipad", "mini"], forbidden: ["pro", "air"] };
+  if (/\bipad\b/.test(q))
+    return { required: ["ipad"], forbidden: [] };
+  // iPhone Pro Max
+  if (/\biphone\b.*\bpro\s+max\b/.test(q))
+    return { required: ["iphone", "pro", "max"], forbidden: [] };
+  if (/\biphone\b.*\bpro\b/.test(q))
+    return { required: ["iphone", "pro"], forbidden: [] };
+  if (/\biphone\b.*\bplus\b/.test(q))
+    return { required: ["iphone", "plus"], forbidden: ["pro", "mini"] };
+  if (/\biphone\b/.test(q))
+    return { required: ["iphone"], forbidden: [] };
+  // Apple Watch
+  if (/\b(apple\s+)?watch\b/.test(q))
+    return { required: ["watch"], forbidden: ["iphone", "ipad"] };
+  // AirPods
+  if (/\bairpods\b/.test(q))
+    return { required: ["airpods"], forbidden: [] };
+  // Surface
+  if (/\bsurface\b/.test(q))
+    return { required: ["surface"], forbidden: [] };
+  return null;
+}
+
+/**
+ * Filtre minimal "type produit uniquement" — applique inferProductTypeTokens
+ * sans les contraintes strictes de specs. Utilisé pour le mode "élargi".
+ */
+export function filterOffersByProductType<T extends Offer>(offers: T[], query: string): T[] {
+  const type = inferProductTypeTokens(query);
+  if (!type) return offers;
+
+  const normalize = (s: string): string[] =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((t) => t.length >= 2);
+
+  return offers.filter((o) => {
+    const titleTokens = new Set(
+      normalize((o.title ?? "") + " " + (o.brand ?? ""))
+    );
+    for (const req of type.required) {
+      if (!titleTokens.has(req)) return false;
+    }
+    for (const forb of type.forbidden) {
+      if (titleTokens.has(forb)) return false;
+    }
+    return true;
+  });
+}
+
 export function filterOffersByRelevance<T extends Offer>(offers: T[], query: string): T[] {
   if (!query.trim()) return offers;
+
+  // Pré-filtre obligatoire par type produit
+  offers = filterOffersByProductType(offers, query);
+  if (offers.length === 0) return offers;
 
   const STOPWORDS = new Set([
     "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou",

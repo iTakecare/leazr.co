@@ -79,14 +79,12 @@ export const appleRefurbishedAdapter: SiteAdapter = {
       } catch { /* ignore */ }
     }
 
-    // Filtrer sur la query (la page /refurbished/mac contient tous les Macs,
-    // on ne veut garder que les MacBook Pro si on cherche "MacBook Pro")
-    // On lit la query depuis un fragment/search si l'URL en a un, sinon tout.
-    // Comme on n'a pas la query ici, on se contente de limiter.
-    // Le filtrage précis sera fait par l'orchestrator via filterByRelevance
-    // (dans le contexte multi-source search).
-    console.log(`[Leazr][apple] ${allOffers.length} produits refurb extraits (${limit} demandés)`);
-    return allOffers.slice(0, Math.max(limit * 4, 20)); // on sur-récupère, filtrage en amont
+    // On retourne TOUS les produits extraits — le filtrage (type + pertinence)
+    // est fait par l'orchestrator qui a la query. Sans ça, on risquait de
+    // tronquer à 20 avant d'avoir trouvé la variante précise que l'user cherche
+    // (page /refurbished/mac contient 100+ produits).
+    console.log(`[Leazr][apple] ${allOffers.length} produits refurb extraits (filtrage par orchestrator)`);
+    return allOffers;
   },
 };
 

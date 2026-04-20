@@ -356,13 +356,15 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
                   <div className="text-xs text-muted-foreground">
                     {showAll ? (
                       <>
-                        <strong className="text-slate-800">{sortedOffers.length}</strong> offres au
-                        total ({hiddenByStrict} hors spec stricte)
+                        <strong className="text-slate-800">{sortedOffers.length}</strong> variantes du
+                        même type produit (RAM/stockage différents)
                       </>
                     ) : (
                       <>
-                        <strong className="text-slate-800">{strictCount}</strong> pertinentes —{" "}
-                        <span className="text-amber-700">{hiddenByStrict} masquées par filtre strict</span>
+                        <strong className="text-slate-800">{strictCount}</strong> exactes —{" "}
+                        <span className="text-amber-700">
+                          +{hiddenByStrict} variantes proches disponibles
+                        </span>
                       </>
                     )}
                   </div>
@@ -372,7 +374,7 @@ const SourcingSearchModal: React.FC<SourcingSearchModalProps> = ({
                     className="h-7 text-xs"
                     onClick={() => setShowAll((v) => !v)}
                   >
-                    {showAll ? "⇠ Mode strict" : "Élargir la recherche →"}
+                    {showAll ? "⇠ Spec exacte" : "Voir les variantes →"}
                   </Button>
                 </div>
               )}

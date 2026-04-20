@@ -6,7 +6,7 @@
  * dans un service worker MV3).
  */
 import { adapters } from "../content/adapters";
-import { filterOffersByRelevance } from "../lib/parse-helpers";
+import { filterOffersByRelevance, filterOffersByProductType } from "../lib/parse-helpers";
 import type { CapturedOffer, SearchRequest, SearchProgressMessage, SearchResponse, SiteAdapter } from "../lib/types";
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -319,26 +319,30 @@ async function searchOne(
       if (allOffers.some((o) => (o.raw_specs as any)?.needs_price_enrichment)) {
         allOffers = await enrichRefurbishedPrices(allOffers, adapter.key);
       }
-      // Filtre de pertinence centralisé (Pro/Air discrimination, etc.)
+      // Pré-filtre "type produit" TOUJOURS appliqué (MacBook Pro ≠ iMac ≠ iPad ≠ etc.)
+      // Le mode élargi garde ces offres pour qu'on puisse les afficher.
+      const typeFiltered = filterOffersByProductType(allOffers, query);
+      // Filtre strict complet (specs, couleur, etc.)
       const filtered = filterOffersByRelevance(allOffers, query);
       const top = filtered.slice(0, limit);
-      console.log(`[Orchestrator][${adapter.key}] (${label}) ${top.length}/${filtered.length} filtered, ${allOffers.length} total`);
+      console.log(
+        `[Orchestrator][${adapter.key}] (${label}) strict=${top.length}/${filtered.length}, type=${typeFiltered.length}, raw=${allOffers.length}`
+      );
 
       if (filtered.length === 0) {
         lastError = "Aucun résultat pertinent";
         if (!isLast) continue;
-        // Dernière chance : on retourne quand même les offres non filtrées pour l'UX "élargir"
         return {
           source: adapter.key,
           offers: [],
-          all_offers: allOffers.slice(0, Math.min(allOffers.length, 20)),
+          all_offers: typeFiltered.slice(0, 30), // garde que le bon type
           error: lastError,
         };
       }
       return {
         source: adapter.key,
         offers: top,
-        all_offers: allOffers.slice(0, Math.min(allOffers.length, 20)),
+        all_offers: typeFiltered.slice(0, 30), // type correct, jusqu'à 30 variantes
       };
     }
   }
