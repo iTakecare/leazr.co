@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
 
 export type CountryCode = 'BE' | 'FR' | 'LU';
 
@@ -27,7 +27,8 @@ export const uploadPostalCodeFile = async (
 
     // Upload to storage bucket with standardized naming
     const fileName = `${country}.txt`;
-    const { error } = await supabase.storage
+    // getFileUploadClient() : sans header JSON global qui casse les uploads
+    const { error } = await getFileUploadClient().storage
       .from('postal-code-imports')
       .upload(fileName, file, {
         upsert: true, // Override existing file

@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getOfferEquipment } from "./offers/offerEquipment";
 
@@ -497,9 +497,11 @@ export const uploadContractDocument = async (
     const fileName = `${contractId}_${documentType}_${Date.now()}.${fileExt}`;
     const filePath = `contracts/${contractId}/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
+    // getFileUploadClient() : client sans le header 'Content-Type: application/json'
+    // global qui casse les uploads Storage avec "Invalid Content-Type header".
+    const { error: uploadError } = await getFileUploadClient().storage
       .from('company-assets')
-      .upload(filePath, file);
+      .upload(filePath, file, { contentType: file.type });
 
     if (uploadError) {
       console.error("❌ Erreur lors de l'upload du fichier:", uploadError);

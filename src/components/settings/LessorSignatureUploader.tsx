@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, Trash2, PenLine, Check, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
 import SignaturePad from '@/components/signature/SignaturePad';
 
@@ -53,7 +53,8 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
       // Upload to storage using authenticated supabase client
       const fileName = `${companyId}/lessor-signature.png`;
 
-      const { error: uploadError } = await supabase.storage
+      // getFileUploadClient() : sans header JSON global qui casse les uploads
+      const { error: uploadError } = await getFileUploadClient().storage
         .from('company-assets')
         .upload(fileName, blob, {
           contentType: 'image/png',
@@ -113,7 +114,8 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
       // Upload to storage using authenticated supabase client
       const fileName = `${companyId}/lessor-signature.${file.name.split('.').pop()}`;
 
-      const { error: uploadError } = await supabase.storage
+      // getFileUploadClient() : sans header JSON global qui casse les uploads
+      const { error: uploadError } = await getFileUploadClient().storage
         .from('company-assets')
         .upload(fileName, file, {
           contentType: file.type,

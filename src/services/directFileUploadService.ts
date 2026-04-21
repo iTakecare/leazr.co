@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
@@ -62,8 +62,8 @@ export const directUploadToSupabase = async (
       size: uploadFile.size
     });
 
-    // Upload direct vers Supabase
-    const { data, error } = await supabase.storage
+    // Upload direct via le client dédié (sans header JSON global)
+    const { data, error } = await getFileUploadClient().storage
       .from(bucketName)
       .upload(filePath, uploadFile, {
         cacheControl: '3600',

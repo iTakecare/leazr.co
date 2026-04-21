@@ -1,4 +1,4 @@
-import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
@@ -265,9 +265,9 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
       console.log(`Utilisation du type MIME: ${mimeType}`);
       const blob = new Blob([arrayBuffer], { type: mimeType });
       
-      // Upload vers Supabase
+      // Upload vers Supabase via le client dédié (sans header JSON global)
       console.log(`Upload vers ${bucketName}/${filePath}`);
-      const { data, error } = await supabase.storage
+      const { data, error } = await getFileUploadClient().storage
         .from(bucketName)
         .upload(filePath, blob, {
           contentType: mimeType,

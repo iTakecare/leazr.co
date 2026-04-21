@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
 
 export interface CompanyBranding {
   id?: string;
@@ -74,10 +74,13 @@ class CompanyCustomizationService {
       const fileExtension = file.name.split('.').pop();
       const fileName = `${companyId}/${assetType}.${fileExtension}`;
       
-      const { data, error } = await supabase.storage
+      // getFileUploadClient() : sans header JSON global qui casse les uploads
+      // + contentType: file.type (indispensable pour éviter Invalid Content-Type)
+      const { data, error } = await getFileUploadClient().storage
         .from('company-assets')
         .upload(fileName, file, {
-          upsert: true
+          upsert: true,
+          contentType: file.type || 'application/octet-stream'
         });
 
       if (error) {

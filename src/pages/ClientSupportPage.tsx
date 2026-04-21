@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { HelpCircle, Mail, Phone, MessageSquare, FileText, Plus, Send, Clock, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Paperclip, Download, User, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
 import { useClientData } from "@/hooks/useClientData";
 import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
 import { toast } from "sonner";
@@ -374,9 +374,10 @@ const ClientTicketDetail = ({ ticket, onBack, clientName }: ClientTicketDetailPr
       const uploadedFiles: { name: string; path: string; size: number }[] = [];
       for (const file of attachments) {
         const filePath = `${ticket.id}/${Date.now()}_${file.name}`;
-        const { error: uploadError } = await supabase.storage
+        // getFileUploadClient() : sans le header JSON global qui casse les uploads
+        const { error: uploadError } = await getFileUploadClient().storage
           .from("ticket-attachments")
-          .upload(filePath, file);
+          .upload(filePath, file, { contentType: file.type });
         if (uploadError) throw uploadError;
         uploadedFiles.push({ name: file.name, path: filePath, size: file.size });
       }

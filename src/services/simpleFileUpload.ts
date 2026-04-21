@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
@@ -119,8 +119,8 @@ export const blobFileUpload = async (
 
     console.log(`Upload blob vers: ${bucketName}/${filePath}`);
 
-    // Upload du blob
-    const { data, error } = await supabase.storage
+    // Upload du blob via le client dédié (sans header JSON global)
+    const { data, error } = await getFileUploadClient().storage
       .from(bucketName)
       .upload(filePath, blob, {
         cacheControl: '3600',

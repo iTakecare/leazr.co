@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCurrentUserCompanyId } from "./multiTenantService";
 
@@ -57,8 +57,8 @@ export async function uploadFileMultiTenant(
       return null;
     }
     
-    // Upload le fichier
-    const { data, error } = await supabase.storage
+    // Upload le fichier via le client dédié (sans header JSON global)
+    const { data, error } = await getFileUploadClient().storage
       .from(storageType)
       .upload(filePath, file, {
         contentType: file.type,

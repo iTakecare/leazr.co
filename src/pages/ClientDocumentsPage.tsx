@@ -8,7 +8,7 @@
  *       📄 Document 2
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
 import { getAllClients } from "@/services/clientService";
 import {
   downloadDocument,
@@ -550,7 +550,9 @@ const ClientDocumentsPage: React.FC = () => {
     try {
       const ext = uploadFile.name.split(".").pop() ?? "bin";
       const fileName = `${uploadOfferId}/${uuidv4()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
+      // getFileUploadClient() : client sans le header 'Content-Type: application/json'
+      // global qui casse les uploads Storage avec "Invalid Content-Type header".
+      const { error: uploadErr } = await getFileUploadClient().storage
         .from("offer-documents")
         .upload(fileName, uploadFile, { contentType: uploadFile.type });
       if (uploadErr) throw new Error(uploadErr.message);
