@@ -176,7 +176,15 @@ const ExtensionInstallDialog: React.FC<ExtensionInstallDialogProps> = ({ open, o
           </Alert>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row sm:justify-between gap-2">
+          <a
+            href="/extension-install.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+          >
+            Ouvrir ce guide dans un nouvel onglet (lien partageable)
+          </a>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fermer
           </Button>

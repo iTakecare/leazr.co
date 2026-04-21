@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Installation de l'extension Leazr Sourcing</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #1f2937;
+      background: #f9fafb;
+      line-height: 1.6;
+      padding: 32px 16px 64px;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      padding: 32px 24px;
+      border-radius: 16px 16px 0 0;
+      text-align: center;
+    }
+    header .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0.85;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin-top: 10px;
+      opacity: 0.92;
+      font-size: 15px;
+    }
+    .content {
+      background: white;
+      padding: 32px;
+      border-radius: 0 0 16px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    .intro {
+      padding: 16px;
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      border-radius: 8px;
+      margin-bottom: 32px;
+      font-size: 14px;
+      color: #1e40af;
+    }
+    .intro strong { color: #1e3a8a; }
+    .step {
+      display: flex;
+      gap: 16px;
+      padding: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      background: white;
+      transition: border-color 0.15s;
+    }
+    .step:hover { border-color: #c7d2fe; }
+    .step.last { border-color: #bbf7d0; background: #f0fdf4; }
+    .step-number {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1f2937;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .step.first .step-number { background: #4f46e5; }
+    .step.last .step-number { background: #10b981; }
+    .step-body { flex: 1; min-width: 0; }
+    .step-body h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .step-body p {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+    .step-body p:last-child { margin-bottom: 0; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      color: white;
+      background: #4f46e5;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #4338ca; }
+    .btn-outline {
+      background: transparent;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+    .btn-outline:hover { background: #f9fafb; border-color: #9ca3af; }
+    .btn-copy {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    code {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #dc2626;
+    }
+    .checkmark { color: #10b981; font-weight: 700; }
+    .faq {
+      margin-top: 40px;
+      padding-top: 32px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .faq h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    .faq-item {
+      padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .faq-item:last-child { border: none; }
+    .faq-item strong {
+      display: block;
+      font-size: 14px;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    .faq-item span {
+      font-size: 14px;
+      color: #6b7280;
+    }
+    footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+    footer a { color: #6b7280; text-decoration: underline; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1f2937;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    @media (max-width: 540px) {
+      body { padding: 16px 8px 32px; }
+      header, .content { padding: 24px 16px; }
+      header h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+          <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+        </svg>
+        Leazr Sourcing
+      </div>
+      <h1>Installer l'extension Chrome</h1>
+      <p>Cinq étapes, cinq minutes — et tu peux sourcer du matériel reconditionné sans quitter Leazr.</p>
+    </header>
+
+    <div class="content">
+      <div class="intro">
+        <strong>À quoi ça sert ?</strong> L'extension interroge en temps réel Coolblue, MediaMarkt,
+        Apple Refurbished, Amazon Business, Gomibo et Chapp pour te sortir les meilleures offres
+        reconditionnées correspondant à ta recherche, directement dans l'écran Sourcing de Leazr.
+      </div>
+
+      <!-- Étape 1 -->
+      <div class="step first">
+        <div class="step-number">1</div>
+        <div class="step-body">
+          <h3>Télécharger l'archive</h3>
+          <p>
+            Un fichier <code>.zip</code> d'environ 515 Ko, compilé et signé par iTakecare. Clique
+            sur le bouton — le téléchargement démarre immédiatement.
+          </p>
+          <a href="/leazr-sourcing-extension.zip" download="leazr-sourcing-extension.zip" class="btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Télécharger leazr-sourcing-extension.zip
+          </a>
+        </div>
+      </div>
+
+      <!-- Étape 2 -->
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-body">
+          <h3>Dézipper le fichier</h3>
+          <p>
+            Va dans ton dossier <strong>Téléchargements</strong>, double-clique sur
+            <code>leazr-sourcing-extension.zip</code>. Tu obtiens un dossier
+            <code>leazr-sourcing-extension</code> — retiens son emplacement, tu vas le sélectionner
+            à l'étape 4.
+          </p>
+        </div>
+      </div>
+
+      <!-- Étape 3 -->
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-body">
+          <h3>Ouvrir la page des extensions Chrome</h3>
+          <p>
+            Chrome empêche de l'ouvrir directement via un lien cliquable (sécurité). Clique sur le
+            bouton ci-dessous pour copier l'URL, puis colle-la dans un nouvel onglet.
+          </p>
+          <button class="btn btn-outline btn-copy" onclick="copyAndToast('chrome://extensions/', 'URL copiée — colle dans un nouvel onglet')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            chrome://extensions/ — Copier
+          </button>
+          <p style="margin-top: 10px;">
+            Une fois sur la page, active l'interrupteur <strong>« Mode développeur »</strong> en
+            haut à droite. Tu verras apparaître trois boutons supplémentaires sous la barre de
+            recherche.
+          </p>
+        </div>
+      </div>
+
+      <!-- Étape 4 -->
+      <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-body">
+          <h3>Charger l'extension non empaquetée</h3>
+          <p>
+            Clique sur le bouton <strong>« Charger l'extension non empaquetée »</strong>
+            (<em>Load unpacked</em> en anglais). Dans la fenêtre qui s'ouvre, sélectionne le dossier
+            <code>leazr-sourcing-extension</code> obtenu à l'étape 2 puis valide.
+          </p>
+          <p>
+            L'extension apparaît dans la liste. Tu peux vérifier qu'elle est bien activée
+            (interrupteur en bas à droite de sa carte).
+          </p>
+        </div>
+      </div>
+
+      <!-- Étape 5 -->
+      <div class="step last">
+        <div class="step-number">5</div>
+        <div class="step-body">
+          <h3>Recharger Leazr</h3>
+          <p>
+            Retourne sur Leazr (page <strong>Sourcing</strong>) et fais <code>⌘R</code> /
+            <code>Ctrl+R</code>. Le badge en haut à droite passe à
+            <span class="checkmark">● Extension connectée</span> et tu peux commencer à sourcer.
+          </p>
+          <a href="https://leazr.co/admin/sourcing" class="btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2v6h-6"/>
+              <path d="M3 12a9 9 0 0 1 15-6.7l3 2.7"/>
+              <path d="M3 22v-6h6"/>
+              <path d="M21 12a9 9 0 0 1-15 6.7l-3-2.7"/>
+            </svg>
+            Retour sur Leazr
+          </a>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="faq">
+        <h2>Questions fréquentes</h2>
+
+        <div class="faq-item">
+          <strong>Est-ce que l'extension collecte mes données ?</strong>
+          <span>
+            Non. Elle ne communique qu'avec <code>leazr.co</code> (ton compte) et les sites
+            fournisseurs que tu consultes volontairement. Aucun tracking, aucun service externe.
+          </span>
+        </div>
+
+        <div class="faq-item">
+          <strong>Pourquoi pas via le Chrome Web Store ?</strong>
+          <span>
+            Outil interne iTakecare, pas destiné au grand public — le process de review publique
+            (3 à 7 jours) est superflu. Distribution privée via leazr.co uniquement.
+          </span>
+        </div>
+
+        <div class="faq-item">
+          <strong>Les mises à jour sont-elles automatiques ?</strong>
+          <span>
+            Pas encore. Quand une nouvelle version sort, tu retélécharges le zip et tu
+            re-sélectionnes le dossier à l'étape 4 (Chrome détecte le changement de version). Des
+            mises à jour automatiques via <code>update_url</code> sont prévues.
+          </span>
+        </div>
+
+        <div class="faq-item">
+          <strong>Ça marche sur Firefox / Safari / Edge ?</strong>
+          <span>
+            Uniquement sur les navigateurs basés sur Chromium : Chrome, Edge, Brave, Opera, Arc.
+            Pas Firefox ni Safari.
+          </span>
+        </div>
+
+        <div class="faq-item">
+          <strong>J'ai un problème, qui contacter ?</strong>
+          <span>
+            Envoie un message à <a href="mailto:hello@itakecare.be">hello@itakecare.be</a> avec une
+            capture d'écran et le numéro de version (visible sur la page chrome://extensions).
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>
+        Extension développée et maintenue par <strong>iTakecare</strong> — distribuée depuis
+        <a href="/">leazr.co</a>.
+      </p>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast">URL copiée</div>
+
+  <script>
+    function copyAndToast(text, message) {
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('toast');
+        toast.textContent = message || 'Copié';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2200);
+      }).catch(() => {
+        alert('Impossible de copier automatiquement. Tape manuellement : ' + text);
+      });
+    }
+  </script>
+</body>
+</html>
