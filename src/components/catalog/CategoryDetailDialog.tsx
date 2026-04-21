@@ -35,22 +35,31 @@ export function CategoryDetailDialog({
 
   if (!category) return null;
 
+  const isCreating = mode === 'create';
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] h-[90vh] p-0 flex flex-col">
         <DialogHeader className="px-6 py-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-3">
-            <span className="text-2xl font-bold">{category.name}</span>
+            <span className="text-2xl font-bold">
+              {isCreating ? "Nouvelle catégorie" : category.name}
+            </span>
           </DialogTitle>
         </DialogHeader>
-        
+
         <Tabs defaultValue="info" className="flex-1 flex flex-col min-h-0">
           <TabsList className="px-6 justify-start border-b rounded-none shrink-0 w-full">
             <TabsTrigger value="info">Informations</TabsTrigger>
-            <TabsTrigger value="products">Produits ({productCount})</TabsTrigger>
-            <TabsTrigger value="stats">Statistiques</TabsTrigger>
+            {/* Onglets désactivés en création : ils dépendent d'un category.id existant */}
+            {!isCreating && (
+              <>
+                <TabsTrigger value="products">Produits ({productCount})</TabsTrigger>
+                <TabsTrigger value="stats">Statistiques</TabsTrigger>
+              </>
+            )}
           </TabsList>
-          
+
           <div className="flex-1 overflow-y-auto">
             <TabsContent value="info" className="p-6 m-0">
               <CategoryInfoTab
@@ -60,22 +69,26 @@ export function CategoryDetailDialog({
                 onDelete={onDelete}
               />
             </TabsContent>
-            
-            <TabsContent value="products" className="p-6 m-0 h-full">
-              <CategoryProductList
-                categoryId={category.id}
-                onEditProduct={(productId) => {
-                  console.log("Edit product:", productId);
-                }}
-                onViewAllInCatalog={() => {
-                  onClose();
-                }}
-              />
-            </TabsContent>
-            
-            <TabsContent value="stats" className="p-6 m-0">
-              <CategoryStatsTab categoryId={category.id} />
-            </TabsContent>
+
+            {!isCreating && (
+              <>
+                <TabsContent value="products" className="p-6 m-0 h-full">
+                  <CategoryProductList
+                    categoryId={category.id}
+                    onEditProduct={(productId) => {
+                      console.log("Edit product:", productId);
+                    }}
+                    onViewAllInCatalog={() => {
+                      onClose();
+                    }}
+                  />
+                </TabsContent>
+
+                <TabsContent value="stats" className="p-6 m-0">
+                  <CategoryStatsTab categoryId={category.id} />
+                </TabsContent>
+              </>
+            )}
           </div>
         </Tabs>
       </DialogContent>

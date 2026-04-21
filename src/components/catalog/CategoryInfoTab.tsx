@@ -35,7 +35,11 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
       ...category,
       ...formData,
     });
-    setMode('view');
+    // En création, le parent ferme la dialog après succès → ne pas basculer
+    // en 'view' (sinon flash avec category.id='' qui casse les queries).
+    if (mode !== 'create') {
+      setMode('view');
+    }
   };
 
   const handleCancel = () => {
@@ -47,7 +51,11 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
     setMode('view');
   };
 
-  if (mode === 'edit') {
+  // Le formulaire est rendu en mode édition ET en mode création (bug historique :
+  // seul 'edit' était couvert, donc le bouton "Nouvelle catégorie" ouvrait
+  // une vue sans champs → impossible de créer).
+  const isCreating = mode === 'create';
+  if (mode === 'edit' || isCreating) {
     return (
       <div className="space-y-6 max-w-2xl">
         <div className="space-y-4">
@@ -58,6 +66,7 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Ex: Smartphones"
+              autoFocus={isCreating}
             />
           </div>
 
@@ -84,14 +93,16 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
         </div>
 
         <div className="flex gap-2 pt-4 border-t">
-          <Button onClick={handleSave} className="flex-1">
+          <Button onClick={handleSave} className="flex-1" disabled={!formData.name.trim()}>
             <Save className="mr-2 h-4 w-4" />
-            Enregistrer
+            {isCreating ? "Créer la catégorie" : "Enregistrer"}
           </Button>
-          <Button onClick={handleCancel} variant="outline" className="flex-1">
-            <X className="mr-2 h-4 w-4" />
-            Annuler
-          </Button>
+          {!isCreating && (
+            <Button onClick={handleCancel} variant="outline" className="flex-1">
+              <X className="mr-2 h-4 w-4" />
+              Annuler
+            </Button>
+          )}
         </div>
       </div>
     );

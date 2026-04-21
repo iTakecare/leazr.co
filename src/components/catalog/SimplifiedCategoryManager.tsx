@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import {
   getCategoriesWithProductCount,
+  createCategory,
   updateCategory,
   deleteCategory,
   SimplifiedCategory,
@@ -60,16 +61,38 @@ export default function SimplifiedCategoryManager() {
       return;
     }
 
+    // Validation minimale avant envoi (évite les inserts de catégories vides)
+    if (!category.name?.trim()) {
+      toast.error("Le nom de la catégorie est obligatoire");
+      return;
+    }
+
     try {
-      await updateCategory(category.id, {
-        name: category.name,
-        translation: category.translation,
-        description: category.description,
-      });
+      if (!category.id) {
+        // Création : id vide → INSERT
+        await createCategory({
+          company_id: companyId,
+          name: category.name.trim(),
+          translation: category.translation?.trim() || category.name.trim(),
+          description: category.description?.trim() || undefined,
+        });
+        toast.success("Catégorie créée");
+        setIsDialogOpen(false); // fermer, sinon on reste sur un objet à id vide
+      } else {
+        // Mise à jour
+        await updateCategory(category.id, {
+          name: category.name.trim(),
+          translation: category.translation?.trim() || category.name.trim(),
+          description: category.description?.trim() || undefined,
+        });
+        toast.success("Catégorie mise à jour");
+      }
       queryClient.invalidateQueries({ queryKey: ["simplified-categories"] });
-      toast.success("Catégorie mise à jour");
-    } catch (error) {
-      toast.error("Erreur lors de la mise à jour");
+    } catch (error: any) {
+      console.error("Erreur sauvegarde catégorie:", error);
+      toast.error(
+        `Erreur lors de la ${category.id ? "mise à jour" : "création"}${error?.message ? ` : ${error.message}` : ""}`
+      );
     }
   };
 
