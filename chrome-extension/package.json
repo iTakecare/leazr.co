@@ -1,6 +1,6 @@
 {
   "name": "leazr-sourcing-helper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Extension Chrome pour capturer des offres produit sur les sites fournisseurs et les pousser dans Leazr (sourcing matériel reconditionné)",
   "private": true,
   "type": "module",
@@ -8,7 +8,8 @@
     "dev": "vite build --watch --mode development",
     "build": "vite build",
     "clean": "rm -rf dist",
-    "package": "npm run build && cd dist && zip -r ../leazr-sourcing-helper.zip ."
+    "package": "npm run build && cd dist && zip -r ../leazr-sourcing-helper.zip .",
+    "publish:local": "npm run package && cp leazr-sourcing-helper.zip ../public/leazr-sourcing-extension.zip && echo '✓ Extension publiée dans public/leazr-sourcing-extension.zip'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

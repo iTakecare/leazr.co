@@ -23,6 +23,7 @@ import { Search, Sparkles, Loader2, Package, CheckCircle2, Clock, XCircle, Exter
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import SourcingSearchModal from "@/components/sourcing/SourcingSearchModal";
+import ExtensionInstallDialog from "@/components/sourcing/ExtensionInstallDialog";
 import { detectExtension } from "@/services/sourcing/extensionBridge";
 
 interface PendingItem {
@@ -53,6 +54,7 @@ const SourcingOptimizerPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalQuery, setModalQuery] = useState("");
   const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null);
+  const [installDialogOpen, setInstallDialogOpen] = useState(false);
 
   useEffect(() => {
     detectExtension().then((info) => setExtensionInstalled(info.installed));
@@ -116,7 +118,12 @@ const SourcingOptimizerPage: React.FC = () => {
                 Extension connectée
               </Badge>
             ) : extensionInstalled === false ? (
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setInstallDialogOpen(true)}
+              >
                 <Chrome className="h-4 w-4" />
                 Installer l'extension
               </Button>
@@ -257,6 +264,12 @@ const SourcingOptimizerPage: React.FC = () => {
           onOfferSelected={() => {
             loadPending(); // refresh la liste des offres collectées
           }}
+        />
+
+        {/* Modale d'installation de l'extension Chrome */}
+        <ExtensionInstallDialog
+          open={installDialogOpen}
+          onOpenChange={setInstallDialogOpen}
         />
       </Container>
     </PageTransition>
