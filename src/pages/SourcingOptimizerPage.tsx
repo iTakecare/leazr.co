@@ -19,7 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, Sparkles, Loader2, Package, CheckCircle2, Clock, XCircle, ExternalLink, Link2, Chrome } from "lucide-react";
+import { Search, Sparkles, Loader2, Package, CheckCircle2, Clock, XCircle, ExternalLink, Link2, Chrome, HelpCircle, Download, Copy } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import SourcingSearchModal from "@/components/sourcing/SourcingSearchModal";
@@ -133,6 +134,101 @@ const SourcingOptimizerPage: React.FC = () => {
                 Détection…
               </Badge>
             )}
+
+            {/* Bulle d'aide — disponible dans tous les états (installé ou non) */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                  aria-label="Aide sur l'extension Chrome"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0 overflow-hidden">
+                <div className="bg-gradient-to-br from-indigo-600 to-violet-600 text-white px-4 py-3">
+                  <div className="flex items-center gap-2 font-semibold text-sm">
+                    <Chrome className="h-4 w-4" />
+                    Extension Chrome — Aide
+                  </div>
+                  <p className="text-xs opacity-90 mt-0.5">
+                    5 étapes pour installer et lancer des recherches multi-fournisseurs.
+                  </p>
+                </div>
+
+                <ol className="p-4 space-y-2.5 text-xs">
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white font-bold text-[10px] shrink-0">1</span>
+                    <span className="flex-1">
+                      <a
+                        href="/leazr-sourcing-extension.zip"
+                        download="leazr-sourcing-extension.zip"
+                        className="inline-flex items-center gap-1 text-indigo-600 font-medium hover:underline"
+                      >
+                        <Download className="h-3 w-3" />
+                        Télécharger le .zip
+                      </a>
+                      <span className="text-muted-foreground"> (515 Ko)</span>
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-800 text-white font-bold text-[10px] shrink-0">2</span>
+                    <span className="flex-1 text-muted-foreground">
+                      <strong className="text-foreground">Dézipper</strong> le fichier téléchargé.
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-800 text-white font-bold text-[10px] shrink-0">3</span>
+                    <span className="flex-1 text-muted-foreground">
+                      Ouvrir{" "}
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText("chrome://extensions/");
+                          toast.success("URL copiée — colle dans un nouvel onglet");
+                        }}
+                        className="inline-flex items-center gap-1 font-mono text-[11px] bg-muted px-1.5 py-0.5 rounded text-foreground hover:bg-muted/70"
+                      >
+                        chrome://extensions/
+                        <Copy className="h-2.5 w-2.5" />
+                      </button>
+                      , puis activer le <strong className="text-foreground">Mode développeur</strong>.
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-800 text-white font-bold text-[10px] shrink-0">4</span>
+                    <span className="flex-1 text-muted-foreground">
+                      Cliquer <strong className="text-foreground">Charger l'extension non empaquetée</strong> et sélectionner le dossier dézippé.
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white font-bold text-[10px] shrink-0">5</span>
+                    <span className="flex-1 text-muted-foreground">
+                      <strong className="text-foreground">Recharger</strong> Leazr — le badge passe au vert.
+                    </span>
+                  </li>
+                </ol>
+
+                <div className="border-t bg-muted/30 px-4 py-2.5 flex items-center justify-between text-xs">
+                  <a
+                    href="/extension-install.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-600 hover:underline inline-flex items-center gap-1"
+                  >
+                    Guide complet
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <span className="text-muted-foreground">
+                    Besoin d'aide ?{" "}
+                    <a href="mailto:hello@itakecare.be" className="hover:underline">
+                      hello@itakecare.be
+                    </a>
+                  </span>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
