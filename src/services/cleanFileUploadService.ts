@@ -1,6 +1,12 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+// Client dédié aux uploads (sans le header 'Content-Type: application/json'
+// qui casse les requêtes Storage avec "Invalid Content-Type header").
+// Le client `supabase` par défaut force application/json sur TOUTES les
+// requêtes — OK pour Postgrest/Auth mais pas pour Storage.
+const uploadClient = getFileUploadClient();
 
 /**
  * Service d'upload propre qui évite les transformations JSON
@@ -53,8 +59,8 @@ export const cleanFileUpload = async (
     const arrayBuffer = await file.arrayBuffer();
     console.log(`ArrayBuffer taille: ${arrayBuffer.byteLength} bytes`);
 
-    // Upload direct avec ArrayBuffer
-    const { data, error } = await supabase.storage
+    // Upload direct avec ArrayBuffer via le client Storage dédié
+    const { data, error } = await uploadClient.storage
       .from(bucketName)
       .upload(filePath, arrayBuffer, {
         contentType: file.type,
@@ -101,8 +107,8 @@ export const cleanFileUpload = async (
       console.log("Upload réussi:", data);
     }
 
-    // Récupérer l'URL publique
-    const { data: urlData } = supabase.storage
+    // Récupérer l'URL publique (via le même client pour cohérence)
+    const { data: urlData } = uploadClient.storage
       .from(bucketName)
       .getPublicUrl(filePath);
 
