@@ -199,6 +199,40 @@ import type { CapturedOffer as Offer } from "./types";
  *  - "surface"      → ["surface"]
  *  - Sinon : null (pas de contrainte type)
  */
+/**
+ * Tokens d'accessoires à TOUJOURS exclure pour les produits (iPhone, iPad, Mac,
+ * Watch, AirPods). Un titre contenant "cover" ou "coque" est un accessoire,
+ * pas l'appareil lui-même. Liste fusionnée FR/EN/NL.
+ */
+const ACCESSORY_FORBIDDEN = [
+  // Coques / étuis
+  "cover", "covers", "coque", "coques", "etui", "etuis", "housse", "housses",
+  "case", "cases", "sleeve", "sleeves", "hoes", "hoesje",
+  // Protections écran
+  "protector", "protective", "protege", "protection", "glass", "screenprotector",
+  // Câbles / chargeurs / docks
+  "chargeur", "charger", "cable", "cables", "kabel", "kabels",
+  "adapter", "adaptateur", "adaptor", "dock", "stand", "support",
+  "oplader", "oplaadkabel",
+  // Accessoires divers (attention à ne pas trop en mettre — "keyboard" peut être
+  // légitime pour l'iPad Magic Keyboard qu'on vendrait comme accessoire, mais ici
+  // on le traite comme accessoire : si l'admin cherche un Magic Keyboard, il
+  // tapera "Magic Keyboard" et non "iPad".)
+  "keyboard", "clavier", "toetsenbord", "pencil", "stylus",
+  "mount", "holder", "belt", "strap", "band", "bandje",
+  "airtag", "tag",
+];
+
+/**
+ * Extrait le numéro de génération depuis un pattern "iphone 17" ou "ipad 11".
+ * Retourne null si absent. Les queries Apple Refurb indexent rarement le
+ * numéro seul, donc on ne force le match que si la query le contient.
+ */
+function extractGeneration(query: string, basePattern: RegExp): string | null {
+  const m = query.match(basePattern);
+  return m ? m[1] : null;
+}
+
 export function inferProductTypeTokens(query: string): {
   required: string[];
   forbidden: string[];
@@ -210,52 +244,108 @@ export function inferProductTypeTokens(query: string): {
 
   // MacBook Pro : doit contenir macbook + pro, ne doit PAS contenir air/mini
   if (/\bmacbook\s+pro\b/.test(q))
-    return { required: ["macbook", "pro"], forbidden: ["air", "mini"] };
+    return {
+      required: ["macbook", "pro"],
+      forbidden: ["air", "mini", ...ACCESSORY_FORBIDDEN],
+    };
   // MacBook Air
   if (/\bmacbook\s+air\b/.test(q))
-    return { required: ["macbook", "air"], forbidden: ["pro", "mini"] };
+    return {
+      required: ["macbook", "air"],
+      forbidden: ["pro", "mini", ...ACCESSORY_FORBIDDEN],
+    };
   // MacBook générique
   if (/\bmacbook\b/.test(q))
-    return { required: ["macbook"], forbidden: [] };
+    return { required: ["macbook"], forbidden: [...ACCESSORY_FORBIDDEN] };
   // Mac Mini
   if (/\bmac\s+mini\b/.test(q))
-    return { required: ["mac", "mini"], forbidden: ["book", "pro", "studio", "imac"] };
+    return {
+      required: ["mac", "mini"],
+      forbidden: ["book", "pro", "studio", "imac", ...ACCESSORY_FORBIDDEN],
+    };
   // Mac Studio
   if (/\bmac\s+studio\b/.test(q))
-    return { required: ["mac", "studio"], forbidden: ["book", "mini", "imac"] };
+    return {
+      required: ["mac", "studio"],
+      forbidden: ["book", "mini", "imac", ...ACCESSORY_FORBIDDEN],
+    };
   // Mac Pro (attention, NOT MacBook Pro)
   if (/\bmac\s+pro\b/.test(q) && !/\bmacbook\b/.test(q))
-    return { required: ["mac", "pro"], forbidden: ["book", "air", "mini", "studio", "imac"] };
+    return {
+      required: ["mac", "pro"],
+      forbidden: ["book", "air", "mini", "studio", "imac", ...ACCESSORY_FORBIDDEN],
+    };
   // iMac
   if (/\bimac\b/.test(q))
-    return { required: ["imac"], forbidden: ["macbook", "mini", "studio"] };
-  // iPad Pro / Air / Mini
+    return {
+      required: ["imac"],
+      forbidden: ["macbook", "mini", "studio", ...ACCESSORY_FORBIDDEN],
+    };
+  // iPad Pro / Air / Mini (avec génération optionnelle "ipad 11", "ipad pro 13" etc.)
+  // Pour iPad, le numéro est souvent la taille en pouces (11, 13) donc on ne le force pas.
   if (/\bipad\s+pro\b/.test(q))
-    return { required: ["ipad", "pro"], forbidden: ["mini", "air"] };
+    return {
+      required: ["ipad", "pro"],
+      forbidden: ["mini", "air", ...ACCESSORY_FORBIDDEN],
+    };
   if (/\bipad\s+air\b/.test(q))
-    return { required: ["ipad", "air"], forbidden: ["pro", "mini"] };
+    return {
+      required: ["ipad", "air"],
+      forbidden: ["pro", "mini", ...ACCESSORY_FORBIDDEN],
+    };
   if (/\bipad\s+mini\b/.test(q))
-    return { required: ["ipad", "mini"], forbidden: ["pro", "air"] };
+    return {
+      required: ["ipad", "mini"],
+      forbidden: ["pro", "air", ...ACCESSORY_FORBIDDEN],
+    };
   if (/\bipad\b/.test(q))
-    return { required: ["ipad"], forbidden: [] };
-  // iPhone Pro Max
-  if (/\biphone\b.*\bpro\s+max\b/.test(q))
-    return { required: ["iphone", "pro", "max"], forbidden: [] };
-  if (/\biphone\b.*\bpro\b/.test(q))
-    return { required: ["iphone", "pro"], forbidden: [] };
-  if (/\biphone\b.*\bplus\b/.test(q))
-    return { required: ["iphone", "plus"], forbidden: ["pro", "mini"] };
-  if (/\biphone\b/.test(q))
-    return { required: ["iphone"], forbidden: [] };
+    return { required: ["ipad"], forbidden: [...ACCESSORY_FORBIDDEN] };
+
+  // iPhone — capturer le numéro de génération (12, 13, 14, 15, 16, 17, 18, ...)
+  // On l'exige dans le titre SI présent dans la query, sinon un iPhone 16
+  // peut matcher une query iPhone 17.
+  const iphoneGen = extractGeneration(q, /\biphone\s+(\d{1,2})\b/);
+  if (/\biphone\b.*\bpro\s+max\b/.test(q)) {
+    const required = ["iphone", "pro", "max"];
+    if (iphoneGen) required.push(iphoneGen);
+    return { required, forbidden: [...ACCESSORY_FORBIDDEN] };
+  }
+  if (/\biphone\b.*\bpro\b/.test(q)) {
+    const required = ["iphone", "pro"];
+    if (iphoneGen) required.push(iphoneGen);
+    return { required, forbidden: ["max", ...ACCESSORY_FORBIDDEN] };
+  }
+  if (/\biphone\b.*\bplus\b/.test(q)) {
+    const required = ["iphone", "plus"];
+    if (iphoneGen) required.push(iphoneGen);
+    return { required, forbidden: ["pro", "mini", ...ACCESSORY_FORBIDDEN] };
+  }
+  if (/\biphone\b.*\bmini\b/.test(q)) {
+    const required = ["iphone", "mini"];
+    if (iphoneGen) required.push(iphoneGen);
+    return { required, forbidden: ["pro", "plus", "max", ...ACCESSORY_FORBIDDEN] };
+  }
+  if (/\biphone\b/.test(q)) {
+    const required = ["iphone"];
+    if (iphoneGen) required.push(iphoneGen);
+    return {
+      required,
+      // iPhone "standard" (pas Pro, pas Plus, pas Mini) → on exclut les variantes
+      forbidden: ["pro", "plus", "mini", "max", ...ACCESSORY_FORBIDDEN],
+    };
+  }
   // Apple Watch
   if (/\b(apple\s+)?watch\b/.test(q))
-    return { required: ["watch"], forbidden: ["iphone", "ipad"] };
+    return {
+      required: ["watch"],
+      forbidden: ["iphone", "ipad", ...ACCESSORY_FORBIDDEN],
+    };
   // AirPods
   if (/\bairpods\b/.test(q))
-    return { required: ["airpods"], forbidden: [] };
+    return { required: ["airpods"], forbidden: [...ACCESSORY_FORBIDDEN] };
   // Surface
   if (/\bsurface\b/.test(q))
-    return { required: ["surface"], forbidden: [] };
+    return { required: ["surface"], forbidden: [...ACCESSORY_FORBIDDEN] };
   return null;
 }
 
@@ -272,6 +362,8 @@ export function filterOffersByProductType<T extends Offer>(offers: T[], query: s
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
+      // Merger "256 Go" / "1 To" → "256go" / "1to" pour cohérence avec filterOffersByRelevance
+      .replace(/(\d+)\s+(go|gb|gib|to|tb|tib|mo|mb|mib)\b/g, "$1$2")
       .replace(/[^a-z0-9\s]/g, " ")
       .split(/\s+/)
       .filter((t) => t.length >= 2);
@@ -305,28 +397,53 @@ export function filterOffersByRelevance<T extends Offer>(offers: T[], query: str
     "pouces", "pouce", "inch", "inches",
   ]);
 
-  // Synonymes de couleur cross-langue (FR, NL, EN)
-  // Si la query contient "argent", le titre peut contenir "silver" ou "zilver"
+  // Synonymes de couleur cross-langue (FR, NL, EN). Mapping bidirectionnel
+  // pour que "blue" dans la query matche "bleu" / "blauw" / "deep blue" dans
+  // le titre et vice-versa. Couvre aussi les couleurs Apple (titane, sidéral,
+  // cosmic orange, deep sea, etc.)
   const COLOR_SYNONYMS: Record<string, string[]> = {
+    // Silver / argent / zilver
     argent: ["silver", "zilver"],
     silver: ["argent", "zilver"],
     zilver: ["argent", "silver"],
-    noir: ["black", "zwart", "sideral"],
-    black: ["noir", "zwart", "sideral"],
-    zwart: ["noir", "black"],
+    // Noir / black / zwart + space/sideral (Apple)
+    noir: ["black", "zwart", "sideral", "space"],
+    black: ["noir", "zwart", "sideral", "space"],
+    zwart: ["noir", "black", "sideral", "space"],
+    sideral: ["noir", "black", "zwart", "space"],
+    space: ["noir", "black", "zwart", "sideral"],
+    // Blanc / white / wit
     blanc: ["white", "wit"],
     white: ["blanc", "wit"],
     wit: ["blanc", "white"],
+    // Gris / gray / grey / grijs
     gris: ["gray", "grey", "grijs"],
+    gray: ["gris", "grey", "grijs"],
+    grey: ["gris", "gray", "grijs"],
     grijs: ["gris", "gray", "grey"],
+    // Bleu / blue / blauw (mapping bidirectionnel — AJOUT CRITIQUE "blue")
     bleu: ["blue", "blauw"],
+    blue: ["bleu", "blauw"],
     blauw: ["bleu", "blue"],
+    // Rose / pink / roze
     rose: ["pink", "roze"],
+    pink: ["rose", "roze"],
     roze: ["rose", "pink"],
+    // Vert / green / groen
     vert: ["green", "groen"],
+    green: ["vert", "groen"],
     groen: ["vert", "green"],
+    // Jaune / yellow / geel
     jaune: ["yellow", "geel"],
+    yellow: ["jaune", "geel"],
     geel: ["jaune", "yellow"],
+    // Apple-specific — Titane / titanium
+    titane: ["titanium"],
+    titanium: ["titane"],
+    // Cosmic orange / orange cosmique
+    cosmic: ["orange", "cosmique"],
+    cosmique: ["orange", "cosmic"],
+    // Deep (souvent couplé à blue/sea) — traité comme adjectif ignoré pour match couleur
   };
   const EXCLUSIVE = new Set(["pro", "air", "max", "mini", "ultra", "plus"]);
   const OPPOSITES: Record<string, string[]> = {
@@ -342,6 +459,9 @@ export function filterOffersByRelevance<T extends Offer>(offers: T[], query: str
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
+      // Merger "256 Go" / "1 To" / "16 GB" en un seul token "256go" / "1to" / "16gb"
+      // AVANT split, pour que "256 Go" (titre) matche "256Go" (query) et inversement
+      .replace(/(\d+)\s+(go|gb|gib|to|tb|tib|mo|mb|mib)\b/g, "$1$2")
       .replace(/[^a-z0-9\s]/g, " ")
       .split(/\s+/)
       .filter((t) => t.length >= 2 && !STOPWORDS.has(t));

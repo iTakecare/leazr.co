@@ -15,6 +15,8 @@ import {
   jsonLdProduct,
   findMainPrice,
   parsePriceCents,
+  filterOffersByProductType,
+  filterOffersByRelevance,
 } from "../../lib/parse-helpers";
 import { publicHealthCheck } from "../../lib/health-check";
 
@@ -165,12 +167,24 @@ export const coolblueAdapter: SiteAdapter = {
     // Components chargés en JS). On extrait titre + URL + image + ID et on
     // laisse l'orchestrator enrichir les prix via les pages détail.
     if (/\/deuxieme-chance\//.test(url.pathname)) {
-      const offers = extractRefurbishedListCards(doc, limit);
-      const filtered = filterByRelevance(offers, query).slice(0, limit);
+      // Extraire TOUS les produits de la page refurb — la page peut contenir
+      // 100+ iPhones/MacBooks avec les variantes récentes éparpillées. Le
+      // filtrage par type/pertinence est ensuite fait par l'orchestrator qui
+      // a la query complète. Sans ça on perd les iPhone 17 Pro Max au profit
+      // des iPhone 13 qui s'affichent en premier.
+      const allOffers = extractRefurbishedListCards(doc, 200);
+      // Pré-filtre local via les helpers partagés (type produit + génération +
+      // accessoires exclus). Ça évite de fetch 100 pages détail pour des
+      // iPhones/covers qui seront rejetés par l'orchestrator de toute façon.
+      const typeFiltered = filterOffersByProductType(allOffers, query);
+      const relevanceFiltered = filterOffersByRelevance(typeFiltered, query);
       console.log(
-        `[Leazr][coolblue] ${filtered.length}/${offers.length} offres refurb extraites (prix à enrichir)`
+        `[Leazr][coolblue] refurb: raw=${allOffers.length}, type=${typeFiltered.length}, relevant=${relevanceFiltered.length}`
       );
-      return filtered;
+      // Limiter le nombre d'enrichissements à un nombre raisonnable (20) pour
+      // éviter de surcharger en fetches. L'orchestrator ne gardera que les
+      // `limit` meilleures à la fin.
+      return relevanceFiltered.slice(0, 20);
     }
 
     // ═══ Stratégie 1 : JSON-LD ItemList (le plus fiable, page /zoeken) ═══
@@ -425,8 +439,13 @@ function filterByRelevance(offers: CapturedOffer[], query: string): CapturedOffe
  */
 function extractRefurbishedListCards(doc: Document, limit: number): CapturedOffer[] {
   const html = doc.body?.innerHTML ?? "";
-  // Récupérer les IDs produit uniques
-  const idRegex = /\/fr\/produit-deuxieme-chance\/(\d+)/g;
+  // Récupérer les IDs produit uniques. Coolblue utilise plusieurs patterns :
+  //  - /fr/produit/{id}               → page produit standard (lien principal des cards refurb)
+  //  - /fr/produit-deuxieme-chance/{id} → page variante refurb (sous-lien "Deuxième Chance intéressant")
+  //  - /fr/deuxieme-chance-produit/{id} → variante legacy
+  // Si on ne capture QUE /produit-deuxieme-chance, on rate 11 des 12 cards de la
+  // page catégorie (les cards principales linkent vers /produit/).
+  const idRegex = /\/fr\/(?:produit(?:-deuxieme-chance)?|deuxieme-chance-produit)\/(\d+)/g;
   const seen = new Set<string>();
   const ids: string[] = [];
   let m: RegExpExecArray | null;
@@ -436,15 +455,17 @@ function extractRefurbishedListCards(doc: Document, limit: number): CapturedOffe
       ids.push(m[1]);
     }
   }
+  console.log(`[Leazr][coolblue] refurb: ${ids.length} IDs uniques extraits du HTML`);
 
   const offers: CapturedOffer[] = [];
   for (const id of ids.slice(0, limit * 3)) {
     if (offers.length >= limit) break;
 
     // Pour chaque ID, chercher l'anchor + le texte titre + l'image
+    // Accepter tous les patterns de lien pour cet ID.
     const anchors = Array.from(
       doc.querySelectorAll<HTMLAnchorElement>(
-        `a[href*="/fr/produit-deuxieme-chance/${id}"]`
+        `a[href*="/fr/produit/${id}"], a[href*="/fr/produit-deuxieme-chance/${id}"], a[href*="/fr/deuxieme-chance-produit/${id}"]`
       )
     );
     if (anchors.length === 0) continue;
