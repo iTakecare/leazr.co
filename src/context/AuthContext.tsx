@@ -328,27 +328,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               const enrichWithTimeout = async () => {
                 try {
                   // Promise race entre enrichissement et timeout
+                  // Timeout étendu à 10s : sur mobile/4G un 3s trop serré
+                  // déclenchait le fallback trop souvent → utilisateurs
+                  // downgradés à 'client' (cf. sales@itakecare.be sur mobile).
                   const enrichedUser = await Promise.race([
                     enrichUserData(newSession.user),
-                    new Promise<ExtendedUser>((_, reject) => 
-                      setTimeout(() => reject(new Error('Timeout')), 3000)
+                    new Promise<ExtendedUser>((_, reject) =>
+                      setTimeout(() => reject(new Error('Timeout')), 10000)
                     )
                   ]);
-                  
+
                   if (isMounted) {
                     setUser(enrichedUser);
                     setIsLoading(false);
                   }
                 } catch (error) {
-                  console.log("🔄 AUTH EVENT - Enrichissement échoué, utilisation des données de base");
+                  console.warn("🔄 AUTH EVENT - Enrichissement échoué:", error);
                   if (isMounted) {
-                    // Fallback vers les données de base en préservant les métadonnées
-                    const metaRole = newSession.user.user_metadata?.role || 'client';
-                    setUser({
-                      ...newSession.user,
-                      role: metaRole
-                    } as ExtendedUser);
-                    setIsLoading(false);
+                    // Fallback : on PRÉFÈRE les métadonnées explicites. Si
+                    // absentes, on reste en loading plutôt que de downgrader
+                    // l'utilisateur à 'client' (ce qui casserait son UI).
+                    const metaRole = newSession.user.user_metadata?.role;
+                    if (metaRole) {
+                      setUser({
+                        ...newSession.user,
+                        role: metaRole
+                      } as ExtendedUser);
+                      setIsLoading(false);
+                    } else {
+                      console.error("🔄 AUTH EVENT - Pas de role dans metadata, retry enrichUserData une dernière fois");
+                      // Dernier essai sans timeout agressif
+                      try {
+                        const retryUser = await enrichUserData(newSession.user);
+                        setUser(retryUser);
+                      } catch {
+                        console.error("🔄 AUTH EVENT - Retry enrichissement échoué aussi, fallback 'client'");
+                        setUser({
+                          ...newSession.user,
+                          role: 'client'
+                        } as ExtendedUser);
+                      }
+                      setIsLoading(false);
+                    }
                   }
                 }
               };
@@ -384,30 +405,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setSession(currentSession);
           
           // Enrichissement avec timeout pour éviter les blocages
+          // (10s au lieu de 3s — cf. plus haut, 3s trop court sur mobile)
           const enrichWithTimeout = async () => {
             try {
-              // Promise race entre enrichissement et timeout
               const enrichedUser = await Promise.race([
                 enrichUserData(currentSession.user),
-                new Promise<ExtendedUser>((_, reject) => 
-                  setTimeout(() => reject(new Error('Timeout')), 3000)
+                new Promise<ExtendedUser>((_, reject) =>
+                  setTimeout(() => reject(new Error('Timeout')), 10000)
                 )
               ]);
-              
+
               if (isMounted) {
                 setUser(enrichedUser);
                 setIsLoading(false);
               }
             } catch (error) {
-              console.log("🚀 AUTH CONTEXT - Enrichissement initial échoué, utilisation des données de base");
+              console.warn("🚀 AUTH CONTEXT - Enrichissement initial échoué:", error);
               if (isMounted) {
-                // Fallback vers les données de base en préservant les métadonnées
-                const metaRole = currentSession.user.user_metadata?.role || 'client';
-                setUser({
-                  ...currentSession.user,
-                  role: metaRole
-                } as ExtendedUser);
-                setIsLoading(false);
+                const metaRole = currentSession.user.user_metadata?.role;
+                if (metaRole) {
+                  setUser({
+                    ...currentSession.user,
+                    role: metaRole
+                  } as ExtendedUser);
+                  setIsLoading(false);
+                } else {
+                  console.error("🚀 AUTH CONTEXT - Pas de role dans metadata, retry enrichUserData une dernière fois");
+                  try {
+                    const retryUser = await enrichUserData(currentSession.user);
+                    setUser(retryUser);
+                  } catch {
+                    console.error("🚀 AUTH CONTEXT - Retry échoué aussi, fallback 'client'");
+                    setUser({
+                      ...currentSession.user,
+                      role: 'client'
+                    } as ExtendedUser);
+                  }
+                  setIsLoading(false);
+                }
               }
             }
           };
