@@ -16,12 +16,17 @@ export async function uploadTemplateImage(file: File, bucketName: string): Promi
 
   const supabase = getFileUploadClient();
 
-  // Simple direct upload without any complex processing
+  // IMPORTANT : sans `contentType` explicite, Supabase Storage renvoie
+  // "Invalid Content-Type header" (le SDK sérialise mal le MIME du File).
+  // On passe file.type avec un fallback "application/octet-stream" si absent.
+  const contentType = file.type || 'application/octet-stream';
+
   const { data, error } = await supabase.storage
     .from(bucketName)
     .upload(filePath, file, {
       cacheControl: '3600',
-      upsert: true
+      upsert: true,
+      contentType,
     });
 
   if (error) {
