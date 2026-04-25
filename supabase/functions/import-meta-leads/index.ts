@@ -1060,15 +1060,14 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
           console.log(`[META IMPORT] Client created: ${clientId}`);
         }
 
-        // Get default leaser (Grenke)
+        // Get default leaser (Grenke Lease BE)
         const { data: leaser } = await supabase
           .from('leasers')
           .select('id')
-          .ilike('name', '%grenke%')
-          .limit(1)
-          .single();
+          .eq('name', '1. Grenke Lease')
+          .maybeSingle();
 
-        const leaserId = leaser?.id || null;
+        const leaserId = leaser?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949';
 
         // Format creation date for remarks
         const leadDate = new Date(lead.created_time);
