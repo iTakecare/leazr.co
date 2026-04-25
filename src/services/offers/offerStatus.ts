@@ -27,11 +27,24 @@ export const deleteOffer = async (offerId: string): Promise<boolean> => {
   }
 };
 
+export type RejectionCategory =
+  | 'fraud'
+  | 'young_company'
+  | 'private_client'
+  | 'financial_situation'
+  | 'other';
+
+export interface UpdateOfferStatusOptions {
+  rejectionCategory?: RejectionCategory | null;
+  previousOfferId?: string | null;
+}
+
 export const updateOfferStatus = async (
-  offerId: string, 
-  newStatus: string, 
+  offerId: string,
+  newStatus: string,
   previousStatus: string | null,
-  reason?: string
+  reason?: string,
+  options?: UpdateOfferStatusOptions
 ): Promise<boolean> => {
   try {
     console.log(`Updating offer ${offerId} from ${previousStatus || 'draft'} to ${newStatus} with reason: ${reason || 'Aucune'}`);
@@ -43,7 +56,7 @@ export const updateOfferStatus = async (
 
     // Get the user for logging the change
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       throw new Error("Utilisateur non authentifié");
     }
@@ -52,10 +65,10 @@ export const updateOfferStatus = async (
 
     // Ensure the previous status is never null for database constraints
     const safePreviousStatus = previousStatus || 'draft';
-    
+
     // First, update the offer's workflow_status and scores
     const updateData: any = { workflow_status: newStatus };
-    
+
     // Update scores based on status transitions
     if (newStatus === 'internal_approved') {
       updateData.internal_score = 'A';
@@ -72,6 +85,13 @@ export const updateOfferStatus = async (
     } else if (newStatus === 'without_follow_up') {
       // Score D for without_follow_up status
       updateData.internal_score = 'D';
+    }
+
+    if (options?.rejectionCategory !== undefined) {
+      updateData.rejection_category = options.rejectionCategory;
+    }
+    if (options?.previousOfferId !== undefined) {
+      updateData.previous_offer_id = options.previousOfferId;
     }
     
     const { error: updateError } = await supabase

@@ -51,12 +51,19 @@ const DOCUMENT_OPTIONS = [
   { id: "bank_statement", label: "Relevé bancaire des 3 derniers mois" },
 ];
 
-const REJECTION_REASONS = [
-  "REFUS - client suspect / Fraude",
-  "REFUS - entreprise trop jeune / montant demandé",
-  "REFUS - Client particulier",
-  "REFUS - Situation financière insuffisante",
-  "REFUS - Autre raison",
+type RejectionCategoryCode =
+  | 'fraud'
+  | 'young_company'
+  | 'private_client'
+  | 'financial_situation'
+  | 'other';
+
+const REJECTION_REASONS: { code: RejectionCategoryCode; label: string }[] = [
+  { code: 'fraud', label: "REFUS - client suspect / Fraude" },
+  { code: 'young_company', label: "REFUS - entreprise trop jeune / montant demandé" },
+  { code: 'private_client', label: "REFUS - Client particulier" },
+  { code: 'financial_situation', label: "REFUS - Situation financière insuffisante" },
+  { code: 'other', label: "REFUS - Autre raison" },
 ];
 
 const NO_FOLLOW_UP_REASONS = [
@@ -456,7 +463,8 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       if (selectedScore === 'C') {
         // Pour le score C, ne pas fermer la modale ici
         // Le parent (AdminOfferDetail) va fermer cette modale et ouvrir RejectionEmailModal
-        const finalReason = `${selectedRejectionReason}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
+        const rejectionLabel = REJECTION_REASONS.find(r => r.code === selectedRejectionReason)?.label || selectedRejectionReason;
+        const finalReason = `${rejectionLabel}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
         await onScoreAssigned(selectedScore, finalReason);
         // Ne pas appeler onClose() ici pour le score C
       } else {
@@ -522,10 +530,13 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       
       // Mettre à jour le statut de l'offre
       const newStatus = isInternalAnalysis ? 'internal_rejected' : 'leaser_rejected';
-      const finalReason = `${selectedRejectionReason}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
-      
-      await updateOfferStatus(offerId, newStatus, currentStatus, finalReason);
-      
+      const rejectionLabel = REJECTION_REASONS.find(r => r.code === selectedRejectionReason)?.label || selectedRejectionReason;
+      const finalReason = `${rejectionLabel}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
+
+      await updateOfferStatus(offerId, newStatus, currentStatus, finalReason, {
+        rejectionCategory: selectedRejectionReason as RejectionCategoryCode,
+      });
+
       toast.success("Email de refus envoyé et score C attribué");
       onClose();
     } catch (error) {
@@ -548,10 +559,13 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       
       // Mettre à jour le statut de l'offre sans envoyer d'email
       const newStatus = isInternalAnalysis ? 'internal_rejected' : 'leaser_rejected';
-      const finalReason = `${selectedRejectionReason}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
-      
-      await updateOfferStatus(offerId, newStatus, currentStatus, finalReason);
-      
+      const rejectionLabel = REJECTION_REASONS.find(r => r.code === selectedRejectionReason)?.label || selectedRejectionReason;
+      const finalReason = `${rejectionLabel}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
+
+      await updateOfferStatus(offerId, newStatus, currentStatus, finalReason, {
+        rejectionCategory: selectedRejectionReason as RejectionCategoryCode,
+      });
+
       toast.success("Score C attribué sans envoi d'email");
       onClose();
     } catch (error) {
@@ -706,7 +720,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                       </SelectTrigger>
                       <SelectContent className="z-50 bg-background shadow-md border">
                         {REJECTION_REASONS.map((r) => (
-                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                          <SelectItem key={r.code} value={r.code}>{r.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
