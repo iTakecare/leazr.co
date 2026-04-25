@@ -19,6 +19,7 @@ import {
   Bell
 } from "lucide-react";
 import ReactivateOfferButton from "./ReactivateOfferButton";
+import RelaunchYoungCompanyButton from "./RelaunchYoungCompanyButton";
 import ReminderIndicator from "../ReminderIndicator";
 import { CallLogButton } from "../CallLogButton";
 import { AllReminders } from "@/hooks/useOfferReminders";
@@ -382,6 +383,11 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             </Button>
           )}
           
+          <RelaunchYoungCompanyButton
+            offer={offer}
+            onSuccess={onStatusUpdated}
+          />
+
           {onStatusUpdated && (
             <ReactivateOfferButton
               offerId={offer.id}
