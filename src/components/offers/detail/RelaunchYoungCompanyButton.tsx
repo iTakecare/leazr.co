@@ -89,6 +89,7 @@ const RelaunchYoungCompanyButton: React.FC<RelaunchYoungCompanyButtonProps> = ({
         requestedDocuments: selectedDocs,
         customMessage: customMessage.trim() || undefined,
         requestedBy: "leaser",
+        templateType: "document_request_young_company",
       });
 
       if (!ok) {
