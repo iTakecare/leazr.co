@@ -5931,8 +5931,10 @@ export type Database = {
           pack_id: string | null
           partner_name: string | null
           partner_slug: string | null
+          previous_offer_id: string | null
           previous_status: string | null
           products_to_be_determined: boolean | null
+          rejection_category: string | null
           remarks: string | null
           renewal_source_contract_id: string | null
           request_date: string | null
@@ -5993,8 +5995,10 @@ export type Database = {
           pack_id?: string | null
           partner_name?: string | null
           partner_slug?: string | null
+          previous_offer_id?: string | null
           previous_status?: string | null
           products_to_be_determined?: boolean | null
+          rejection_category?: string | null
           remarks?: string | null
           renewal_source_contract_id?: string | null
           request_date?: string | null
@@ -6055,8 +6059,10 @@ export type Database = {
           pack_id?: string | null
           partner_name?: string | null
           partner_slug?: string | null
+          previous_offer_id?: string | null
           previous_status?: string | null
           products_to_be_determined?: boolean | null
+          rejection_category?: string | null
           remarks?: string | null
           renewal_source_contract_id?: string | null
           request_date?: string | null
@@ -6107,6 +6113,13 @@ export type Database = {
             columns: ["pack_id"]
             isOneToOne: false
             referencedRelation: "product_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_previous_offer_id_fkey"
+            columns: ["previous_offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
           {

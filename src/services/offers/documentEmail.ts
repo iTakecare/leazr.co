@@ -9,6 +9,7 @@ interface SendDocumentRequestParams {
   requestedDocuments: string[];
   customMessage?: string;
   requestedBy?: 'internal' | 'leaser'; // Nouveau: identifier qui demande les documents
+  templateType?: string; // ex: 'document_request_young_company'
 }
 
 export const sendDocumentRequestEmail = async ({
@@ -17,7 +18,8 @@ export const sendDocumentRequestEmail = async ({
   offerId,
   requestedDocuments,
   customMessage,
-  requestedBy = 'internal'
+  requestedBy = 'internal',
+  templateType
 }: SendDocumentRequestParams): Promise<boolean> => {
   try {
     console.log("📧 Envoi de la demande de documents:", {
@@ -51,7 +53,8 @@ export const sendDocumentRequestEmail = async ({
         clientName: offerClientName,
         requestedDocs: documentsList,
         customMessage: customMessage || undefined,
-        uploadToken: token
+        uploadToken: token,
+        templateType: templateType || undefined
       }
     });
 

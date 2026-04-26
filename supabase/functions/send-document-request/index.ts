@@ -17,6 +17,7 @@ interface RequestDocumentsData {
   requestedDocs: string[];
   customMessage?: string;
   uploadToken?: string;
+  templateType?: string;
 }
 
 console.log("=== Function Edge send-document-request initialisée ===");
@@ -100,14 +101,16 @@ serve(async (req) => {
     
     console.log("Données de la requête validées pour offerId:", requestData.offerId);
     
-    const { 
+    const {
       offerId,
       clientEmail,
       clientName,
       requestedDocs,
       customMessage,
-      uploadToken
+      uploadToken,
+      templateType
     } = requestData;
+    const effectiveTemplateType = templateType || 'document_request';
     
     // Validation des données
     if (!offerId) {
@@ -380,34 +383,44 @@ serve(async (req) => {
       } else {
         const docNameMap: {[key: string]: string} = {
           balance_sheet: "Bilan financier",
-          tax_notice: "Avertissement extrait de rôle",
+          provisional_balance: "Bilan financier provisoire récent",
+          tax_notice: "Avertissement extrait de rôle (BE)",
+          tax_return: "Liasse fiscale (FR)",
           id_card_front: "Carte d'identité - Recto",
           id_card_back: "Carte d'identité - Verso",
           id_card: "Copie de la carte d'identité (recto et verso)",
+          additional_id: "Pièce d'identité complémentaire",
           company_register: "Extrait de registre d'entreprise",
+          company_statutes: "Statuts de la société",
           vat_certificate: "Attestation TVA",
-          bank_statement: "Relevé bancaire des 3 derniers mois"
+          bank_statement: "Relevés bancaires des 3 derniers mois",
+          bank_statement_additional: "Relevés bancaires complémentaires",
+          proof_of_address: "Preuve d'adresse",
+          other_financial: "Document financier complémentaire",
+          quote: "Devis",
+          contract: "Contrat",
+          insurance: "Attestation d'assurance"
         };
         return `- ${docNameMap[doc] || doc}`;
       }
     }).join('\n');
-    
-    // Récupérer le template d'email pour la demande de documents
-    console.log("Récupération du template email 'document_request'...");
+
+    // Récupérer le template d'email selon le type demandé (default: document_request)
+    console.log(`Récupération du template email '${effectiveTemplateType}'...`);
     const { data: emailTemplate, error: templateError } = await supabase
       .from('email_templates')
       .select('subject, html_content')
       .eq('company_id', offer.company_id)
-      .eq('type', 'document_request')
+      .eq('type', effectiveTemplateType)
       .eq('active', true)
       .maybeSingle();
 
     if (templateError || !emailTemplate) {
-      console.error("Template email 'document_request' non trouvé:", templateError);
+      console.error(`Template email '${effectiveTemplateType}' non trouvé:`, templateError);
       return new Response(
         JSON.stringify({
           success: false,
-          message: "Template d'email 'document_request' non configuré pour cette entreprise",
+          message: `Template d'email '${effectiveTemplateType}' non configuré pour cette entreprise`,
           details: templateError,
         }),
         {

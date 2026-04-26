@@ -196,7 +196,8 @@ export const sendDocumentRequestSchema = z.object({
   clientName: z.string().trim().min(1, 'Nom requis').max(100, 'Nom trop long'),
   requestedDocs: z.array(z.string().trim().min(1).max(100)).min(1, 'Au moins un document requis').max(20, 'Trop de documents'),
   customMessage: z.string().trim().max(1000, 'Message trop long').optional(),
-  uploadToken: z.string().trim().min(10).max(500, 'Token invalide').optional()
+  uploadToken: z.string().trim().min(10).max(500, 'Token invalide').optional(),
+  templateType: z.string().trim().regex(/^[a-z0-9_]{1,50}$/i, 'Type de template invalide').optional()
 });
 
 /**
