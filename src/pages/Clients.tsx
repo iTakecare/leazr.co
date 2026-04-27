@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, ShieldQuestion } from "lucide-react";
@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Clients = () => {
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("clients");
   const [searchTerm, setSearchTerm] = useState("");
@@ -179,7 +179,7 @@ const Clients = () => {
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
-                              onClick={() => navigate("/clients/kyc-queue")}
+                              onClick={() => navigateToAdmin("clients/kyc-queue")}
                               className="gap-2"
                               title="Traiter manuellement les clients sans VAT en cherchant leur correspondance dans la BCE"
                             >
