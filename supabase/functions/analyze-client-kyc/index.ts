@@ -232,6 +232,288 @@ function normalizeAutoLookupResponse(payload: any): any {
   };
 }
 
+// =====================================================
+// BCE direct scrape — pour avoir forme juridique, date début, NACE
+// =====================================================
+
+const BCE_LEGAL_FORM_TO_SHORT: Record<string, { short: string; entity: "societe" | "asbl" | "independant" | "autre" }> = {
+  "société à responsabilité limitée": { short: "SRL", entity: "societe" },
+  "besloten vennootschap": { short: "BV", entity: "societe" },
+  "société privée à responsabilité limitée": { short: "SPRL", entity: "societe" },
+  "société anonyme": { short: "SA", entity: "societe" },
+  "naamloze vennootschap": { short: "NV", entity: "societe" },
+  "société coopérative": { short: "SC", entity: "societe" },
+  "société coopérative à responsabilité limitée": { short: "SCRL", entity: "societe" },
+  "société en commandite simple": { short: "SCS", entity: "societe" },
+  "société en nom collectif": { short: "SNC", entity: "societe" },
+  "société en commandite par actions": { short: "SCA", entity: "societe" },
+  "société européenne": { short: "SE", entity: "societe" },
+  "groupement d'intérêt économique": { short: "GIE", entity: "societe" },
+  "personne physique": { short: "PP", entity: "independant" },
+  "indépendant en personne physique": { short: "PP", entity: "independant" },
+  "association sans but lucratif": { short: "ASBL", entity: "asbl" },
+  "vereniging zonder winstoogmerk": { short: "VZW", entity: "asbl" },
+  "association internationale sans but lucratif": { short: "AISBL", entity: "asbl" },
+  "fondation privée": { short: "FP", entity: "asbl" },
+  "fondation d'utilité publique": { short: "FUP", entity: "asbl" },
+};
+
+function mapLegalFormBE(rawForm: string | null): { short: string | null; entity: "societe" | "asbl" | "independant" | "autre" } {
+  if (!rawForm) return { short: null, entity: "autre" };
+  const lc = rawForm.toLowerCase().trim();
+  for (const [needle, mapping] of Object.entries(BCE_LEGAL_FORM_TO_SHORT)) {
+    if (lc.includes(needle)) return mapping;
+  }
+  // Fallback: detect short codes already
+  const upper = rawForm.toUpperCase();
+  if (/\b(SRL|BV|SPRL|SA|NV|SC|SCS|SNC|SCRL|SCA|SE|GIE)\b/.test(upper)) return { short: upper.match(/\b(SRL|BV|SPRL|SA|NV|SC|SCS|SNC|SCRL|SCA|SE|GIE)\b/)![1], entity: "societe" };
+  if (/\b(ASBL|AISBL|VZW|FP|FUP)\b/.test(upper)) return { short: upper.match(/\b(ASBL|AISBL|VZW|FP|FUP)\b/)![1], entity: "asbl" };
+  if (/\bPP\b|PERSONNE PHYSIQUE|NATUURLIJK PERSOON/.test(upper)) return { short: "PP", entity: "independant" };
+  return { short: rawForm, entity: "autre" };
+}
+
+function htmlDecode(s: string): string {
+  return s
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&[a-zA-Z]+;/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseBceDate(raw: string | null): string | null {
+  if (!raw) return null;
+  // BCE format: "10 janvier 2024" or "10/01/2024" or "2024-01-10"
+  const cleaned = raw.trim();
+  const isoMatch = cleaned.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  const dmyMatch = cleaned.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, "0")}-${dmyMatch[1].padStart(2, "0")}`;
+  // Long form FR: "10 janvier 2024"
+  const months: Record<string, string> = {
+    janv: "01", janvier: "01", "janv.": "01",
+    fevr: "02", "févr": "02", fev: "02", février: "02", fevrier: "02",
+    mars: "03",
+    avr: "04", avril: "04", "avr.": "04",
+    mai: "05",
+    juin: "06",
+    juil: "07", juillet: "07", "juil.": "07",
+    aout: "08", "août": "08",
+    sept: "09", septembre: "09", "sept.": "09",
+    oct: "10", octobre: "10", "oct.": "10",
+    nov: "11", novembre: "11", "nov.": "11",
+    dec: "12", "déc": "12", decembre: "12", "décembre": "12",
+  };
+  const longMatch = cleaned.toLowerCase().match(/(\d{1,2})\s+([a-zûéèà.]+)\s+(\d{4})/);
+  if (longMatch) {
+    const m = months[longMatch[2].replace(/\./g, "")] || months[longMatch[2]];
+    if (m) return `${longMatch[3]}-${m}-${longMatch[1].padStart(2, "0")}`;
+  }
+  return null;
+}
+
+function extractFieldFromBceHtml(html: string, labelPatterns: RegExp[]): string | null {
+  // BCE alternates row classes (QL = even, RL = odd). Format actuel observé sur kbopub.economie.fgov.be :
+  // <td class="QL">Date de début:</td><td class="QL" colspan="3">22 octobre 2025<br/>...</td>
+  // <td class="RL">Statut:</td><td class="RL" colspan="3"><strong>...Actif...</strong></td>
+  for (const labelRegex of labelPatterns) {
+    const rowRegex = new RegExp(
+      `<td[^>]*class="(?:QL|RL)"[^>]*>\\s*${labelRegex.source}[^<:]*[:：]?[\\s\\S]*?</td>\\s*<td[^>]*class="(?:QL|RL)"[^>]*>([\\s\\S]*?)</td>`,
+      "i",
+    );
+    const m = html.match(rowRegex);
+    if (m && m[1]) {
+      // Strip "<span class='upd'>Depuis le ...</span>" suffixes which are update dates, not the value
+      const cleanedHtml = m[1].replace(/<span\s+class="upd"[\s\S]*?<\/span>/gi, "");
+      const value = htmlDecode(cleanedHtml);
+      if (value && value !== "-" && value !== "Pas de données reprises dans la BCE." && value.length > 0) {
+        return value;
+      }
+    }
+  }
+  return null;
+}
+
+interface BceData {
+  name: string | null;
+  legal_form_raw: string | null;
+  legal_form_short: string | null;
+  entity_type: "societe" | "asbl" | "independant" | "autre" | null;
+  start_date: string | null;
+  status: string | null;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  nace_code: string | null;
+  nace_label: string | null;
+  warnings: string[];
+}
+
+async function fetchBceEnriched(vatNumber: string): Promise<BceData | null> {
+  // Normalize VAT to digits-only
+  const digits = vatNumber.replace(/\D/g, "");
+  if (digits.length < 9 || digits.length > 10) return null;
+  const enterpriseNumber = digits.length === 9 ? `0${digits}` : digits;
+
+  // Page enterprise (full data) in French
+  const url = `https://kbopub.economie.fgov.be/kbopub/toonondernemingps.html?ondernemingsnummer=${enterpriseNumber}&lang=fr`;
+  const resp = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+      "Accept-Language": "fr-BE,fr;q=0.9,en;q=0.8",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    },
+  });
+  if (!resp.ok) {
+    console.warn(`[BCE] fetch ${enterpriseNumber} → ${resp.status}`);
+    return null;
+  }
+  const html = await resp.text();
+
+  // Quick check: page exists and has data
+  if (html.includes("Aucune donnée") || html.includes("not found") || html.length < 1000) {
+    return null;
+  }
+
+  const name =
+    extractFieldFromBceHtml(html, [/Dénomination\s*:?/i, /D[ée]nomination/i, /Naam/i]) ||
+    null;
+
+  const legalFormRaw = extractFieldFromBceHtml(html, [
+    /Forme\s+l[ée]gale\s*:?/i,
+    /Forme\s+juridique\s*:?/i,
+    /Rechtsvorm/i,
+  ]);
+  // Fallback : "Type d'entité: Personne morale / Personne physique" → entity_type direct
+  const entityKindRaw = extractFieldFromBceHtml(html, [
+    /Type\s+d['']entit[ée]\s*:?/i,
+    /Type\s+entiteit/i,
+  ]);
+  let { short: legalFormShort, entity: entityType } = mapLegalFormBE(legalFormRaw);
+  if (!legalFormShort && entityKindRaw) {
+    const kindLc = entityKindRaw.toLowerCase();
+    if (kindLc.includes("personne physique") || kindLc.includes("natuurlijk persoon")) {
+      entityType = "independant";
+      legalFormShort = "PP";
+    } else if (kindLc.includes("personne morale") || kindLc.includes("rechtspersoon")) {
+      entityType = "societe";
+    }
+  }
+
+  const startDateRaw = extractFieldFromBceHtml(html, [
+    /Date\s+de\s+d[ée]but\s*:?/i,
+    /Date\s+de\s+commencement\s*:?/i,
+    /Begindatum/i,
+    /Date\s+de\s+cr[ée]ation\s*:?/i,
+  ]);
+  const startDate = parseBceDate(startDateRaw);
+
+  const status = extractFieldFromBceHtml(html, [/Statut\s*:?/i, /Status/i]);
+
+  const addressFull = extractFieldFromBceHtml(html, [
+    /Adresse\s+du\s+si[èe]ge\s*:?/i,
+    /Si[èe]ge\s+social\s*:?/i,
+    /Adres\s+van\s+de\s+zetel/i,
+  ]);
+
+  let address: string | null = null;
+  let postalCode: string | null = null;
+  let city: string | null = null;
+  if (addressFull) {
+    // Format BCE : "Avenue de Rome 3 Boîte 52 6030 Charleroi" — séparation greedy sur le CP 4 chiffres
+    const addrMatch = addressFull.match(/^(.+?)\s+(\d{4})\s+(.+)$/);
+    if (addrMatch) {
+      address = addrMatch[1].trim().replace(/[,\s]+$/, "");
+      postalCode = addrMatch[2];
+      city = addrMatch[3].trim();
+    } else {
+      address = addressFull;
+    }
+  }
+
+  // NACE code : format kbopub actuel
+  //   <a href="naceToelichting.html?nace.code=52260...">52.260</a>
+  //     &nbsp;-&nbsp;
+  //     Autres activités de soutien pour les transports<br/>
+  let naceCode: string | null = null;
+  let naceLabel: string | null = null;
+  const naceMatch = html.match(
+    /<a[^>]*href="naceToelichting[^"]*"[^>]*>(\d{2}\.\d{2,3})<\/a>\s*(?:&nbsp;[-–]&nbsp;)?\s*([^<\n]+?)(?:<br|<span|<\/td)/i,
+  );
+  if (naceMatch) {
+    naceCode = naceMatch[1];
+    naceLabel = htmlDecode(naceMatch[2]).slice(0, 200);
+  }
+
+  const warnings: string[] = [];
+  if (status && /radi|cess|liquidation|faillite/i.test(status)) {
+    warnings.push(`Statut BCE : ${status}`);
+  }
+
+  return {
+    name,
+    legal_form_raw: legalFormRaw,
+    legal_form_short: legalFormShort,
+    entity_type: entityType,
+    start_date: startDate,
+    status,
+    address,
+    postal_code: postalCode,
+    city,
+    nace_code: naceCode,
+    nace_label: naceLabel,
+    warnings,
+  };
+}
+
+function bceDataToExtraction(bce: BceData, vatNumber: string): any {
+  const businessSector = bce.nace_label
+    ? `${bce.nace_code ? bce.nace_code + " — " : ""}${bce.nace_label}`
+    : null;
+
+  return {
+    entity_type: bce.entity_type,
+    legal_form: bce.legal_form_short || bce.legal_form_raw,
+    company_name: bce.name,
+    vat_number: vatNumber.startsWith("BE") ? vatNumber : `BE${vatNumber.replace(/\D/g, "")}`,
+    registration_date: bce.start_date,
+    address: bce.address,
+    postal_code: bce.postal_code,
+    city: bce.city,
+    country: "BE",
+    business_sector: businessSector,
+    directors: [],
+    financial_indicators: {
+      revenue: null,
+      net_result: null,
+      equity: null,
+      employees: null,
+      fiscal_year: null,
+    },
+    confidence: {
+      entity_type: bce.entity_type ? 0.95 : 0,
+      legal_form: bce.legal_form_short ? 0.95 : (bce.legal_form_raw ? 0.85 : 0),
+      company_name: bce.name ? 0.95 : 0,
+      vat_number: 0.95,
+      registration_date: bce.start_date ? 0.95 : 0,
+      address: bce.address ? 0.9 : 0,
+      postal_code: bce.postal_code ? 0.95 : 0,
+      city: bce.city ? 0.95 : 0,
+      country: 0.95,
+      business_sector: businessSector ? 0.85 : 0,
+      directors: 0,
+      financial_indicators: 0,
+    },
+    warnings: bce.warnings,
+    _source_raw: { source: "bce-direct", bce },
+  };
+}
+
 async function callCompanySearchInternal(
   vatNumber: string,
   country: string,
@@ -367,14 +649,37 @@ serve(async (req) => {
             "Aucun numéro de TVA sur le client — impossible de faire un lookup automatique. Renseigne d'abord le VAT ou uploade un rapport.",
           );
         }
-        const lookupResp = await callCompanySearchInternal(
-          client.vat_number,
-          client.country || "BE",
-          req.headers.get("Authorization") || "",
-        );
-        extraction = normalizeAutoLookupResponse(lookupResp);
-        if (!extraction) {
-          throw new Error("Aucune donnée renvoyée par le lookup automatique");
+        const country = (client.country || "BE").toUpperCase();
+        // Pour la Belgique : scrape direct kbopub (forme juridique, date de début, NACE, statut)
+        // Pour FR/LU : on délègue à company-search qui sait router vers SIRENE / registre LU
+        if (country === "BE") {
+          const bce = await fetchBceEnriched(client.vat_number);
+          if (!bce || (!bce.name && !bce.legal_form_raw && !bce.start_date)) {
+            // Fallback : tenter l'ancien company-search au cas où le scrape kbopub a échoué
+            const lookupResp = await callCompanySearchInternal(
+              client.vat_number,
+              country,
+              req.headers.get("Authorization") || "",
+            );
+            extraction = normalizeAutoLookupResponse(lookupResp);
+            if (!extraction) {
+              throw new Error(
+                "BCE n'a renvoyé aucune donnée pour ce numéro et le fallback company-search a échoué",
+              );
+            }
+          } else {
+            extraction = bceDataToExtraction(bce, client.vat_number);
+          }
+        } else {
+          const lookupResp = await callCompanySearchInternal(
+            client.vat_number,
+            country,
+            req.headers.get("Authorization") || "",
+          );
+          extraction = normalizeAutoLookupResponse(lookupResp);
+          if (!extraction) {
+            throw new Error("Aucune donnée renvoyée par le lookup automatique");
+          }
         }
       }
     } catch (err) {
