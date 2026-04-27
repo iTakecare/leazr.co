@@ -24,8 +24,10 @@ import {
   Search,
   ShieldCheck,
   Upload,
+  UserSearch,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ClientKycReport,
   KYC_FIELD_MAPPING,
@@ -42,6 +44,7 @@ import {
   KYC_SCORE_LABELS,
   KycScoreLetter,
 } from "@/services/clients/clientKycScore";
+import BceSearchDialog from "./BceSearchDialog";
 
 interface ClientKYCSectionProps {
   client: any;
@@ -93,6 +96,7 @@ const ClientKYCSection: React.FC<ClientKYCSectionProps> = ({ client, onClientUpd
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [reviewReport, setReviewReport] = useState<ClientKycReport | null>(null);
   const [selectedSource, setSelectedSource] = useState<Exclude<KycSource, "auto_lookup">>("graydon");
+  const [bceSearchOpen, setBceSearchOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const refresh = useCallback(async () => {
@@ -226,11 +230,27 @@ const ClientKYCSection: React.FC<ClientKYCSectionProps> = ({ client, onClientUpd
           </div>
 
           {!client.vat_number && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 mt-0.5" />
-              <div>
-                Renseigne le numéro de TVA dans l'onglet "Informations générales" pour activer le
-                lookup automatique BCE/SIRENE.
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div>
+                    Pas de numéro de TVA renseigné. Tu peux soit l'ajouter manuellement dans
+                    l'onglet "Informations générales", soit chercher le client dans la BCE par
+                    nom de société et/ou nom + prénom.
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end mt-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => setBceSearchOpen(true)}
+                  className="gap-1.5"
+                >
+                  <UserSearch className="h-4 w-4" />
+                  Rechercher dans la BCE par nom/prénom
+                </Button>
               </div>
             </div>
           )}
@@ -402,6 +422,26 @@ const ClientKYCSection: React.FC<ClientKYCSectionProps> = ({ client, onClientUpd
           }
           setReviewReport(null);
           await refresh();
+        }}
+      />
+
+      <BceSearchDialog
+        open={bceSearchOpen}
+        onOpenChange={setBceSearchOpen}
+        clientId={client.id}
+        onApplied={async () => {
+          // Recharge l'historique des analyses puis re-fetch le client complet
+          // pour propager les nouveaux champs (VAT, score, forme juridique, etc.)
+          // vers le parent UnifiedClientView.
+          await refresh();
+          const { data: refreshed } = await supabase
+            .from("clients")
+            .select("*")
+            .eq("id", client.id)
+            .single();
+          if (refreshed) {
+            onClientUpdate?.(refreshed);
+          }
         }}
       />
     </div>

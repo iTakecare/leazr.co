@@ -132,25 +132,24 @@ export interface QueueClient {
 }
 
 export async function listKycQueue(filter: "no_vat" | "all" = "no_vat"): Promise<QueueClient[]> {
-  let query = supabase
+  // On charge tous les clients sans KYC validé puis on filtre côté client
+  // pour éviter les soucis de syntaxe PostgREST avec OR(...) sur empty string.
+  const { data, error } = await supabase
     .from("clients")
     .select(
       "id, name, first_name, last_name, company, email, vat_number, country, status, created_at",
     )
-    .is("kyc_validated_at", null);
-
-  if (filter === "no_vat") {
-    query = query.or("vat_number.is.null,vat_number.eq.");
-  }
-
-  const { data, error } = await query
-    .order("status", { ascending: true })
+    .is("kyc_validated_at", null)
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(1000);
 
   if (error) throw error;
-  return (data || []).map((c: any) => ({
+  const enriched = (data || []).map((c: any) => ({
     ...c,
     has_vat: !!(c.vat_number && c.vat_number.trim()),
   }));
+  if (filter === "no_vat") {
+    return enriched.filter((c) => !c.has_vat);
+  }
+  return enriched;
 }
