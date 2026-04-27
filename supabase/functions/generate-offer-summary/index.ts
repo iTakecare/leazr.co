@@ -53,7 +53,7 @@ serve(async (req) => {
     const { data: offer, error: offerError } = await supabase
       .from("offers")
       .select(
-        "dossier_number, client_name, client_id, workflow_status, monthly_payment, amount, duration, internal_score, leaser_score, created_at, type, is_purchase"
+        "dossier_number, client_name, client_id, workflow_status, monthly_payment, amount, duration, internal_score, leaser_score, created_at, type, is_purchase, rejection_category, previous_offer_id"
       )
       .eq("id", offer_id)
       .single();
@@ -62,15 +62,65 @@ serve(async (req) => {
       throw new Error(`Offer not found: ${offerError?.message}`);
     }
 
-    // Fetch client company name if client_id is available
+    // Fetch client + KYC fields if client_id is available
     let clientCompany: string | null = null;
+    let clientKyc: {
+      entity_type: string | null;
+      legal_form: string | null;
+      company_creation_date: string | null;
+      business_sector: string | null;
+      kyc_validated_at: string | null;
+      vat_number: string | null;
+    } | null = null;
+    let kycExtractionWarnings: string[] = [];
+    let kycSource: string | null = null;
     if (offer.client_id) {
       const { data: client } = await supabase
         .from("clients")
-        .select("company")
+        .select(
+          "company, entity_type, legal_form, company_creation_date, business_sector, kyc_validated_at, vat_number",
+        )
         .eq("id", offer.client_id)
         .single();
       clientCompany = client?.company ?? null;
+      if (client) {
+        clientKyc = {
+          entity_type: client.entity_type ?? null,
+          legal_form: client.legal_form ?? null,
+          company_creation_date: client.company_creation_date ?? null,
+          business_sector: client.business_sector ?? null,
+          kyc_validated_at: client.kyc_validated_at ?? null,
+          vat_number: client.vat_number ?? null,
+        };
+      }
+
+      // Récupérer le dernier rapport KYC validé pour ses warnings (radiation, faillite, ...)
+      const { data: lastKycReport } = await supabase
+        .from("client_kyc_reports")
+        .select("source, ai_extraction, status, validated_at, analyzed_at")
+        .eq("client_id", offer.client_id)
+        .in("status", ["validated", "analyzed"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (lastKycReport?.ai_extraction) {
+        const ex = lastKycReport.ai_extraction as any;
+        kycSource = lastKycReport.source ?? null;
+        if (Array.isArray(ex.warnings)) {
+          kycExtractionWarnings = ex.warnings.filter((w: any) => typeof w === "string");
+        }
+      }
+    }
+
+    // Calcul de l'âge de la société en mois (utile pour la décision)
+    let companyAgeMonths: number | null = null;
+    if (clientKyc?.company_creation_date) {
+      const created = new Date(clientKyc.company_creation_date);
+      if (!isNaN(created.getTime())) {
+        const diffMs = Date.now() - created.getTime();
+        companyAgeMonths = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30.44));
+      }
     }
 
     // ── 2. Fetch equipment ─────────────────────────────────────────────────
@@ -153,6 +203,64 @@ serve(async (req) => {
         })
         .join("\n") || "Aucun historique";
 
+    const REJECTION_CATEGORY_LABELS: Record<string, string> = {
+      fraud: "Suspicion de fraude",
+      young_company: "Entreprise trop jeune / montant demandé",
+      private_client: "Client particulier",
+      financial_situation: "Situation financière insuffisante",
+      other: "Autre",
+    };
+
+    // Bloc KYC : on ne l'inclut que si on a au moins un champ rempli
+    const hasKyc = !!(
+      clientKyc &&
+      (clientKyc.entity_type ||
+        clientKyc.legal_form ||
+        clientKyc.company_creation_date ||
+        clientKyc.business_sector ||
+        clientKyc.kyc_validated_at)
+    );
+
+    const ENTITY_TYPE_LABELS: Record<string, string> = {
+      societe: "Société (personne morale)",
+      independant: "Indépendant en personne physique",
+      asbl: "ASBL / AISBL",
+      autre: "Autre",
+    };
+
+    const kycText = hasKyc
+      ? `- Type d'entité: ${
+          clientKyc!.entity_type ? ENTITY_TYPE_LABELS[clientKyc!.entity_type] : "Non renseigné"
+        }
+- Forme juridique: ${clientKyc!.legal_form ?? "Non renseignée"}
+- Date de création: ${
+          clientKyc!.company_creation_date
+            ? `${clientKyc!.company_creation_date}${
+                companyAgeMonths !== null ? ` (société de ${companyAgeMonths} mois)` : ""
+              }`
+            : "Non renseignée"
+        }
+- Secteur d'activité: ${clientKyc!.business_sector ?? "Non renseigné"}
+- TVA: ${clientKyc!.vat_number ?? "Non renseigné"}
+- KYC validé le: ${clientKyc!.kyc_validated_at ?? "Jamais"}${
+          kycSource ? ` (source: ${kycSource})` : ""
+        }${
+          kycExtractionWarnings.length > 0
+            ? `\n- Alertes BCE/KYC: ${kycExtractionWarnings.join(" ; ")}`
+            : ""
+        }`
+      : "Aucune analyse KYC réalisée pour ce client. Le secteur, la forme juridique et la date de création de l'entreprise ne sont pas connus.";
+
+    const rejectionCategoryText = offer.rejection_category
+      ? `- Catégorie de refus précédente: ${
+          REJECTION_CATEGORY_LABELS[offer.rejection_category] ?? offer.rejection_category
+        }`
+      : "";
+
+    const previousOfferText = offer.previous_offer_id
+      ? `- Offre re-soumise après refus précédent: ${offer.previous_offer_id}`
+      : "";
+
     const context = `
 ## Dossier de financement
 - Numéro: ${offer.dossier_number ?? "N/A"}
@@ -165,6 +273,11 @@ serve(async (req) => {
 - Durée: ${offer.duration ?? "?"} mois
 - Score ITC: ${offer.internal_score ?? "Non évalué"}
 - Score leaser: ${offer.leaser_score ?? "Non évalué"}
+${rejectionCategoryText}
+${previousOfferText}
+
+## Données société (KYC)
+${kycText}
 
 ## Équipements
 ${equipmentText}
@@ -197,6 +310,13 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, sans code block, s
   "next_action": "Action concrète recommandée pour faire avancer le dossier (1 phrase)",
   "recommendation": "Recommandation stratégique globale (2-3 phrases)"
 }
+
+CONSIGNES IMPORTANTES :
+- Si la section "Données société (KYC)" est remplie, utilise-la EN PRIORITÉ pour évaluer le risque (forme juridique, âge de la société en mois, secteur d'activité, alertes BCE éventuelles).
+- Si la société a moins de 12 mois ET que la catégorie de refus précédente est "Entreprise trop jeune / montant demandé", recommande explicitement d'attendre le passage des 1 an pour relancer (la relance KYC enrichi via documents financiers reste possible avant cette échéance, mais sans bilan complet la décision du leaser ne changera probablement pas).
+- Si des alertes BCE sont remontées (faillite, liquidation, radiation, situation anormale), monte automatiquement le risk_level à "élevé" et mentionne-les dans risk_reason.
+- Si le KYC n'est pas fait (section indique "Aucune analyse KYC réalisée"), inclus dans next_action une phrase suggérant de lancer le KYC depuis la fiche client pour fiabiliser la décision.
+- Sois factuel : ne spécule pas sur des chiffres financiers absents (CA, fonds propres) si non fournis dans le KYC.
 
 Voici les données du dossier:
 
