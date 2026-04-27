@@ -78,6 +78,7 @@ function formatDate(iso: string | null): string {
 }
 
 const ACCEPTED_MIME = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+const ACCEPTED_EXT = ["pdf", "png", "jpg", "jpeg", "webp"];
 const MAX_SIZE = 15 * 1024 * 1024;
 
 const ClientKYCSection: React.FC<ClientKYCSectionProps> = ({ client, onClientUpdate }) => {
@@ -109,7 +110,12 @@ const ClientKYCSection: React.FC<ClientKYCSectionProps> = ({ client, onClientUpd
 
   const handleFileChosen = async (file: File | null) => {
     if (!file) return;
-    if (!ACCEPTED_MIME.includes(file.type)) {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const mimeOk = ACCEPTED_MIME.includes(file.type);
+    const extOk = ACCEPTED_EXT.includes(ext);
+    // Accepter si soit le mime soit l'extension est OK (certains navigateurs ne
+    // renvoient pas de mime correct pour les PDF, on retombe sur l'extension).
+    if (!mimeOk && !extOk) {
       toast.error("Format non supporté (PDF, PNG, JPEG, WEBP uniquement)");
       return;
     }

@@ -76,6 +76,14 @@ export async function listKycReports(clientId: string): Promise<ClientKycReport[
   return (data || []) as ClientKycReport[];
 }
 
+const EXT_TO_MIME: Record<string, string> = {
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+};
+
 export async function uploadKycPdfAndAnalyze(params: {
   clientId: string;
   companyId: string;
@@ -89,12 +97,24 @@ export async function uploadKycPdfAndAnalyze(params: {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const filePath = `${companyId}/${clientId}/${fileId}.${ext}`;
 
+  // Force contentType from extension. file.type peut être vide ou faux selon les
+  // navigateurs/OS (Safari + macOS mal configuré renvoie parfois "" pour les PDF),
+  // ce qui fait tomber le SDK Supabase sur "application/json" par défaut → rejet
+  // par allowed_mime_types du bucket.
+  const contentType = EXT_TO_MIME[ext] || file.type || "application/octet-stream";
+
+  // Re-blober le fichier avec le bon type pour neutraliser un éventuel header
+  // "application/json" injecté par le SDK quand file.type est vide.
+  const blob = file.type === contentType ? file : new Blob([file], { type: contentType });
+
   const { error: uploadError } = await supabase.storage
     .from(KYC_BUCKET)
-    .upload(filePath, file, { contentType: file.type, upsert: false });
+    .upload(filePath, blob, { contentType, upsert: false });
 
   if (uploadError) {
-    throw new Error(`Upload échoué: ${uploadError.message}`);
+    throw new Error(
+      `Upload échoué: ${uploadError.message} (fichier: ${file.name}, type détecté: "${file.type || "vide"}", forcé: ${contentType})`,
+    );
   }
 
   const { data, error } = await supabase.functions.invoke("analyze-client-kyc", {
