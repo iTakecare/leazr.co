@@ -74,11 +74,12 @@ serve(async (req) => {
     } | null = null;
     let kycExtractionWarnings: string[] = [];
     let kycSource: string | null = null;
+    let kycScore: { letter: string; reasons: string[] } | null = null;
     if (offer.client_id) {
       const { data: client } = await supabase
         .from("clients")
         .select(
-          "company, entity_type, legal_form, company_creation_date, business_sector, kyc_validated_at, vat_number",
+          "company, entity_type, legal_form, company_creation_date, business_sector, kyc_validated_at, vat_number, kyc_score, kyc_score_reasons",
         )
         .eq("id", offer.client_id)
         .single();
@@ -92,6 +93,14 @@ serve(async (req) => {
           kyc_validated_at: client.kyc_validated_at ?? null,
           vat_number: client.vat_number ?? null,
         };
+        if (client.kyc_score) {
+          kycScore = {
+            letter: client.kyc_score,
+            reasons: Array.isArray(client.kyc_score_reasons)
+              ? (client.kyc_score_reasons as string[])
+              : [],
+          };
+        }
       }
 
       // Récupérer le dernier rapport KYC validé pour ses warnings (radiation, faillite, ...)
@@ -228,8 +237,22 @@ serve(async (req) => {
       autre: "Autre",
     };
 
+    const SCORE_LABELS: Record<string, string> = {
+      A: "A — Risque très faible",
+      B: "B — Risque modéré",
+      C: "C — Vigilance requise",
+      D: "D — Risque élevé",
+    };
+
     const kycText = hasKyc
-      ? `- Type d'entité: ${
+      ? `- Score KYC interne: ${
+          kycScore ? SCORE_LABELS[kycScore.letter] ?? kycScore.letter : "Non calculé"
+        }${
+          kycScore && kycScore.reasons.length > 0
+            ? `\n  Raisons du score: ${kycScore.reasons.join(" ; ")}`
+            : ""
+        }
+- Type d'entité: ${
           clientKyc!.entity_type ? ENTITY_TYPE_LABELS[clientKyc!.entity_type] : "Non renseigné"
         }
 - Forme juridique: ${clientKyc!.legal_form ?? "Non renseignée"}
@@ -312,9 +335,15 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, sans code block, s
 }
 
 CONSIGNES IMPORTANTES :
-- Si la section "Données société (KYC)" est remplie, utilise-la EN PRIORITÉ pour évaluer le risque (forme juridique, âge de la société en mois, secteur d'activité, alertes BCE éventuelles).
+- Si la section "Données société (KYC)" est remplie, utilise-la EN PRIORITÉ pour évaluer le risque (score KYC, forme juridique, âge de la société en mois, secteur d'activité, alertes BCE éventuelles).
+- Le score KYC interne (A/B/C/D) est la synthèse calculée automatiquement à partir des données société. Aligne ton risk_level dessus :
+  - Score A → risk_level "faible"
+  - Score B → risk_level "faible" ou "moyen" selon le contexte (montant, secteur)
+  - Score C → risk_level "moyen" ou "élevé"
+  - Score D → risk_level "élevé"
+- Reformule les "Raisons du score" dans risk_reason et key_points (ne les copie pas verbatim, intègre-les naturellement).
 - Si la société a moins de 12 mois ET que la catégorie de refus précédente est "Entreprise trop jeune / montant demandé", recommande explicitement d'attendre le passage des 1 an pour relancer (la relance KYC enrichi via documents financiers reste possible avant cette échéance, mais sans bilan complet la décision du leaser ne changera probablement pas).
-- Si des alertes BCE sont remontées (faillite, liquidation, radiation, situation anormale), monte automatiquement le risk_level à "élevé" et mentionne-les dans risk_reason.
+- Si des alertes BCE sont remontées (faillite, liquidation, radiation, situation anormale), force risk_level à "élevé" et mentionne-les dans risk_reason.
 - Si le KYC n'est pas fait (section indique "Aucune analyse KYC réalisée"), inclus dans next_action une phrase suggérant de lancer le KYC depuis la fiche client pour fiabiliser la décision.
 - Sois factuel : ne spécule pas sur des chiffres financiers absents (CA, fonds propres) si non fournis dans le KYC.
 
@@ -356,9 +385,26 @@ ${context}`;
       throw new Error(`Could not parse OpenAI response as JSON: ${rawContent}`);
     }
 
-    return new Response(JSON.stringify({ summary, offer_id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        summary,
+        offer_id,
+        kyc: {
+          score: kycScore?.letter ?? null,
+          score_reasons: kycScore?.reasons ?? [],
+          entity_type: clientKyc?.entity_type ?? null,
+          legal_form: clientKyc?.legal_form ?? null,
+          company_creation_date: clientKyc?.company_creation_date ?? null,
+          company_age_months: companyAgeMonths,
+          business_sector: clientKyc?.business_sector ?? null,
+          warnings: kycExtractionWarnings,
+          validated_at: clientKyc?.kyc_validated_at ?? null,
+        },
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (err: any) {
     console.error("generate-offer-summary error:", err);
     return new Response(JSON.stringify({ error: err.message ?? "Unknown error" }), {

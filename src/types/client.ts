@@ -55,6 +55,9 @@ export interface Client {
   kyc_validated_at?: string | null;
   young_company_relaunched_at?: string | null;
   business_sector?: string | null;
+  kyc_score?: 'A' | 'B' | 'C' | 'D' | null;
+  kyc_score_reasons?: string[] | null;
+  kyc_score_computed_at?: string | null;
   company_id?: string;
 }
 

@@ -197,14 +197,55 @@ export interface KycValidationPayload {
 
 export async function validateKycReport(payload: KycValidationPayload): Promise<void> {
   const { reportId, clientId, fieldsToApply } = payload;
+
+  // Recharger le client après application des champs pour avoir l'état final
+  // (entity_type, company_creation_date) sur lequel calculer le score.
+  const updatePayload: Record<string, any> = { ...fieldsToApply, kyc_validated_at: new Date().toISOString() };
+
   if (Object.keys(fieldsToApply).length > 0) {
     const { error: clientError } = await supabase
       .from("clients")
-      .update({ ...fieldsToApply, kyc_validated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq("id", clientId);
     if (clientError) {
       throw new Error(`MAJ client: ${clientError.message}`);
     }
+  }
+
+  // Recalcul du score KYC à partir des champs validés + dernière extraction du rapport.
+  try {
+    const { data: client } = await supabase
+      .from("clients")
+      .select("entity_type, company_creation_date")
+      .eq("id", clientId)
+      .maybeSingle();
+
+    const { data: report } = await supabase
+      .from("client_kyc_reports")
+      .select("ai_extraction")
+      .eq("id", reportId)
+      .maybeSingle();
+
+    const { computeClientKycScore } = await import("./clientKycScore");
+    const score = computeClientKycScore({
+      companyCreationDate: client?.company_creation_date ?? null,
+      entityType: client?.entity_type ?? null,
+      lastExtraction: (report?.ai_extraction as KycExtraction | null) ?? null,
+    });
+
+    if (score) {
+      await supabase
+        .from("clients")
+        .update({
+          kyc_score: score.letter,
+          kyc_score_reasons: score.reasons,
+          kyc_score_computed_at: new Date().toISOString(),
+        })
+        .eq("id", clientId);
+    }
+  } catch (err) {
+    // Non bloquant : on ne fait pas planter la validation si le score plante.
+    console.warn("[clientKycService] score recompute failed", err);
   }
 
   const { data: { user } } = await supabase.auth.getUser();

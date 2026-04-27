@@ -37,6 +37,11 @@ import {
   uploadKycPdfAndAnalyze,
   validateKycReport,
 } from "@/services/clients/clientKycService";
+import {
+  KYC_SCORE_COLORS,
+  KYC_SCORE_LABELS,
+  KycScoreLetter,
+} from "@/services/clients/clientKycScore";
 
 interface ClientKYCSectionProps {
   client: any;
@@ -186,6 +191,15 @@ const ClientKYCSection: React.FC<ClientKYCSectionProps> = ({ client, onClientUpd
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
+          {/* Score badge en avant si disponible */}
+          {client.kyc_score && (
+            <KycScoreBlock
+              letter={client.kyc_score as KycScoreLetter}
+              reasons={(client.kyc_score_reasons as string[]) || []}
+              computedAt={client.kyc_score_computed_at}
+            />
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <FieldStat
               label="Type d'entité"
@@ -409,6 +423,37 @@ const FieldStat: React.FC<{ label: string; value: string | null; icon?: React.Co
     </div>
   </div>
 );
+
+const KycScoreBlock: React.FC<{
+  letter: KycScoreLetter;
+  reasons: string[];
+  computedAt?: string | null;
+}> = ({ letter, reasons, computedAt }) => {
+  const colors = KYC_SCORE_COLORS[letter];
+  return (
+    <div className={`rounded-lg border-2 ${colors.border} ${colors.bg} p-4 flex flex-col sm:flex-row gap-4 items-start`}>
+      <div className={`flex-shrink-0 rounded-lg ${colors.bg} ${colors.border} border-2 w-20 h-20 flex flex-col items-center justify-center`}>
+        <div className={`text-4xl font-extrabold ${colors.text}`}>{letter}</div>
+        <div className={`text-[10px] font-medium uppercase ${colors.text}`}>Score KYC</div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className={`text-base font-semibold ${colors.text} mb-1`}>{KYC_SCORE_LABELS[letter]}</div>
+        {reasons.length > 0 && (
+          <ul className={`text-sm ${colors.text} space-y-0.5 list-disc pl-5`}>
+            {reasons.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        )}
+        {computedAt && (
+          <div className={`text-[11px] mt-2 opacity-70 ${colors.text}`}>
+            Calculé le {new Date(computedAt).toLocaleString("fr-BE", { dateStyle: "medium", timeStyle: "short" })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface ReviewDiffDialogProps {
   report: ClientKycReport | null;

@@ -81,6 +81,21 @@ const requestSchema = z.discriminatedUnion("mode", [
 
 type AnalyzeRequest = z.infer<typeof requestSchema>;
 
+const EXT_TO_MIME: Record<string, string> = {
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+
+function inferMimeFromPath(filePath: string): string | null {
+  const ext = filePath.split(".").pop()?.toLowerCase();
+  if (!ext) return null;
+  return EXT_TO_MIME[ext] || null;
+}
+
 async function downloadPdfAsBase64(
   supabase: any,
   filePath: string,
@@ -98,10 +113,18 @@ async function downloadPdfAsBase64(
   for (let i = 0; i < bytes.length; i += chunkSize) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
+
+  // Source de vérité pour le mime = extension du fichier dans le path. data.type
+  // (renvoyé par Supabase Storage) peut être "application/json" ou autre selon
+  // ce qui était dans les métadonnées au moment de l'upload, ce qui ferait
+  // basculer Claude sur "image" et rejeter le PDF.
+  const inferredMime = inferMimeFromPath(filePath);
+  const mimeType = inferredMime || data.type || "application/pdf";
+
   return {
     base64: btoa(binary),
     size: bytes.length,
-    mimeType: data.type || "application/pdf",
+    mimeType,
   };
 }
 

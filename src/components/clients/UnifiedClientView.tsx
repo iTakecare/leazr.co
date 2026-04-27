@@ -31,6 +31,7 @@ import { CompanySearchModal } from "./CompanySearchModal";
 import ClientCommercialHistory from "./ClientCommercialHistory";
 import ClientActiveEquipment from "./ClientActiveEquipment";
 import ClientKYCSection from "./ClientKYCSection";
+import { KycScoreHeaderBadge } from "./KycScoreHeaderBadge";
 import { useClientContracts } from "@/hooks/useClientContracts";
 
 interface UnifiedClientViewProps {
@@ -495,6 +496,12 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Compte actif
               </Badge>
+            )}
+            {client.kyc_score && (
+              <KycScoreHeaderBadge
+                letter={client.kyc_score as 'A' | 'B' | 'C' | 'D'}
+                reasons={(client.kyc_score_reasons as string[] | null) ?? []}
+              />
             )}
           </div>
           

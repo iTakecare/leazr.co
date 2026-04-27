@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, AlertCircle, Loader2, RefreshCw, ShieldCheck, Building2, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { KYC_SCORE_COLORS, KYC_SCORE_LABELS, KycScoreLetter } from "@/services/clients/clientKycScore";
 
 interface AISummary {
   situation: string;
@@ -12,6 +13,18 @@ interface AISummary {
   key_points: string[];
   next_action: string;
   recommendation: string;
+}
+
+interface OfferKycContext {
+  score: KycScoreLetter | null;
+  score_reasons: string[];
+  entity_type: string | null;
+  legal_form: string | null;
+  company_creation_date: string | null;
+  company_age_months: number | null;
+  business_sector: string | null;
+  warnings: string[];
+  validated_at: string | null;
 }
 
 interface OfferAISummaryProps {
@@ -44,6 +57,7 @@ const RISK_CONFIG = {
 
 export const OfferAISummary: React.FC<OfferAISummaryProps> = ({ offerId }) => {
   const [summary, setSummary] = useState<AISummary | null>(null);
+  const [kyc, setKyc] = useState<OfferKycContext | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
@@ -61,6 +75,7 @@ export const OfferAISummary: React.FC<OfferAISummaryProps> = ({ offerId }) => {
     setLoading(true);
     setError(null);
     setSummary(null);
+    setKyc(null);
     try {
       const { data, error: fnError } = await supabase.functions.invoke("generate-offer-summary", {
         body: { offer_id: offerId },
@@ -68,6 +83,7 @@ export const OfferAISummary: React.FC<OfferAISummaryProps> = ({ offerId }) => {
       if (fnError) throw new Error(fnError.message);
       if (data?.error) throw new Error(data.error);
       setSummary(data.summary);
+      setKyc(data.kyc ?? null);
       setExpanded(true);
     } catch (err: any) {
       setError(err.message ?? "Erreur inconnue");
@@ -163,6 +179,11 @@ export const OfferAISummary: React.FC<OfferAISummaryProps> = ({ offerId }) => {
 
       {summary && expanded && (
         <div className={cn("border-l-4 mx-4 my-4 pl-3 space-y-3", riskConfig?.borderCls ?? "border-l-slate-300")}>
+          {/* KYC client : sous-carte affichée tout en haut si on a au moins le score ou des données société */}
+          {kyc && (kyc.score || kyc.legal_form || kyc.company_creation_date) && (
+            <KycInlineCard kyc={kyc} />
+          )}
+
           {/* Situation */}
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Situation</p>
@@ -205,6 +226,105 @@ export const OfferAISummary: React.FC<OfferAISummaryProps> = ({ offerId }) => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+const ENTITY_TYPE_LABELS: Record<string, string> = {
+  societe: "Société",
+  independant: "Indépendant",
+  asbl: "ASBL",
+  autre: "Autre",
+};
+
+const KycInlineCard: React.FC<{ kyc: OfferKycContext }> = ({ kyc }) => {
+  const colors = kyc.score ? KYC_SCORE_COLORS[kyc.score] : null;
+
+  const formatCreation = () => {
+    if (!kyc.company_creation_date) return null;
+    try {
+      const d = new Date(kyc.company_creation_date).toLocaleDateString("fr-BE");
+      const months = kyc.company_age_months;
+      return months !== null ? `${d} (${months} mois)` : d;
+    } catch {
+      return kyc.company_creation_date;
+    }
+  };
+
+  return (
+    <div className={cn(
+      "rounded-lg border p-3 flex flex-col sm:flex-row gap-3 items-start",
+      colors ? `${colors.bg} ${colors.border}` : "bg-slate-50 border-slate-200"
+    )}>
+      {/* Score badge à gauche */}
+      {kyc.score && colors ? (
+        <div className={cn(
+          "flex-shrink-0 rounded-md border-2 w-14 h-14 flex flex-col items-center justify-center",
+          colors.border, colors.bg
+        )}>
+          <div className={cn("text-2xl font-extrabold leading-none", colors.text)}>{kyc.score}</div>
+          <div className={cn("text-[8px] font-medium uppercase mt-0.5", colors.text)}>KYC</div>
+        </div>
+      ) : (
+        <div className="flex-shrink-0 rounded-md border-2 border-slate-200 bg-slate-50 w-14 h-14 flex flex-col items-center justify-center">
+          <ShieldCheck className="h-5 w-5 text-slate-400" />
+          <div className="text-[8px] font-medium uppercase text-slate-400 mt-0.5">N/A</div>
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={cn("text-sm font-semibold", colors?.text ?? "text-slate-700")}>
+            {kyc.score ? KYC_SCORE_LABELS[kyc.score] : "Score KYC non calculé"}
+          </span>
+          {kyc.legal_form && (
+            <Badge variant="outline" className="text-[10px] py-0 h-4">
+              {kyc.legal_form}
+            </Badge>
+          )}
+          {kyc.entity_type && (
+            <Badge variant="outline" className="text-[10px] py-0 h-4">
+              {ENTITY_TYPE_LABELS[kyc.entity_type] ?? kyc.entity_type}
+            </Badge>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
+          {formatCreation() && (
+            <div className={cn("flex items-center gap-1", colors?.text ?? "text-slate-600")}>
+              <CalendarClock className="h-3 w-3" />
+              <span>Créée: {formatCreation()}</span>
+            </div>
+          )}
+          {kyc.business_sector && (
+            <div className={cn("flex items-center gap-1 truncate", colors?.text ?? "text-slate-600")}>
+              <Building2 className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate" title={kyc.business_sector}>{kyc.business_sector}</span>
+            </div>
+          )}
+        </div>
+
+        {kyc.score_reasons && kyc.score_reasons.length > 0 && (
+          <ul className={cn("text-[11px] mt-2 list-disc pl-4 space-y-0.5", colors?.text ?? "text-slate-600")}>
+            {kyc.score_reasons.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        )}
+
+        {kyc.warnings && kyc.warnings.length > 0 && (
+          <div className="mt-2 flex items-start gap-1 text-[11px] text-red-700">
+            <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+            <span>{kyc.warnings.join(" · ")}</span>
+          </div>
+        )}
+
+        {!kyc.validated_at && (
+          <div className="text-[10px] italic mt-2 text-slate-500">
+            Aucun KYC validé pour ce client — lance-le depuis sa fiche pour fiabiliser cette analyse.
+          </div>
+        )}
+      </div>
     </div>
   );
 };
