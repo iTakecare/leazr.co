@@ -31,6 +31,7 @@ import { CompanySearchModal } from "./CompanySearchModal";
 import ClientCommercialHistory from "./ClientCommercialHistory";
 import ClientActiveEquipment from "./ClientActiveEquipment";
 import ClientKYCSection from "./ClientKYCSection";
+import ClientCompanyOverview from "./ClientCompanyOverview";
 import { KycScoreHeaderBadge } from "./KycScoreHeaderBadge";
 import { useClientContracts } from "@/hooks/useClientContracts";
 
@@ -49,6 +50,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
 }) => {
   const [client, setClient] = useState<Client>(initialClient);
   const [isEditing, setIsEditing] = useState(initialEditMode);
+  const [activeTab, setActiveTab] = useState<string>("general");
   const [isSaving, setIsSaving] = useState(false);
   const [isVATLookupLoading, setIsVATLookupLoading] = useState(false);
   const [isCompanySearchOpen, setIsCompanySearchOpen] = useState(false);
@@ -575,7 +577,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       </div>
 
       {/* Onglets avec contenu principal */}
-      <Tabs defaultValue="general" className="space-y-6">
+      <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
@@ -609,6 +611,12 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
         </TabsList>
 
         <TabsContent value="general" className="space-y-6">
+          {/* Bandeau société + score KYC en haut, full-width */}
+          <ClientCompanyOverview
+            client={client}
+            onGoToKyc={() => setActiveTab("kyc")}
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Informations principales */}
             <Card className="lg:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
