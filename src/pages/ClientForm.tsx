@@ -11,6 +11,7 @@ import { PostalCodeInput } from '@/components/form/PostalCodeInput';
 import { linkClientToAmbassador, getClientAmbassador, updateClientAmbassador } from '@/services/ambassador/ambassadorClients';
 import { createClient, getClientById, updateClient } from '@/services/clientService';
 import { formatPhoneWithCountry } from '@/services/postalCodeService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, Phone, UserPlus } from 'lucide-react';
 import { ClientLogoUploader } from '@/components/clients/ClientLogoUploader';
@@ -170,7 +171,7 @@ const ClientForm = () => {
         toast.success('Client mis à jour avec succès');
       } else {
         const newClient = await createClient(clientData);
-        
+
         // If we have an ambassador ID in the state, link the client to the ambassador
         const state = location.state as { ambassadorId?: string };
         if (state?.ambassadorId && newClient.id) {
@@ -183,6 +184,24 @@ const ClientForm = () => {
           }
         } else {
           toast.success('Client créé avec succès');
+        }
+
+        // Auto-KYC en arrière-plan : si le client a un VAT, on lance un lookup
+        // BCE/SIRENE pour récupérer forme juridique, date de création, secteur,
+        // etc. Fire-and-forget : on ne bloque pas la navigation.
+        if (newClient?.id && newClient?.vat_number) {
+          supabase.functions
+            .invoke('analyze-client-kyc', {
+              body: { mode: 'auto_lookup', clientId: newClient.id },
+            })
+            .then(({ error }) => {
+              if (error) {
+                console.warn('[auto-kyc] lookup échoué:', error.message);
+              } else {
+                toast.success('KYC automatique lancé en arrière-plan', { duration: 3000 });
+              }
+            })
+            .catch((err) => console.warn('[auto-kyc] exception:', err));
         }
       }
       

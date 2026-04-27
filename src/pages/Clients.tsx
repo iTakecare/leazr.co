@@ -15,6 +15,7 @@ import ClientsList from "@/components/crm/ClientsList";
 import CreateClientDialog from "@/components/clients/CreateClientDialog";
 import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
 import AmbassadorsList from "@/components/crm/AmbassadorsList";
+import BulkKycButton from "@/components/clients/BulkKycButton";
 
 import {
   DropdownMenu,
@@ -174,6 +175,7 @@ const Clients = () => {
                             />
                           </div>
                           <div className="flex items-center gap-2">
+                            <BulkKycButton onCompleted={refreshClients} />
                             <CreateClientDialog onClientCreated={refreshClients} />
                           </div>
                         </div>

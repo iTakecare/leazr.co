@@ -11,6 +11,8 @@ import { formatDateToFrench } from "@/utils/formatters";
 import { Client } from "@/types/client";
 import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { KYC_SCORE_COLORS, KYC_SCORE_LABELS, KycScoreLetter } from "@/services/clients/clientKycScore";
 
 type SortField = 'name' | 'company' | 'email' | 'phone' | 'status' | 'created_at';
 type SortDirection = 'asc' | 'desc' | null;
@@ -245,6 +247,7 @@ const ClientList: React.FC<ClientListProps> = ({
           <TableRow>
             <SortableHeader field="name" label="Nom" />
             <SortableHeader field="company" label="Société" />
+            <TableHead>KYC</TableHead>
             <SortableHeader field="email" label="Email" />
             <SortableHeader field="phone" label="Téléphone" />
             <SortableHeader field="status" label="Statut" />
@@ -263,12 +266,29 @@ const ClientList: React.FC<ClientListProps> = ({
               </TableCell>
               <TableCell>
                 {client.company ? (
-                  <div className="flex items-center">
-                    <Building2 className="w-4 h-4 mr-2 text-gray-400" />
-                    {client.company}
+                  <div>
+                    <div className="flex items-center">
+                      <Building2 className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>{client.company}</span>
+                    </div>
+                    {(client.legal_form || client.company_creation_date) && (
+                      <div className="text-xs text-gray-500 mt-0.5 ml-6">
+                        {client.legal_form}
+                        {client.legal_form && client.company_creation_date && " · "}
+                        {client.company_creation_date &&
+                          `créée ${new Date(client.company_creation_date).toLocaleDateString("fr-BE", { month: "2-digit", year: "numeric" })}`}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <span className="text-gray-400">-</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {client.kyc_score ? (
+                  <KycScoreCell letter={client.kyc_score as 'A' | 'B' | 'C' | 'D'} />
+                ) : (
+                  <span className="text-xs text-gray-300 italic">non évalué</span>
                 )}
               </TableCell>
               <TableCell>
@@ -337,6 +357,31 @@ const ClientList: React.FC<ClientListProps> = ({
         </TableBody>
       </Table>
     </div>
+  );
+};
+
+const KycScoreCell: React.FC<{ letter: KycScoreLetter }> = ({ letter }) => {
+  const colors = KYC_SCORE_COLORS[letter];
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={cn(
+              "inline-flex items-center justify-center w-8 h-8 rounded-md border-2 font-extrabold text-sm cursor-help",
+              colors.bg,
+              colors.text,
+              colors.border,
+            )}
+          >
+            {letter}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          <div className="text-xs font-semibold">{KYC_SCORE_LABELS[letter]}</div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
