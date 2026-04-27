@@ -985,7 +985,7 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
           // Reuse existing client
           clientId = existingClient.id;
           console.log(`[META IMPORT] Using existing client: ${existingClient.name} (${clientId})`);
-          
+
           // Enrich existing client with missing data
           const updates: Record<string, string> = {};
           if (!existingClient.vat_number && lead.vat_number) updates.vat_number = normalizeVatNumber(lead.vat_number);
@@ -993,6 +993,32 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
           if (Object.keys(updates).length > 0) {
             console.log(`[META IMPORT] Enriching existing client with: ${JSON.stringify(updates)}`);
             await supabase.from('clients').update(updates).eq('id', clientId);
+
+            // Si on vient d'ajouter le VAT, déclencher auto-KYC en arrière-plan
+            // (uniquement si pas déjà validé)
+            if (updates.vat_number) {
+              const { data: clientCheck } = await supabase
+                .from('clients')
+                .select('kyc_validated_at')
+                .eq('id', clientId)
+                .single();
+              if (clientCheck && !clientCheck.kyc_validated_at) {
+                const supabaseUrl = Deno.env.get('SUPABASE_URL');
+                const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+                if (supabaseUrl && serviceRoleKey) {
+                  fetch(`${supabaseUrl}/functions/v1/analyze-client-kyc`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${serviceRoleKey}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ mode: 'auto_lookup', clientId }),
+                  }).catch((err) =>
+                    console.warn(`[META IMPORT] auto-KYC enrichment échec pour ${clientId}:`, err.message),
+                  );
+                }
+              }
+            }
           }
         } else {
           // Create new client
@@ -1048,16 +1074,45 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
           if (clientError || !newClient) {
             console.error('[META IMPORT] Client creation error:', clientError);
             results.errors++;
-            results.details.push({ 
-              email: lead.email, 
-              status: 'error', 
-              error: clientError?.message 
+            results.details.push({
+              email: lead.email,
+              status: 'error',
+              error: clientError?.message
             });
             continue;
           }
 
           clientId = newClient.id;
           console.log(`[META IMPORT] Client created: ${clientId}`);
+
+          // Auto-KYC : si le client a un VAT, on déclenche immédiatement le
+          // lookup BCE/SIRENE en arrière-plan. Pas bloquant : si ça plante,
+          // l'import du lead continue. Le client pourra toujours être traité
+          // via le bouton "Rechercher dans la BCE par nom/prénom" si besoin.
+          if (newClient.vat_number) {
+            const supabaseUrl = Deno.env.get('SUPABASE_URL');
+            const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+            if (supabaseUrl && serviceRoleKey) {
+              fetch(`${supabaseUrl}/functions/v1/analyze-client-kyc`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${serviceRoleKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ mode: 'auto_lookup', clientId: newClient.id }),
+              })
+                .then((r) => {
+                  if (!r.ok) {
+                    console.warn(`[META IMPORT] auto-KYC HTTP ${r.status} for client ${newClient.id}`);
+                  } else {
+                    console.log(`[META IMPORT] auto-KYC déclenché pour client ${newClient.id}`);
+                  }
+                })
+                .catch((err) =>
+                  console.warn(`[META IMPORT] auto-KYC échec pour ${newClient.id}:`, err.message),
+                );
+            }
+          }
         }
 
         // Get default leaser (Grenke Lease BE)
