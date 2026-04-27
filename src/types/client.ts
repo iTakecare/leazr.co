@@ -48,6 +48,14 @@ export interface Client {
   default_leaser_id?: string;
   has_custom_catalog?: boolean;
   logo_url?: string;
+  // KYC société (Phase 1)
+  entity_type?: 'societe' | 'independant' | 'asbl' | 'autre' | null;
+  company_creation_date?: string | null;
+  legal_form?: string | null;
+  kyc_validated_at?: string | null;
+  young_company_relaunched_at?: string | null;
+  business_sector?: string | null;
+  company_id?: string;
 }
 
 export interface CreateClientData {

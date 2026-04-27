@@ -12,9 +12,9 @@ import { Client } from "@/types/client";
 import { updateClient } from "@/services/clientService";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Building2, Mail, Phone, MapPin, FileText, Clock, User, CheckCircle, 
-  AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package, Globe, Search, Monitor
+import {
+  Building2, Mail, Phone, MapPin, FileText, Clock, User, CheckCircle,
+  AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package, Globe, Search, Monitor, ShieldCheck
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -30,6 +30,7 @@ import { ClientLogoUploader } from "./ClientLogoUploader";
 import { CompanySearchModal } from "./CompanySearchModal";
 import ClientCommercialHistory from "./ClientCommercialHistory";
 import ClientActiveEquipment from "./ClientActiveEquipment";
+import ClientKYCSection from "./ClientKYCSection";
 import { useClientContracts } from "@/hooks/useClientContracts";
 
 interface UnifiedClientViewProps {
@@ -568,7 +569,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
 
       {/* Onglets avec contenu principal */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Informations générales
@@ -589,6 +590,10 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                 {activeEquipmentCount}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="kyc" className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            KYC société
           </TabsTrigger>
           <TabsTrigger value="logo" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -919,6 +924,16 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
             clientId={client.id} 
             clientEmail={client.email || undefined}
             clientName={client.name}
+          />
+        </TabsContent>
+
+        <TabsContent value="kyc" className="space-y-6">
+          <ClientKYCSection
+            client={client}
+            onClientUpdate={(updates) => {
+              setClient((prev: any) => ({ ...prev, ...updates }));
+              onClientUpdate?.({ ...client, ...updates });
+            }}
           />
         </TabsContent>
 
