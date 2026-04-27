@@ -85,16 +85,25 @@ export const calculateEquipmentResults = (
   }, 0);
 
   // 2. Calculer la mensualité normale
-  // Toujours recalculer à partir du prix d'achat + marge + coefficient de la durée courante
-  // Cela garantit que le changement de durée se répercute correctement sur les mensualités
-  const normalMonthlyPayment = equipmentList.reduce((sum, equipment) => {
-    const financedAmount = calculateFinancedAmountForEquipment(equipment);
-    const coeff = findCoefficientForAmount(financedAmount, leaser, duration);
-    // Arrondir la mensualité à 2 décimales
-    const monthlyForOne = roundToTwoDecimals((financedAmount * coeff) / 100);
-    console.log(`📊 CALC - Recalculated monthlyPayment for ${equipment.title} (${duration}m, coef=${coeff}%): ${monthlyForOne}`);
-    return sum + monthlyForOne;
-  }, 0);
+  // Source de vérité = somme des mensualités stockées sur chaque équipement
+  // (eq.monthlyPayment représente le total de la ligne, quantité incluse — c'est la même
+  // convention que offer_equipment.monthly_payment côté offre, cf. FinancialSection qui
+  // affiche 311 € sur cette offre). Sommer directement garantit que le calculateur, le
+  // récap financier et la base de la remise commerciale correspondent exactement à ce que
+  // voit le client dans la table équipements.
+  // Fallback : si un équipement n'a pas encore de mensualité (saisie en cours, sans valeur
+  // catalogue), on la recalcule depuis purchase × (1 + margin%) × coefficient pour éviter
+  // un affichage transitoire à 0.
+  const normalMonthlyPayment = roundToTwoDecimals(
+    equipmentList.reduce((sum, equipment) => {
+      if (equipment.monthlyPayment && equipment.monthlyPayment > 0) {
+        return sum + equipment.monthlyPayment;
+      }
+      const financedAmount = calculateFinancedAmountForEquipment(equipment);
+      const coeff = findCoefficientForAmount(financedAmount, leaser, duration);
+      return sum + roundToTwoDecimals((financedAmount * coeff) / 100);
+    }, 0)
+  );
 
   // 3. Calculer le montant financé total individuel (pour référence)
   const totalFinancedAmountIndividual = equipmentList.reduce((sum, equipment) => {
