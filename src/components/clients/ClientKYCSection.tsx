@@ -141,8 +141,18 @@ const ClientKYCSection: React.FC<ClientKYCSectionProps> = ({ client, onClientUpd
         file,
         source: selectedSource,
       });
-      toast.success("Analyse terminée — vérifie les valeurs proposées", { id: toastId });
+      toast.success("Analyse terminée — score KYC mis à jour, vérifie les valeurs proposées", {
+        id: toastId,
+      });
       await refresh();
+      // Refetch le client pour propager le nouveau score (recalculé automatiquement
+      // côté serveur dès que les indicateurs financiers sont extraits du PDF).
+      const { data: refreshed } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("id", client.id)
+        .single();
+      if (refreshed) onClientUpdate?.(refreshed);
       setReviewReport(report);
     } catch (err: any) {
       console.error(err);
@@ -163,8 +173,17 @@ const ClientKYCSection: React.FC<ClientKYCSectionProps> = ({ client, onClientUpd
     const toastId = toast.loading("Lookup BCE/SIRENE en cours…");
     try {
       const report = await runAutoLookup(client.id);
-      toast.success("Données récupérées — vérifie ce qui s'applique", { id: toastId });
+      toast.success("Données récupérées — score KYC mis à jour, vérifie ce qui s'applique", {
+        id: toastId,
+      });
       await refresh();
+      // Idem upload PDF : refetch le client pour propager le nouveau score
+      const { data: refreshed } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("id", client.id)
+        .single();
+      if (refreshed) onClientUpdate?.(refreshed);
       setReviewReport(report);
     } catch (err: any) {
       console.error(err);

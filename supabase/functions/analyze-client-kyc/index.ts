@@ -537,6 +537,92 @@ function bceDataToExtraction(bce: BceData, vatNumber: string): any {
   };
 }
 
+// Calcul du score KYC (Option A simplifiée, identique à clientKycScore.ts côté front).
+// Dupliquée ici pour rester côté serveur sans dépendance front.
+function computeScoreFromExtraction(
+  creationDate: string | null,
+  financialIndicators: any,
+  warnings: string[],
+): { letter: "A" | "B" | "C" | "D"; reasons: string[] } {
+  const FAILURE_KEYWORDS = ["faillite", "liquidation", "radiation", "cessation", "dissolution", "insolva"];
+  const dReasons: string[] = [];
+  for (const w of warnings || []) {
+    if (FAILURE_KEYWORDS.some((k) => (w || "").toLowerCase().includes(k))) {
+      dReasons.push(`Alerte : ${w}`);
+    }
+  }
+  const fin = financialIndicators || {};
+  if (typeof fin.equity === "number" && fin.equity < 0) {
+    dReasons.push(`Fonds propres négatifs (${fin.equity.toLocaleString("fr-BE")} €)`);
+  }
+  if (typeof fin.net_result === "number" && fin.net_result < -50000) {
+    dReasons.push(`Perte nette importante (${fin.net_result.toLocaleString("fr-BE")} €)`);
+  }
+  if (dReasons.length > 0) return { letter: "D", reasons: dReasons };
+
+  let ageMonths: number | null = null;
+  if (creationDate) {
+    const d = new Date(creationDate);
+    if (!isNaN(d.getTime())) {
+      ageMonths = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+    }
+  }
+  const cReasons: string[] = [];
+  if (ageMonths !== null && ageMonths < 12) {
+    cReasons.push(
+      ageMonths === 0
+        ? "Société créée il y a moins d'un mois"
+        : `Société de ${ageMonths} mois (< 12 mois)`,
+    );
+  }
+  if (
+    typeof fin.revenue === "number" &&
+    fin.revenue < 50000 &&
+    typeof fin.employees === "number" &&
+    fin.employees <= 1
+  ) {
+    cReasons.push(
+      `Activité limitée (CA ${fin.revenue.toLocaleString("fr-BE")} €, ${fin.employees} employé)`,
+    );
+  }
+  if (cReasons.length > 0) return { letter: "C", reasons: cReasons };
+
+  const matureAndActive = ageMonths !== null && ageMonths >= 36;
+  const positiveEquity = typeof fin.equity === "number" && fin.equity > 0;
+  const profitable =
+    fin.net_result == null || (typeof fin.net_result === "number" && fin.net_result >= 0);
+
+  if (matureAndActive && positiveEquity && profitable) {
+    const aReasons: string[] = [`Société établie (${ageMonths} mois)`];
+    if (typeof fin.equity === "number") {
+      aReasons.push(`Fonds propres positifs (${fin.equity.toLocaleString("fr-BE")} €)`);
+    }
+    if (typeof fin.net_result === "number") {
+      aReasons.push(
+        fin.net_result > 0
+          ? `Résultat net positif (${fin.net_result.toLocaleString("fr-BE")} €)`
+          : "Résultat net à l'équilibre",
+      );
+    }
+    return { letter: "A", reasons: aReasons };
+  }
+
+  const bReasons: string[] = [];
+  if (ageMonths !== null) {
+    if (ageMonths < 36) bReasons.push(`Société de ${ageMonths} mois (entre 1 et 3 ans)`);
+    else bReasons.push(`Société établie (${ageMonths} mois)`);
+  }
+  if (positiveEquity) bReasons.push(`Fonds propres positifs (${fin.equity.toLocaleString("fr-BE")} €)`);
+  if (typeof fin.net_result === "number" && fin.net_result >= 0) {
+    bReasons.push(`Résultat net positif (${fin.net_result.toLocaleString("fr-BE")} €)`);
+  }
+  if ((!warnings || warnings.length === 0) && (ageMonths === null || ageMonths >= 12)) {
+    bReasons.push("Aucune alerte");
+  }
+  if (bReasons.length === 0) bReasons.push("Données partielles, pas d'élément critique");
+  return { letter: "B", reasons: bReasons };
+}
+
 async function callCompanySearchInternal(
   vatNumber: string,
   country: string,
@@ -756,8 +842,38 @@ serve(async (req) => {
       );
     }
 
+    // Recompute du score AUTOMATIQUEMENT dès l'analyse, sans attendre que
+    // l'admin clique "Appliquer & valider". Les indicateurs financiers et
+    // les warnings extraits par Claude sont des données factuelles ; les
+    // champs textuels (forme juridique, adresse) restent eux à valider
+    // manuellement via la modale de diff.
+    let newScore: { letter: string; reasons: string[] } | null = null;
+    try {
+      // Use the date from extraction OR existing client value
+      const creationDate = extraction.registration_date || client.company_creation_date || null;
+      newScore = computeScoreFromExtraction(
+        creationDate,
+        extraction.financial_indicators,
+        Array.isArray(extraction.warnings) ? extraction.warnings : [],
+      );
+      await supabase
+        .from("clients")
+        .update({
+          kyc_score: newScore.letter,
+          kyc_score_reasons: newScore.reasons,
+          kyc_score_computed_at: new Date().toISOString(),
+        })
+        .eq("id", client.id);
+    } catch (err) {
+      console.warn("[analyze-client-kyc] Score auto-recompute failed:", (err as Error).message);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, report: updated }),
+      JSON.stringify({
+        success: true,
+        report: updated,
+        score: newScore,
+      }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   } catch (err) {
