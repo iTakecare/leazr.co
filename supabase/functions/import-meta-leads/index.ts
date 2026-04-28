@@ -1,25 +1,105 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Resend } from "npm:resend@2.0.0";
 
-// Normalize VAT/enterprise numbers to uniform format (e.g. BE0123456789)
-function normalizeVatNumber(raw: string): string {
-  if (!raw) return '';
-  // Remove all separators: dots, dashes, spaces, colons
-  let cleaned = raw.replace(/[\s.\-:]/g, '').toUpperCase();
-  // Extract country prefix if present (2 letters followed by digits)
+// Mots-clés indiquant clairement "pas de VAT / particulier" dans le champ libre du form Meta
+const PRIVATE_KEYWORDS = [
+  'particulier', 'particulière', 'particuliere', 'pas de tva', 'pas tva',
+  'aucun', 'aucune', 'no vat', 'private', 'personne physique', 'physique',
+  'natuurlijk', 'geen btw', 'sans tva', 'no tva', 'pas de numero', 'sans numero',
+  'na', 'n/a', 'none', 'nope', 'rien',
+];
+
+interface ParsedVat {
+  /** VAT canonique (ex: BE0123456789) ou null si l'input n'est pas un VAT valide */
+  vat: string | null;
+  /** True si l'input ressemble à un signal "particulier" (mots-clés ou NRN) */
+  isPrivate: boolean;
+  /** Input brut tel que reçu, pour audit dans les notes */
+  rawInput: string | null;
+}
+
+/**
+ * Parse un input texte libre du formulaire Meta en VAT canonique.
+ * Retourne vat=null si l'input ne ressemble à AUCUN VAT valide (BE/FR/LU/NL)
+ * ou s'il s'agit visiblement d'un particulier.
+ */
+function parseVatNumber(raw: string | null | undefined): ParsedVat {
+  if (!raw) return { vat: null, isPrivate: false, rawInput: null };
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return { vat: null, isPrivate: false, rawInput: null };
+
+  const lower = trimmed.toLowerCase();
+
+  // 1. Détection mot-clé particulier
+  if (PRIVATE_KEYWORDS.some((k) => lower === k || lower.includes(k))) {
+    return { vat: null, isPrivate: true, rawInput: trimmed };
+  }
+
+  // 2. Strip tous séparateurs
+  const cleaned = trimmed.replace(/[\s.\-:/_,]/g, '').toUpperCase();
+  if (cleaned.length === 0) return { vat: null, isPrivate: false, rawInput: trimmed };
+
+  // 3. Détection NRN belge (11 chiffres pleine forme YYMMDDXXXNN)
+  // Si pas de prefix pays et 11 chiffres, c'est probablement un NRN (numéro national)
+  if (/^\d{11}$/.test(cleaned)) {
+    return { vat: null, isPrivate: true, rawInput: trimmed };
+  }
+
+  // 4. Extraction du prefix pays si présent
   let prefix = '';
-  const match = cleaned.match(/^([A-Z]{2})(\d+)$/);
-  if (match) {
-    prefix = match[1];
-    cleaned = match[2];
+  let body = cleaned;
+  const prefixMatch = cleaned.match(/^([A-Z]{2})(.+)$/);
+  if (prefixMatch) {
+    prefix = prefixMatch[1];
+    body = prefixMatch[2];
   }
-  // Default to BE if no prefix
-  if (!prefix) prefix = 'BE';
-  // Pad with leading zero if needed (Belgian numbers are 10 digits)
-  if (prefix === 'BE' && cleaned.length === 9) {
-    cleaned = '0' + cleaned;
+
+  // 5. Match strict par pays
+  if (prefix === '' || prefix === 'BE') {
+    // BE : 10 chiffres commençant par 0 ou 1, ou 9 chiffres → on pad avec 0
+    if (/^\d{9}$/.test(body)) body = '0' + body;
+    if (/^[01]\d{9}$/.test(body)) {
+      return { vat: `BE${body}`, isPrivate: false, rawInput: trimmed };
+    }
   }
-  return `${prefix}${cleaned}`;
+  if (prefix === 'FR') {
+    // FR : 2 alphanumériques (clé) + 9 chiffres SIREN
+    if (/^[A-Z0-9]{2}\d{9}$/.test(body)) {
+      return { vat: `FR${body}`, isPrivate: false, rawInput: trimmed };
+    }
+  }
+  if (prefix === 'LU') {
+    if (/^\d{8}$/.test(body)) {
+      return { vat: `LU${body}`, isPrivate: false, rawInput: trimmed };
+    }
+  }
+  if (prefix === 'NL') {
+    if (/^\d{9}B\d{2}$/.test(body)) {
+      return { vat: `NL${body}`, isPrivate: false, rawInput: trimmed };
+    }
+  }
+  if (prefix === 'DE') {
+    if (/^\d{9}$/.test(body)) {
+      return { vat: `DE${body}`, isPrivate: false, rawInput: trimmed };
+    }
+  }
+
+  // 6. Fallback : tentatives sans prefix
+  if (!prefix && /^\d+$/.test(body)) {
+    // 8 chiffres → potentiellement LU (peu fiable, on skippe)
+    // Pas de match BE possible (déjà essayé ci-dessus)
+  }
+
+  // Tout le reste = garbage
+  return { vat: null, isPrivate: false, rawInput: trimmed };
+}
+
+/**
+ * Backwards-compat : conserve la signature originale mais valide strictement.
+ * Retourne null pour tout input invalide (au lieu de générer du faux comme BEPARTICULIER).
+ */
+function normalizeVatNumber(raw: string): string | null {
+  return parseVatNumber(raw).vat;
 }
 
 const corsHeaders = {
@@ -955,6 +1035,12 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
         console.log(`[META IMPORT] Raw lead fields: ${Object.keys(lead).join(', ')}`);
         console.log(`[META IMPORT] vat_number received: "${lead.vat_number || 'MISSING'}", company_name: "${lead.company_name || 'MISSING'}"`);
 
+        // Parse + valide le VAT brut une seule fois pour ce lead
+        const parsedVat = parseVatNumber(lead.vat_number);
+        if (lead.vat_number && !parsedVat.vat) {
+          console.log(`[META IMPORT] VAT brut "${lead.vat_number}" invalide ou particulier (isPrivate=${parsedVat.isPrivate}) → vat_number=null`);
+        }
+
         // Check if client already exists by email OR phone
         let existingClient = null;
         
@@ -986,9 +1072,9 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
           clientId = existingClient.id;
           console.log(`[META IMPORT] Using existing client: ${existingClient.name} (${clientId})`);
 
-          // Enrich existing client with missing data
+          // Enrich existing client with missing data — vat seulement si valide
           const updates: Record<string, string> = {};
-          if (!existingClient.vat_number && lead.vat_number) updates.vat_number = normalizeVatNumber(lead.vat_number);
+          if (!existingClient.vat_number && parsedVat.vat) updates.vat_number = parsedVat.vat;
           if (!existingClient.company && lead.company_name) updates.company = lead.company_name;
           if (Object.keys(updates).length > 0) {
             console.log(`[META IMPORT] Enriching existing client with: ${JSON.stringify(updates)}`);
@@ -1039,6 +1125,19 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
             minute: '2-digit'
           });
 
+          // Construit la ligne TVA pour les notes selon ce qu'on a parsé
+          let vatNoteLine = '';
+          if (parsedVat.vat) {
+            // Si l'input brut est différent du normalisé, on montre les deux
+            vatNoteLine = parsedVat.rawInput && parsedVat.rawInput.replace(/[\s.\-:/_,]/gi, '').toUpperCase() !== parsedVat.vat
+              ? `\n🔹 N° TVA: ${parsedVat.vat} (saisi: "${parsedVat.rawInput}")`
+              : `\n🔹 N° TVA: ${parsedVat.vat}`;
+          } else if (parsedVat.rawInput && parsedVat.isPrivate) {
+            vatNoteLine = `\n⚠️ TVA saisie: "${parsedVat.rawInput}" (semble être un particulier — ignoré)`;
+          } else if (parsedVat.rawInput) {
+            vatNoteLine = `\n⚠️ TVA saisie: "${parsedVat.rawInput}" (format invalide — ignoré, à vérifier)`;
+          }
+
           // Build enriched notes for client
           const clientNotes = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📱 SOURCE: META (Facebook/Instagram)
@@ -1046,7 +1145,7 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
 
 🔹 Plateforme: ${lead.platform === 'fb' ? 'Facebook' : 'Instagram'}
 🔹 Date du lead: ${formattedDate}
-🔹 Meta Lead ID: ${lead.meta_lead_id}${lead.vat_number ? `\n🔹 N° TVA: ${lead.vat_number}` : ''}${lead.company_name ? `\n🔹 Entreprise: ${lead.company_name}` : ''}
+🔹 Meta Lead ID: ${lead.meta_lead_id}${vatNoteLine}${lead.company_name ? `\n🔹 Entreprise: ${lead.company_name}` : ''}
 
 📦 PACK INTÉRESSÉ:
 ${parsedPack.displayName}
@@ -1064,7 +1163,7 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
               email: validEmail,
               phone: validPhone,
               company: lead.company_name || null,
-              vat_number: lead.vat_number ? normalizeVatNumber(lead.vat_number) : null,
+              vat_number: parsedVat.vat,
               status: 'lead',
               notes: clientNotes
             })
