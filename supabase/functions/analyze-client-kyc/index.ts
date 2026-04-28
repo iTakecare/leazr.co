@@ -672,7 +672,13 @@ serve(async (req) => {
             "Aucun numéro de TVA sur le client — impossible de faire un lookup automatique. Renseigne d'abord le VAT ou uploade un rapport.",
           );
         }
-        const country = (client.country || "BE").toUpperCase();
+        // ⚠️ client.country est historiquement pollué (sert de "secteur d'activité"
+        // sur beaucoup de fiches : "Coiffure", "Genie Civil"…). On déduit le pays
+        // depuis le préfixe du VAT, qui est strict après passage par parseVatNumber.
+        const vatPrefix = client.vat_number.substring(0, 2).toUpperCase();
+        const country = ["BE", "FR", "LU", "NL", "DE", "ES"].includes(vatPrefix)
+          ? vatPrefix
+          : (client.country || "BE").toUpperCase();
         // Pour la Belgique : scrape direct kbopub (forme juridique, date de début, NACE, statut)
         // Pour FR/LU : on délègue à company-search qui sait router vers SIRENE / registre LU
         if (country === "BE") {

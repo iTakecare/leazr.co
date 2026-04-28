@@ -288,9 +288,13 @@ serve(async (req) => {
 
     for (const client of candidates) {
       stats.processed++;
-      const country = (client.country || "BE").toUpperCase();
-      // V1 : on traite que la BE (pour les autres pays, à venir)
-      if (country !== "BE") {
+      // ⚠️ Le champ client.country est mal renseigné historiquement (sert de
+      // "secteur d'activité" pour beaucoup de clients : "Coiffure", "Belgique",
+      // "Genie Civil"…). On déduit le pays depuis le préfixe du VAT — c'est
+      // toujours fiable une fois passé par parseVatNumber côté import.
+      const vatPrefix = (client.vat_number || "").substring(0, 2).toUpperCase();
+      // V1 : on traite que la BE (pour FR/LU/NL/DE/ES, à venir via SIRENE / autres registres)
+      if (vatPrefix !== "BE") {
         stats.skipped++;
         continue;
       }
