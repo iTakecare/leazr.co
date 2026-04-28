@@ -17,6 +17,7 @@ import CreateClientDialog from "@/components/clients/CreateClientDialog";
 import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
 import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import BulkKycButton from "@/components/clients/BulkKycButton";
+import EnrichKycFromDocsButton from "@/components/clients/EnrichKycFromDocsButton";
 
 import {
   DropdownMenu,
@@ -187,6 +188,7 @@ const Clients = () => {
                               File KYC
                             </Button>
                             <BulkKycButton onCompleted={refreshClients} />
+                            <EnrichKycFromDocsButton onCompleted={refreshClients} />
                             <CreateClientDialog onClientCreated={refreshClients} />
                           </div>
                         </div>
