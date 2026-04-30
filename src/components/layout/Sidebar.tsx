@@ -138,30 +138,33 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         isCollapsed ? "p-3" : "p-4"
       )}>
         {isCollapsed ? (
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center gap-2">
             <SidebarIcon size="md" />
+            <AdminNotificationBadge />
           </div>
         ) : (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <SidebarIcon size="md" />
-              <div className="min-w-0 flex-1">
-                {!settingsLoading && (
-                  <>
-                    <h1 className="text-xs font-medium text-white truncate">{companyName}</h1>
-                    <p className="text-[10px] text-sidebar-foreground/60">Administration</p>
-                  </>
-                )}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <SidebarIcon size="md" />
+                <div className="min-w-0 flex-1">
+                  {!settingsLoading && (
+                    <>
+                      <h1 className="text-xs font-medium text-white truncate">{companyName}</h1>
+                      <p className="text-[10px] text-sidebar-foreground/60">Administration</p>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <AdminNotificationBadge />
               <button
                 onClick={toggleCollapsed}
-                className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
               >
                 <ChevronRight className="h-4 w-4 text-sidebar-foreground/70 rotate-180" />
               </button>
+            </div>
+            <div className="flex justify-start">
+              <AdminNotificationBadge />
             </div>
           </div>
         )}
@@ -253,7 +256,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       {/* Desktop Sidebar */}
       <div className={cn(
         "hidden lg:flex flex-col transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "w-64",
+        isCollapsed ? "w-14" : "w-56",
         className
       )}>
         {renderSidebarContent()}
@@ -266,7 +269,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
             className="absolute inset-0 bg-black/50"
             onClick={closeMobile}
           />
-          <div className="absolute left-0 top-0 bottom-0 w-64 transform transition-transform duration-300">
+          <div className="absolute left-0 top-0 bottom-0 w-56 transform transition-transform duration-300">
             {renderSidebarContent()}
           </div>
         </div>
