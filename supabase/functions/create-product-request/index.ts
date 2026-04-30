@@ -324,29 +324,29 @@ serve(async (req) => {
       console.log(`📊 Résolution prix pour "${productName}": méthode=${priceResolutionMethod}, achat=${price}€`);
 
       let monthlyPrice = 0;
+      let brutMonthlyPrice = 0;
+      const discountPct = product.pack_discount_percentage || 0;
 
       if (product.unit_price && product.unit_price > 0) {
-        // Prix envoyé par iTakecare = ce que le client a vu (déjà arrondi, déjà remisé)
-        monthlyPrice = product.unit_price;
-        console.log(`📊 Mensualité UNITAIRE iTakecare (prioritaire): ${monthlyPrice}€`);
+        // Contrat API : iTakecare envoie le prix BRUT (non remisé). Leazr applique la remise.
+        brutMonthlyPrice = product.unit_price;
+        monthlyPrice = discountPct > 0
+          ? Math.round(brutMonthlyPrice * (1 - discountPct / 100) * 100) / 100
+          : brutMonthlyPrice;
+        console.log(`📊 Mensualité UNITAIRE iTakecare: brut=${brutMonthlyPrice}€, remise=${discountPct}%, final=${monthlyPrice}€`);
 
-        // Validation de cohérence avec la DB (log seulement)
-        let dbMonthly = variantMonthlyPrice || productMonthlyPrice || 0;
-        if (dbMonthly > 0 && product.pack_discount_percentage && product.pack_discount_percentage > 0) {
-          dbMonthly = Math.round(dbMonthly * (1 - product.pack_discount_percentage / 100) * 100) / 100;
-        }
-        if (dbMonthly > 0 && Math.abs(monthlyPrice - dbMonthly) / dbMonthly > 0.05) {
-          console.warn(`⚠️ Écart >5% entre iTakecare (${monthlyPrice}€) et DB (${dbMonthly}€) pour ${productName}`);
+        // Validation cohérence avec la DB (log seulement) — sur le BRUT
+        const dbMonthly = variantMonthlyPrice || productMonthlyPrice || 0;
+        if (dbMonthly > 0 && Math.abs(brutMonthlyPrice - dbMonthly) / dbMonthly > 0.05) {
+          console.warn(`⚠️ Écart >5% entre brut iTakecare (${brutMonthlyPrice}€) et DB (${dbMonthly}€) pour ${productName}`);
         }
       } else {
         // Fallback : calcul depuis la DB (cas sans iTakecare)
-        monthlyPrice = variantMonthlyPrice || productMonthlyPrice || 0;
-        console.log(`📊 Mensualité UNITAIRE DB Leazr (fallback): ${monthlyPrice}€`);
-        if (monthlyPrice > 0 && product.pack_discount_percentage && product.pack_discount_percentage > 0) {
-          const originalMonthly = monthlyPrice;
-          monthlyPrice = Math.round(monthlyPrice * (1 - product.pack_discount_percentage / 100) * 100) / 100;
-          console.log(`🏷️ Réduction pack ${product.pack_discount_percentage}% appliquée: ${originalMonthly}€ → ${monthlyPrice}€`);
-        }
+        brutMonthlyPrice = variantMonthlyPrice || productMonthlyPrice || 0;
+        monthlyPrice = discountPct > 0
+          ? Math.round(brutMonthlyPrice * (1 - discountPct / 100) * 100) / 100
+          : brutMonthlyPrice;
+        console.log(`📊 Mensualité UNITAIRE DB Leazr (fallback): brut=${brutMonthlyPrice}€, remise=${discountPct}%, final=${monthlyPrice}€`);
       }
       
       const totalMonthlyForLine = Math.round(monthlyPrice * product.quantity * 100) / 100;
@@ -381,6 +381,7 @@ serve(async (req) => {
         variantId: resolvedVariantId,
         quantity: product.quantity,
         purchasePrice: price,
+        brutMonthlyPrice,
         monthlyPrice,
         sellingPrice,
         margin: equipmentMargin,
@@ -395,49 +396,28 @@ serve(async (req) => {
     console.log("Liste d'équipements:", equipmentList);
     console.log("Mensualité totale des produits (somme unit_prices):", totalMonthlyPayment + "€");
 
-    // ====== CORRECTION MENSUALITÉ : utiliser data.total - services externes ======
+    // ====== VALIDATION : data.total = filet de sécurité, pas source de vérité ======
+    // Leazr applique lui-même les remises pack par produit. data.total sert à
+    // détecter une incohérence et à absorber les diffs d'arrondi (1-2 centimes).
     if (data.total && data.total > 0) {
       const externalServicesTotal = (data.external_services || []).reduce(
         (acc: number, svc: any) => acc + (svc.price_htva * (svc.quantity || 1)), 0
       );
-      const correctMonthlyTotal = Math.round((data.total - externalServicesTotal) * 100) / 100;
-      
-      console.log(`📊 data.total: ${data.total}€, services externes: ${externalServicesTotal}€, mensualité équipements correcte: ${correctMonthlyTotal}€`);
-      
-      if (Math.abs(correctMonthlyTotal - totalMonthlyPayment) > 0.01) {
-        console.log(`⚠️ Correction mensualité: ${totalMonthlyPayment}€ → ${correctMonthlyTotal}€`);
-        
-        // Redistribution proportionnelle au prix d'achat (marges homogènes)
-        const totalPurchase = equipmentCalculations.reduce(
-          (sum: number, item: any) => sum + item.purchasePrice * item.quantity, 0
-        );
-        
-        if (totalPurchase > 0) {
-          let redistributedTotal = 0;
-          for (let i = 0; i < equipmentCalculations.length; i++) {
-            const item = equipmentCalculations[i];
-            const weight = (item.purchasePrice * item.quantity) / totalPurchase;
-            // Mensualité unitaire = part proportionnelle du total / quantité
-            item.monthlyPrice = Math.round((correctMonthlyTotal * weight / item.quantity) * 100) / 100;
-            redistributedTotal += item.monthlyPrice * item.quantity;
-          }
-          // Ajustement du reste d'arrondi sur la dernière ligne
-          const remainder = Math.round((correctMonthlyTotal - redistributedTotal) * 100) / 100;
-          if (Math.abs(remainder) > 0 && equipmentCalculations.length > 0) {
-            const last = equipmentCalculations[equipmentCalculations.length - 1];
-            last.monthlyPrice = Math.round((last.monthlyPrice + remainder / last.quantity) * 100) / 100;
-          }
-        } else {
-          // Fallback : répartition égale si pas de prix d'achat
-          const totalQty = equipmentCalculations.reduce((s: number, i: any) => s + i.quantity, 0);
-          const equalShare = Math.round((correctMonthlyTotal / totalQty) * 100) / 100;
-          equipmentCalculations.forEach((item: any) => {
-            item.monthlyPrice = equalShare;
-          });
-        }
-        
-        totalMonthlyPayment = correctMonthlyTotal;
-        console.log(`✅ Mensualité corrigée: ${totalMonthlyPayment}€ (redistribution par prix d'achat)`);
+      const expectedMonthlyTotal = Math.round((data.total - externalServicesTotal) * 100) / 100;
+      const diff = Math.round((expectedMonthlyTotal - totalMonthlyPayment) * 100) / 100;
+
+      console.log(`📊 Validation: data.total=${data.total}€, services externes=${externalServicesTotal}€, attendu équipements=${expectedMonthlyTotal}€, calculé=${totalMonthlyPayment}€, diff=${diff}€`);
+
+      if (expectedMonthlyTotal > 0 && Math.abs(diff) / expectedMonthlyTotal > 0.05) {
+        console.warn(`⚠️ Écart >5% entre total site (${expectedMonthlyTotal}€) et total Leazr (${totalMonthlyPayment}€) — Leazr garde son calcul`);
+      } else if (Math.abs(diff) > 0.001 && equipmentCalculations.length > 0) {
+        // Diff d'arrondi (≤5%) : on absorbe sur la dernière ligne pour matcher exactement le site
+        const last = equipmentCalculations[equipmentCalculations.length - 1];
+        last.monthlyPrice = Math.round((last.monthlyPrice + diff / last.quantity) * 100) / 100;
+        totalMonthlyPayment = expectedMonthlyTotal;
+        console.log(`✅ Ajustement arrondi: ${diff > 0 ? '+' : ''}${diff}€ sur ${last.productName}`);
+      } else {
+        console.log(`✅ Total cohérent: ${totalMonthlyPayment}€`);
       }
     }
 
@@ -617,12 +597,14 @@ serve(async (req) => {
     if (data.packs && data.packs.length > 0) {
       for (const pack of data.packs) {
         const packProducts = data.products.filter(p => p.pack_id === pack.custom_pack_id);
-        const originalMonthlyTotal = packProducts.reduce((sum, p) => {
-          const originalUnitPrice = p.unit_price ? p.unit_price / (1 - (p.pack_discount_percentage || 0) / 100) : 0;
-          return sum + (originalUnitPrice * p.quantity);
-        }, 0);
-        const discountedMonthlyTotal = packProducts.reduce((sum, p) => sum + ((p.unit_price || 0) * p.quantity), 0);
-        const monthlySavings = originalMonthlyTotal - discountedMonthlyTotal;
+        // unit_price est BRUT (avant remise) : original = somme directe, remisé = original × (1 - discount/100)
+        const originalMonthlyTotal = Math.round(
+          packProducts.reduce((sum, p) => sum + ((p.unit_price || 0) * p.quantity), 0) * 100
+        ) / 100;
+        const discountedMonthlyTotal = Math.round(
+          originalMonthlyTotal * (1 - (pack.discount_percentage || 0) / 100) * 100
+        ) / 100;
+        const monthlySavings = Math.round((originalMonthlyTotal - discountedMonthlyTotal) * 100) / 100;
         
         const { data: createdPack, error: packError } = await supabaseAdmin
           .from('offer_custom_packs')
@@ -662,8 +644,9 @@ serve(async (req) => {
         customPackDbId = packData?.id || null;
       }
       
-      const originalUnitPrice = calc.packDiscountPercentage 
-        ? calc.monthlyPrice / (1 - calc.packDiscountPercentage / 100)
+      // unit_price brut envoyé par le site (avant remise pack), ou null hors pack
+      const originalUnitPrice = calc.packDiscountPercentage && calc.packDiscountPercentage > 0
+        ? calc.brutMonthlyPrice
         : null;
 
       const equipmentData = {
