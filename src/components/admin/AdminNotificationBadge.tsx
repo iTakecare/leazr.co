@@ -32,9 +32,9 @@ export const AdminNotificationBadge = () => {
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            <Badge
+              variant="destructive"
+              className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-1 flex items-center justify-center p-0 text-[9px] leading-none"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>

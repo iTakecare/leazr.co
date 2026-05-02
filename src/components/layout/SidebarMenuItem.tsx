@@ -63,7 +63,7 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick, variant 
             <button
               onClick={handleClick}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                 collapsed ? "justify-center" : "justify-start",
                 colors.button
               )}
@@ -98,7 +98,7 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick, variant 
                 </>
               )}
               {collapsed && item.badge && (
-                <Badge className="absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-4 h-4 p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-red-500 animate-pulse">
+                <Badge className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 px-1 flex items-center justify-center text-[9px] leading-none bg-red-500 text-white border-red-500 animate-pulse">
                   {item.badge}
                 </Badge>
               )}
