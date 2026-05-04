@@ -17,6 +17,8 @@ export interface Equipment {
   parentEquipmentId?: string;
   isIndividual?: boolean;
   individualSerialNumber?: string;
+  // Source stock item (set when picked from existing stock instead of catalog)
+  sourceStockItemId?: string;
   // Delivery information fields
   collaboratorId?: string;
   deliverySiteId?: string;

@@ -4,7 +4,9 @@ import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { Leaser } from "@/types/equipment";
+import { StockItem } from "@/services/stockService";
 import ProductSelector from "@/components/ui/product-selector/ProductSelector";
 import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
@@ -52,6 +54,9 @@ const CreateOffer = () => {
   const {
     user
   } = useAuth();
+  const { companyId } = useMultiTenant();
+  const canPickFromStock =
+    (user?.role === "admin" || user?.role === "super_admin") && !!companyId;
   const query = useQuery();
   const clientIdParam = query.get("client");
   const offerIdParam = query.get("offerId") || query.get("id");
@@ -499,6 +504,29 @@ const CreateOffer = () => {
       setTargetMonthlyPayment(monthlyPrice);
     }
     setIsCatalogOpen(false);
+  };
+
+  const handleStockItemSelect = (item: StockItem) => {
+    if (!selectedLeaser) return;
+    // Cost basis: buyback price for contract-buybacks, otherwise purchase price.
+    const purchasePrice =
+      (item.source === "contract_buyback"
+        ? item.buyback_price ?? item.purchase_price
+        : item.purchase_price) || 0;
+    setEquipment({
+      id: crypto.randomUUID(),
+      title: item.title,
+      purchasePrice,
+      quantity: 1,
+      margin: 20,
+      productId: item.product_id || undefined,
+      sourceStockItemId: item.id,
+      individualSerialNumber: item.serial_number || undefined,
+    });
+    setIsCatalogOpen(false);
+    toast.success(
+      `${item.title} ajouté depuis le stock${item.serial_number ? ` (S/N ${item.serial_number})` : ""}`
+    );
   };
   const handleClientSelect = (client: ClientSelectorClient) => {
     setClientId(client.id);
@@ -1234,6 +1262,8 @@ const CreateOffer = () => {
           onOpenPackSelector={() => setIsPackSelectorOpen(true)}
           title="Ajouter un équipement"
           description="Sélectionnez un produit du catalogue à ajouter à votre offre"
+          stockCompanyId={canPickFromStock ? companyId : undefined}
+          onSelectStockItem={canPickFromStock ? handleStockItemSelect : undefined}
         />
 
         <PackSelectorModal

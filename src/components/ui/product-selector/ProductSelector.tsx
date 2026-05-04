@@ -2,13 +2,15 @@
 import React from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Package } from "lucide-react";
+import { Package, Warehouse } from "lucide-react";
 import SearchBar from "./SearchBar";
 import ProductTypeTabs from "./ProductTypeTabs";
 import ProductList from "./ProductList";
+import StockItemSelectorList from "./StockItemSelectorList";
 import { useProductSelector } from "@/hooks/products/useProductSelector";
 import { useProductFilter } from "@/hooks/products/useProductFilter";
 import { Product } from "@/types/catalog";
+import { StockItem } from "@/services/stockService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProductSelectorProps {
@@ -19,7 +21,12 @@ interface ProductSelectorProps {
   onOpenPackSelector?: () => void;
   title?: string;
   description?: string;
+  /** When set, enables a "Stock disponible" tab (admin only). */
+  stockCompanyId?: string;
+  onSelectStockItem?: (item: StockItem) => void;
 }
+
+type SourceMode = "catalog" | "stock";
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
   isOpen,
@@ -28,11 +35,16 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   onViewVariants,
   onOpenPackSelector,
   title = "Sélectionner un produit",
-  description = "Parcourez notre catalogue pour ajouter un produit à votre offre"
+  description = "Parcourez notre catalogue pour ajouter un produit à votre offre",
+  stockCompanyId,
+  onSelectStockItem,
 }) => {
+  const stockEnabled = !!stockCompanyId && !!onSelectStockItem;
+  const [sourceMode, setSourceMode] = React.useState<SourceMode>("catalog");
+
   // Fetch products data
   const { products, isLoading, error } = useProductSelector(isOpen);
-  
+
   // Filter products
   const {
     searchQuery,
@@ -42,17 +54,22 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     filteredProducts,
     resetFilters
   } = useProductFilter(products);
-  
+
   // Handle product selection
   const handleProductSelect = (product: Product) => {
     console.log("Selected product:", product);
     onSelectProduct(product);
   };
-  
+
+  const handleStockItemSelect = (item: StockItem) => {
+    onSelectStockItem?.(item);
+  };
+
   // Reset filters when the selector is opened
   React.useEffect(() => {
     if (isOpen) {
       resetFilters();
+      setSourceMode("catalog");
     }
   }, [isOpen, resetFilters]);
 
@@ -65,49 +82,90 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
             <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
           
-          {/* Search bar and close button */}
-          <div className="p-4 border-b">
-            <div className="flex gap-2 items-center">
-              {onOpenPackSelector && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    onClose();
-                    onOpenPackSelector();
-                  }}
-                  className="shrink-0"
+          {/* Source toggle (catalog / stock) — only when stock is enabled */}
+          {stockEnabled && (
+            <div className="px-4 pt-3 border-b pb-3">
+              <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setSourceMode("catalog")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                    sourceMode === "catalog"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <Package className="h-4 w-4 mr-2" />
-                  Packs
-                </Button>
-              )}
-              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-              <SheetClose asChild>
-                <Button variant="outline" onClick={onClose}>Fermer</Button>
-              </SheetClose>
+                  <Package className="h-3.5 w-3.5" />
+                  Catalogue
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSourceMode("stock")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                    sourceMode === "stock"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Warehouse className="h-3.5 w-3.5" />
+                  Stock disponible
+                </button>
+              </div>
             </div>
-          </div>
-          
-          {/* Product type tabs */}
-          <div className="px-4 py-2 border-b">
-            <ProductTypeTabs 
-              selectedTab={selectedTab}
-              setSelectedTab={setSelectedTab}
-            />
-          </div>
-          
-          {/* Product list */}
-          <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full">
-              <ProductList 
-                filteredProducts={filteredProducts}
-                isLoading={isLoading}
-                error={error}
-                handleProductSelect={handleProductSelect}
-                onViewVariants={onViewVariants}
+          )}
+
+          {/* Catalog: search bar + product tabs + list */}
+          {sourceMode === "catalog" ? (
+            <>
+              <div className="p-4 border-b">
+                <div className="flex gap-2 items-center">
+                  {onOpenPackSelector && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        onClose();
+                        onOpenPackSelector();
+                      }}
+                      className="shrink-0"
+                    >
+                      <Package className="h-4 w-4 mr-2" />
+                      Packs
+                    </Button>
+                  )}
+                  <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                  <SheetClose asChild>
+                    <Button variant="outline" onClick={onClose}>Fermer</Button>
+                  </SheetClose>
+                </div>
+              </div>
+
+              <div className="px-4 py-2 border-b">
+                <ProductTypeTabs
+                  selectedTab={selectedTab}
+                  setSelectedTab={setSelectedTab}
+                />
+              </div>
+
+              <div className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <ProductList
+                    filteredProducts={filteredProducts}
+                    isLoading={isLoading}
+                    error={error}
+                    handleProductSelect={handleProductSelect}
+                    onViewVariants={onViewVariants}
+                  />
+                </ScrollArea>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 overflow-hidden">
+              <StockItemSelectorList
+                companyId={stockCompanyId!}
+                onSelectStockItem={handleStockItemSelect}
               />
-            </ScrollArea>
-          </div>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

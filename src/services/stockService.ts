@@ -1,9 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type StockStatus = 'ordered' | 'in_stock' | 'assigned' | 'in_repair' | 'sold' | 'scrapped';
+export type StockStatus = 'ordered' | 'in_stock' | 'reserved' | 'assigned' | 'in_repair' | 'sold' | 'scrapped';
 export type StockCondition = 'new' | 'like_new' | 'good' | 'fair' | 'defective';
 export type RepairStatus = 'pending' | 'in_progress' | 'completed' | 'abandoned';
-export type MovementType = 'reception' | 'assign_contract' | 'unassign_contract' | 'swap_out' | 'swap_in' | 'repair_start' | 'repair_end' | 'scrap' | 'sell' | 'rachat_client' | 'contract_buyback';
+export type MovementType = 'reception' | 'assign_contract' | 'unassign_contract' | 'swap_out' | 'swap_in' | 'repair_start' | 'repair_end' | 'scrap' | 'sell' | 'rachat_client' | 'contract_buyback' | 'reserve_offer' | 'release_offer';
 
 export type StockSource = 'purchase' | 'contract_buyback';
 
@@ -91,6 +91,7 @@ export interface StockRepair {
 export const STOCK_STATUS_CONFIG: Record<StockStatus, { label: string; color: string; bgColor: string }> = {
   ordered: { label: 'Commandé', color: 'text-blue-700', bgColor: 'bg-blue-100 border-blue-200' },
   in_stock: { label: 'En stock', color: 'text-green-700', bgColor: 'bg-green-100 border-green-200' },
+  reserved: { label: 'Réservé', color: 'text-amber-700', bgColor: 'bg-amber-100 border-amber-200' },
   assigned: { label: 'Attribué', color: 'text-purple-700', bgColor: 'bg-purple-100 border-purple-200' },
   in_repair: { label: 'En réparation', color: 'text-orange-700', bgColor: 'bg-orange-100 border-orange-200' },
   sold: { label: 'Vendu', color: 'text-gray-700', bgColor: 'bg-gray-100 border-gray-200' },
@@ -301,6 +302,27 @@ export const receiveToStock = async (
   });
 
   return created;
+};
+
+// ===== OFFER COMPOSER =====
+
+/**
+ * Stock items disponibles pour ajouter à une offre.
+ * Retourne uniquement le matériel `in_stock` (non encore réservé / attribué).
+ */
+export const fetchAvailableStockItems = async (companyId: string): Promise<StockItem[]> => {
+  const { data, error } = await supabase
+    .from('stock_items' as any)
+    .select(`
+      *,
+      supplier:suppliers(name),
+      product:products(name)
+    `)
+    .eq('company_id', companyId)
+    .eq('status', 'in_stock')
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as unknown as StockItem[];
 };
 
 // ===== CONTRACT-SPECIFIC =====
