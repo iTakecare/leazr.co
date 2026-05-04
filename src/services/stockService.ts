@@ -113,6 +113,96 @@ export const REPAIR_STATUS_CONFIG: Record<RepairStatus, { label: string; color: 
   abandoned: { label: 'Abandonnée', color: 'text-red-700', bgColor: 'bg-red-100 border-red-200' },
 };
 
+// ===== STOCK ITEM ADDITIONAL COSTS =====
+
+export type StockCostCategory = 'repair' | 'upgrade' | 'part' | 'shipping' | 'other';
+
+export interface StockItemCost {
+  id: string;
+  company_id: string;
+  stock_item_id: string;
+  label: string;
+  amount: number;
+  category: StockCostCategory;
+  cost_date: string;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const STOCK_COST_CATEGORY_CONFIG: Record<StockCostCategory, { label: string; color: string; bgColor: string }> = {
+  repair: { label: 'Réparation', color: 'text-orange-700', bgColor: 'bg-orange-100 border-orange-200' },
+  upgrade: { label: 'Amélioration', color: 'text-indigo-700', bgColor: 'bg-indigo-100 border-indigo-200' },
+  part: { label: 'Pièce détachée', color: 'text-cyan-700', bgColor: 'bg-cyan-100 border-cyan-200' },
+  shipping: { label: 'Logistique', color: 'text-slate-700', bgColor: 'bg-slate-100 border-slate-200' },
+  other: { label: 'Autre', color: 'text-gray-700', bgColor: 'bg-gray-100 border-gray-200' },
+};
+
+export const fetchStockItemCosts = async (stockItemId: string): Promise<StockItemCost[]> => {
+  const { data, error } = await supabase
+    .from('stock_item_costs' as any)
+    .select('*')
+    .eq('stock_item_id', stockItemId)
+    .order('cost_date', { ascending: false });
+  if (error) throw error;
+  return (data || []) as unknown as StockItemCost[];
+};
+
+export const createStockItemCost = async (
+  cost: Omit<StockItemCost, 'id' | 'created_at' | 'updated_at'>
+): Promise<StockItemCost> => {
+  const { data, error } = await supabase
+    .from('stock_item_costs' as any)
+    .insert(cost as any)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as StockItemCost;
+};
+
+export const updateStockItemCost = async (
+  costId: string,
+  updates: Partial<Omit<StockItemCost, 'id' | 'company_id' | 'stock_item_id' | 'created_at' | 'created_by'>>
+): Promise<void> => {
+  const { error } = await supabase
+    .from('stock_item_costs' as any)
+    .update(updates as any)
+    .eq('id', costId);
+  if (error) throw error;
+};
+
+export const deleteStockItemCost = async (costId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('stock_item_costs' as any)
+    .delete()
+    .eq('id', costId);
+  if (error) throw error;
+};
+
+/** Sum of additional costs for a stock item. */
+export const computeAdditionalCostsTotal = (costs: StockItemCost[]): number =>
+  costs.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+/**
+ * Returns a map of stock_item_id → total additional costs for the whole
+ * company. Used by the global stock list to display the real cost.
+ */
+export const fetchStockCostTotalsByCompany = async (
+  companyId: string
+): Promise<Record<string, number>> => {
+  const { data, error } = await supabase
+    .from('stock_item_costs' as any)
+    .select('stock_item_id, amount')
+    .eq('company_id', companyId);
+  if (error) throw error;
+  const map: Record<string, number> = {};
+  (data || []).forEach((row: any) => {
+    map[row.stock_item_id] = (map[row.stock_item_id] || 0) + (Number(row.amount) || 0);
+  });
+  return map;
+};
+
 // ===== STOCK ITEMS =====
 
 export const fetchStockItems = async (companyId: string, statusFilter?: StockStatus) => {

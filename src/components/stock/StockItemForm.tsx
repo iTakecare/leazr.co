@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
+import StockItemCostsSection from "./StockItemCostsSection";
 
 interface StockItemFormProps {
   open: boolean;
@@ -391,6 +392,16 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ open, onOpenChange, editI
               <Label>Grade</Label>
               <Input value={form.grade} onChange={e => setForm(f => ({ ...f, grade: e.target.value }))} placeholder="Ex: A, B, C..." />
             </div>
+
+            {isEdit && editItem && companyId && (
+              <StockItemCostsSection
+                stockItemId={editItem.id}
+                companyId={companyId}
+                purchasePrice={
+                  (parseInt(form.quantity) || 1) * (parseFloat(form.unit_price) || 0)
+                }
+              />
+            )}
           </div>
           <div>
             <Label>Notes</Label>

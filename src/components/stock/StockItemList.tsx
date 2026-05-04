@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useStockItems } from "@/hooks/useStockItems";
-import { STOCK_STATUS_CONFIG, CONDITION_CONFIG, STOCK_SOURCE_CONFIG, StockStatus, StockSource, StockItem } from "@/services/stockService";
+import { STOCK_STATUS_CONFIG, CONDITION_CONFIG, STOCK_SOURCE_CONFIG, StockStatus, StockSource, StockItem, fetchStockCostTotalsByCompany } from "@/services/stockService";
+import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -77,6 +78,13 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { companyId } = useMultiTenant();
+
+  // Additional costs totals (per stock_item_id), refreshed alongside the items list
+  const { data: costTotals = {} } = useQuery({
+    queryKey: ['stock-cost-totals', companyId],
+    queryFn: () => fetchStockCostTotalsByCompany(companyId!),
+    enabled: !!companyId,
+  });
 
   const [sortKey, setSortKey] = useState<SortKey | null>('title');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -416,7 +424,21 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
         <TableCell className="text-xs">{item.grade || '-'}</TableCell>
         <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
         <TableCell className="text-right text-xs">{(item.unit_price || item.purchase_price)?.toFixed(2)} €</TableCell>
-        <TableCell className="text-right text-xs font-medium">{item.purchase_price?.toFixed(2)} €</TableCell>
+        <TableCell className="text-right text-xs font-medium">
+          {(() => {
+            const extra = costTotals[item.id] || 0;
+            const base = item.purchase_price || 0;
+            if (extra > 0) {
+              return (
+                <div className="flex flex-col items-end leading-tight">
+                  <span className="font-semibold">{(base + extra).toFixed(2)} €</span>
+                  <span className="text-[10px] text-orange-600 font-normal">+{extra.toFixed(2)} € coûts</span>
+                </div>
+              );
+            }
+            return <>{base.toFixed(2)} €</>;
+          })()}
+        </TableCell>
         <TableCell className="text-xs text-muted-foreground">
           {item.reception_date ? format(new Date(item.reception_date), 'dd/MM/yyyy', { locale: fr }) :
            item.purchase_date ? format(new Date(item.purchase_date), 'dd/MM/yyyy', { locale: fr }) : '-'}
