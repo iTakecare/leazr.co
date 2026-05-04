@@ -394,6 +394,164 @@ export const receiveToStock = async (
   return created;
 };
 
+// ===== BUYBACKABLE OVERVIEW =====
+
+export type BuybackEndStatus = 'ending_soon' | 'expired' | 'completed';
+
+export interface BuybackableEquipment {
+  id: string;
+  contract_id: string;
+  title: string;
+  serial_number: string | null;
+  quantity: number;
+  purchase_price: number | null;
+  contract_number: string | null;
+  client_name: string | null;
+  contract_status: string | null;
+  contract_start_date: string | null;
+  contract_end_date: string | null;
+  contract_duration: number | null;
+  lease_duration: number | null;
+  delivery_date: string | null;
+  /** Computed end date (ISO string or null) */
+  computed_end_date: string | null;
+  end_status: BuybackEndStatus;
+  /** Days until end (negative = expired, 0 = today) */
+  days_until_end: number | null;
+}
+
+const addMonths = (iso: string, months: number): Date => {
+  const d = new Date(iso);
+  d.setMonth(d.getMonth() + months);
+  return d;
+};
+
+const computeEnd = (c: {
+  contract_end_date?: string | null;
+  contract_start_date?: string | null;
+  contract_duration?: number | null;
+  lease_duration?: number | null;
+  delivery_date?: string | null;
+}): Date | null => {
+  if (c.contract_end_date) return new Date(c.contract_end_date);
+  const dur = c.contract_duration || c.lease_duration;
+  if (c.contract_start_date && dur) return addMonths(c.contract_start_date, dur);
+  if (c.delivery_date && dur) return addMonths(c.delivery_date, dur);
+  return null;
+};
+
+/**
+ * Liste tout le matériel non encore racheté dont le contrat parent est:
+ *  - terminé (`completed`), OU
+ *  - expiré (date de fin dépassée), OU
+ *  - bientôt fini (≤ `withinDays` jours, défaut 30)
+ *
+ * Sert à donner un overview du stock potentiel à reprendre.
+ */
+export const fetchBuybackableEquipments = async (
+  companyId: string,
+  withinDays: number = 30
+): Promise<BuybackableEquipment[]> => {
+  const { data, error } = await supabase
+    .from('contract_equipment')
+    .select(`
+      id,
+      contract_id,
+      title,
+      serial_number,
+      quantity,
+      purchase_price,
+      bought_back_at,
+      contracts!inner (
+        company_id,
+        contract_number,
+        client_name,
+        status,
+        contract_start_date,
+        contract_end_date,
+        contract_duration,
+        lease_duration,
+        delivery_date
+      )
+    `)
+    .is('bought_back_at', null)
+    .eq('contracts.company_id', companyId);
+
+  if (error) throw error;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const results: BuybackableEquipment[] = [];
+
+  for (const row of data || []) {
+    const contract: any = (row as any).contracts;
+    if (!contract) continue;
+
+    const status = contract.status as string | null;
+    const endDate = computeEnd(contract);
+
+    let endStatus: BuybackEndStatus | null = null;
+    let daysUntilEnd: number | null = null;
+
+    if (status === 'completed') {
+      endStatus = 'completed';
+      if (endDate) {
+        daysUntilEnd = Math.floor(
+          (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
+      }
+    } else if (endDate) {
+      const diffMs = endDate.getTime() - today.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      daysUntilEnd = diffDays;
+      if (diffDays < 0) endStatus = 'expired';
+      else if (diffDays <= withinDays) endStatus = 'ending_soon';
+    }
+
+    if (!endStatus) continue;
+
+    results.push({
+      id: (row as any).id,
+      contract_id: (row as any).contract_id,
+      title: (row as any).title,
+      serial_number: (row as any).serial_number || null,
+      quantity: (row as any).quantity || 1,
+      purchase_price: (row as any).purchase_price || null,
+      contract_number: contract.contract_number || null,
+      client_name: contract.client_name || null,
+      contract_status: status,
+      contract_start_date: contract.contract_start_date || null,
+      contract_end_date: contract.contract_end_date || null,
+      contract_duration: contract.contract_duration || null,
+      lease_duration: contract.lease_duration || null,
+      delivery_date: contract.delivery_date || null,
+      computed_end_date: endDate ? endDate.toISOString().split('T')[0] : null,
+      end_status: endStatus,
+      days_until_end: daysUntilEnd,
+    });
+  }
+
+  // Sort: expired first, then ending_soon by closest, then completed by most recent end
+  return results.sort((a, b) => {
+    const order: Record<BuybackEndStatus, number> = {
+      expired: 0,
+      ending_soon: 1,
+      completed: 2,
+    };
+    if (order[a.end_status] !== order[b.end_status]) {
+      return order[a.end_status] - order[b.end_status];
+    }
+    return (a.days_until_end ?? 0) - (b.days_until_end ?? 0);
+  });
+};
+
+export const BUYBACK_END_STATUS_CONFIG: Record<BuybackEndStatus, { label: string; color: string; bgColor: string }> = {
+  expired: { label: 'Expiré', color: 'text-red-700', bgColor: 'bg-red-100 border-red-200' },
+  ending_soon: { label: 'Bientôt', color: 'text-amber-700', bgColor: 'bg-amber-100 border-amber-200' },
+  completed: { label: 'Terminé', color: 'text-slate-700', bgColor: 'bg-slate-100 border-slate-200' },
+};
+
 // ===== OFFER LIFECYCLE =====
 
 /**

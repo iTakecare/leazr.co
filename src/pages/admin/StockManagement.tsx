@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { StockItem } from "@/services/stockService";
+import { StockItem, fetchBuybackableEquipments } from "@/services/stockService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Upload, Download } from "lucide-react";
 import StockDashboard from "@/components/stock/StockDashboard";
 import StockItemList from "@/components/stock/StockItemList";
@@ -10,8 +11,10 @@ import StockRepairList from "@/components/stock/StockRepairList";
 import StockItemForm from "@/components/stock/StockItemForm";
 import StockValuationReport from "@/components/stock/StockValuationReport";
 import StockImportDialog from "@/components/stock/StockImportDialog";
+import BuybackableEquipmentTab from "@/components/stock/BuybackableEquipmentTab";
 import { exportStockToExcel } from "@/services/stockExportService";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const StockManagement: React.FC = () => {
@@ -20,6 +23,14 @@ const StockManagement: React.FC = () => {
   const [importOpen, setImportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { companyId } = useMultiTenant();
+
+  // Counter for the "À reprendre" tab badge
+  const { data: buybackableItems = [] } = useQuery({
+    queryKey: ["buybackable-equipments", companyId],
+    queryFn: () => fetchBuybackableEquipments(companyId!),
+    enabled: !!companyId,
+  });
+  const buybackableCount = buybackableItems.length;
 
   const handleExport = async () => {
     if (!companyId) return;
@@ -61,12 +72,26 @@ const StockManagement: React.FC = () => {
       <Tabs defaultValue="items" className="w-full">
         <TabsList>
           <TabsTrigger value="items">Articles</TabsTrigger>
+          <TabsTrigger value="buybackable" className="gap-1.5">
+            À reprendre
+            {buybackableCount > 0 && (
+              <Badge
+                variant="secondary"
+                className="h-4 px-1.5 text-[10px] bg-purple-100 text-purple-700 border-purple-200"
+              >
+                {buybackableCount}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="movements">Mouvements</TabsTrigger>
           <TabsTrigger value="repairs">Réparations</TabsTrigger>
           <TabsTrigger value="valuation">Valorisation</TabsTrigger>
         </TabsList>
         <TabsContent value="items" className="mt-4">
           <StockItemList onEdit={(item) => { setEditingItem(item); setFormOpen(true); }} />
+        </TabsContent>
+        <TabsContent value="buybackable" className="mt-4">
+          <BuybackableEquipmentTab />
         </TabsContent>
         <TabsContent value="movements" className="mt-4">
           <StockMovementHistory />
