@@ -2,6 +2,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
+import {
+  releaseStockReservationsForOffer,
+  assignReservedStockToContract,
+} from "../stockService";
 
 /**
  * Détermine si un statut est un statut final qui déclenche la conversion en contrat
@@ -11,15 +15,39 @@ const isFinalStatus = (status: string): boolean => {
   return finalStatuses.includes(status);
 };
 
+/**
+ * Statuts qui rendent l'offre morte (le matériel réservé doit être relibéré)
+ */
+const isDeadStatus = (status: string): boolean => {
+  const deadStatuses = ['internal_rejected', 'leaser_rejected', 'without_follow_up'];
+  return deadStatuses.includes(status);
+};
+
 export const deleteOffer = async (offerId: string): Promise<boolean> => {
   try {
+    // Release any stock items reserved for this offer before deleting it.
+    // Best-effort: failures here shouldn't block the deletion.
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: offer } = await supabase
+        .from('offers')
+        .select('company_id')
+        .eq('id', offerId)
+        .single();
+      if (offer?.company_id && user?.id) {
+        await releaseStockReservationsForOffer(offer.company_id, offerId, user.id);
+      }
+    } catch (releaseErr) {
+      console.error("Error releasing stock reservations before delete:", releaseErr);
+    }
+
     const { error } = await supabase
       .from('offers')
       .delete()
       .eq('id', offerId);
-    
+
     if (error) throw error;
-    
+
     return true;
   } catch (error) {
     console.error("Error deleting offer:", error);
@@ -105,6 +133,30 @@ export const updateOfferStatus = async (
     }
     
     console.log("Offer status updated successfully");
+
+    // If the offer is now dead (rejected / without follow-up), release any
+    // stock reservations so the items become available again.
+    if (isDeadStatus(newStatus)) {
+      try {
+        const { data: deadOffer } = await supabase
+          .from('offers')
+          .select('company_id')
+          .eq('id', offerId)
+          .single();
+        if (deadOffer?.company_id) {
+          const released = await releaseStockReservationsForOffer(
+            deadOffer.company_id,
+            offerId,
+            user.id
+          );
+          if (released > 0) {
+            console.log(`♻️  ${released} stock item(s) released for dead offer ${offerId}`);
+          }
+        }
+      } catch (releaseErr) {
+        console.error("Error releasing stock on dead status transition:", releaseErr);
+      }
+    }
 
 
     // Then, log the status change with more detailed logging
@@ -241,6 +293,22 @@ export const updateOfferStatus = async (
         
         if (contractId) {
           console.log("✅ ÉTAPE 2: Contrat créé avec succès - ID:", contractId);
+
+          // Convert any reserved stock items into assignments on the new contract.
+          try {
+            const assigned = await assignReservedStockToContract(
+              offerData.company_id,
+              offerId,
+              contractId,
+              user.id
+            );
+            if (assigned > 0) {
+              console.log(`📦 ${assigned} stock item(s) assigned to new contract ${contractId}`);
+            }
+          } catch (assignErr) {
+            console.error("Error assigning stock to new contract:", assignErr);
+          }
+
           console.log("✅ SUCCÈS: Conversion automatique terminée avec succès");
           toast.success(`Offre financée avec succès ! Contrat créé (ID: ${contractId.substring(0, 8)})`);
         } else {

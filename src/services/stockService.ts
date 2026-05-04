@@ -304,6 +304,149 @@ export const receiveToStock = async (
   return created;
 };
 
+// ===== OFFER LIFECYCLE =====
+
+/**
+ * Réserve un stock_item pour une offre en cours.
+ * Passe le statut `in_stock` → `reserved`. Retourne false si l'item n'est plus
+ * disponible (déjà réservé / assigné / vendu) — la réservation est silencieuse-
+ * ment ignorée pour ne pas faire échouer toute la sauvegarde de l'offre.
+ */
+export const reserveStockItemForOffer = async (
+  companyId: string,
+  stockItemId: string,
+  offerId: string,
+  userId: string
+): Promise<boolean> => {
+  // Conditional update: only if currently in_stock
+  const { data, error } = await supabase
+    .from('stock_items' as any)
+    .update({ status: 'reserved' } as any)
+    .eq('id', stockItemId)
+    .eq('status', 'in_stock')
+    .select('id');
+  if (error) {
+    console.error('reserveStockItemForOffer error:', error);
+    return false;
+  }
+  const reserved = (data || []).length > 0;
+  if (reserved) {
+    await createMovement({
+      company_id: companyId,
+      stock_item_id: stockItemId,
+      movement_type: 'reserve_offer',
+      from_status: 'in_stock',
+      to_status: 'reserved',
+      performed_by: userId,
+      notes: `Réservé pour l'offre ${offerId}`,
+    });
+  }
+  return reserved;
+};
+
+/**
+ * Libère toutes les réservations stock liées à une offre.
+ * Trouvable via offer_equipment.source_stock_item_id.
+ * Passe `reserved` → `in_stock`.
+ */
+export const releaseStockReservationsForOffer = async (
+  companyId: string,
+  offerId: string,
+  userId: string
+): Promise<number> => {
+  const { data: equipments, error: eqErr } = await supabase
+    .from('offer_equipment')
+    .select('source_stock_item_id')
+    .eq('offer_id', offerId)
+    .not('source_stock_item_id', 'is', null);
+  if (eqErr) {
+    console.error('releaseStockReservationsForOffer (load) error:', eqErr);
+    return 0;
+  }
+  const stockIds = (equipments || [])
+    .map((e: any) => e.source_stock_item_id)
+    .filter((id: any) => !!id);
+  if (stockIds.length === 0) return 0;
+
+  const { data, error } = await supabase
+    .from('stock_items' as any)
+    .update({ status: 'in_stock' } as any)
+    .in('id', stockIds)
+    .eq('status', 'reserved')
+    .select('id');
+  if (error) {
+    console.error('releaseStockReservationsForOffer (update) error:', error);
+    return 0;
+  }
+  const released = (data || []) as any[];
+  for (const item of released) {
+    await createMovement({
+      company_id: companyId,
+      stock_item_id: item.id,
+      movement_type: 'release_offer',
+      from_status: 'reserved',
+      to_status: 'in_stock',
+      performed_by: userId,
+      notes: `Libéré (offre ${offerId})`,
+    });
+  }
+  return released.length;
+};
+
+/**
+ * Convertit les réservations d'une offre en assignations à un contrat.
+ * Recherche les offer_equipment.source_stock_item_id de l'offre, et passe
+ * les stock_items correspondants à `assigned` avec current_contract_id.
+ */
+export const assignReservedStockToContract = async (
+  companyId: string,
+  offerId: string,
+  contractId: string,
+  userId: string
+): Promise<number> => {
+  const { data: equipments, error: eqErr } = await supabase
+    .from('offer_equipment')
+    .select('source_stock_item_id')
+    .eq('offer_id', offerId)
+    .not('source_stock_item_id', 'is', null);
+  if (eqErr) {
+    console.error('assignReservedStockToContract (load) error:', eqErr);
+    return 0;
+  }
+  const stockIds = (equipments || [])
+    .map((e: any) => e.source_stock_item_id)
+    .filter((id: any) => !!id);
+  if (stockIds.length === 0) return 0;
+
+  const { data, error } = await supabase
+    .from('stock_items' as any)
+    .update({
+      status: 'assigned',
+      current_contract_id: contractId,
+    } as any)
+    .in('id', stockIds)
+    .in('status', ['reserved', 'in_stock'])
+    .select('id');
+  if (error) {
+    console.error('assignReservedStockToContract (update) error:', error);
+    return 0;
+  }
+  const assigned = (data || []) as any[];
+  for (const item of assigned) {
+    await createMovement({
+      company_id: companyId,
+      stock_item_id: item.id,
+      movement_type: 'assign_contract',
+      from_status: 'reserved',
+      to_status: 'assigned',
+      contract_id: contractId,
+      performed_by: userId,
+      notes: `Assigné via offre ${offerId}`,
+    });
+  }
+  return assigned.length;
+};
+
 // ===== OFFER COMPOSER =====
 
 /**

@@ -354,9 +354,32 @@ export const createOffer = async (offerData: OfferData) => {
           // Sauvegarder l'équipement avec ses attributs
           const { saveEquipment } = await import('./offerEquipment');
           const result = await saveEquipment(newEquipment, attributes, specifications);
-          
+
           if (result) {
             console.log("✅ Équipement sauvegardé avec succès:", result.id);
+
+            // If the line was picked from existing stock, link the FK and reserve the item.
+            const sourceStockItemId =
+              (equipment as any).sourceStockItemId ||
+              (equipment as any).source_stock_item_id ||
+              null;
+            if (sourceStockItemId && data.id) {
+              const { error: linkError } = await supabase
+                .from('offer_equipment')
+                .update({ source_stock_item_id: sourceStockItemId } as any)
+                .eq('id', result.id);
+              if (linkError) {
+                console.error("❌ Lien stock_item raté:", linkError);
+              } else {
+                const { reserveStockItemForOffer } = await import('@/services/stockService');
+                await reserveStockItemForOffer(
+                  companyId,
+                  sourceStockItemId,
+                  data.id,
+                  offerData.user_id
+                );
+              }
+            }
           } else {
             console.error("❌ Échec de la sauvegarde de l'équipement:", newEquipment.title);
           }
