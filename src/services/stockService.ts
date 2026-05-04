@@ -121,7 +121,7 @@ export const fetchStockItems = async (companyId: string, statusFilter?: StockSta
       *,
       supplier:suppliers(name),
       product:products(name),
-      contract:contracts(contract_number, client_name)
+      contract:contracts!current_contract_id(contract_number, client_name)
     `)
     .eq('company_id', companyId)
     .order('updated_at', { ascending: false });
@@ -142,7 +142,7 @@ export const fetchStockItemById = async (itemId: string) => {
       *,
       supplier:suppliers(name),
       product:products(name),
-      contract:contracts(contract_number, client_name)
+      contract:contracts!current_contract_id(contract_number, client_name)
     `)
     .eq('id', itemId)
     .single();
@@ -312,7 +312,7 @@ export const fetchStockItemsByContract = async (contractId: string) => {
       *,
       supplier:suppliers(name),
       product:products(name),
-      contract:contracts(contract_number, client_name)
+      contract:contracts!current_contract_id(contract_number, client_name)
     `)
     .eq('current_contract_id', contractId)
     .order('updated_at', { ascending: false });
