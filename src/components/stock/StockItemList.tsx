@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useStockItems } from "@/hooks/useStockItems";
-import { STOCK_STATUS_CONFIG, CONDITION_CONFIG, StockStatus, StockItem } from "@/services/stockService";
+import { STOCK_STATUS_CONFIG, CONDITION_CONFIG, STOCK_SOURCE_CONFIG, StockStatus, StockSource, StockItem } from "@/services/stockService";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,6 +68,7 @@ const getSortValue = (item: StockItem, key: SortKey): string | number => {
 
 const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const [statusFilter, setStatusFilter] = useState<StockStatus | undefined>(undefined);
+  const [sourceFilter, setSourceFilter] = useState<StockSource | undefined>(undefined);
   const [search, setSearch] = useState("");
   const { items, isLoading } = useStockItems(statusFilter);
   const [deleteItem, setDeleteItem] = useState<StockItem | null>(null);
@@ -161,6 +162,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
 
   const filtered = useMemo(() => {
     let result = items.filter(item => {
+      if (sourceFilter && (item.source || 'purchase') !== sourceFilter) return false;
       if (!search) return true;
       const s = search.toLowerCase();
       return (
@@ -187,7 +189,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
     }
 
     return result;
-  }, [items, search, sortKey, sortDir]);
+  }, [items, search, sortKey, sortDir, sourceFilter]);
 
   // Group identical articles (same title+brand+model)
   type ArticleGroup = { key: string; items: StockItem[]; title: string; brand: string; model: string; category: string };
@@ -358,6 +360,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   const renderRow = (item: StockItem) => {
     const statusCfg = STOCK_STATUS_CONFIG[item.status] || STOCK_STATUS_CONFIG.in_stock;
     const condCfg = CONDITION_CONFIG[item.condition] || CONDITION_CONFIG.new;
+    const sourceCfg = item.source === 'contract_buyback' ? STOCK_SOURCE_CONFIG.contract_buyback : null;
     return (
       <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onEdit?.(item)}>
         <TableCell className="p-1">
@@ -373,7 +376,20 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
             </Button>
           </div>
         </TableCell>
-        <TableCell className="font-medium text-xs">{item.title}</TableCell>
+        <TableCell className="font-medium text-xs">
+          <div className="flex items-center gap-1.5">
+            <span>{item.title}</span>
+            {sourceCfg && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] ${sourceCfg.bgColor} ${sourceCfg.color} font-normal`}
+                title={item.buyback_price ? `Rachat: ${item.buyback_price.toFixed(2)} €` : sourceCfg.label}
+              >
+                {sourceCfg.label}
+              </Badge>
+            )}
+          </div>
+        </TableCell>
         <TableCell className="font-mono text-xs">
           {item.serial_numbers && item.serial_numbers.length > 0
             ? item.serial_numbers.length > 2
@@ -448,6 +464,17 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
             {Object.entries(STOCK_STATUS_CONFIG).map(([key, cfg]) => (
+              <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={sourceFilter || 'all'} onValueChange={v => setSourceFilter(v === 'all' ? undefined : v as StockSource)}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Toutes origines" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes origines</SelectItem>
+            {Object.entries(STOCK_SOURCE_CONFIG).map(([key, cfg]) => (
               <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
             ))}
           </SelectContent>

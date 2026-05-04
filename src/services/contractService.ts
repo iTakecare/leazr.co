@@ -102,6 +102,9 @@ export interface ContractEquipment {
   order_reference?: string;
   reception_date?: string;
   order_notes?: string;
+  // Reprise contrat (rachat de la valeur résiduelle pour mise en stock)
+  bought_back_at?: string | null;
+  bought_back_price?: number | null;
   created_at: string;
   updated_at: string;
 }

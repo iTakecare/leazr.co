@@ -3,7 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 export type StockStatus = 'ordered' | 'in_stock' | 'assigned' | 'in_repair' | 'sold' | 'scrapped';
 export type StockCondition = 'new' | 'like_new' | 'good' | 'fair' | 'defective';
 export type RepairStatus = 'pending' | 'in_progress' | 'completed' | 'abandoned';
-export type MovementType = 'reception' | 'assign_contract' | 'unassign_contract' | 'swap_out' | 'swap_in' | 'repair_start' | 'repair_end' | 'scrap' | 'sell' | 'rachat_client';
+export type MovementType = 'reception' | 'assign_contract' | 'unassign_contract' | 'swap_out' | 'swap_in' | 'repair_start' | 'repair_end' | 'scrap' | 'sell' | 'rachat_client' | 'contract_buyback';
+
+export type StockSource = 'purchase' | 'contract_buyback';
+
+export const STOCK_SOURCE_CONFIG: Record<StockSource, { label: string; color: string; bgColor: string }> = {
+  purchase: { label: 'Achat', color: 'text-slate-700', bgColor: 'bg-slate-100 border-slate-200' },
+  contract_buyback: { label: 'Reprise contrat', color: 'text-purple-700', bgColor: 'bg-purple-100 border-purple-200' },
+};
 
 export interface StockItem {
   id: string;
@@ -23,6 +30,10 @@ export interface StockItem {
   reception_date: string | null;
   current_contract_id: string | null;
   current_contract_equipment_id: string | null;
+  source: StockSource;
+  buyback_price: number | null;
+  source_contract_id: string | null;
+  source_contract_equipment_id: string | null;
   location: string | null;
   notes: string | null;
   category: string | null;
@@ -381,6 +392,78 @@ export const racheterItem = async (
   });
 };
 
+/**
+ * Reprise d'un équipement de contrat en stock.
+ *
+ * Crée un nouveau `stock_item` (source='contract_buyback') à partir d'un
+ * `contract_equipment` (matériel rendu par le client en fin/évolution de
+ * contrat), avec la valeur de rachat payée au leaser.
+ *
+ * - Marque l'équipement de contrat comme repris (bought_back_at + price)
+ * - Crée le stock_item avec status='in_stock'
+ * - Crée un mouvement 'contract_buyback' tracé sur le contrat d'origine
+ *
+ * Retourne le stock_item créé.
+ */
+export const buyBackContractEquipment = async (params: {
+  companyId: string;
+  contractId: string;
+  contractEquipment: {
+    id: string;
+    title: string;
+    serial_number?: string | null;
+  };
+  buybackPrice: number;
+  condition: StockCondition;
+  notes?: string | null;
+  userId: string;
+}): Promise<StockItem> => {
+  const { companyId, contractId, contractEquipment, buybackPrice, condition, notes, userId } = params;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const created = await createStockItem({
+    company_id: companyId,
+    title: contractEquipment.title,
+    serial_number: contractEquipment.serial_number || null,
+    status: 'in_stock',
+    condition,
+    purchase_price: buybackPrice,
+    unit_price: buybackPrice,
+    quantity: 1,
+    source: 'contract_buyback',
+    buyback_price: buybackPrice,
+    source_contract_id: contractId,
+    source_contract_equipment_id: contractEquipment.id,
+    purchase_date: today,
+    reception_date: today,
+    notes: notes || null,
+  });
+
+  await createMovement({
+    company_id: companyId,
+    stock_item_id: created.id,
+    movement_type: 'contract_buyback',
+    from_status: null,
+    to_status: 'in_stock',
+    contract_id: contractId,
+    cost: buybackPrice,
+    performed_by: userId,
+    notes: `Reprise contrat - rachat ${buybackPrice.toFixed(2)} €`,
+  });
+
+  const { error: ceError } = await supabase
+    .from('contract_equipment')
+    .update({
+      bought_back_at: new Date().toISOString(),
+      bought_back_price: buybackPrice,
+    } as any)
+    .eq('id', contractEquipment.id);
+  if (ceError) throw ceError;
+
+  return created;
+};
+
 export const scrapItem = async (
   companyId: string,
   itemId: string,
@@ -413,7 +496,7 @@ export const fetchContractEndMovements = async (contractId: string) => {
       stock_item:stock_items(title, serial_number, condition)
     `)
     .eq('contract_id', contractId)
-    .in('movement_type', ['unassign_contract', 'sell', 'scrap', 'rachat_client'])
+    .in('movement_type', ['unassign_contract', 'sell', 'scrap', 'rachat_client', 'contract_buyback'])
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as unknown as StockMovement[];

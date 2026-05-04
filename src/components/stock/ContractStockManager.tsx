@@ -36,6 +36,8 @@ import {
 } from "@/services/stockService";
 import SwapDialog from "./SwapDialog";
 import EndOfContractActions from "./EndOfContractActions";
+import BuyBackEquipmentDialog from "./BuyBackEquipmentDialog";
+import { getContractEquipment, ContractEquipment } from "@/services/contractService";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -149,8 +151,10 @@ const ContractStockManager: React.FC<ContractStockManagerProps> = ({
 }) => {
   const [items, setItems] = useState<StockItem[]>([]);
   const [endMovements, setEndMovements] = useState<StockMovement[]>([]);
+  const [contractEquipments, setContractEquipments] = useState<ContractEquipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [swapItem, setSwapItem] = useState<StockItem | null>(null);
+  const [buybackEquipment, setBuybackEquipment] = useState<ContractEquipment | null>(null);
 
   // ── compute end date + days remaining ──────────────────────────────────────
   const endDate = computeContractEndDate(contract);
@@ -167,12 +171,14 @@ const ContractStockManager: React.FC<ContractStockManagerProps> = ({
   const loadData = async () => {
     setLoading(true);
     try {
-      const [stockData, movementData] = await Promise.all([
+      const [stockData, movementData, equipmentData] = await Promise.all([
         fetchStockItemsByContract(contractId),
         fetchContractEndMovements(contractId),
+        getContractEquipment(contractId),
       ]);
       setItems(stockData);
       setEndMovements(movementData);
+      setContractEquipments(equipmentData);
     } catch (e) {
       console.error("Erreur chargement stock contrat:", e);
     } finally {
@@ -364,6 +370,113 @@ const ContractStockManager: React.FC<ContractStockManagerProps> = ({
               <TabsContent value="fin" className="mt-0 space-y-4">
                 {renderEndBanner()}
 
+                {/* Reprendre du matériel en stock (rachat valeur résiduelle) */}
+                {(() => {
+                  const buybackable = contractEquipments.filter(
+                    (eq) => !eq.bought_back_at
+                  );
+                  const broughtBack = contractEquipments.filter(
+                    (eq) => !!eq.bought_back_at
+                  );
+
+                  if (buybackable.length === 0 && broughtBack.length === 0) return null;
+
+                  return (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Warehouse className="h-3.5 w-3.5 text-purple-700" />
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Reprise en stock
+                        </h4>
+                        <span className="text-[11px] text-muted-foreground">
+                          Rachat de la valeur résiduelle pour revendre / re-leaser
+                        </span>
+                      </div>
+
+                      {buybackable.length > 0 && (
+                        <div className="space-y-2 mb-2">
+                          {buybackable.map((eq) => (
+                            <div
+                              key={eq.id}
+                              className="flex items-center justify-between p-3 border border-purple-200 bg-purple-50/40 rounded-lg"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">
+                                  {eq.title}
+                                </p>
+                                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                  {eq.serial_number && (
+                                    <span className="text-xs text-muted-foreground font-mono">
+                                      S/N: {eq.serial_number}
+                                    </span>
+                                  )}
+                                  {eq.quantity > 1 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      Qté: {eq.quantity}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-purple-200 text-purple-700 hover:bg-purple-50 ml-3"
+                                onClick={() => setBuybackEquipment(eq)}
+                              >
+                                <Warehouse className="h-3.5 w-3.5 mr-1.5" />
+                                Reprendre en stock
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {broughtBack.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-purple-700 flex items-center gap-1">
+                            <Warehouse className="h-3 w-3" />
+                            Repris en stock ({broughtBack.length})
+                          </p>
+                          {broughtBack.map((eq) => (
+                            <div
+                              key={eq.id}
+                              className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/40"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">
+                                  {eq.title}
+                                </p>
+                                {eq.serial_number && (
+                                  <p className="text-xs text-muted-foreground font-mono">
+                                    S/N: {eq.serial_number}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-0.5 ml-3 shrink-0">
+                                <Badge
+                                  variant="outline"
+                                  className="text-[11px] text-purple-700 border-purple-300"
+                                >
+                                  {eq.bought_back_price?.toFixed(2) ?? "—"} €
+                                </Badge>
+                                {eq.bought_back_at && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {format(new Date(eq.bought_back_at), "dd MMM yy", {
+                                      locale: fr,
+                                    })}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <Separator className="mt-4" />
+                    </div>
+                  );
+                })()}
+
                 {/* Matériel à traiter */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
@@ -508,6 +621,22 @@ const ContractStockManager: React.FC<ContractStockManagerProps> = ({
           currentItem={swapItem}
           contractId={contractId}
           companyId={companyId}
+          onSuccess={handleRefresh}
+        />
+      )}
+
+      {buybackEquipment && (
+        <BuyBackEquipmentDialog
+          open={!!buybackEquipment}
+          onOpenChange={(open) => !open && setBuybackEquipment(null)}
+          contractId={contractId}
+          companyId={companyId}
+          contractEquipment={{
+            id: buybackEquipment.id,
+            title: buybackEquipment.title,
+            serial_number: buybackEquipment.serial_number,
+            purchase_price: buybackEquipment.purchase_price,
+          }}
           onSuccess={handleRefresh}
         />
       )}
