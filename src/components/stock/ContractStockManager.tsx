@@ -176,6 +176,13 @@ const ContractStockManager: React.FC<ContractStockManagerProps> = ({
         fetchContractEndMovements(contractId),
         getContractEquipment(contractId),
       ]);
+      console.log('[ContractStockManager] loaded:', {
+        contractId,
+        stockItems: stockData.length,
+        endMovements: movementData.length,
+        contractEquipments: equipmentData.length,
+        equipments: equipmentData.map(e => ({ id: e.id, title: e.title, bought_back_at: e.bought_back_at })),
+      });
       setItems(stockData);
       setEndMovements(movementData);
       setContractEquipments(equipmentData);
@@ -379,8 +386,6 @@ const ContractStockManager: React.FC<ContractStockManagerProps> = ({
                     (eq) => !!eq.bought_back_at
                   );
 
-                  if (buybackable.length === 0 && broughtBack.length === 0) return null;
-
                   return (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
@@ -392,6 +397,12 @@ const ContractStockManager: React.FC<ContractStockManagerProps> = ({
                           Rachat de la valeur résiduelle pour revendre / re-leaser
                         </span>
                       </div>
+
+                      {buybackable.length === 0 && broughtBack.length === 0 && (
+                        <p className="text-xs text-muted-foreground py-2 px-3 bg-muted/30 rounded-lg">
+                          Aucun équipement à reprendre pour ce contrat.
+                        </p>
+                      )}
 
                       {buybackable.length > 0 && (
                         <div className="space-y-2 mb-2">
