@@ -202,7 +202,7 @@ export const fetchMovements = async (companyId: string, stockItemId?: string) =>
     .from('stock_movements' as any)
     .select(`
       *,
-      stock_item:stock_items(title, serial_number)
+      stock_item:stock_items!stock_item_id(title, serial_number)
     `)
     .eq('company_id', companyId)
     .order('created_at', { ascending: false })
@@ -224,7 +224,7 @@ export const fetchRepairs = async (companyId: string, statusFilter?: RepairStatu
     .from('stock_repairs' as any)
     .select(`
       *,
-      stock_item:stock_items(title, serial_number),
+      stock_item:stock_items!stock_item_id(title, serial_number),
       supplier:suppliers(name)
     `)
     .eq('company_id', companyId)
@@ -493,7 +493,7 @@ export const fetchContractEndMovements = async (contractId: string) => {
     .from('stock_movements' as any)
     .select(`
       *,
-      stock_item:stock_items(title, serial_number, condition)
+      stock_item:stock_items!stock_item_id(title, serial_number, condition)
     `)
     .eq('contract_id', contractId)
     .in('movement_type', ['unassign_contract', 'sell', 'scrap', 'rachat_client', 'contract_buyback'])
