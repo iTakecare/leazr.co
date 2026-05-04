@@ -1129,6 +1129,8 @@ const CreateOffer = () => {
                               applyCalculatedFromSalePrice={applyCalculatedFromSalePrice}
                               clientId={clientId}
                               isPurchase={isPurchase}
+                              stockCompanyId={canPickFromStock ? companyId : undefined}
+                              onSelectStockItem={canPickFromStock ? handleStockItemSelect : undefined}
                             />
                           </div>
 

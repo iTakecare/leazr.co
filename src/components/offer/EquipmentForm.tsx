@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Equipment, Leaser } from "@/types/equipment";
+import { StockItem } from "@/services/stockService";
 import MarginCalculator from "./MarginCalculator";
 import EquipmentFormFields from "./EquipmentFormFields";
 import PriceDetailsDisplay from "./PriceDetailsDisplay";
@@ -32,6 +33,8 @@ interface EquipmentFormProps {
   applyCalculatedFromSalePrice?: () => void;
   clientId?: string;
   isPurchase?: boolean; // Mode achat direct
+  stockCompanyId?: string;
+  onSelectStockItem?: (item: StockItem) => void;
 }
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({
@@ -55,7 +58,9 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   calculatedFromSalePrice = { margin: 0, monthlyPayment: 0 },
   applyCalculatedFromSalePrice = () => {},
   clientId,
-  isPurchase = false
+  isPurchase = false,
+  stockCompanyId,
+  onSelectStockItem,
 }) => {
   const [errors, setErrors] = useState({
     title: false,
@@ -228,6 +233,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
         isOpen={isQuickCatalogOpen}
         onClose={() => setIsQuickCatalogOpen(false)}
         handleProductSelect={handleProductSelect}
+        stockCompanyId={stockCompanyId}
+        onSelectStockItem={onSelectStockItem}
       />
     </Card>
   );

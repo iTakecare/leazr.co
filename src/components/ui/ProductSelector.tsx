@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Loader2, Info } from "lucide-react";
+import { Search, Loader2, Info, Package, Warehouse } from "lucide-react";
 import CatalogProductCard from "./CatalogProductCard";
 import ProductVariantSelector from "@/components/catalog/ProductVariantSelector";
+import StockItemSelectorList from "./product-selector/StockItemSelectorList";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
+import { StockItem } from "@/services/stockService";
 
 interface ProductSelectorProps {
   isOpen: boolean;
@@ -20,7 +22,12 @@ interface ProductSelectorProps {
   onViewVariants?: (product: Product, e: React.MouseEvent) => void;
   title?: string;
   description?: string;
+  /** When set, enables a "Stock disponible" tab (admin only). */
+  stockCompanyId?: string;
+  onSelectStockItem?: (item: StockItem) => void;
 }
+
+type SourceMode = "catalog" | "stock";
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
   isOpen,
@@ -28,8 +35,12 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   onSelectProduct,
   onViewVariants,
   title = "Sélectionner un produit",
-  description = "Parcourez notre catalogue pour ajouter un produit à votre offre"
+  description = "Parcourez notre catalogue pour ajouter un produit à votre offre",
+  stockCompanyId,
+  onSelectStockItem,
 }) => {
+  const stockEnabled = !!stockCompanyId && !!onSelectStockItem;
+  const [sourceMode, setSourceMode] = useState<SourceMode>("catalog");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [variantSelectorOpen, setVariantSelectorOpen] = useState(false);
@@ -173,8 +184,13 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     if (isOpen) {
       setSearchQuery("");
       setSelectedCategory("all");
+      setSourceMode("catalog");
     }
   }, [isOpen]);
+
+  const handleStockItemSelect = (item: StockItem) => {
+    onSelectStockItem?.(item);
+  };
 
   return (
     <>
@@ -184,7 +200,50 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
             <SheetTitle>{title}</SheetTitle>
             <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
-          
+
+          {stockEnabled && (
+            <div className="px-4 pt-3 border-b pb-3 flex items-center justify-between">
+              <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setSourceMode("catalog")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                    sourceMode === "catalog"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Package className="h-3.5 w-3.5" />
+                  Catalogue
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSourceMode("stock")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                    sourceMode === "stock"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Warehouse className="h-3.5 w-3.5" />
+                  Stock disponible
+                </button>
+              </div>
+              <SheetClose asChild>
+                <Button variant="outline" size="sm" onClick={onClose}>Fermer</Button>
+              </SheetClose>
+            </div>
+          )}
+
+          {sourceMode === "stock" ? (
+            <div className="flex-1 overflow-hidden">
+              <StockItemSelectorList
+                companyId={stockCompanyId!}
+                onSelectStockItem={handleStockItemSelect}
+              />
+            </div>
+          ) : (
+            <>
           <div className="p-4 border-b">
             <div className="flex gap-2 items-center">
               <div className="relative w-full">
@@ -197,14 +256,16 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   className="pl-9"
                 />
               </div>
-              <SheetClose asChild>
-                <Button variant="outline" onClick={onClose}>Fermer</Button>
-              </SheetClose>
+              {!stockEnabled && (
+                <SheetClose asChild>
+                  <Button variant="outline" onClick={onClose}>Fermer</Button>
+                </SheetClose>
+              )}
             </div>
           </div>
 
-          <Tabs 
-            value={selectedCategory} 
+          <Tabs
+            value={selectedCategory}
             onValueChange={setSelectedCategory}
             className="flex-1 flex flex-col overflow-hidden"
           >
@@ -260,6 +321,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
               </div>
             </ScrollArea>
           </Tabs>
+            </>
+          )}
         </SheetContent>
       </Sheet>
 
