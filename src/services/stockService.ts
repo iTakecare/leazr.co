@@ -411,7 +411,6 @@ export interface BuybackableEquipment {
   contract_start_date: string | null;
   contract_end_date: string | null;
   contract_duration: number | null;
-  lease_duration: number | null;
   delivery_date: string | null;
   /** Computed end date (ISO string or null) */
   computed_end_date: string | null;
@@ -430,11 +429,10 @@ const computeEnd = (c: {
   contract_end_date?: string | null;
   contract_start_date?: string | null;
   contract_duration?: number | null;
-  lease_duration?: number | null;
   delivery_date?: string | null;
 }): Date | null => {
   if (c.contract_end_date) return new Date(c.contract_end_date);
-  const dur = c.contract_duration || c.lease_duration;
+  const dur = c.contract_duration;
   if (c.contract_start_date && dur) return addMonths(c.contract_start_date, dur);
   if (c.delivery_date && dur) return addMonths(c.delivery_date, dur);
   return null;
@@ -470,7 +468,6 @@ export const fetchBuybackableEquipments = async (
         contract_start_date,
         contract_end_date,
         contract_duration,
-        lease_duration,
         delivery_date
       )
     `)
@@ -524,7 +521,6 @@ export const fetchBuybackableEquipments = async (
       contract_start_date: contract.contract_start_date || null,
       contract_end_date: contract.contract_end_date || null,
       contract_duration: contract.contract_duration || null,
-      lease_duration: contract.lease_duration || null,
       delivery_date: contract.delivery_date || null,
       computed_end_date: endDate ? endDate.toISOString().split('T')[0] : null,
       end_status: endStatus,
