@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { createClientRequest } from "@/services/offers/clientRequests";
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
+import { readStoredAttribution } from "@/utils/utmAttribution";
 
 export interface ProductRequestData {
   client_name: string;
@@ -151,6 +152,13 @@ export const createProductRequest = async (data: ProductRequestData, cartItems?:
         city: data.shipping_city || '',
         country: (data.shipping_country || 'BE').substring(0, 2),
       };
+    }
+
+    // Forward stored UTM / fbclid attribution (Meta Ads → AdiOS pipeline).
+    // Captured on landing by useUtmCapture, persisted in sessionStorage.
+    const attribution = readStoredAttribution();
+    if (attribution) {
+      structuredData.attribution = attribution;
     }
 
     console.log("Calling Edge function create-product-request with structured data");

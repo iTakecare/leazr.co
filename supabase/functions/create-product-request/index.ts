@@ -560,6 +560,11 @@ serve(async (req) => {
     
     console.log(`Type: ${offerType}, Source: ${offerSource}, Partner: ${data.partner_slug || 'none'}`);
 
+    // Attribution data (UTM / fbclid / referrer) — used by AdiOS for Meta Ads tracking.
+    const attribution = (data as any).attribution || {};
+    const trim200 = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().substring(0, 200) : null);
+    const trim500 = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().substring(0, 500) : null);
+
     const offerData = {
       id: requestId,
       client_id: clientId,
@@ -576,7 +581,7 @@ serve(async (req) => {
       source: offerSource,
       workflow_status: 'draft',
       status: 'pending',
-      remarks: data.partner_slug 
+      remarks: data.partner_slug
         ? `Demande via partenaire ${data.partner_name || data.partner_slug} (Grenke 36 mois)`
         : 'Demande créée via API web avec Grenke (36 mois)',
       user_id: null,
@@ -585,9 +590,17 @@ serve(async (req) => {
       dossier_number: dossierNumber,
       partner_slug: data.partner_slug || null,
       partner_name: data.partner_name || null,
-      workflow_template_id: offerType === 'web_request' ? 'f6e29d41-ef40-4253-ab08-e23060da47da' 
+      workflow_template_id: offerType === 'web_request' ? 'f6e29d41-ef40-4253-ab08-e23060da47da'
         : offerType === 'custom_pack_request' ? 'bf15a91e-39bb-4207-8a90-0c7e8624c052'
-        : null
+        : null,
+      // Attribution columns (added by adios_integration migration)
+      utm_source: trim200(attribution.utm_source),
+      utm_medium: trim200(attribution.utm_medium),
+      utm_campaign: trim200(attribution.utm_campaign),
+      utm_content: trim200(attribution.utm_content),
+      utm_term: trim200(attribution.utm_term),
+      fbclid: trim500(attribution.fbclid),
+      landing_referrer: trim500(attribution.landing_referrer)
     };
 
     const { error: offerError } = await supabaseAdmin.from('offers').insert(offerData);

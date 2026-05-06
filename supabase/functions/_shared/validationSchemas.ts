@@ -179,7 +179,18 @@ export const createProductRequestSchema = z.object({
     price_htva: z.number().nonnegative().max(100000, 'Prix invalide'),
     billing_period: z.enum(['monthly', 'yearly', 'one_time'], { errorMap: () => ({ message: 'Période de facturation invalide' }) }),
     quantity: z.number().int().positive().max(100, 'Quantité trop élevée').optional().default(1)
-  })).max(20, 'Maximum 20 services externes').optional()
+  })).max(20, 'Maximum 20 services externes').optional(),
+
+  // Attribution data (UTM / fbclid) — captured on landing for AdiOS / Meta Ads
+  attribution: z.object({
+    utm_source: z.string().trim().max(200).optional().nullable(),
+    utm_medium: z.string().trim().max(200).optional().nullable(),
+    utm_campaign: z.string().trim().max(200).optional().nullable(),
+    utm_content: z.string().trim().max(200).optional().nullable(),
+    utm_term: z.string().trim().max(200).optional().nullable(),
+    fbclid: z.string().trim().max(500).optional().nullable(),
+    landing_referrer: z.string().trim().max(500).optional().nullable()
+  }).optional()
 }).refine((data) => {
   // Au moins l'un des deux formats doit être fourni
   const hasOldFormat = !!data.client;

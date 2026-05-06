@@ -3,10 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database, ShoppingCart } from 'lucide-react';
+import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database, ShoppingCart, Megaphone } from 'lucide-react';
 import CompanyWebIntegrationSettings from './CompanyWebIntegrationSettings';
 import WooCommerceConfigurationManager from './WooCommerceConfigurationManager';
 import ZapierIntegrationCard from './ZapierIntegrationCard';
+import AdiOSIntegrationCard from './AdiOSIntegrationCard';
 
 interface Integration {
   id: string;
@@ -19,6 +20,16 @@ interface Integration {
 }
 
 const integrations: Integration[] = [
+  // Marketing
+  {
+    id: 'adios',
+    name: 'AdiOS',
+    description: 'Suivi des conversions Meta Ads (Facebook & Instagram)',
+    logoUrl: 'https://app.adios.pub/favicon.ico',
+    status: 'available',
+    category: 'Marketing'
+  },
+
   // Automation
   {
     id: 'zapier',
@@ -406,6 +417,8 @@ const getCategoryIcon = (category: string) => {
       return <CreditCard className="h-6 w-6 text-emerald-600" />;
     case 'RH & Paie':
       return <CreditCard className="h-6 w-6 text-pink-600" />;
+    case 'Marketing':
+      return <Megaphone className="h-6 w-6 text-purple-600" />;
     default:
       return <Database className="h-6 w-6 text-gray-600" />;
   }
@@ -566,8 +579,12 @@ const IntegrationsManager = () => {
             {selectedIntegration === 'zapier' && (
               <ZapierIntegrationCard />
             )}
-            
-            {selectedIntegration && !['woocommerce', 'companyweb', 'zapier'].includes(selectedIntegration) && (
+
+            {selectedIntegration === 'adios' && (
+              <AdiOSIntegrationCard />
+            )}
+
+            {selectedIntegration && !['woocommerce', 'companyweb', 'zapier', 'adios'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
