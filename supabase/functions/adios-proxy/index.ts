@@ -342,16 +342,27 @@ async function handleTrigger(
 }
 
 // =====================================================================
-// backfill — push historical Meta-attributed signed contracts to AdiOS
+// backfill — push historical Meta-attributed offers (any status) to AdiOS
 // =====================================================================
 //
 // Ran from the settings UI ("Importer l'historique" button). Idempotent:
 // each successful send stamps offers.adios_synced_at, so re-running the
 // backfill only picks up rows that haven't been synced yet.
 //
+// Scope: every Meta-attributed offer in any terminal-or-progressing
+// workflow status. The status field of the AdiOS event is mapped from
+// offers.workflow_status (see `mapOfferStatusToAdios`). Early stages
+// (draft / sent / info_requested / …) are skipped — there's nothing
+// useful to attribute yet.
+//
+// Value:
+//   - won           → contract.monthly_payment × duration − offer.amount
+//                     (i.e. the margin / profit on the deal). Falls back to
+//                     contract revenue if amount is missing.
+//   - qualified/lost/rejected → 0  (AdiOS computes ROI on won values only)
+//
 // Throttled with a configurable delay between sends to avoid overloading
-// AdiOS. Hard cap of 100 rows per call by default — the UI can re-call
-// to drain a longer queue.
+// AdiOS. Hard cap configurable per call (default 100, max 500).
 async function handleBackfill(
   userSupabase: any,
   adminSupabase: any,
@@ -390,32 +401,23 @@ async function handleBackfill(
   const validation = validateAdiOSUrl(config.webhook_url);
   if (!validation.ok) return jsonResponse({ success: false, error: validation.error }, 400);
 
-  // Find candidates: signed contracts whose offer is Meta-attributed and not
-  // yet synced. We pre-filter on the offer (source='meta' OR meta_platform set
-  // OR utm_source present) to keep the result set small; final detection
-  // (including notes/remarks regex) happens row-by-row inside the loop.
-  // NOTE: explicit FK hint required — there are two FKs between contracts and
-  // offers (contracts.offer_id → offers.id, AND offers.renewal_source_contract_id
-  // → contracts.id). Without `!contracts_offer_id_fkey` PostgREST returns
-  // PGRST201 "ambiguous embedding".
+  // Find candidates: Meta-attributed offers that haven't been synced yet.
+  // The OR pre-filter is broad on purpose — we re-confirm with detectMetaSource
+  // inside the loop (which also scans remarks / notes for legacy leads).
   const { data: candidates, error: candidatesError } = await adminSupabase
-    .from("contracts")
+    .from("offers")
     .select(`
-      id, offer_id, client_id, company_id, client_email, client_name,
-      monthly_payment, contract_duration, contract_signed_at,
-      contract_signer_name, leaser_name, signature_status,
-      offers!contracts_offer_id_fkey!inner (
-        id, source, meta_platform, remarks,
-        utm_source, utm_medium, utm_campaign, fbclid, landing_referrer,
-        adios_synced_at
-      )
+      id, client_id, client_name, client_email,
+      source, meta_platform, remarks,
+      utm_source, utm_medium, utm_campaign, fbclid, landing_referrer,
+      workflow_status, amount, monthly_payment, financed_amount,
+      created_at, updated_at, adios_synced_at
     `)
     .eq("company_id", companyId)
-    .eq("signature_status", "signed")
-    .not("contract_signed_at", "is", null)
-    .is("offers.adios_synced_at", null)
-    .order("contract_signed_at", { ascending: true })
-    .limit(maxToSend * 3); // generous because we'll filter further in JS
+    .or("source.eq.meta,meta_platform.not.is.null,fbclid.not.is.null,utm_source.not.is.null")
+    .is("adios_synced_at", null)
+    .order("created_at", { ascending: true })
+    .limit(maxToSend * 5); // generous because we filter further in JS
 
   if (candidatesError) {
     console.error("[AdiOS Backfill] Error fetching candidates:", candidatesError);
@@ -425,9 +427,9 @@ async function handleBackfill(
     );
   }
 
-  console.log(`[AdiOS Backfill] Found ${candidates?.length || 0} unsynced signed contracts (pre-filter)`);
+  console.log(`[AdiOS Backfill] Found ${candidates?.length || 0} unsynced Meta-tagged offers (pre-filter)`);
 
-  // Pre-load all client emails + notes in one query (avoid N+1 inside the loop)
+  // Pre-load all client emails + notes in one query (avoid N+1)
   const clientIds = Array.from(new Set((candidates || [])
     .map((c: any) => c.client_id)
     .filter(Boolean))) as string[];
@@ -442,27 +444,66 @@ async function handleBackfill(
     }
   }
 
+  // Pre-load contracts for offers whose status maps to "won" — we need
+  // the actual signed monthly payment + duration to compute margin.
+  const wonOfferIds = (candidates || [])
+    .filter((o: any) => mapOfferStatusToAdios(o.workflow_status) === "won")
+    .map((o: any) => o.id);
+  const contractByOfferIdMap = new Map<string, {
+    monthly_payment: number | null;
+    contract_duration: number | null;
+    contract_signed_at: string | null;
+    contract_signer_name: string | null;
+    leaser_name: string | null;
+  }>();
+  if (wonOfferIds.length > 0) {
+    const { data: contracts } = await adminSupabase
+      .from("contracts")
+      .select("offer_id, monthly_payment, contract_duration, contract_signed_at, contract_signer_name, leaser_name, signature_status")
+      .in("offer_id", wonOfferIds);
+    for (const c of (contracts || [])) {
+      // Pick the signed one if multiple (renewals) — the first works fine
+      // for our purposes since we're attributing the original conversion.
+      if (!contractByOfferIdMap.has(c.offer_id)) {
+        contractByOfferIdMap.set(c.offer_id, {
+          monthly_payment: c.monthly_payment,
+          contract_duration: c.contract_duration,
+          contract_signed_at: c.contract_signed_at,
+          contract_signer_name: c.contract_signer_name,
+          leaser_name: c.leaser_name,
+        });
+      }
+    }
+  }
+
   const stats = {
     total_candidates: candidates?.length || 0,
     sent: 0,
     skipped_not_meta: 0,
+    skipped_too_early: 0,
     skipped_already_synced: 0,
     errors: 0,
-    error_details: [] as Array<{ contract_id: string; error: string }>,
-    details: [] as Array<{ contract_id: string; offer_id: string; platform: string; value_eur: number }>,
+    by_status: { won: 0, qualified: 0, lost: 0, rejected: 0 },
+    total_value_eur: 0,
+    error_details: [] as Array<{ offer_id: string; error: string }>,
+    details: [] as Array<{
+      offer_id: string;
+      status: string;
+      platform: string;
+      value_eur: number;
+      workflow_status: string;
+    }>,
   };
 
-  for (const row of (candidates || [])) {
+  for (const offer of (candidates || []) as any[]) {
     if (stats.sent >= maxToSend) break;
 
-    const offer = (row as any).offers;
-    if (!offer) continue;
     if (offer.adios_synced_at) {
       stats.skipped_already_synced++;
       continue;
     }
 
-    const clientInfo = row.client_id ? clientByIdMap.get(row.client_id) : null;
+    const clientInfo = offer.client_id ? clientByIdMap.get(offer.client_id) : null;
 
     const meta = detectMetaSource({
       meta_platform: offer.meta_platform,
@@ -478,40 +519,78 @@ async function handleBackfill(
       continue;
     }
 
-    const monthly = Number(row.monthly_payment) || 0;
-    const duration = Number(row.contract_duration) || 0;
-    const valueEur = Math.round(monthly * duration * 100) / 100;
+    const adiosStatus = mapOfferStatusToAdios(offer.workflow_status);
+    if (!adiosStatus) {
+      // Too early in the funnel (draft / sent / info_*); nothing to attribute.
+      stats.skipped_too_early++;
+      continue;
+    }
+
+    // Compute value_eur:
+    //   won → margin = (signed monthly × duration) − purchase amount
+    //   others → 0 (AdiOS attributes ROI on actual revenue only)
+    let valueEur = 0;
+    let occurredAt: string = offer.updated_at || offer.created_at;
+    let signerName: string | null = null;
+    let leaserName: string | null = null;
+
+    if (adiosStatus === "won") {
+      const contract = contractByOfferIdMap.get(offer.id);
+      if (contract) {
+        const monthly = Number(contract.monthly_payment) || 0;
+        const duration = Number(contract.contract_duration) || 0;
+        const purchaseAmount = Number(offer.amount) || 0;
+        const revenue = monthly * duration;
+        const margin = revenue - purchaseAmount;
+        // If purchase amount is missing/wrong (negative margin), fall back to
+        // revenue rather than sending a nonsense negative number.
+        valueEur = Math.round((margin > 0 ? margin : revenue) * 100) / 100;
+        if (contract.contract_signed_at) occurredAt = contract.contract_signed_at;
+        signerName = contract.contract_signer_name;
+        leaserName = contract.leaser_name;
+      } else {
+        // Status says won but no contract row — degenerate case, push 0
+        // rather than skip, so AdiOS at least sees the conversion happened.
+        valueEur = 0;
+      }
+    }
 
     const notesParts = [
       `Source: ${meta.platform}`,
       `Detection: ${meta.detectionMethod}`,
+      `Workflow: ${offer.workflow_status}`,
       "Backfill historique",
-      row.contract_signer_name ? `Signé par: ${row.contract_signer_name}` : null,
+      signerName ? `Signé par: ${signerName}` : null,
+      leaserName ? `Bailleur: ${leaserName}` : null,
     ].filter(Boolean);
 
     const adiosPayload = {
-      external_id: row.offer_id || row.id,
-      email: clientInfo?.email || row.client_email || "",
-      status: "won",
+      external_id: offer.id,
+      email: clientInfo?.email || offer.client_email || "",
+      status: adiosStatus,
       value_eur: valueEur,
-      occurred_at: row.contract_signed_at,
+      occurred_at: occurredAt,
       notes: notesParts.join(" | "),
     };
 
-    if (dryRun) {
-      stats.sent++; // count what WOULD be sent
+    const recordSentDetail = () => {
+      stats.sent++;
+      stats.by_status[adiosStatus]++;
+      stats.total_value_eur = Math.round((stats.total_value_eur + valueEur) * 100) / 100;
       stats.details.push({
-        contract_id: row.id,
-        offer_id: row.offer_id,
+        offer_id: offer.id,
+        status: adiosStatus,
         platform: meta.platform || "Meta",
         value_eur: valueEur,
+        workflow_status: offer.workflow_status,
       });
+    };
+
+    if (dryRun) {
+      recordSentDetail();
       continue;
     }
 
-    // Send. We deliberately DON'T use sendToAdiOS here because we want tighter
-    // control over the loop (each row is independent — one failure doesn't
-    // abort the batch). We do still update last_triggered_at on the config.
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -527,31 +606,24 @@ async function handleBackfill(
         await adminSupabase
           .from("offers")
           .update({ adios_synced_at: new Date().toISOString() })
-          .eq("id", row.offer_id);
-        stats.sent++;
-        stats.details.push({
-          contract_id: row.id,
-          offer_id: row.offer_id,
-          platform: meta.platform || "Meta",
-          value_eur: valueEur,
-        });
+          .eq("id", offer.id);
+        recordSentDetail();
       } else {
         const errText = await adiosResponse.text().catch(() => "");
         stats.errors++;
         stats.error_details.push({
-          contract_id: row.id,
+          offer_id: offer.id,
           error: `HTTP ${adiosResponse.status}: ${errText.substring(0, 200)}`,
         });
       }
     } catch (err) {
       stats.errors++;
       stats.error_details.push({
-        contract_id: row.id,
+        offer_id: offer.id,
         error: err instanceof Error ? err.message : "Erreur réseau",
       });
     }
 
-    // Throttle so we don't hammer AdiOS
     if (delayMs > 0 && stats.sent < maxToSend) {
       await new Promise((r) => setTimeout(r, delayMs));
     }
@@ -571,7 +643,13 @@ async function handleBackfill(
       .eq("company_id", companyId);
   }
 
-  console.log(`[AdiOS Backfill] Done — sent=${stats.sent}, skipped_not_meta=${stats.skipped_not_meta}, errors=${stats.errors}, dry_run=${dryRun}`);
+  console.log(
+    `[AdiOS Backfill] Done — sent=${stats.sent} ` +
+    `(won=${stats.by_status.won}, qualified=${stats.by_status.qualified}, ` +
+    `rejected=${stats.by_status.rejected}, lost=${stats.by_status.lost}), ` +
+    `not_meta=${stats.skipped_not_meta}, too_early=${stats.skipped_too_early}, ` +
+    `errors=${stats.errors}, dry_run=${dryRun}`,
+  );
 
   return jsonResponse({
     success: true,
@@ -704,6 +782,47 @@ interface DetectResult {
   isMeta: boolean;
   platform: "Facebook" | "Instagram" | "Meta" | null;
   detectionMethod: "meta_platform" | "fbclid" | "utm" | "source_meta" | "free_text" | null;
+}
+
+// Map a Leazr offer.workflow_status to one of the four AdiOS event statuses.
+// Returns null for early-stage statuses where there's nothing to attribute.
+function mapOfferStatusToAdios(
+  workflowStatus: string | null | undefined,
+): "won" | "qualified" | "lost" | "rejected" | null {
+  if (!workflowStatus) return null;
+  const s = workflowStatus.toLowerCase().trim();
+
+  // Won — terminal positive (contract signed, invoiced)
+  if (["signed", "contract_signed", "invoicing"].includes(s)) return "won";
+
+  // Qualified — accepted at some level, in progress towards won
+  if (
+    [
+      "accepted",
+      "validated",
+      "financed",
+      "contract_sent",
+      "leaser_review",
+      "leaser_introduced",
+      "approved",
+    ].includes(s)
+  ) {
+    return "qualified";
+  }
+
+  // Rejected — explicit refusal, terminal negative
+  if (
+    ["internal_rejected", "leaser_rejected", "client_rejected", "rejected"].includes(s)
+  ) {
+    return "rejected";
+  }
+
+  // Lost — abandoned without explicit refusal
+  if (s === "without_follow_up") return "lost";
+
+  // Too early to attribute: draft / sent / offer_send / info_requested /
+  // info_received / internal_docs_requested / internal_approved
+  return null;
 }
 
 function detectMetaSource(input: DetectInput): DetectResult {

@@ -193,26 +193,44 @@ export default function AdiOSIntegrationCard() {
         return;
       }
 
+      const breakdown = result.by_status
+        ? [
+            result.by_status.won > 0 ? `${result.by_status.won} won` : null,
+            result.by_status.qualified > 0 ? `${result.by_status.qualified} qualified` : null,
+            result.by_status.rejected > 0 ? `${result.by_status.rejected} rejected` : null,
+            result.by_status.lost > 0 ? `${result.by_status.lost} lost` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : "";
+
       if (dryRun) {
         toast.info(
           <div>
             <strong>Aperçu (dry-run)</strong>
             <p className="text-sm mt-1">
-              {result.sent} conversion(s) prêtes à envoyer · {result.skipped_not_meta} non-Meta ignorée(s)
+              {result.sent} conversion(s) prête(s) à envoyer
+              {breakdown ? ` (${breakdown})` : ""}
             </p>
+            {(result.skipped_too_early ?? 0) > 0 && (
+              <p className="text-xs mt-0.5 text-muted-foreground">
+                {result.skipped_too_early} encore en cours · ignoré(s)
+              </p>
+            )}
           </div>,
-          { duration: 6000 },
+          { duration: 8000 },
         );
       } else {
         toast.success(
           <div>
             <strong>Backfill terminé</strong>
             <p className="text-sm mt-1">
-              {result.sent} envoyé(s) · {result.skipped_not_meta} ignoré(s) (non Meta)
+              {result.sent} envoyé(s)
+              {breakdown ? ` · ${breakdown}` : ""}
               {result.errors > 0 ? ` · ${result.errors} erreur(s)` : ""}
             </p>
           </div>,
-          { duration: 8000 },
+          { duration: 10000 },
         );
         await fetchConfig(); // refresh last_triggered_at
       }
@@ -445,12 +463,18 @@ export default function AdiOSIntegrationCard() {
                   {lastBackfill.success ? "" : " (échec)"}
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
-                  <span>Candidats trouvés:</span>
+                  <span>Candidats Meta trouvés:</span>
                   <span className="text-foreground">{lastBackfill.total_candidates}</span>
                   <span>{lastBackfill.dry_run ? "À envoyer:" : "Envoyés:"}</span>
                   <span className="text-foreground">{lastBackfill.sent}</span>
                   <span>Non-Meta ignorés:</span>
                   <span className="text-foreground">{lastBackfill.skipped_not_meta}</span>
+                  {(lastBackfill.skipped_too_early ?? 0) > 0 && (
+                    <>
+                      <span>Trop tôt (en cours):</span>
+                      <span className="text-foreground">{lastBackfill.skipped_too_early}</span>
+                    </>
+                  )}
                   {lastBackfill.skipped_already_synced > 0 && (
                     <>
                       <span>Déjà synchronisés:</span>
@@ -464,6 +488,50 @@ export default function AdiOSIntegrationCard() {
                     </>
                   )}
                 </div>
+
+                {lastBackfill.by_status && lastBackfill.sent > 0 && (
+                  <div className="pt-2 border-t border-border/50">
+                    <div className="font-medium mb-1">Répartition par statut</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
+                      {lastBackfill.by_status.won > 0 && (
+                        <>
+                          <span>✅ Won (signés):</span>
+                          <span className="text-foreground">{lastBackfill.by_status.won}</span>
+                        </>
+                      )}
+                      {lastBackfill.by_status.qualified > 0 && (
+                        <>
+                          <span>🟡 Qualified (en cours):</span>
+                          <span className="text-foreground">{lastBackfill.by_status.qualified}</span>
+                        </>
+                      )}
+                      {lastBackfill.by_status.rejected > 0 && (
+                        <>
+                          <span>❌ Rejected (refusés):</span>
+                          <span className="text-foreground">{lastBackfill.by_status.rejected}</span>
+                        </>
+                      )}
+                      {lastBackfill.by_status.lost > 0 && (
+                        <>
+                          <span>👋 Lost (sans suite):</span>
+                          <span className="text-foreground">{lastBackfill.by_status.lost}</span>
+                        </>
+                      )}
+                      {(lastBackfill.total_value_eur ?? 0) > 0 && (
+                        <>
+                          <span>💰 Marge totale (won):</span>
+                          <span className="text-foreground">
+                            {new Intl.NumberFormat("fr-BE", {
+                              style: "currency",
+                              currency: "EUR",
+                              maximumFractionDigits: 0,
+                            }).format(lastBackfill.total_value_eur ?? 0)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {lastBackfill.error_details && lastBackfill.error_details.length > 0 && (
                   <details className="mt-2">
                     <summary className="cursor-pointer text-destructive">

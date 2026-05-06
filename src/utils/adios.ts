@@ -58,10 +58,20 @@ export interface AdiOSBackfillResult {
   total_candidates: number;
   sent: number;
   skipped_not_meta: number;
+  skipped_too_early?: number;
   skipped_already_synced: number;
   errors: number;
-  error_details: Array<{ contract_id: string; error: string }>;
-  details: Array<{ contract_id: string; offer_id: string; platform: string; value_eur: number }>;
+  by_status?: { won: number; qualified: number; lost: number; rejected: number };
+  total_value_eur?: number;
+  error_details: Array<{ offer_id?: string; contract_id?: string; error: string }>;
+  details: Array<{
+    offer_id: string;
+    contract_id?: string;
+    platform: string;
+    value_eur: number;
+    status?: string;
+    workflow_status?: string;
+  }>;
   error?: string;
 }
 
