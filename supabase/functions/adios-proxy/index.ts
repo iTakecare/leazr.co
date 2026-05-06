@@ -666,14 +666,36 @@ async function handleBackfill(
     );
     const earliestMetaOffer = sortedMeta[0];
 
-    // Value: margin from the offer that drives the won status (it carries
-    // the right financed_amount / amount). For non-won, AdiOS sees 0.
+    // Value: margin = financed_amount − amount. The offer with the contract
+    // is *not* always the one carrying the financial data — the typical
+    // edit-flow rebuilds a "demande client" offer with financed_amount=0
+    // while the original Meta offer kept the real numbers. So we scan the
+    // client's offers in priority order (contract offer first, then siblings)
+    // and pick the FIRST one with a positive margin. If none has data we
+    // ship 0 and log it so the caller can spot the data-quality issue.
     let valueEur = 0;
+    let marginSourceOfferId: string | null = null;
     if (bestStatus === "won") {
-      const sellingPrice = Number(bestOffer.financed_amount) || 0;
-      const purchasePrice = Number(bestOffer.amount) || 0;
-      const margin = sellingPrice - purchasePrice;
-      valueEur = Math.round((margin > 0 ? margin : 0) * 100) / 100;
+      const orderedForMargin = [
+        bestOffer,
+        ...allOffers.filter((o: any) => o.id !== bestOffer.id),
+      ];
+      for (const o of orderedForMargin) {
+        const sell = Number(o?.financed_amount) || 0;
+        const buy = Number(o?.amount) || 0;
+        const m = sell - buy;
+        if (m > 0) {
+          valueEur = Math.round(m * 100) / 100;
+          marginSourceOfferId = o.id;
+          break;
+        }
+      }
+      if (valueEur === 0) {
+        console.warn(
+          `[AdiOS Backfill] won client ${clientId} has no positive margin ` +
+            `across ${allOffers.length} offers (financed_amount or amount missing/zero)`,
+        );
+      }
     }
 
     // Conversion timestamp: prefer contract.contract_signed_at, fall back
@@ -689,6 +711,9 @@ async function handleBackfill(
       `Detection: ${meta.detectionMethod}`,
       `Workflow: ${bestOffer.workflow_status}`,
       bestOffer.id !== earliestMetaOffer.id ? `Best offer: ${bestOffer.id}` : null,
+      marginSourceOfferId && marginSourceOfferId !== bestOffer.id
+        ? `Margin from: ${marginSourceOfferId}`
+        : null,
       "Backfill historique",
       bestContract?.contract_signer_name ? `Signé par: ${bestContract.contract_signer_name}` : null,
       bestContract?.leaser_name ? `Bailleur: ${bestContract.leaser_name}` : null,
