@@ -381,9 +381,10 @@ async function handleTrigger(
 // pipeline. Only explicit terminal states map to won/rejected/lost.
 //
 // Value:
-//   - won           → offer.financed_amount − offer.amount
-//                     (i.e. the gross margin: selling price to the leaser
-//                      minus purchase price from the supplier).
+//   - won           → offers.margin (already the absolute margin in EUR,
+//                     computed at offer creation from purchase × markup).
+//                     Falls back to siblings of the same client if the
+//                     contract offer has margin=0.
 //   - qualified/lost/rejected → 0  (AdiOS computes ROI on won values only)
 //
 // Throttled with a configurable delay between sends to avoid overloading
@@ -485,7 +486,7 @@ async function handleBackfill(
       id, client_id, client_name, client_email,
       source, meta_platform, remarks,
       utm_source, utm_medium, utm_campaign, fbclid, landing_referrer,
-      workflow_status, amount, monthly_payment, financed_amount,
+      workflow_status, amount, monthly_payment, financed_amount, margin,
       created_at, updated_at, adios_synced_at
     `)
     .eq("company_id", companyId)
@@ -549,7 +550,7 @@ async function handleBackfill(
       .select(`
         id, client_id, client_email, source, meta_platform, remarks,
         utm_source, utm_medium, fbclid,
-        workflow_status, amount, monthly_payment, financed_amount,
+        workflow_status, amount, monthly_payment, financed_amount, margin,
         created_at, updated_at, adios_synced_at
       `)
       .eq("company_id", companyId)
@@ -692,13 +693,16 @@ async function handleBackfill(
     );
     const earliestMetaOffer = sortedMeta[0];
 
-    // Value: margin = financed_amount − amount. The offer with the contract
-    // is *not* always the one carrying the financial data — the typical
-    // edit-flow rebuilds a "demande client" offer with financed_amount=0
-    // while the original Meta offer kept the real numbers. So we scan the
-    // client's offers in priority order (contract offer first, then siblings)
-    // and pick the FIRST one with a positive margin. If none has data we
-    // ship 0 and log it so the caller can spot the data-quality issue.
+    // Value: use offers.margin directly — it's already the absolute margin
+    // in EUR computed at offer creation. (Trying financed_amount − amount
+    // gives ~0 because import-meta-leads / create-product-request derive
+    // financed_amount from monthly_payment via the leasing coefficient,
+    // so it ends up equal to amount.)
+    //
+    // The offer carrying the contract isn't always the one with margin
+    // filled in (edit flows can blank it on the rebuild). So scan the
+    // client's offers in priority order (contract offer first, then
+    // siblings) and pick the highest positive margin available.
     let valueEur = 0;
     let marginSourceOfferId: string | null = null;
     if (bestStatus === "won") {
@@ -707,10 +711,8 @@ async function handleBackfill(
         ...allOffers.filter((o: any) => o.id !== bestOffer.id),
       ];
       for (const o of orderedForMargin) {
-        const sell = Number(o?.financed_amount) || 0;
-        const buy = Number(o?.amount) || 0;
-        const m = sell - buy;
-        if (m > 0) {
+        const m = Number(o?.margin);
+        if (Number.isFinite(m) && m > 0) {
           valueEur = Math.round(m * 100) / 100;
           marginSourceOfferId = o.id;
           break;
@@ -719,7 +721,7 @@ async function handleBackfill(
       if (valueEur === 0) {
         console.warn(
           `[AdiOS Backfill] won client ${clientId} has no positive margin ` +
-            `across ${allOffers.length} offers (financed_amount or amount missing/zero)`,
+            `across ${allOffers.length} offers (offers.margin missing/zero)`,
         );
       }
     }
