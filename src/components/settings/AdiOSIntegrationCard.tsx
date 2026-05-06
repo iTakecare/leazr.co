@@ -158,17 +158,31 @@ export default function AdiOSIntegrationCard() {
     }
   };
 
-  const handleBackfill = async (dryRun: boolean) => {
+  const handleBackfill = async (dryRun: boolean, forceResync: boolean = false) => {
     if (!config?.id || !config.is_active || !config.webhook_url) {
       toast.error("Configurez et activez AdiOS avant de lancer le backfill");
       return;
     }
 
-    if (!dryRun) {
+    if (!dryRun && !forceResync) {
       const ok = window.confirm(
         "Cela va envoyer toutes les conversions Meta historiques (contrats signés non encore synchronisés) à AdiOS.\n\n" +
         "Action idempotente : chaque offre n'est envoyée qu'une seule fois.\n\n" +
         "Continuer ?",
+      );
+      if (!ok) return;
+    }
+
+    if (forceResync && !dryRun) {
+      const ok = window.confirm(
+        "⚠️ RESYNC FORCÉ\n\n" +
+        "Cela va re-envoyer TOUS les leads Meta (même ceux déjà synchronisés) " +
+        "avec le mapping de statut actuel.\n\n" +
+        "À utiliser quand la logique de mapping a changé et qu'il faut corriger " +
+        "des statuts envoyés à tort par un run précédent.\n\n" +
+        "⚠️ Les anciens événements AdiOS (avec les anciens external_id) restent " +
+        "dans AdiOS — il y aura des doublons à nettoyer côté AdiOS.\n\n" +
+        "Continuer quand même ?",
       );
       if (!ok) return;
     }
@@ -180,6 +194,7 @@ export default function AdiOSIntegrationCard() {
         dry_run: dryRun,
         max_to_send: 200,
         delay_between_ms: 250,
+        force_resync: forceResync,
       });
       setLastBackfill(result);
 
@@ -455,6 +470,34 @@ export default function AdiOSIntegrationCard() {
                 Lancer le backfill
               </Button>
             </div>
+
+            {/* Force-resync row — only useful after a mapping logic change */}
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBackfill(true, true)}
+                disabled={backfilling}
+                className="flex-1 text-xs"
+              >
+                <Eye className="h-3 w-3 mr-1.5" />
+                Aperçu — resync forcé
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBackfill(false, true)}
+                disabled={backfilling}
+                className="flex-1 text-xs text-amber-700 hover:text-amber-700 border-amber-300 hover:border-amber-400 hover:bg-amber-50"
+              >
+                <RefreshCw className="h-3 w-3 mr-1.5" />
+                Lancer — resync forcé
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground -mt-2">
+              Resync forcé : ré-envoie même les leads déjà synchronisés (utile
+              après un changement de mapping). Crée des doublons côté AdiOS.
+            </p>
 
             {lastBackfill && (
               <div className="text-xs space-y-1 pt-2 border-t border-border/50">

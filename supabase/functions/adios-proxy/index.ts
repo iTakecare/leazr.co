@@ -41,6 +41,12 @@ interface AdiOSProxyRequest {
   dry_run?: boolean;
   max_to_send?: number;       // Hard cap per call, default 100
   delay_between_ms?: number;  // Throttle, default 250ms
+  // Re-process even clients/offers that were already synced. Use this to
+  // re-emit a fixed status after the mapping logic has changed (the previous
+  // run sent a wrong "Perdu" / "Refusé" that is now correctly "Won").
+  // WARNING: existing AdiOS events keyed by old per-offer external_ids stay
+  // in AdiOS — the new client-level events appear alongside them.
+  force_resync?: boolean;
 }
 
 const ADIOS_HOST_HINT = "adios.pub";
@@ -380,6 +386,7 @@ async function handleBackfill(
   body: AdiOSProxyRequest,
 ) {
   const dryRun = body.dry_run === true;
+  const forceResync = body.force_resync === true;
   const maxToSend = Math.max(1, Math.min(body.max_to_send ?? 100, 500));
   const delayMs = Math.max(0, Math.min(body.delay_between_ms ?? 250, 5000));
 
@@ -449,7 +456,7 @@ async function handleBackfill(
     orFilter.push(`client_id.in.(${Array.from(metaClientIds).join(",")})`);
   }
 
-  const { data: candidates, error: candidatesError } = await adminSupabase
+  let candidatesQuery = adminSupabase
     .from("offers")
     .select(`
       id, client_id, client_name, client_email,
@@ -459,8 +466,12 @@ async function handleBackfill(
       created_at, updated_at, adios_synced_at
     `)
     .eq("company_id", companyId)
-    .or(orFilter.join(","))
-    .is("adios_synced_at", null)
+    .or(orFilter.join(","));
+  if (!forceResync) {
+    // Normal mode: only unsynced offers.
+    candidatesQuery = candidatesQuery.is("adios_synced_at", null);
+  }
+  const { data: candidates, error: candidatesError } = await candidatesQuery
     .order("created_at", { ascending: true })
     .limit(maxToSend * 5); // generous because we filter further in JS
 
@@ -590,12 +601,15 @@ async function handleBackfill(
     const allOffers = offersByClientMap.get(clientId) ?? metaOffers;
     const clientInfo = clientByIdMap.get(clientId) ?? null;
 
-    // If every Meta-tagged offer of this client is already synced, skip —
-    // we shouldn't re-process them (idempotency).
-    const anyUnsynced = metaOffers.some((o: any) => !o.adios_synced_at);
-    if (!anyUnsynced) {
-      stats.skipped_already_synced++;
-      continue;
+    // Idempotency: skip the client if every Meta-tagged offer is already
+    // synced. Bypassed in force-resync mode (used after the mapping logic
+    // has changed and we need to re-emit fixed statuses).
+    if (!forceResync) {
+      const anyUnsynced = metaOffers.some((o: any) => !o.adios_synced_at);
+      if (!anyUnsynced) {
+        stats.skipped_already_synced++;
+        continue;
+      }
     }
 
     // Re-confirm the client is genuinely Meta — must pass on at least one

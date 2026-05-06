@@ -88,6 +88,7 @@ export async function backfillAdiOSHistorical(opts?: {
   dry_run?: boolean;
   max_to_send?: number;
   delay_between_ms?: number;
+  force_resync?: boolean;
 }): Promise<AdiOSBackfillResult> {
   try {
     const { data, error } = await supabase.functions.invoke("adios-proxy", {
@@ -96,6 +97,7 @@ export async function backfillAdiOSHistorical(opts?: {
         dry_run: opts?.dry_run === true,
         max_to_send: opts?.max_to_send,
         delay_between_ms: opts?.delay_between_ms,
+        force_resync: opts?.force_resync === true,
       },
     });
 
