@@ -1262,6 +1262,11 @@ ${packRemarks}
           equipment_description: parsedPack.equipmentDescription,
           type: 'client_request',
           source: 'meta',
+          // Deterministic platform tag, used by the AdiOS conversion webhook to
+          // attribute the conversion to the correct ad platform (Facebook vs
+          // Instagram). The free-text "Plateforme: …" line stays in remarks for
+          // human readability; this column is the machine source of truth.
+          meta_platform: lead.platform === 'fb' ? 'facebook' : 'instagram',
           workflow_status: 'draft',
           status: 'pending',
           remarks: offerRemarks,

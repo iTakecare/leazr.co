@@ -25,10 +25,11 @@ import SignatureCanvas from "react-signature-canvas";
 import IBANInput from "@/components/contracts/IBANInput";
 import { pdf } from '@react-pdf/renderer';
 import { SignedContractPDFDocument } from '@/components/pdf/templates/SignedContractPDFDocument';
-import { 
-  buildSignedContractPdfDataFromRpc, 
-  getSignedContractStoragePath 
+import {
+  buildSignedContractPdfDataFromRpc,
+  getSignedContractStoragePath
 } from '@/services/signedContractPdfPublicData';
+import { notifyAdiOSContractSigned } from '@/utils/adios';
 
 interface ContractData {
   id: string;
@@ -427,6 +428,10 @@ const PublicContractSignature: React.FC = () => {
       if (data?.success) {
         setIsSigned(true);
         toast.success("Contrat signé avec succès !");
+
+        // Notify AdiOS for Meta Ads conversion attribution (fire-and-forget,
+        // server decides whether the lead is Meta-attributed and bails if not).
+        notifyAdiOSContractSigned(token);
 
         // Generate and store PDF (non-blocking)
         generateAndStorePdf().then(success => {

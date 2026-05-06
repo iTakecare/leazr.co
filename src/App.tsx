@@ -52,6 +52,9 @@ import PackDetailPage from "@/pages/PackDetailPage";
 // Routing guards
 import CompanySlugGuard from "@/components/routing/CompanySlugGuard";
 
+// Hooks
+import { useUtmCapture } from "@/hooks/useUtmCapture";
+
 // Admin pages
 import Dashboard from "@/pages/Dashboard";
 import AdminChatPage from "@/pages/AdminChatPage";
@@ -165,7 +168,12 @@ const queryClient = new QueryClient({
 });
 
 // Main App Routes component
-const AppRoutes = () => (
+const AppRoutes = () => {
+  // Capture UTM / fbclid params on landing for Meta Ads attribution (AdiOS).
+  // Idempotent — only persists when real attribution params are in the URL.
+  useUtmCapture();
+
+  return (
   <Routes>
     {/* AUTHENTICATION ROUTES - HIGHEST PRIORITY */}
     <Route path="/login" element={<Login />} />
@@ -379,7 +387,8 @@ const AppRoutes = () => (
     {/* Catch-all company slug route - fallback for company pages */}
     <Route path="/:companySlug" element={<CompanySlugGuard />} />
   </Routes>
-);
+  );
+};
 
 function App() {
   console.log('🚀 App component rendering...');
