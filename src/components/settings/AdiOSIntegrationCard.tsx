@@ -192,8 +192,8 @@ export default function AdiOSIntegrationCard() {
       setLastBackfill(null);
       const result = await backfillAdiOSHistorical({
         dry_run: dryRun,
-        max_to_send: 200,
-        delay_between_ms: 250,
+        max_to_send: 500,
+        delay_between_ms: dryRun ? 0 : 200,
         force_resync: forceResync,
       });
       setLastBackfill(result);
@@ -589,9 +589,9 @@ export default function AdiOSIntegrationCard() {
                     </ul>
                   </details>
                 )}
-                {lastBackfill.sent >= 200 && (
+                {lastBackfill.sent >= 500 && (
                   <p className="text-amber-600 mt-1">
-                    ⚠️ Maximum atteint (200 par appel). Relance le backfill
+                    ⚠️ Maximum atteint (500 par appel). Relance le backfill
                     pour traiter le reste.
                   </p>
                 )}
