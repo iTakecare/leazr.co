@@ -404,9 +404,44 @@ async function handleBackfill(
   const validation = validateAdiOSUrl(config.webhook_url);
   if (!validation.ok) return jsonResponse({ success: false, error: validation.error }, 400);
 
-  // Find candidates: Meta-attributed offers that haven't been synced yet.
-  // The OR pre-filter is broad on purpose — we re-confirm with detectMetaSource
-  // inside the loop (which also scans remarks / notes for legacy leads).
+  // Step A: pull the set of client IDs that have a Meta marker in their notes.
+  // This recovers leads whose offer was edited in the back-office and lost
+  // its source='meta' / meta_platform tags — the client-level history line
+  // ("Plateforme: Facebook" / "Plateforme: Instagram", written by
+  // import-meta-leads) is rarely overwritten.
+  const metaClientIds = new Set<string>();
+  {
+    const { data: metaClients } = await adminSupabase
+      .from("clients")
+      .select("id")
+      .eq("company_id", companyId)
+      .ilike("notes", "%Plateforme:%");
+    for (const c of (metaClients || [])) {
+      if (c.id) metaClientIds.add(c.id as string);
+    }
+  }
+  console.log(`[AdiOS Backfill] ${metaClientIds.size} clients with Meta marker in notes`);
+
+  // Step B: find candidate offers via a permissive OR filter:
+  //   - source='meta' (set by import-meta-leads at creation)
+  //   - meta_platform set (same)
+  //   - fbclid / utm_source captured at landing
+  //   - remarks contains "Plateforme:" (legacy free-text marker — survives
+  //     most offer-edit flows that wipe source/meta_platform)
+  //   - client_id ∈ Meta-tagged clients (recovers leads where the offer
+  //     was rebuilt from scratch under a known Meta client)
+  // The in-loop detectMetaSource re-verifies, so over-broad filters are safe.
+  const orFilter = [
+    "source.eq.meta",
+    "meta_platform.not.is.null",
+    "fbclid.not.is.null",
+    "utm_source.not.is.null",
+    "remarks.ilike.*Plateforme:*",
+  ];
+  if (metaClientIds.size > 0) {
+    orFilter.push(`client_id.in.(${Array.from(metaClientIds).join(",")})`);
+  }
+
   const { data: candidates, error: candidatesError } = await adminSupabase
     .from("offers")
     .select(`
@@ -417,7 +452,7 @@ async function handleBackfill(
       created_at, updated_at, adios_synced_at
     `)
     .eq("company_id", companyId)
-    .or("source.eq.meta,meta_platform.not.is.null,fbclid.not.is.null,utm_source.not.is.null")
+    .or(orFilter.join(","))
     .is("adios_synced_at", null)
     .order("created_at", { ascending: true })
     .limit(maxToSend * 5); // generous because we filter further in JS
