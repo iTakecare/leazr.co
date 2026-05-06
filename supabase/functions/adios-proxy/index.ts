@@ -71,9 +71,9 @@ serve(async (req) => {
     const body: AdiOSProxyRequest = await req.json();
     const { action } = body;
 
-    if (!action || !["test", "trigger", "sign_contract", "backfill"].includes(action)) {
+    if (!action || !["test", "trigger", "sign_contract", "backfill", "list_meta_leads"].includes(action)) {
       return jsonResponse(
-        { success: false, error: "Action invalide (test | trigger | sign_contract | backfill)" },
+        { success: false, error: "Action invalide (test | trigger | sign_contract | backfill | list_meta_leads)" },
         400,
       );
     }
@@ -108,6 +108,9 @@ serve(async (req) => {
     }
     if (action === "backfill") {
       return await handleBackfill(userSupabase, adminSupabase, userId, body);
+    }
+    if (action === "list_meta_leads") {
+      return await handleListMetaLeads(userSupabase, adminSupabase, userId, body);
     }
     return await handleTrigger(userSupabase, adminSupabase, userId, body);
   } catch (error) {
@@ -835,6 +838,127 @@ async function handleBackfill(
     success: true,
     dry_run: dryRun,
     ...stats,
+  }, 200);
+}
+
+// =====================================================================
+// list_meta_leads — diagnostic: dump emails + meta_lead_ids of every
+// Meta-attributed offer the company has, optionally filtered by date.
+// Used to compare with the source-of-truth Meta export and find leads
+// the import-meta-leads function may have missed or mis-attributed.
+// =====================================================================
+async function handleListMetaLeads(
+  userSupabase: any,
+  adminSupabase: any,
+  userId: string,
+  body: AdiOSProxyRequest,
+) {
+  const { data: profile } = await userSupabase
+    .from("profiles")
+    .select("company_id")
+    .eq("id", userId)
+    .single();
+  const companyId = profile?.company_id;
+  if (!companyId) {
+    return jsonResponse({ success: false, error: "Compagnie introuvable" }, 403);
+  }
+
+  let sinceIso: string | null = null;
+  if (typeof body.since_date === "string" && body.since_date.trim()) {
+    const d = new Date(body.since_date.trim());
+    if (Number.isNaN(d.getTime())) {
+      return jsonResponse({ success: false, error: "since_date invalide" }, 400);
+    }
+    sinceIso = d.toISOString();
+  }
+
+  // Pre-fetch clients with Meta marker in notes (same trick as backfill).
+  const metaClientIds = new Set<string>();
+  {
+    const { data: metaClients } = await adminSupabase
+      .from("clients")
+      .select("id")
+      .eq("company_id", companyId)
+      .ilike("notes", "%Plateforme:%");
+    for (const c of (metaClients || [])) {
+      if (c.id) metaClientIds.add(c.id as string);
+    }
+  }
+
+  const orFilter = [
+    "source.eq.meta",
+    "meta_platform.not.is.null",
+    "fbclid.not.is.null",
+    "utm_source.not.is.null",
+    "remarks.ilike.*Plateforme:*",
+    "remarks.ilike.*Meta Lead ID*",
+  ];
+  if (metaClientIds.size > 0) {
+    orFilter.push(`client_id.in.(${Array.from(metaClientIds).join(",")})`);
+  }
+
+  let q = adminSupabase
+    .from("offers")
+    .select(`
+      id, client_id, client_email, source, meta_platform, remarks,
+      workflow_status, created_at, adios_synced_at
+    `)
+    .eq("company_id", companyId)
+    .or(orFilter.join(","));
+  if (sinceIso) q = q.gte("created_at", sinceIso);
+  const { data: offers, error } = await q.order("created_at", { ascending: true });
+  if (error) {
+    return jsonResponse({ success: false, error: error.message }, 500);
+  }
+
+  // Pull client emails
+  const clientIds = Array.from(new Set(
+    (offers || []).map((o: any) => o.client_id).filter(Boolean),
+  )) as string[];
+  const clientByIdMap = new Map<string, string | null>();
+  if (clientIds.length > 0) {
+    const { data: clients } = await adminSupabase
+      .from("clients")
+      .select("id, email")
+      .in("id", clientIds);
+    for (const c of (clients || [])) {
+      clientByIdMap.set(c.id, c.email);
+    }
+  }
+
+  // Extract Meta Lead ID from remarks if present.
+  const metaLeadIdRegex = /Meta Lead ID:\s*([^\s\n,;]+)/i;
+  const out = (offers || []).map((o: any) => {
+    const m = typeof o.remarks === "string" ? o.remarks.match(metaLeadIdRegex) : null;
+    const email =
+      (clientByIdMap.get(o.client_id) || o.client_email || "").toString().trim().toLowerCase();
+    return {
+      offer_id: o.id,
+      email,
+      meta_lead_id: m ? m[1] : null,
+      meta_platform: o.meta_platform,
+      source: o.source,
+      workflow_status: o.workflow_status,
+      created_at: o.created_at,
+      synced: !!o.adios_synced_at,
+    };
+  });
+
+  // Per-client dedup view (same key the backfill uses for AdiOS events).
+  const byClient = new Map<string, any>();
+  for (const r of out) {
+    const key = r.email || `noemail-${r.offer_id}`;
+    if (!byClient.has(key)) byClient.set(key, r);
+  }
+
+  return jsonResponse({
+    success: true,
+    company_id: companyId,
+    since_date: sinceIso,
+    total_offers: out.length,
+    unique_emails: byClient.size,
+    offers: out,
+    unique_emails_list: Array.from(byClient.keys()).filter((e) => !e.startsWith("noemail-")).sort(),
   }, 200);
 }
 
