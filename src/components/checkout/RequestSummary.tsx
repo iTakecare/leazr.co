@@ -1,6 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, ChevronLeft, InfoIcon } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { ShoppingBag, ChevronLeft, InfoIcon, PhoneCall } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
 import { useNavigate } from 'react-router-dom';
@@ -44,6 +46,7 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [voiceConsent, setVoiceConsent] = React.useState(false);
   
   // Utiliser la logique centralisée pour obtenir les prix corrects
   const totalPurchaseAmount = items.reduce((total, item) => {
@@ -119,6 +122,7 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         quantity: items.reduce((sum, item) => sum + item.quantity, 0),
         duration: 36, // Durée fixe de 36 mois
         has_client_account: contactData.has_client_account,
+        voice_consent: voiceConsent,
         message: `Financement demandé pour ${formatCurrency(financedAmount)} avec une marge de ${formatCurrency(marginAmount)} (${defaultMargin}%)`
       };
 
@@ -297,6 +301,29 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
             <p className="text-amber-800 text-sm">
               Demande soumise à approbation d'un partenaire financier, nous reviendrons vers vous dans un délai de 24h (jours ouvrables, hors week-end) pour le suivi de votre demande.
             </p>
+          </div>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="voice_consent"
+              checked={voiceConsent}
+              onCheckedChange={(checked) => setVoiceConsent(!!checked)}
+              className="mt-0.5"
+            />
+            <div className="space-y-1">
+              <Label htmlFor="voice_consent" className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                <PhoneCall className="h-3.5 w-3.5 text-slate-600" />
+                J'accepte d'être contacté(e) par téléphone pour le suivi de mon dossier
+              </Label>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Pour accélérer le traitement de votre demande, notre assistante virtuelle Alex peut vous appeler
+                afin de vous accompagner dans la transmission de vos documents.
+                L'appel est annoncé, enregistré, et vous pourrez à tout moment demander à parler à un collaborateur humain.
+                Consentement révocable à tout moment.
+              </p>
+            </div>
           </div>
         </div>
       </div>

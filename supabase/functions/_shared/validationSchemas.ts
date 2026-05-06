@@ -31,12 +31,19 @@ export const tokenSchema = z.string()
   .min(10, 'Token invalide')
   .max(500, 'Token trop long');
 
-// Schéma pour nom (prénom/nom)
+// Schéma pour nom (prénom/nom) — strict, utilisé pour signup
 export const nameSchema = z.string()
   .trim()
   .min(1, 'Ce champ est requis')
   .max(100, 'Nom trop long (max 100 caractères)')
   .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'Caractères invalides dans le nom');
+
+// Schéma pour nom de contact public — permissif (formulaires anonymes)
+// Pas de regex restrictive : accepte chiffres, ponctuation, etc. min/max seulement.
+export const contactNameSchema = z.string()
+  .trim()
+  .min(1, 'Ce champ est requis')
+  .max(100, 'Nom trop long (max 100 caractères)');
 
 // Schéma pour UUID
 export const uuidSchema = z.string()
@@ -93,11 +100,13 @@ const customPackItemSchema = z.object({
 });
 
 // Schéma pour un pack personnalisé
+// Note: items[] est optionnel car la fonction edge dérive les produits du pack
+// en filtrant data.products[].pack_id (pas besoin de redondance imbriquée).
 const customPackSchema = z.object({
   custom_pack_id: uuidSchema,
   pack_name: z.string().trim().min(1, 'Nom du pack requis').max(200, 'Nom du pack trop long'),
-  discount_percentage: z.number().int().min(0).max(100, 'Pourcentage invalide'),
-  items: z.array(customPackItemSchema).min(1, 'Au moins un produit requis dans le pack').max(50, 'Maximum 50 produits par pack')
+  discount_percentage: z.number().min(0).max(100, 'Pourcentage invalide'),
+  items: z.array(customPackItemSchema).max(50, 'Maximum 50 produits par pack').optional()
 });
 
 // Product request schema - Extended for custom packs support
@@ -117,7 +126,7 @@ const productItemSchema = z.object({
   
   // Custom pack fields
   pack_id: uuidSchema.optional(),
-  pack_discount_percentage: z.number().int().min(0).max(100, 'Pourcentage invalide').optional()
+  pack_discount_percentage: z.number().min(0).max(100, 'Pourcentage invalide').optional()
 });
 
 export const createProductRequestSchema = z.object({
@@ -138,8 +147,8 @@ export const createProductRequestSchema = z.object({
   
   // Format nouveau (iTakecare integration)
   contact_info: z.object({
-    first_name: nameSchema.optional(),
-    last_name: nameSchema.optional(),
+    first_name: contactNameSchema.optional(),
+    last_name: contactNameSchema.optional(),
     email: emailSchema.optional(),
     phone: z.string().trim().max(20, 'Téléphone invalide').optional()
   }).optional(),

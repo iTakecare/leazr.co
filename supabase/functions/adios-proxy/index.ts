@@ -394,13 +394,17 @@ async function handleBackfill(
   // yet synced. We pre-filter on the offer (source='meta' OR meta_platform set
   // OR utm_source present) to keep the result set small; final detection
   // (including notes/remarks regex) happens row-by-row inside the loop.
+  // NOTE: explicit FK hint required — there are two FKs between contracts and
+  // offers (contracts.offer_id → offers.id, AND offers.renewal_source_contract_id
+  // → contracts.id). Without `!contracts_offer_id_fkey` PostgREST returns
+  // PGRST201 "ambiguous embedding".
   const { data: candidates, error: candidatesError } = await adminSupabase
     .from("contracts")
     .select(`
       id, offer_id, client_id, company_id, client_email, client_name,
       monthly_payment, contract_duration, contract_signed_at,
       contract_signer_name, leaser_name, signature_status,
-      offers!inner (
+      offers!contracts_offer_id_fkey!inner (
         id, source, meta_platform, remarks,
         utm_source, utm_medium, utm_campaign, fbclid, landing_referrer,
         adios_synced_at

@@ -257,3 +257,12 @@ verify_jwt = false
 
 [functions.notify-ticket-reply]
 verify_jwt = false
+
+[functions.voice-call-start]
+verify_jwt = true
+
+[functions.voice-call-webhook]
+verify_jwt = false
+
+[functions.voice-tool-report-blockers]
+verify_jwt = false

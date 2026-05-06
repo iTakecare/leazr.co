@@ -58,6 +58,7 @@ export interface Client {
   kyc_score?: 'A' | 'B' | 'C' | 'D' | null;
   kyc_score_reasons?: string[] | null;
   kyc_score_computed_at?: string | null;
+  voice_consent_given_at?: string | null;
   company_id?: string;
 }
 

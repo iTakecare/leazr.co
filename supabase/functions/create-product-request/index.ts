@@ -6,7 +6,7 @@ import { createProductRequestSchema, createValidationErrorResponse } from "../_s
 import { checkRateLimit } from "../_shared/rateLimit.ts";
 import { getClientIp } from "../_shared/security.ts";
 import { stripHtml, generateClientConfirmationEmail, generateClientAccountEmail, generateAdminNotificationEmail } from "../_shared/emailTemplates.ts";
-import { z } from "npm:zod@3.22.4";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 // Configuration CORS pour permettre les requêtes depuis n'importe quelle origine
 const corsHeaders = {
@@ -190,6 +190,7 @@ serve(async (req) => {
     const equipmentCalculations = [];
     let totalPurchaseAmount = 0;
     let totalMonthlyPayment = 0;
+    let totalBrutMonthlyPayment = 0;
     let totalFinancedAmountEstimate = 0;
 
     // Traitement des produits individuels
@@ -350,7 +351,8 @@ serve(async (req) => {
       }
       
       const totalMonthlyForLine = Math.round(monthlyPrice * product.quantity * 100) / 100;
-      
+      const totalBrutMonthlyForLine = Math.round(brutMonthlyPrice * product.quantity * 100) / 100;
+
       const coefficientInit = 3.53;
       const sellingPrice = (monthlyPrice * 100) / coefficientInit;
       const equipmentMargin = price > 0 ? ((sellingPrice - price) / price) * 100 : 0;
@@ -372,6 +374,7 @@ serve(async (req) => {
       
       totalPurchaseAmount += totalPurchasePrice;
       totalMonthlyPayment += totalMonthlyForLine;
+      totalBrutMonthlyPayment += totalBrutMonthlyForLine;
       totalFinancedAmountEstimate += totalSellingPrice;
       
       equipmentCalculations.push({
@@ -565,7 +568,15 @@ serve(async (req) => {
     const trim200 = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().substring(0, 200) : null);
     const trim500 = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().substring(0, 500) : null);
 
-    const offerData = {
+    // Métadonnées de remise commerciale (pour affichage barré dans l'UI Leazr).
+    // Convention iTakecare : un seul pack par demande → discount_value = % de ce pack.
+    const totalDiscountAmount = Math.round((totalBrutMonthlyPayment - totalMonthlyPayment) * 100) / 100;
+    const hasDiscount = totalDiscountAmount > 0.001;
+    const singlePackDiscountValue = (data.packs && data.packs.length === 1 && data.packs[0].discount_percentage > 0)
+      ? data.packs[0].discount_percentage
+      : null;
+
+    const offerData: Record<string, unknown> = {
       id: requestId,
       client_id: clientId,
       client_name: clientName,
@@ -602,6 +613,19 @@ serve(async (req) => {
       fbclid: trim500(attribution.fbclid),
       landing_referrer: trim500(attribution.landing_referrer)
     };
+
+    if (hasDiscount) {
+      offerData.discount_amount = totalDiscountAmount;
+      offerData.monthly_payment_before_discount = totalBrutMonthlyPayment;
+      if (singlePackDiscountValue !== null) {
+        offerData.discount_type = 'percentage';
+        offerData.discount_value = singlePackDiscountValue;
+      } else {
+        offerData.discount_type = 'amount';
+        offerData.discount_value = totalDiscountAmount;
+      }
+      console.log(`💸 Remise offre: brut=${totalBrutMonthlyPayment}€, net=${totalMonthlyPayment}€, remise=${totalDiscountAmount}€, value=${offerData.discount_value}, type=${offerData.discount_type}`);
+    }
 
     const { error: offerError } = await supabaseAdmin.from('offers').insert(offerData);
     if (offerError) throw new Error(`Erreur offre: ${offerError.message}`);
@@ -662,12 +686,19 @@ serve(async (req) => {
         ? calc.brutMonthlyPrice
         : null;
 
+      // monthly_payment stocké en BRUT (avant remise pack) pour permettre à l'UI
+      // d'afficher le barré + bloc "Remise commerciale" via offer.discount_amount.
+      // La remise est appliquée au niveau offre (champs discount_*), pas par ligne.
+      const monthlyPaymentForLine = calc.packDiscountPercentage && calc.packDiscountPercentage > 0
+        ? calc.brutMonthlyPrice * calc.quantity
+        : calc.monthlyPrice * calc.quantity;
+
       const equipmentData = {
         offer_id: requestId,
         title: product.product_name || calc.productName,
         purchase_price: calc.purchasePrice,
         quantity: calc.quantity,
-        monthly_payment: calc.monthlyPrice * calc.quantity,
+        monthly_payment: monthlyPaymentForLine,
         selling_price: finalSellingPrice,
         margin: finalMargin,
         coefficient: coefficient,
