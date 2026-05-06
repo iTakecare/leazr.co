@@ -47,6 +47,11 @@ interface AdiOSProxyRequest {
   // WARNING: existing AdiOS events keyed by old per-offer external_ids stay
   // in AdiOS — the new client-level events appear alongside them.
   force_resync?: boolean;
+  // Optional ISO date (e.g. "2026-01-01") — only consider Meta-tagged offers
+  // created on or after this date. The follow-up "all offers per client"
+  // lookup is NOT filtered: a contract that closes a 2025 lead still counts
+  // as won when the client also has a 2026 Meta offer in the candidate set.
+  since_date?: string;
 }
 
 const ADIOS_HOST_HINT = "adios.pub";
@@ -391,6 +396,20 @@ async function handleBackfill(
   const maxToSend = Math.max(1, Math.min(body.max_to_send ?? 100, 500));
   const delayMs = Math.max(0, Math.min(body.delay_between_ms ?? 250, 5000));
 
+  // Optional "leads since X" filter. Validate the input shape so a malformed
+  // string doesn't blow up the SQL.
+  let sinceDateIso: string | null = null;
+  if (typeof body.since_date === "string" && body.since_date.trim()) {
+    const parsed = new Date(body.since_date.trim());
+    if (Number.isNaN(parsed.getTime())) {
+      return jsonResponse(
+        { success: false, error: `since_date invalide: ${body.since_date}` },
+        400,
+      );
+    }
+    sinceDateIso = parsed.toISOString();
+  }
+
   // Resolve caller's company.
   const { data: profile } = await userSupabase
     .from("profiles")
@@ -471,6 +490,9 @@ async function handleBackfill(
   if (!forceResync) {
     // Normal mode: only unsynced offers.
     candidatesQuery = candidatesQuery.is("adios_synced_at", null);
+  }
+  if (sinceDateIso) {
+    candidatesQuery = candidatesQuery.gte("created_at", sinceDateIso);
   }
   const { data: candidates, error: candidatesError } = await candidatesQuery
     .order("created_at", { ascending: true })
