@@ -349,14 +349,21 @@ async function handleTrigger(
 // each successful send stamps offers.adios_synced_at, so re-running the
 // backfill only picks up rows that haven't been synced yet.
 //
-// Scope: every Meta-attributed offer in any terminal-or-progressing
-// state. Status resolution priority:
-//   1. If a non-cancelled contract exists for the offer → "won"
-//      (the deal is closed regardless of where offers.workflow_status
-//      stands — workflow tracking lags reality in practice).
-//   2. Otherwise map offers.workflow_status (see `mapOfferStatusToAdios`).
-// Early stages (draft / sent / info_requested / …) with no contract are
-// skipped — there's nothing useful to attribute yet.
+// Scope: one AdiOS event per Meta-attributed CLIENT — not per offer. A
+// single Leazr client typically accumulates several offers (initial Meta
+// lead + edits/duplicates) and the contract that closes the deal often
+// lives on a non-Meta-tagged offer (the form-edit flow rebuilds the row
+// with source='client_request'). Deduplicating at the client level fixes
+// both "missed wins" and "same lead sent multiple times".
+//
+// Status resolution per client = best status across all their offers:
+//   won (contract exists, any offer) > qualified > rejected > lost
+//
+// External_id = the earliest Meta-tagged offer.id of the client. Stable
+// across runs (as long as the original Meta offer isn't deleted).
+//
+// Early stages (draft / sent / info_requested / …) with no contract on
+// any of the client's offers are skipped — there's nothing to attribute.
 //
 // Value:
 //   - won           → offer.financed_amount − offer.amount
@@ -467,29 +474,60 @@ async function handleBackfill(
 
   console.log(`[AdiOS Backfill] Found ${candidates?.length || 0} unsynced Meta-tagged offers (pre-filter)`);
 
-  // Pre-load all client emails + notes in one query (avoid N+1)
-  const clientIds = Array.from(new Set((candidates || [])
-    .map((c: any) => c.client_id)
-    .filter(Boolean))) as string[];
+  // ===== Step C: group Meta-tagged offers by client =====
+  // AdiOS attribution is per-lead = per-client. A single Leazr client can
+  // accumulate multiple offers (initial Meta lead + edits/duplicates) — we
+  // must not send N events for the same person.
+  const metaOffersByClient = new Map<string, any[]>();
+  for (const o of (candidates || []) as any[]) {
+    if (!o.client_id) continue;
+    const list = metaOffersByClient.get(o.client_id) ?? [];
+    list.push(o);
+    metaOffersByClient.set(o.client_id, list);
+  }
+  const candidateClientIds = Array.from(metaOffersByClient.keys());
+  console.log(`[AdiOS Backfill] ${candidateClientIds.length} unique Meta-attributed clients`);
+
+  // ===== Step D: load clients (email, notes) =====
   const clientByIdMap = new Map<string, { email: string | null; notes: string | null }>();
-  if (clientIds.length > 0) {
+  if (candidateClientIds.length > 0) {
     const { data: clients } = await adminSupabase
       .from("clients")
       .select("id, email, notes")
-      .in("id", clientIds);
+      .in("id", candidateClientIds);
     for (const c of (clients || [])) {
       clientByIdMap.set(c.id, { email: c.email, notes: c.notes });
     }
   }
 
-  // Pre-load contracts for ALL candidate offers — not just the ones whose
-  // workflow_status already says "signed". Reason: the offer's workflow can
-  // sit at e.g. `validated` / `financed` / `contract_sent` for a long while
-  // (admin/back-office not updating it) even though a contract row already
-  // exists in Leazr. From AdiOS' standpoint the conversion is acquired the
-  // moment a contract is generated. So: any non-cancelled contract = won.
-  const allOfferIds = (candidates || []).map((o: any) => o.id);
+  // ===== Step E: load ALL offers for these clients =====
+  // The contract that closes a Meta lead may live on a NON-Meta-tagged
+  // offer (typical pattern: original Meta offer → edited/duplicated to a
+  // fresh "demande client" offer → contract signed on the new one).
+  // So look at every offer the client has, not just the Meta-tagged ones.
+  const offersByClientMap = new Map<string, any[]>();
+  if (candidateClientIds.length > 0) {
+    const { data: allOffers } = await adminSupabase
+      .from("offers")
+      .select(`
+        id, client_id, client_email, source, meta_platform, remarks,
+        utm_source, utm_medium, fbclid,
+        workflow_status, amount, monthly_payment, financed_amount,
+        created_at, updated_at, adios_synced_at
+      `)
+      .eq("company_id", companyId)
+      .in("client_id", candidateClientIds);
+    for (const o of (allOffers || [])) {
+      const list = offersByClientMap.get(o.client_id) ?? [];
+      list.push(o);
+      offersByClientMap.set(o.client_id, list);
+    }
+  }
+
+  // ===== Step F: load all contracts for those offers =====
+  const allOfferIds = Array.from(offersByClientMap.values()).flat().map((o: any) => o.id);
   const contractByOfferIdMap = new Map<string, {
+    offer_id: string;
     monthly_payment: number | null;
     contract_duration: number | null;
     contract_signed_at: string | null;
@@ -510,16 +548,15 @@ async function handleBackfill(
       .neq("status", "cancelled")
       .order("created_at", { ascending: false });
     for (const c of (contracts || [])) {
-      // Multiple contracts per offer (renewals) → keep the most recent one;
-      // ordering above is `created_at DESC`, so the first hit wins.
       if (!contractByOfferIdMap.has(c.offer_id)) {
         contractByOfferIdMap.set(c.offer_id, c);
       }
     }
   }
 
+  // ===== Stats =====
   const stats = {
-    total_candidates: candidates?.length || 0,
+    total_candidates: candidateClientIds.length, // count is now CLIENTS, not offers
     sent: 0,
     skipped_not_meta: 0,
     skipped_too_early: 0,
@@ -537,89 +574,116 @@ async function handleBackfill(
     }>,
   };
 
-  for (const offer of (candidates || []) as any[]) {
+  // Status priority — bigger number wins when consolidating per client.
+  const statusPriority: Record<"won" | "qualified" | "rejected" | "lost", number> = {
+    won: 4,
+    qualified: 3,
+    rejected: 2,
+    lost: 1,
+  };
+
+  // ===== Step G: loop over CLIENTS, not offers =====
+  for (const clientId of candidateClientIds) {
     if (stats.sent >= maxToSend) break;
 
-    if (offer.adios_synced_at) {
+    const metaOffers = metaOffersByClient.get(clientId) ?? [];
+    const allOffers = offersByClientMap.get(clientId) ?? metaOffers;
+    const clientInfo = clientByIdMap.get(clientId) ?? null;
+
+    // If every Meta-tagged offer of this client is already synced, skip —
+    // we shouldn't re-process them (idempotency).
+    const anyUnsynced = metaOffers.some((o: any) => !o.adios_synced_at);
+    if (!anyUnsynced) {
       stats.skipped_already_synced++;
       continue;
     }
 
-    const clientInfo = offer.client_id ? clientByIdMap.get(offer.client_id) : null;
-
-    const meta = detectMetaSource({
-      meta_platform: offer.meta_platform,
-      utm_source: offer.utm_source,
-      utm_medium: offer.utm_medium,
-      fbclid: offer.fbclid,
-      offer_source: offer.source,
-      offer_remarks: offer.remarks,
-      client_notes: clientInfo?.notes ?? null,
-    });
-    if (!meta.isMeta) {
+    // Re-confirm the client is genuinely Meta — must pass on at least one
+    // of their Meta-tagged offers (the in-loop check handles legacy leads
+    // detected by free-text scanning of remarks/notes).
+    let meta: DetectResult | null = null;
+    for (const o of metaOffers) {
+      const r = detectMetaSource({
+        meta_platform: o.meta_platform,
+        utm_source: o.utm_source,
+        utm_medium: o.utm_medium,
+        fbclid: o.fbclid,
+        offer_source: o.source,
+        offer_remarks: o.remarks,
+        client_notes: clientInfo?.notes ?? null,
+      });
+      if (r.isMeta) { meta = r; break; }
+    }
+    if (!meta || !meta.isMeta) {
       stats.skipped_not_meta++;
       continue;
     }
 
-    // Status resolution:
-    //   1. If a non-cancelled contract exists → "won" (deal closed, even if
-    //      the offer's workflow_status hasn't been updated yet).
-    //   2. Otherwise fall back to mapping the offer's workflow_status.
-    const contract = contractByOfferIdMap.get(offer.id);
-    const adiosStatus = contract
-      ? "won"
-      : mapOfferStatusToAdios(offer.workflow_status);
+    // Pick the BEST status across all the client's offers (Meta-tagged or
+    // not) — the contract may live on a non-Meta-tagged offer.
+    type AdiosStatus = "won" | "qualified" | "rejected" | "lost";
+    let bestStatus: AdiosStatus | null = null;
+    let bestOffer: any = null;
+    let bestContract: typeof contractByOfferIdMap extends Map<any, infer V> ? V | null : null = null;
 
-    if (!adiosStatus) {
-      // Too early in the funnel (draft / sent / info_*); nothing to attribute.
+    for (const o of allOffers) {
+      const contract = contractByOfferIdMap.get(o.id) ?? null;
+      const offerStatus: AdiosStatus | null = contract
+        ? "won"
+        : (mapOfferStatusToAdios(o.workflow_status) as AdiosStatus | null);
+      if (!offerStatus) continue;
+      if (!bestStatus || statusPriority[offerStatus] > statusPriority[bestStatus]) {
+        bestStatus = offerStatus;
+        bestOffer = o;
+        bestContract = contract;
+      }
+    }
+
+    if (!bestStatus || !bestOffer) {
+      // No offer of this client has reached a status worth attributing yet.
       stats.skipped_too_early++;
       continue;
     }
 
-    // Compute value_eur:
-    //   won → margin = offer.financed_amount − offer.amount
-    //   others → 0 (AdiOS computes ROI on actual revenue only)
-    let valueEur = 0;
-    let occurredAt: string = offer.updated_at || offer.created_at;
-    let signerName: string | null = null;
-    let leaserName: string | null = null;
+    // Stable external_id per client = the EARLIEST Meta-tagged offer.id.
+    // (Stable across runs as long as we don't delete the earliest offer.)
+    const sortedMeta = [...metaOffers].sort((a: any, b: any) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+    const earliestMetaOffer = sortedMeta[0];
 
-    if (adiosStatus === "won") {
-      // Margin = selling price to the leaser − purchase price from supplier.
-      // Both stored on the offer; clamp negative results to 0 so we never
-      // ship a nonsense negative number to AdiOS.
-      const sellingPrice = Number(offer.financed_amount) || 0;
-      const purchasePrice = Number(offer.amount) || 0;
+    // Value: margin from the offer that drives the won status (it carries
+    // the right financed_amount / amount). For non-won, AdiOS sees 0.
+    let valueEur = 0;
+    if (bestStatus === "won") {
+      const sellingPrice = Number(bestOffer.financed_amount) || 0;
+      const purchasePrice = Number(bestOffer.amount) || 0;
       const margin = sellingPrice - purchasePrice;
       valueEur = Math.round((margin > 0 ? margin : 0) * 100) / 100;
+    }
 
-      // Contract details (when present) → use the actual signed date /
-      // contract creation date as the conversion timestamp, plus signer
-      // and leaser names for the AdiOS event notes.
-      if (contract) {
-        if (contract.contract_signed_at) {
-          occurredAt = contract.contract_signed_at;
-        } else if (contract.created_at) {
-          occurredAt = contract.created_at;
-        }
-        signerName = contract.contract_signer_name;
-        leaserName = contract.leaser_name;
-      }
+    // Conversion timestamp: prefer contract.contract_signed_at, fall back
+    // to contract.created_at, then offer.updated_at / created_at.
+    let occurredAt: string = bestOffer.updated_at || bestOffer.created_at;
+    if (bestContract) {
+      if (bestContract.contract_signed_at) occurredAt = bestContract.contract_signed_at;
+      else if (bestContract.created_at) occurredAt = bestContract.created_at;
     }
 
     const notesParts = [
       `Source: ${meta.platform}`,
       `Detection: ${meta.detectionMethod}`,
-      `Workflow: ${offer.workflow_status}`,
+      `Workflow: ${bestOffer.workflow_status}`,
+      bestOffer.id !== earliestMetaOffer.id ? `Best offer: ${bestOffer.id}` : null,
       "Backfill historique",
-      signerName ? `Signé par: ${signerName}` : null,
-      leaserName ? `Bailleur: ${leaserName}` : null,
+      bestContract?.contract_signer_name ? `Signé par: ${bestContract.contract_signer_name}` : null,
+      bestContract?.leaser_name ? `Bailleur: ${bestContract.leaser_name}` : null,
     ].filter(Boolean);
 
     const adiosPayload = {
-      external_id: offer.id,
-      email: clientInfo?.email || offer.client_email || "",
-      status: adiosStatus,
+      external_id: earliestMetaOffer.id,
+      email: clientInfo?.email || earliestMetaOffer.client_email || "",
+      status: bestStatus,
       value_eur: valueEur,
       occurred_at: occurredAt,
       notes: notesParts.join(" | "),
@@ -627,14 +691,14 @@ async function handleBackfill(
 
     const recordSentDetail = () => {
       stats.sent++;
-      stats.by_status[adiosStatus]++;
+      stats.by_status[bestStatus!]++;
       stats.total_value_eur = Math.round((stats.total_value_eur + valueEur) * 100) / 100;
       stats.details.push({
-        offer_id: offer.id,
-        status: adiosStatus,
-        platform: meta.platform || "Meta",
+        offer_id: earliestMetaOffer.id,
+        status: bestStatus!,
+        platform: meta!.platform || "Meta",
         value_eur: valueEur,
-        workflow_status: offer.workflow_status,
+        workflow_status: bestOffer.workflow_status,
       });
     };
 
@@ -655,23 +719,25 @@ async function handleBackfill(
       clearTimeout(timeoutId);
 
       if (adiosResponse.status >= 200 && adiosResponse.status < 300) {
+        // Stamp ALL Meta-tagged offers of this client so the next run
+        // doesn't re-process the same person.
         await adminSupabase
           .from("offers")
           .update({ adios_synced_at: new Date().toISOString() })
-          .eq("id", offer.id);
+          .in("id", metaOffers.map((o: any) => o.id));
         recordSentDetail();
       } else {
         const errText = await adiosResponse.text().catch(() => "");
         stats.errors++;
         stats.error_details.push({
-          offer_id: offer.id,
+          offer_id: earliestMetaOffer.id,
           error: `HTTP ${adiosResponse.status}: ${errText.substring(0, 200)}`,
         });
       }
     } catch (err) {
       stats.errors++;
       stats.error_details.push({
-        offer_id: offer.id,
+        offer_id: earliestMetaOffer.id,
         error: err instanceof Error ? err.message : "Erreur réseau",
       });
     }
