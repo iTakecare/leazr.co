@@ -368,8 +368,9 @@ async function handleTrigger(
 // External_id = the earliest Meta-tagged offer.id of the client. Stable
 // across runs (as long as the original Meta offer isn't deleted).
 //
-// Early stages (draft / sent / info_requested / …) with no contract on
-// any of the client's offers are skipped — there's nothing to attribute.
+// Every Meta lead is sent to AdiOS — no skipping. Even draft/sent/info_*
+// statuses count as `qualified` because the lead is real and in the
+// pipeline. Only explicit terminal states map to won/rejected/lost.
 //
 // Value:
 //   - won           → offer.financed_amount − offer.amount
@@ -642,10 +643,9 @@ async function handleBackfill(
 
     for (const o of allOffers) {
       const contract = contractByOfferIdMap.get(o.id) ?? null;
-      const offerStatus: AdiosStatus | null = contract
+      const offerStatus: AdiosStatus = contract
         ? "won"
-        : (mapOfferStatusToAdios(o.workflow_status) as AdiosStatus | null);
-      if (!offerStatus) continue;
+        : mapOfferStatusToAdios(o.workflow_status);
       if (!bestStatus || statusPriority[offerStatus] > statusPriority[bestStatus]) {
         bestStatus = offerStatus;
         bestOffer = o;
@@ -654,7 +654,8 @@ async function handleBackfill(
     }
 
     if (!bestStatus || !bestOffer) {
-      // No offer of this client has reached a status worth attributing yet.
+      // Defensive: should never happen now (every status maps to one of the
+      // four), but skip silently if the client somehow has no offer at all.
       stats.skipped_too_early++;
       continue;
     }
@@ -942,44 +943,35 @@ interface DetectResult {
 }
 
 // Map a Leazr offer.workflow_status to one of the four AdiOS event statuses.
-// Returns null for early-stage statuses where there's nothing to attribute.
+//
+// A Meta lead exists from the moment it lands in the system — even at
+// `draft` status, the form was filled and a real human is in the funnel.
+// So the rule is simple: only the explicit terminal states ("rejected"
+// flavors and `without_follow_up`) are negative; `signed/contract_signed/
+// invoicing` is won; EVERYTHING ELSE (draft / sent / info_* / accepted /
+// validated / financed / contract_sent / leaser_* / approved …) counts
+// as `qualified` — the lead is real and still in the pipeline.
 function mapOfferStatusToAdios(
   workflowStatus: string | null | undefined,
-): "won" | "qualified" | "lost" | "rejected" | null {
-  if (!workflowStatus) return null;
-  const s = workflowStatus.toLowerCase().trim();
+): "won" | "qualified" | "lost" | "rejected" {
+  const s = (workflowStatus || "").toLowerCase().trim();
 
-  // Won — terminal positive (contract signed, invoiced)
+  // Terminal positive — contract signed, invoiced.
   if (["signed", "contract_signed", "invoicing"].includes(s)) return "won";
 
-  // Qualified — accepted at some level, in progress towards won
-  if (
-    [
-      "accepted",
-      "validated",
-      "financed",
-      "contract_sent",
-      "leaser_review",
-      "leaser_introduced",
-      "approved",
-    ].includes(s)
-  ) {
-    return "qualified";
-  }
-
-  // Rejected — explicit refusal, terminal negative
+  // Terminal negative — explicit refusal at any level.
   if (
     ["internal_rejected", "leaser_rejected", "client_rejected", "rejected"].includes(s)
   ) {
     return "rejected";
   }
 
-  // Lost — abandoned without explicit refusal
+  // Lost — lead went cold / no follow-up.
   if (s === "without_follow_up") return "lost";
 
-  // Too early to attribute: draft / sent / offer_send / info_requested /
-  // info_received / internal_docs_requested / internal_approved
-  return null;
+  // Everything else (including empty/unknown statuses) = an active lead
+  // that hasn't reached a terminal state yet.
+  return "qualified";
 }
 
 function detectMetaSource(input: DetectInput): DetectResult {
