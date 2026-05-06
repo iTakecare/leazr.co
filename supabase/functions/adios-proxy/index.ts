@@ -350,10 +350,13 @@ async function handleTrigger(
 // backfill only picks up rows that haven't been synced yet.
 //
 // Scope: every Meta-attributed offer in any terminal-or-progressing
-// workflow status. The status field of the AdiOS event is mapped from
-// offers.workflow_status (see `mapOfferStatusToAdios`). Early stages
-// (draft / sent / info_requested / …) are skipped — there's nothing
-// useful to attribute yet.
+// state. Status resolution priority:
+//   1. If a non-cancelled contract exists for the offer → "won"
+//      (the deal is closed regardless of where offers.workflow_status
+//      stands — workflow tracking lags reality in practice).
+//   2. Otherwise map offers.workflow_status (see `mapOfferStatusToAdios`).
+// Early stages (draft / sent / info_requested / …) with no contract are
+// skipped — there's nothing useful to attribute yet.
 //
 // Value:
 //   - won           → offer.financed_amount − offer.amount
@@ -444,34 +447,38 @@ async function handleBackfill(
     }
   }
 
-  // Pre-load contracts for offers whose status maps to "won" — we need
-  // the actual signed monthly payment + duration to compute margin.
-  const wonOfferIds = (candidates || [])
-    .filter((o: any) => mapOfferStatusToAdios(o.workflow_status) === "won")
-    .map((o: any) => o.id);
+  // Pre-load contracts for ALL candidate offers — not just the ones whose
+  // workflow_status already says "signed". Reason: the offer's workflow can
+  // sit at e.g. `validated` / `financed` / `contract_sent` for a long while
+  // (admin/back-office not updating it) even though a contract row already
+  // exists in Leazr. From AdiOS' standpoint the conversion is acquired the
+  // moment a contract is generated. So: any non-cancelled contract = won.
+  const allOfferIds = (candidates || []).map((o: any) => o.id);
   const contractByOfferIdMap = new Map<string, {
     monthly_payment: number | null;
     contract_duration: number | null;
     contract_signed_at: string | null;
     contract_signer_name: string | null;
     leaser_name: string | null;
+    status: string | null;
+    signature_status: string | null;
+    created_at: string | null;
   }>();
-  if (wonOfferIds.length > 0) {
+  if (allOfferIds.length > 0) {
     const { data: contracts } = await adminSupabase
       .from("contracts")
-      .select("offer_id, monthly_payment, contract_duration, contract_signed_at, contract_signer_name, leaser_name, signature_status")
-      .in("offer_id", wonOfferIds);
+      .select(
+        "offer_id, monthly_payment, contract_duration, contract_signed_at, " +
+          "contract_signer_name, leaser_name, signature_status, status, created_at",
+      )
+      .in("offer_id", allOfferIds)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false });
     for (const c of (contracts || [])) {
-      // Pick the signed one if multiple (renewals) — the first works fine
-      // for our purposes since we're attributing the original conversion.
+      // Multiple contracts per offer (renewals) → keep the most recent one;
+      // ordering above is `created_at DESC`, so the first hit wins.
       if (!contractByOfferIdMap.has(c.offer_id)) {
-        contractByOfferIdMap.set(c.offer_id, {
-          monthly_payment: c.monthly_payment,
-          contract_duration: c.contract_duration,
-          contract_signed_at: c.contract_signed_at,
-          contract_signer_name: c.contract_signer_name,
-          leaser_name: c.leaser_name,
-        });
+        contractByOfferIdMap.set(c.offer_id, c);
       }
     }
   }
@@ -519,7 +526,15 @@ async function handleBackfill(
       continue;
     }
 
-    const adiosStatus = mapOfferStatusToAdios(offer.workflow_status);
+    // Status resolution:
+    //   1. If a non-cancelled contract exists → "won" (deal closed, even if
+    //      the offer's workflow_status hasn't been updated yet).
+    //   2. Otherwise fall back to mapping the offer's workflow_status.
+    const contract = contractByOfferIdMap.get(offer.id);
+    const adiosStatus = contract
+      ? "won"
+      : mapOfferStatusToAdios(offer.workflow_status);
+
     if (!adiosStatus) {
       // Too early in the funnel (draft / sent / info_*); nothing to attribute.
       stats.skipped_too_early++;
@@ -527,8 +542,8 @@ async function handleBackfill(
     }
 
     // Compute value_eur:
-    //   won → margin = (signed monthly × duration) − purchase amount
-    //   others → 0 (AdiOS attributes ROI on actual revenue only)
+    //   won → margin = offer.financed_amount − offer.amount
+    //   others → 0 (AdiOS computes ROI on actual revenue only)
     let valueEur = 0;
     let occurredAt: string = offer.updated_at || offer.created_at;
     let signerName: string | null = null;
@@ -543,11 +558,15 @@ async function handleBackfill(
       const margin = sellingPrice - purchasePrice;
       valueEur = Math.round((margin > 0 ? margin : 0) * 100) / 100;
 
-      // Contract details (if present) — only used to enrich the AdiOS
-      // event with the actual signed date and signer/leaser names.
-      const contract = contractByOfferIdMap.get(offer.id);
+      // Contract details (when present) → use the actual signed date /
+      // contract creation date as the conversion timestamp, plus signer
+      // and leaser names for the AdiOS event notes.
       if (contract) {
-        if (contract.contract_signed_at) occurredAt = contract.contract_signed_at;
+        if (contract.contract_signed_at) {
+          occurredAt = contract.contract_signed_at;
+        } else if (contract.created_at) {
+          occurredAt = contract.created_at;
+        }
         signerName = contract.contract_signer_name;
         leaserName = contract.leaser_name;
       }
