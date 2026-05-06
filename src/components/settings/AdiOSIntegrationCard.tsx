@@ -72,20 +72,27 @@ export default function AdiOSIntegrationCard() {
       setCompanyId(profile.company_id);
 
       const { data: adiosConfig, error } = await supabase
-        .from("adios_integrations" as any)
+        .from("adios_integrations")
         .select("*")
         .eq("company_id", profile.company_id)
         .maybeSingle();
 
-      if (error && (error as any).code !== "PGRST116") {
+      if (error && error.code !== "PGRST116") {
         console.error("Error fetching AdiOS config:", error);
         return;
       }
       if (adiosConfig) {
-        const cfg = adiosConfig as any;
-        setConfig(cfg);
-        setWebhookUrl(cfg.webhook_url || "");
-        setIsActive(cfg.is_active);
+        setConfig({
+          id: adiosConfig.id,
+          webhook_url: adiosConfig.webhook_url,
+          enabled_events: (adiosConfig.enabled_events as string[]) || [],
+          is_active: adiosConfig.is_active,
+          last_triggered_at: adiosConfig.last_triggered_at,
+          last_status: adiosConfig.last_status,
+          last_error: adiosConfig.last_error,
+        });
+        setWebhookUrl(adiosConfig.webhook_url || "");
+        setIsActive(adiosConfig.is_active);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -121,7 +128,7 @@ export default function AdiOSIntegrationCard() {
 
     try {
       setSaving(true);
-      const configData: any = {
+      const configData = {
         company_id: companyId,
         webhook_url: webhookUrl.trim(),
         enabled_events: ["contract_signed"],
@@ -130,18 +137,15 @@ export default function AdiOSIntegrationCard() {
 
       if (config?.id) {
         const { error } = await supabase
-          .from("adios_integrations" as any)
+          .from("adios_integrations")
           .update(configData)
           .eq("id", config.id);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
-          .from("adios_integrations" as any)
-          .insert(configData)
-          .select()
-          .single();
+        const { error } = await supabase
+          .from("adios_integrations")
+          .insert(configData);
         if (error) throw error;
-        setConfig(data as any);
       }
 
       toast.success("Configuration AdiOS sauvegardée");

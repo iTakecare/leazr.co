@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      adios_integrations: {
+        Row: {
+          company_id: string
+          created_at: string
+          enabled_events: Json
+          id: string
+          is_active: boolean
+          last_error: string | null
+          last_status: string | null
+          last_triggered_at: string | null
+          updated_at: string
+          webhook_url: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          enabled_events?: Json
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_status?: string | null
+          last_triggered_at?: string | null
+          updated_at?: string
+          webhook_url: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          enabled_events?: Json
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_status?: string | null
+          last_triggered_at?: string | null
+          updated_at?: string
+          webhook_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adios_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_notifications: {
         Row: {
           company_id: string
@@ -1293,6 +1340,78 @@ export type Database = {
           },
         ]
       }
+      client_kyc_reports: {
+        Row: {
+          ai_extraction: Json | null
+          analyzed_at: string | null
+          applied_fields: Json | null
+          client_id: string
+          company_id: string
+          created_at: string
+          error_message: string | null
+          file_mime_type: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          source: string
+          status: string
+          uploaded_by: string | null
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          ai_extraction?: Json | null
+          analyzed_at?: string | null
+          applied_fields?: Json | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          file_mime_type?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          source: string
+          status?: string
+          uploaded_by?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          ai_extraction?: Json | null
+          analyzed_at?: string | null
+          applied_fields?: Json | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          file_mime_type?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          source?: string
+          status?: string
+          uploaded_by?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_kyc_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_kyc_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -1303,6 +1422,7 @@ export type Database = {
           business_sector: string | null
           city: string | null
           company: string | null
+          company_creation_date: string | null
           company_id: string
           contact_name: string | null
           country: string | null
@@ -1314,12 +1434,18 @@ export type Database = {
           delivery_postal_code: string | null
           delivery_same_as_billing: boolean | null
           email: string | null
+          entity_type: string | null
           first_name: string | null
           has_custom_catalog: boolean | null
           has_user_account: boolean | null
           hidden_variants: string[] | null
           id: string
+          kyc_score: string | null
+          kyc_score_computed_at: string | null
+          kyc_score_reasons: Json | null
+          kyc_validated_at: string | null
           last_name: string | null
+          legal_form: string | null
           logo_url: string | null
           name: string
           notes: string | null
@@ -1330,6 +1456,7 @@ export type Database = {
           user_account_created_at: string | null
           user_id: string | null
           vat_number: string | null
+          young_company_relaunched_at: string | null
         }
         Insert: {
           address?: string | null
@@ -1340,6 +1467,7 @@ export type Database = {
           business_sector?: string | null
           city?: string | null
           company?: string | null
+          company_creation_date?: string | null
           company_id: string
           contact_name?: string | null
           country?: string | null
@@ -1351,12 +1479,18 @@ export type Database = {
           delivery_postal_code?: string | null
           delivery_same_as_billing?: boolean | null
           email?: string | null
+          entity_type?: string | null
           first_name?: string | null
           has_custom_catalog?: boolean | null
           has_user_account?: boolean | null
           hidden_variants?: string[] | null
           id?: string
+          kyc_score?: string | null
+          kyc_score_computed_at?: string | null
+          kyc_score_reasons?: Json | null
+          kyc_validated_at?: string | null
           last_name?: string | null
+          legal_form?: string | null
           logo_url?: string | null
           name: string
           notes?: string | null
@@ -1367,6 +1501,7 @@ export type Database = {
           user_account_created_at?: string | null
           user_id?: string | null
           vat_number?: string | null
+          young_company_relaunched_at?: string | null
         }
         Update: {
           address?: string | null
@@ -1377,6 +1512,7 @@ export type Database = {
           business_sector?: string | null
           city?: string | null
           company?: string | null
+          company_creation_date?: string | null
           company_id?: string
           contact_name?: string | null
           country?: string | null
@@ -1388,12 +1524,18 @@ export type Database = {
           delivery_postal_code?: string | null
           delivery_same_as_billing?: boolean | null
           email?: string | null
+          entity_type?: string | null
           first_name?: string | null
           has_custom_catalog?: boolean | null
           has_user_account?: boolean | null
           hidden_variants?: string[] | null
           id?: string
+          kyc_score?: string | null
+          kyc_score_computed_at?: string | null
+          kyc_score_reasons?: Json | null
+          kyc_validated_at?: string | null
           last_name?: string | null
+          legal_form?: string | null
           logo_url?: string | null
           name?: string
           notes?: string | null
@@ -1404,6 +1546,7 @@ export type Database = {
           user_account_created_at?: string | null
           user_id?: string | null
           vat_number?: string | null
+          young_company_relaunched_at?: string | null
         }
         Relationships: [
           {
@@ -1765,9 +1908,12 @@ export type Database = {
           header_description: string | null
           header_enabled: boolean | null
           header_title: string | null
+          hero_image_url: string | null
           id: string
           iframe_height: string | null
           iframe_width: string | null
+          login_subtitle: string | null
+          login_title: string | null
           logo_url: string | null
           payment_day: number | null
           primary_color: string | null
@@ -1796,9 +1942,12 @@ export type Database = {
           header_description?: string | null
           header_enabled?: boolean | null
           header_title?: string | null
+          hero_image_url?: string | null
           id?: string
           iframe_height?: string | null
           iframe_width?: string | null
+          login_subtitle?: string | null
+          login_title?: string | null
           logo_url?: string | null
           payment_day?: number | null
           primary_color?: string | null
@@ -1827,9 +1976,12 @@ export type Database = {
           header_description?: string | null
           header_enabled?: boolean | null
           header_title?: string | null
+          hero_image_url?: string | null
           id?: string
           iframe_height?: string | null
           iframe_width?: string | null
+          login_subtitle?: string | null
+          login_title?: string | null
           logo_url?: string | null
           payment_day?: number | null
           primary_color?: string | null
@@ -2388,6 +2540,8 @@ export type Database = {
         Row: {
           actual_purchase_date: string | null
           actual_purchase_price: number | null
+          bought_back_at: string | null
+          bought_back_price: number | null
           collaborator_id: string | null
           contract_id: string
           created_at: string
@@ -2414,6 +2568,8 @@ export type Database = {
         Insert: {
           actual_purchase_date?: string | null
           actual_purchase_price?: number | null
+          bought_back_at?: string | null
+          bought_back_price?: number | null
           collaborator_id?: string | null
           contract_id: string
           created_at?: string
@@ -2440,6 +2596,8 @@ export type Database = {
         Update: {
           actual_purchase_date?: string | null
           actual_purchase_price?: number | null
+          bought_back_at?: string | null
+          bought_back_price?: number | null
           collaborator_id?: string | null
           contract_id?: string
           created_at?: string
@@ -2733,8 +2891,16 @@ export type Database = {
           delivery_date: string | null
           delivery_status: string | null
           dossier_date: string | null
+          dossier_fee_amount: number | null
+          dossier_fee_mollie_id: string | null
+          dossier_fee_paid_at: string | null
+          dossier_fee_status: string | null
           equipment_description: string | null
           estimated_delivery: string | null
+          fees_bic: string | null
+          fees_customer_id: string | null
+          fees_iban: string | null
+          fees_mandate_id: string | null
           gocardless_billing_request_flow_id: string | null
           gocardless_billing_request_flow_url: string | null
           gocardless_billing_request_id: string | null
@@ -2744,6 +2910,10 @@ export type Database = {
           gocardless_mandate_status: string | null
           gocardless_subscription_id: string | null
           id: string
+          insurance_fee_active: boolean | null
+          insurance_fee_amount: number | null
+          insurance_fee_mollie_id: string | null
+          insurance_fee_next_date: string | null
           invoice_date: string | null
           invoice_generated: boolean
           invoice_id: string | null
@@ -2792,8 +2962,16 @@ export type Database = {
           delivery_date?: string | null
           delivery_status?: string | null
           dossier_date?: string | null
+          dossier_fee_amount?: number | null
+          dossier_fee_mollie_id?: string | null
+          dossier_fee_paid_at?: string | null
+          dossier_fee_status?: string | null
           equipment_description?: string | null
           estimated_delivery?: string | null
+          fees_bic?: string | null
+          fees_customer_id?: string | null
+          fees_iban?: string | null
+          fees_mandate_id?: string | null
           gocardless_billing_request_flow_id?: string | null
           gocardless_billing_request_flow_url?: string | null
           gocardless_billing_request_id?: string | null
@@ -2803,6 +2981,10 @@ export type Database = {
           gocardless_mandate_status?: string | null
           gocardless_subscription_id?: string | null
           id?: string
+          insurance_fee_active?: boolean | null
+          insurance_fee_amount?: number | null
+          insurance_fee_mollie_id?: string | null
+          insurance_fee_next_date?: string | null
           invoice_date?: string | null
           invoice_generated?: boolean
           invoice_id?: string | null
@@ -2851,8 +3033,16 @@ export type Database = {
           delivery_date?: string | null
           delivery_status?: string | null
           dossier_date?: string | null
+          dossier_fee_amount?: number | null
+          dossier_fee_mollie_id?: string | null
+          dossier_fee_paid_at?: string | null
+          dossier_fee_status?: string | null
           equipment_description?: string | null
           estimated_delivery?: string | null
+          fees_bic?: string | null
+          fees_customer_id?: string | null
+          fees_iban?: string | null
+          fees_mandate_id?: string | null
           gocardless_billing_request_flow_id?: string | null
           gocardless_billing_request_flow_url?: string | null
           gocardless_billing_request_id?: string | null
@@ -2862,6 +3052,10 @@ export type Database = {
           gocardless_mandate_status?: string | null
           gocardless_subscription_id?: string | null
           id?: string
+          insurance_fee_active?: boolean | null
+          insurance_fee_amount?: number | null
+          insurance_fee_mollie_id?: string | null
+          insurance_fee_next_date?: string | null
           invoice_date?: string | null
           invoice_generated?: boolean
           invoice_id?: string | null
@@ -5269,6 +5463,50 @@ export type Database = {
           },
         ]
       }
+      offer_call_logs: {
+        Row: {
+          callback_date: string | null
+          called_at: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          offer_id: string
+          status: string
+        }
+        Insert: {
+          callback_date?: string | null
+          called_at?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          offer_id: string
+          status: string
+        }
+        Update: {
+          callback_date?: string | null
+          called_at?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          offer_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_call_logs_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_custom_packs: {
         Row: {
           created_at: string
@@ -5417,6 +5655,7 @@ export type Database = {
           reception_date: string | null
           selling_price: number | null
           serial_number: string | null
+          source_stock_item_id: string | null
           supplier_id: string | null
           supplier_price: number | null
           title: string
@@ -5461,6 +5700,7 @@ export type Database = {
           reception_date?: string | null
           selling_price?: number | null
           serial_number?: string | null
+          source_stock_item_id?: string | null
           supplier_id?: string | null
           supplier_price?: number | null
           title: string
@@ -5505,6 +5745,7 @@ export type Database = {
           reception_date?: string | null
           selling_price?: number | null
           serial_number?: string | null
+          source_stock_item_id?: string | null
           supplier_id?: string | null
           supplier_price?: number | null
           title?: string
@@ -5552,6 +5793,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_equipment_source_stock_item_id_fkey"
+            columns: ["source_stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
             referencedColumns: ["id"]
           },
           {
@@ -5888,6 +6136,7 @@ export type Database = {
       }
       offers: {
         Row: {
+          adios_synced_at: string | null
           ambassador_id: string | null
           amount: number
           annual_insurance: number | null
@@ -5915,16 +6164,19 @@ export type Database = {
           duration: number | null
           equipment_description: string | null
           estimated_budget: number | null
+          fbclid: string | null
           file_fee: number | null
           financed_amount: number | null
           id: string
           internal_score: string | null
           is_purchase: boolean | null
+          landing_referrer: string | null
           leaser_id: string | null
           leaser_request_number: string | null
           leaser_score: string | null
           margin: number | null
           margin_difference: number | null
+          meta_platform: string | null
           monthly_payment: number
           monthly_payment_before_discount: number | null
           offer_number: string | null
@@ -5948,10 +6200,16 @@ export type Database = {
           type: string | null
           updated_at: string | null
           user_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           workflow_status: string | null
           workflow_template_id: string | null
         }
         Insert: {
+          adios_synced_at?: string | null
           ambassador_id?: string | null
           amount?: number
           annual_insurance?: number | null
@@ -5979,16 +6237,19 @@ export type Database = {
           duration?: number | null
           equipment_description?: string | null
           estimated_budget?: number | null
+          fbclid?: string | null
           file_fee?: number | null
           financed_amount?: number | null
           id?: string
           internal_score?: string | null
           is_purchase?: boolean | null
+          landing_referrer?: string | null
           leaser_id?: string | null
           leaser_request_number?: string | null
           leaser_score?: string | null
           margin?: number | null
           margin_difference?: number | null
+          meta_platform?: string | null
           monthly_payment?: number
           monthly_payment_before_discount?: number | null
           offer_number?: string | null
@@ -6012,10 +6273,16 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
           user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           workflow_status?: string | null
           workflow_template_id?: string | null
         }
         Update: {
+          adios_synced_at?: string | null
           ambassador_id?: string | null
           amount?: number
           annual_insurance?: number | null
@@ -6043,16 +6310,19 @@ export type Database = {
           duration?: number | null
           equipment_description?: string | null
           estimated_budget?: number | null
+          fbclid?: string | null
           file_fee?: number | null
           financed_amount?: number | null
           id?: string
           internal_score?: string | null
           is_purchase?: boolean | null
+          landing_referrer?: string | null
           leaser_id?: string | null
           leaser_request_number?: string | null
           leaser_score?: string | null
           margin?: number | null
           margin_difference?: number | null
+          meta_platform?: string | null
           monthly_payment?: number
           monthly_payment_before_discount?: number | null
           offer_number?: string | null
@@ -6076,6 +6346,11 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
           user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           workflow_status?: string | null
           workflow_template_id?: string | null
         }
@@ -6134,6 +6409,135 @@ export type Database = {
             columns: ["workflow_template_id"]
             isOneToOne: false
             referencedRelation: "workflow_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_line_sourcing: {
+        Row: {
+          company_id: string
+          contract_equipment_id: string | null
+          created_at: string
+          equipment_order_unit_id: string | null
+          id: string
+          notes: string | null
+          offer_equipment_id: string | null
+          offer_snapshot: Json
+          ordered_at: string | null
+          proposed_at: string | null
+          proposed_by: string | null
+          proposer_role: string | null
+          rank: number | null
+          received_at: string | null
+          rejection_reason: string | null
+          selected_at: string
+          selected_by: string | null
+          source_channel: string | null
+          sourcing_search_id: string | null
+          status: string
+          supplier_id: string | null
+          supplier_order_ref: string | null
+          total_cost_cents: number
+          tracking_number: string | null
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          validation_notes: string | null
+        }
+        Insert: {
+          company_id: string
+          contract_equipment_id?: string | null
+          created_at?: string
+          equipment_order_unit_id?: string | null
+          id?: string
+          notes?: string | null
+          offer_equipment_id?: string | null
+          offer_snapshot: Json
+          ordered_at?: string | null
+          proposed_at?: string | null
+          proposed_by?: string | null
+          proposer_role?: string | null
+          rank?: number | null
+          received_at?: string | null
+          rejection_reason?: string | null
+          selected_at?: string
+          selected_by?: string | null
+          source_channel?: string | null
+          sourcing_search_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          supplier_order_ref?: string | null
+          total_cost_cents: number
+          tracking_number?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+        }
+        Update: {
+          company_id?: string
+          contract_equipment_id?: string | null
+          created_at?: string
+          equipment_order_unit_id?: string | null
+          id?: string
+          notes?: string | null
+          offer_equipment_id?: string | null
+          offer_snapshot?: Json
+          ordered_at?: string | null
+          proposed_at?: string | null
+          proposed_by?: string | null
+          proposer_role?: string | null
+          rank?: number | null
+          received_at?: string | null
+          rejection_reason?: string | null
+          selected_at?: string
+          selected_by?: string | null
+          source_channel?: string | null
+          sourcing_search_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          supplier_order_ref?: string | null
+          total_cost_cents?: number
+          tracking_number?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_line_sourcing_contract_equipment_id_fkey"
+            columns: ["contract_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_line_sourcing_equipment_order_unit_id_fkey"
+            columns: ["equipment_order_unit_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_order_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_line_sourcing_offer_equipment_id_fkey"
+            columns: ["offer_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "offer_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_line_sourcing_sourcing_search_id_fkey"
+            columns: ["sourcing_search_id"]
+            isOneToOne: false
+            referencedRelation: "sourcing_searches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_line_sourcing_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -7600,6 +8004,44 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          endpoint: string
+          id: string
+          subscription: Json
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          subscription: Json
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          subscription?: Json
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limits: {
         Row: {
           created_at: string | null
@@ -7868,6 +8310,106 @@ export type Database = {
           },
         ]
       }
+      sourcing_searches: {
+        Row: {
+          company_id: string
+          contract_equipment_id: string | null
+          created_at: string
+          duration_ms: number | null
+          equipment_order_unit_id: string | null
+          errors_detail: Json | null
+          id: string
+          offer_equipment_id: string | null
+          parsed_specs: Json | null
+          query_text: string
+          results_count: number | null
+          sources_attempted: string[] | null
+          sources_failed: string[] | null
+          sources_succeeded: string[] | null
+          user_id: string | null
+        }
+        Insert: {
+          company_id: string
+          contract_equipment_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          equipment_order_unit_id?: string | null
+          errors_detail?: Json | null
+          id?: string
+          offer_equipment_id?: string | null
+          parsed_specs?: Json | null
+          query_text: string
+          results_count?: number | null
+          sources_attempted?: string[] | null
+          sources_failed?: string[] | null
+          sources_succeeded?: string[] | null
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          contract_equipment_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          equipment_order_unit_id?: string | null
+          errors_detail?: Json | null
+          id?: string
+          offer_equipment_id?: string | null
+          parsed_specs?: Json | null
+          query_text?: string
+          results_count?: number | null
+          sources_attempted?: string[] | null
+          sources_failed?: string[] | null
+          sources_succeeded?: string[] | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sourcing_searches_contract_equipment_id_fkey"
+            columns: ["contract_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sourcing_searches_equipment_order_unit_id_fkey"
+            columns: ["equipment_order_unit_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_order_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sourcing_searches_offer_equipment_id_fkey"
+            columns: ["offer_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "offer_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sourcing_session_cache: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          query_hash: string
+          results: Json
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          query_hash: string
+          results: Json
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          query_hash?: string
+          results?: Json
+        }
+        Relationships: []
+      }
       steps_cms: {
         Row: {
           created_at: string
@@ -7901,9 +8443,67 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_item_costs: {
+        Row: {
+          amount: number
+          category: string
+          company_id: string
+          cost_date: string
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          notes: string | null
+          stock_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string
+          company_id: string
+          cost_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          notes?: string | null
+          stock_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          company_id?: string
+          cost_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          notes?: string | null
+          stock_item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_item_costs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_item_costs_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_items: {
         Row: {
           brand: string | null
+          buyback_price: number | null
           category: string | null
           color: string | null
           company_id: string
@@ -7926,6 +8526,9 @@ export type Database = {
           reception_date: string | null
           serial_number: string | null
           serial_numbers: string[] | null
+          source: string
+          source_contract_equipment_id: string | null
+          source_contract_id: string | null
           status: string
           storage: string | null
           supplier_id: string | null
@@ -7936,6 +8539,7 @@ export type Database = {
         }
         Insert: {
           brand?: string | null
+          buyback_price?: number | null
           category?: string | null
           color?: string | null
           company_id: string
@@ -7958,6 +8562,9 @@ export type Database = {
           reception_date?: string | null
           serial_number?: string | null
           serial_numbers?: string[] | null
+          source?: string
+          source_contract_equipment_id?: string | null
+          source_contract_id?: string | null
           status?: string
           storage?: string | null
           supplier_id?: string | null
@@ -7968,6 +8575,7 @@ export type Database = {
         }
         Update: {
           brand?: string | null
+          buyback_price?: number | null
           category?: string | null
           color?: string | null
           company_id?: string
@@ -7990,6 +8598,9 @@ export type Database = {
           reception_date?: string | null
           serial_number?: string | null
           serial_numbers?: string[] | null
+          source?: string
+          source_contract_equipment_id?: string | null
+          source_contract_id?: string | null
           status?: string
           storage?: string | null
           supplier_id?: string | null
@@ -8018,6 +8629,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_source_contract_id_fkey"
+            columns: ["source_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
           {
@@ -8232,6 +8850,7 @@ export type Database = {
       suppliers: {
         Row: {
           address: string | null
+          avg_response_ms: number | null
           city: string | null
           code: string | null
           company_id: string
@@ -8241,16 +8860,25 @@ export type Database = {
           email: string | null
           id: string
           is_active: boolean | null
+          last_error: string | null
+          last_error_at: string | null
+          last_success_at: string | null
+          logo_url: string | null
           name: string
           notes: string | null
           phone: string | null
           postal_code: string | null
+          sourcing_adapter: string | null
+          sourcing_config: Json | null
+          sourcing_enabled: boolean
           supplier_type: string
+          supports_refurbished: boolean | null
           updated_at: string | null
           website: string | null
         }
         Insert: {
           address?: string | null
+          avg_response_ms?: number | null
           city?: string | null
           code?: string | null
           company_id: string
@@ -8260,16 +8888,25 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          last_error?: string | null
+          last_error_at?: string | null
+          last_success_at?: string | null
+          logo_url?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          sourcing_adapter?: string | null
+          sourcing_config?: Json | null
+          sourcing_enabled?: boolean
           supplier_type?: string
+          supports_refurbished?: boolean | null
           updated_at?: string | null
           website?: string | null
         }
         Update: {
           address?: string | null
+          avg_response_ms?: number | null
           city?: string | null
           code?: string | null
           company_id?: string
@@ -8279,11 +8916,19 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          last_error?: string | null
+          last_error_at?: string | null
+          last_success_at?: string | null
+          logo_url?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          sourcing_adapter?: string | null
+          sourcing_config?: Json | null
+          sourcing_enabled?: boolean
           supplier_type?: string
+          supports_refurbished?: boolean | null
           updated_at?: string | null
           website?: string | null
         }
@@ -9349,6 +9994,15 @@ export type Database = {
         }
         Relationships: []
       }
+      v_sourcing_pending_count: {
+        Row: {
+          company_id: string | null
+          oldest_pending_at: string | null
+          proposers_count: number | null
+          total_pending: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       activate_prospect:
@@ -9626,15 +10280,26 @@ export type Database = {
         Args: never
         Returns: {
           address: string
+          business_sector: string
           city: string
           company: string
+          company_creation_date: string
           company_id: string
+          contact_name: string
           country: string
           created_at: string
           email: string
+          entity_type: string
+          first_name: string
           has_user_account: boolean
           id: string
           is_ambassador_client: boolean
+          kyc_score: string
+          kyc_score_computed_at: string
+          kyc_score_reasons: Json
+          kyc_validated_at: string
+          last_name: string
+          legal_form: string
           name: string
           notes: string
           phone: string
@@ -9643,6 +10308,7 @@ export type Database = {
           updated_at: string
           user_id: string
           vat_number: string
+          young_company_relaunched_at: string
         }[]
       }
       get_all_users_extended: {
@@ -10046,6 +10712,7 @@ export type Database = {
               offers_count: number
               purchases: number
               revenue: number
+              self_leasing_estimated: number
               self_leasing_revenue: number
               year: number
             }[]
@@ -10064,6 +10731,7 @@ export type Database = {
       get_offer_by_id_public: {
         Args: { offer_id: string }
         Returns: {
+          adios_synced_at: string | null
           ambassador_id: string | null
           amount: number
           annual_insurance: number | null
@@ -10091,24 +10759,29 @@ export type Database = {
           duration: number | null
           equipment_description: string | null
           estimated_budget: number | null
+          fbclid: string | null
           file_fee: number | null
           financed_amount: number | null
           id: string
           internal_score: string | null
           is_purchase: boolean | null
+          landing_referrer: string | null
           leaser_id: string | null
           leaser_request_number: string | null
           leaser_score: string | null
           margin: number | null
           margin_difference: number | null
+          meta_platform: string | null
           monthly_payment: number
           monthly_payment_before_discount: number | null
           offer_number: string | null
           pack_id: string | null
           partner_name: string | null
           partner_slug: string | null
+          previous_offer_id: string | null
           previous_status: string | null
           products_to_be_determined: boolean | null
+          rejection_category: string | null
           remarks: string | null
           renewal_source_contract_id: string | null
           request_date: string | null
@@ -10122,6 +10795,11 @@ export type Database = {
           type: string | null
           updated_at: string | null
           user_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           workflow_status: string | null
           workflow_template_id: string | null
         }[]
@@ -10236,7 +10914,10 @@ export type Database = {
         Args: { company_slug: string }
         Returns: {
           accent_color: string
+          hero_image_url: string
           id: string
+          login_subtitle: string
+          login_title: string
           logo_url: string
           name: string
           primary_color: string
@@ -10941,3 +11622,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.98.2 (currently installed v2.90.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
