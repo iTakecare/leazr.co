@@ -356,9 +356,9 @@ async function handleTrigger(
 // useful to attribute yet.
 //
 // Value:
-//   - won           → contract.monthly_payment × duration − offer.amount
-//                     (i.e. the margin / profit on the deal). Falls back to
-//                     contract revenue if amount is missing.
+//   - won           → offer.financed_amount − offer.amount
+//                     (i.e. the gross margin: selling price to the leaser
+//                      minus purchase price from the supplier).
 //   - qualified/lost/rejected → 0  (AdiOS computes ROI on won values only)
 //
 // Throttled with a configurable delay between sends to avoid overloading
@@ -535,23 +535,21 @@ async function handleBackfill(
     let leaserName: string | null = null;
 
     if (adiosStatus === "won") {
+      // Margin = selling price to the leaser − purchase price from supplier.
+      // Both stored on the offer; clamp negative results to 0 so we never
+      // ship a nonsense negative number to AdiOS.
+      const sellingPrice = Number(offer.financed_amount) || 0;
+      const purchasePrice = Number(offer.amount) || 0;
+      const margin = sellingPrice - purchasePrice;
+      valueEur = Math.round((margin > 0 ? margin : 0) * 100) / 100;
+
+      // Contract details (if present) — only used to enrich the AdiOS
+      // event with the actual signed date and signer/leaser names.
       const contract = contractByOfferIdMap.get(offer.id);
       if (contract) {
-        const monthly = Number(contract.monthly_payment) || 0;
-        const duration = Number(contract.contract_duration) || 0;
-        const purchaseAmount = Number(offer.amount) || 0;
-        const revenue = monthly * duration;
-        const margin = revenue - purchaseAmount;
-        // If purchase amount is missing/wrong (negative margin), fall back to
-        // revenue rather than sending a nonsense negative number.
-        valueEur = Math.round((margin > 0 ? margin : revenue) * 100) / 100;
         if (contract.contract_signed_at) occurredAt = contract.contract_signed_at;
         signerName = contract.contract_signer_name;
         leaserName = contract.leaser_name;
-      } else {
-        // Status says won but no contract row — degenerate case, push 0
-        // rather than skip, so AdiOS at least sees the conversion happened.
-        valueEur = 0;
       }
     }
 
