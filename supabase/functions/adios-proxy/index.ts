@@ -901,7 +901,8 @@ async function handleListMetaLeads(
     .from("offers")
     .select(`
       id, client_id, client_email, source, meta_platform, remarks,
-      workflow_status, created_at, adios_synced_at
+      workflow_status, created_at, adios_synced_at,
+      amount, monthly_payment, financed_amount, margin, commission, coefficient
     `)
     .eq("company_id", companyId)
     .or(orFilter.join(","));
@@ -941,6 +942,13 @@ async function handleListMetaLeads(
       workflow_status: o.workflow_status,
       created_at: o.created_at,
       synced: !!o.adios_synced_at,
+      // Financial fields — for diagnosing margin discrepancies.
+      amount: o.amount,
+      monthly_payment: o.monthly_payment,
+      financed_amount: o.financed_amount,
+      margin: o.margin,
+      commission: o.commission,
+      coefficient: o.coefficient,
     };
   });
 
