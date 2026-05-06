@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database, ShoppingCart, Megaphone } from 'lucide-react';
 import CompanyWebIntegrationSettings from './CompanyWebIntegrationSettings';
 import WooCommerceConfigurationManager from './WooCommerceConfigurationManager';
-import ZapierIntegrationCard from './ZapierIntegrationCard';
 import AdiOSIntegrationCard from './AdiOSIntegrationCard';
 
 interface Integration {
@@ -30,16 +29,6 @@ const integrations: Integration[] = [
     category: 'Marketing'
   },
 
-  // Automation
-  {
-    id: 'zapier',
-    name: 'Zapier',
-    description: 'Automatisez vos workflows avec 5000+ applications',
-    logoUrl: 'https://logo.clearbit.com/zapier.com',
-    status: 'available',
-    category: 'Automation'
-  },
-  
   // E-commerce
   {
     id: 'woocommerce',
@@ -576,15 +565,11 @@ const IntegrationsManager = () => {
               <CompanyWebIntegrationSettings />
             )}
             
-            {selectedIntegration === 'zapier' && (
-              <ZapierIntegrationCard />
-            )}
-
             {selectedIntegration === 'adios' && (
               <AdiOSIntegrationCard />
             )}
 
-            {selectedIntegration && !['woocommerce', 'companyweb', 'zapier', 'adios'].includes(selectedIntegration) && (
+            {selectedIntegration && !['woocommerce', 'companyweb', 'adios'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
