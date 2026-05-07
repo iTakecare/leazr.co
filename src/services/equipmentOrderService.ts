@@ -214,9 +214,13 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
   });
 
   // Flatten the embedded {key, value} arrays into plain Record<string,string>
-  // maps. Specifications and attributes have separate tables in the schema
-  // so we keep them separate here too — the UI merges them with specs taking
-  // priority on key collision.
+  // maps. We expose both side by side because they mean different things:
+  //   - attributes      = the actual choice made for this contract row
+  //                       (e.g. Connectivité → "Wifi")
+  //   - specifications  = the catalog options pool the choice was picked from
+  //                       (e.g. Connectivité → "Wifi, Wifi + 5G")
+  // The UI prefers attributes (the choice), falling back to specs only for
+  // keys that have no attribute counterpart.
   const flatten = (rows: Array<{ key: string; value: string }> | null | undefined) => {
     const out: Record<string, string> = {};
     for (const r of (rows || [])) {

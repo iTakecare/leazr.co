@@ -596,12 +596,17 @@ const EquipmentOrders: React.FC = () => {
                         )}
                       </div>
                       {/* Structured specs from the *_attributes / *_specifications
-                          tables (when populated). Specifications win on key
-                          collision — they're the leasing-specific override. */}
+                          tables (when populated). attributes = the actual
+                          choice made for this contract (e.g. "Wifi"),
+                          specifications = the catalog options pool (e.g.
+                          "Wifi, Wifi + 5G"). The user-facing chips must
+                          show the CHOICE — so attributes win on key
+                          collision and we only fall back to specs for
+                          keys that have no attribute set. */}
                       {(() => {
                         const merged: Record<string, string> = {
-                          ...(item.attributes || {}),
                           ...(item.specifications || {}),
+                          ...(item.attributes || {}),
                         };
                         const entries = Object.entries(merged).filter(
                           ([, v]) => v !== null && v !== undefined && String(v).trim() !== '',
