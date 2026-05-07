@@ -32,6 +32,11 @@ export interface EquipmentOrderItem {
   source_reference?: string;
   source_date?: string;
   units?: EquipmentOrderUnit[];
+  // Specs (RAM, CPU, Stockage, Couleur, …) — used to display the exact
+  // configuration to order. Stored in *_attributes / *_specifications
+  // tables as flat key→value pairs.
+  attributes?: Record<string, string>;
+  specifications?: Record<string, string>;
 }
 
 export const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
@@ -193,6 +198,38 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     unitsByKey.get(key)!.push(u);
   });
 
+  // Pull specs (RAM / CPU / Stockage / …) for the equipment in scope so the
+  // UI can show "what to order" precisely. Two flat key→value tables:
+  //   contract_equipment_attributes      — original product attributes
+  //   contract_equipment_specifications  — leasing-specific specs (overrides)
+  // We keep both maps separate so the UI can render them under distinct
+  // labels and the user spots the difference at a glance.
+  const equipmentIds = (contractEquipment || []).map((e: any) => e.id);
+  const attributesByEqId = new Map<string, Record<string, string>>();
+  const specsByEqId = new Map<string, Record<string, string>>();
+  if (equipmentIds.length > 0) {
+    const [{ data: attrs }, { data: specs }] = await Promise.all([
+      supabase
+        .from('contract_equipment_attributes')
+        .select('equipment_id, key, value')
+        .in('equipment_id', equipmentIds),
+      supabase
+        .from('contract_equipment_specifications')
+        .select('equipment_id, key, value')
+        .in('equipment_id', equipmentIds),
+    ]);
+    for (const a of (attrs || [])) {
+      const map = attributesByEqId.get(a.equipment_id) ?? {};
+      map[a.key] = a.value;
+      attributesByEqId.set(a.equipment_id, map);
+    }
+    for (const s of (specs || [])) {
+      const map = specsByEqId.get(s.equipment_id) ?? {};
+      map[s.key] = s.value;
+      specsByEqId.set(s.equipment_id, map);
+    }
+  }
+
   const items: EquipmentOrderItem[] = (contractEquipment || []).map((eq: any) => ({
     id: eq.id,
     title: eq.title,
@@ -212,6 +249,8 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     source_reference: eq.contracts?.contract_number || 'N/A',
     source_date: eq.contracts?.created_at,
     units: unitsByKey.get(`contract-${eq.id}`) || undefined,
+    attributes: attributesByEqId.get(eq.id),
+    specifications: specsByEqId.get(eq.id),
   }));
 
   return items;

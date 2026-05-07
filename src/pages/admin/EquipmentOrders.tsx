@@ -561,6 +561,37 @@ const EquipmentOrders: React.FC = () => {
                           <span className="ml-2 text-primary">({getUnitsSummary(item.units!)})</span>
                         )}
                       </div>
+                      {/* Specs to order — RAM / CPU / Stockage / Couleur / etc.
+                          Pulled from contract_equipment_attributes +
+                          contract_equipment_specifications. Shown as tight
+                          chips so the buyer can match the supplier listing
+                          without leaving this row. */}
+                      {(() => {
+                        const merged: Record<string, string> = {
+                          ...(item.attributes || {}),
+                          // specifications win on key collision — they're the
+                          // leasing-specific override, closer to "as ordered".
+                          ...(item.specifications || {}),
+                        };
+                        const entries = Object.entries(merged).filter(
+                          ([, v]) => v !== null && v !== undefined && String(v).trim() !== '',
+                        );
+                        if (entries.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {entries.map(([k, v]) => (
+                              <span
+                                key={k}
+                                className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] leading-none text-foreground"
+                                title={`${k}: ${v}`}
+                              >
+                                <span className="text-muted-foreground">{k}:</span>
+                                <span className="font-medium">{v}</span>
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
                       {sourcingByLine[`${item.source_type}-${item.id}`] && sourcingByLine[`${item.source_type}-${item.id}`].total > 0 && (
                         <Badge
                           variant="outline"
