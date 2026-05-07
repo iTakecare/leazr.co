@@ -176,17 +176,26 @@ export const syncUnitPricesToParent = async (
 };
 
 export const fetchAllEquipmentOrders = async (companyId: string) => {
+  // Single embedded query — pulls the contract row, the attributes and
+  // the specifications in one round-trip via PostgREST relationships.
+  // Way more reliable than 3 sequential `.in()` queries (which silently
+  // truncate or fail on long ID lists / RLS quirks).
   const { data: contractEquipment, error: contractError } = await supabase
     .from('contract_equipment')
     .select(`
       id, title, quantity, purchase_price, actual_purchase_price,
       order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes,
       serial_number, individual_serial_number, purchase_notes, monthly_payment,
-      contracts!inner(id, contract_number, client_name, company_id, created_at)
+      contracts!inner(id, contract_number, client_name, company_id, created_at),
+      contract_equipment_attributes(key, value),
+      contract_equipment_specifications(key, value)
     `)
     .eq('contracts.company_id', companyId);
 
-  if (contractError) throw contractError;
+  if (contractError) {
+    console.error('[EquipmentOrders] contract_equipment fetch error:', contractError);
+    throw contractError;
+  }
 
   // Fetch units for contracts only
   const { data: allUnits, error: unitsError } = await supabase
@@ -204,37 +213,17 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     unitsByKey.get(key)!.push(u);
   });
 
-  // Pull specs (RAM / CPU / Stockage / …) for the equipment in scope so the
-  // UI can show "what to order" precisely. Two flat key→value tables:
-  //   contract_equipment_attributes      — original product attributes
-  //   contract_equipment_specifications  — leasing-specific specs (overrides)
-  // We keep both maps separate so the UI can render them under distinct
-  // labels and the user spots the difference at a glance.
-  const equipmentIds = (contractEquipment || []).map((e: any) => e.id);
-  const attributesByEqId = new Map<string, Record<string, string>>();
-  const specsByEqId = new Map<string, Record<string, string>>();
-  if (equipmentIds.length > 0) {
-    const [{ data: attrs }, { data: specs }] = await Promise.all([
-      supabase
-        .from('contract_equipment_attributes')
-        .select('equipment_id, key, value')
-        .in('equipment_id', equipmentIds),
-      supabase
-        .from('contract_equipment_specifications')
-        .select('equipment_id, key, value')
-        .in('equipment_id', equipmentIds),
-    ]);
-    for (const a of (attrs || [])) {
-      const map = attributesByEqId.get(a.equipment_id) ?? {};
-      map[a.key] = a.value;
-      attributesByEqId.set(a.equipment_id, map);
+  // Flatten the embedded {key, value} arrays into plain Record<string,string>
+  // maps. Specifications and attributes have separate tables in the schema
+  // so we keep them separate here too — the UI merges them with specs taking
+  // priority on key collision.
+  const flatten = (rows: Array<{ key: string; value: string }> | null | undefined) => {
+    const out: Record<string, string> = {};
+    for (const r of (rows || [])) {
+      if (r?.key) out[r.key] = r.value;
     }
-    for (const s of (specs || [])) {
-      const map = specsByEqId.get(s.equipment_id) ?? {};
-      map[s.key] = s.value;
-      specsByEqId.set(s.equipment_id, map);
-    }
-  }
+    return Object.keys(out).length > 0 ? out : undefined;
+  };
 
   const items: EquipmentOrderItem[] = (contractEquipment || []).map((eq: any) => ({
     id: eq.id,
@@ -255,8 +244,8 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     source_reference: eq.contracts?.contract_number || 'N/A',
     source_date: eq.contracts?.created_at,
     units: unitsByKey.get(`contract-${eq.id}`) || undefined,
-    attributes: attributesByEqId.get(eq.id),
-    specifications: specsByEqId.get(eq.id),
+    attributes: flatten(eq.contract_equipment_attributes),
+    specifications: flatten(eq.contract_equipment_specifications),
     serial_number: eq.serial_number,
     individual_serial_number: eq.individual_serial_number,
     purchase_notes: eq.purchase_notes,
