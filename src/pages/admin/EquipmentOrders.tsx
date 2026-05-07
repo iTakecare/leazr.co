@@ -554,23 +554,53 @@ const EquipmentOrders: React.FC = () => {
                     </TableCell>
                     <TableCell className="text-sm">{item.client_name}</TableCell>
                     <TableCell>
-                      <div className="font-medium text-sm">{item.title}</div>
-                      <div className="text-xs text-muted-foreground">
+                      {(() => {
+                        // Title parsing — iTakecare-style titles cram model +
+                        // specs into a single string separated by " / "
+                        // ("Macbook Pro 16 M1 Pro / 16 Go RAM / 512 Go SSD").
+                        // Split it so the model is the row title and the
+                        // specs become readable chips, exactly what the buyer
+                        // needs to pick the right SKU at the supplier.
+                        const rawTitle = (item.title || '').trim();
+                        const parts = rawTitle
+                          .split(/\s*[\/]\s*/)
+                          .map(p => p.trim())
+                          .filter(Boolean);
+                        const head = parts[0] || rawTitle;
+                        const tail = parts.slice(1);
+                        return (
+                          <>
+                            <div className="font-medium text-sm">{head}</div>
+                            {tail.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {tail.map((p, i) => (
+                                  <span
+                                    key={`title-${i}`}
+                                    className="inline-flex items-center rounded-md border border-border bg-background px-1.5 py-0.5 text-[10px] leading-none text-foreground"
+                                  >
+                                    {p}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                      <div className="text-xs text-muted-foreground mt-1">
                         Qté: {item.quantity}
                         {hasUnits && (
                           <span className="ml-2 text-primary">({getUnitsSummary(item.units!)})</span>
                         )}
+                        {item.monthly_payment != null && item.monthly_payment > 0 && (
+                          <span className="ml-2">· {formatCurrency(item.monthly_payment)}/mois</span>
+                        )}
                       </div>
-                      {/* Specs to order — RAM / CPU / Stockage / Couleur / etc.
-                          Pulled from contract_equipment_attributes +
-                          contract_equipment_specifications. Shown as tight
-                          chips so the buyer can match the supplier listing
-                          without leaving this row. */}
+                      {/* Structured specs from the *_attributes / *_specifications
+                          tables (when populated). Specifications win on key
+                          collision — they're the leasing-specific override. */}
                       {(() => {
                         const merged: Record<string, string> = {
                           ...(item.attributes || {}),
-                          // specifications win on key collision — they're the
-                          // leasing-specific override, closer to "as ordered".
                           ...(item.specifications || {}),
                         };
                         const entries = Object.entries(merged).filter(
@@ -592,6 +622,19 @@ const EquipmentOrders: React.FC = () => {
                           </div>
                         );
                       })()}
+                      {/* Serial number + purchase notes — useful when the
+                          buyer needs the exact unit reference at the supplier
+                          (warranty registration, asset tag, etc.). */}
+                      {(item.serial_number || item.individual_serial_number) && (
+                        <div className="text-[10px] text-muted-foreground mt-1 font-mono">
+                          S/N: {item.individual_serial_number || item.serial_number}
+                        </div>
+                      )}
+                      {item.purchase_notes && (
+                        <div className="text-[10px] text-muted-foreground mt-1 italic line-clamp-2" title={item.purchase_notes}>
+                          📝 {item.purchase_notes}
+                        </div>
+                      )}
                       {sourcingByLine[`${item.source_type}-${item.id}`] && sourcingByLine[`${item.source_type}-${item.id}`].total > 0 && (
                         <Badge
                           variant="outline"

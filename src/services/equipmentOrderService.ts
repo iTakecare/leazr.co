@@ -37,6 +37,11 @@ export interface EquipmentOrderItem {
   // tables as flat key→value pairs.
   attributes?: Record<string, string>;
   specifications?: Record<string, string>;
+  // Extra contract-side ordering context.
+  serial_number?: string | null;
+  individual_serial_number?: string | null;
+  purchase_notes?: string | null;
+  monthly_payment?: number | null;
 }
 
 export const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
@@ -176,6 +181,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     .select(`
       id, title, quantity, purchase_price, actual_purchase_price,
       order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes,
+      serial_number, individual_serial_number, purchase_notes, monthly_payment,
       contracts!inner(id, contract_number, client_name, company_id, created_at)
     `)
     .eq('contracts.company_id', companyId);
@@ -251,6 +257,10 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     units: unitsByKey.get(`contract-${eq.id}`) || undefined,
     attributes: attributesByEqId.get(eq.id),
     specifications: specsByEqId.get(eq.id),
+    serial_number: eq.serial_number,
+    individual_serial_number: eq.individual_serial_number,
+    purchase_notes: eq.purchase_notes,
+    monthly_payment: eq.monthly_payment,
   }));
 
   return items;
