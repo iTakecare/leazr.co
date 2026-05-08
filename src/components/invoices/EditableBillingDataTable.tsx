@@ -1,11 +1,90 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit3, Save, X, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { Edit3, Save, X, Eye, EyeOff, Plus, Trash2, Info } from 'lucide-react';
 import { toast } from 'sonner';
+
+// =====================================================================
+// VAT mode helpers — Belgian B2B leasing has three real-world cases:
+//
+//   - "standard"  → 21% (or local rate). Default: BE client or any client
+//                   without a VAT number.
+//   - "intracom"  → 0% with reverse charge. EU client outside BE that has
+//                   a VAT number. Legal mention required on the invoice
+//                   ("Article 196 Directive 2006/112/CE — Autoliquidation").
+//   - "export"    → 0%. Client outside the EU. Different mention.
+//
+// The mode is auto-suggested from the client country + VAT number, then
+// overridable from the UI. Saved on billing_data.vat_mode so the PDF /
+// Peppol pipeline downstream can pick it up.
+// =====================================================================
+
+type VatMode = 'standard' | 'intracom' | 'export';
+
+const EU_COUNTRY_CODES = new Set([
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR',
+  'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK',
+  'SI', 'ES', 'SE',
+]);
+
+const COUNTRY_NAME_TO_CODE: Record<string, string> = {
+  'BELGIQUE': 'BE', 'BELGIUM': 'BE', 'BELGIE': 'BE',
+  'LUXEMBOURG': 'LU', 'LUXEMBURG': 'LU',
+  'FRANCE': 'FR',
+  'PAYS-BAS': 'NL', 'NETHERLANDS': 'NL', 'NEDERLAND': 'NL',
+  'ALLEMAGNE': 'DE', 'GERMANY': 'DE', 'DEUTSCHLAND': 'DE',
+  'ITALIE': 'IT', 'ITALY': 'IT', 'ITALIA': 'IT',
+  'ESPAGNE': 'ES', 'SPAIN': 'ES',
+  'PORTUGAL': 'PT',
+  'AUTRICHE': 'AT', 'AUSTRIA': 'AT',
+  'IRLANDE': 'IE', 'IRELAND': 'IE',
+  'POLOGNE': 'PL', 'POLAND': 'PL',
+  'GRÈCE': 'GR', 'GRECE': 'GR', 'GREECE': 'GR',
+  'SUÈDE': 'SE', 'SUEDE': 'SE', 'SWEDEN': 'SE',
+};
+
+const normalizeCountry = (raw: unknown): string => {
+  if (!raw || typeof raw !== 'string') return '';
+  const upper = raw.trim().toUpperCase();
+  if (!upper) return '';
+  if (COUNTRY_NAME_TO_CODE[upper]) return COUNTRY_NAME_TO_CODE[upper];
+  if (upper.length === 2) return upper;
+  return upper.slice(0, 2);
+};
+
+const detectVatMode = (clientData: any): VatMode => {
+  if (!clientData) return 'standard';
+  const code = normalizeCountry(clientData.country);
+  const vat = String(clientData.vat_number || '').replace(/\s/g, '');
+  if (!code || code === 'BE') return 'standard';
+  if (EU_COUNTRY_CODES.has(code)) {
+    return vat ? 'intracom' : 'standard';
+  }
+  return 'export';
+};
+
+const getVatRate = (mode: VatMode): number => (mode === 'standard' ? 0.21 : 0);
+
+const VAT_MODE_LABELS: Record<VatMode, string> = {
+  standard: 'Standard — TVA belge (21%)',
+  intracom: 'Intracommunautaire — Autoliquidation (0%)',
+  export: 'Export hors UE (0%)',
+};
+
+const VAT_MODE_LEGAL_MENTION: Record<VatMode, string | null> = {
+  standard: null,
+  intracom:
+    'Autoliquidation — Article 196 de la Directive 2006/112/CE. ' +
+    'TVA due par le preneur. Reverse charge — VAT to be paid by the recipient.',
+  export:
+    'Exonération de TVA — Exportation hors Union Européenne ' +
+    '(Article 146 de la Directive 2006/112/CE).',
+};
 
 interface EditableBillingDataTableProps {
   billingData: any;
@@ -22,22 +101,46 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
   const [editedData, setEditedData] = useState(billingData);
   const [showRawJson, setShowRawJson] = useState(false);
 
+  // Resolve the active VAT mode: explicit value on billing_data wins, then
+  // auto-detection from the client's country + VAT number.
+  const vatMode: VatMode = useMemo(() => {
+    const explicit = editedData?.vat_mode as VatMode | undefined;
+    if (explicit && (explicit === 'standard' || explicit === 'intracom' || explicit === 'export')) {
+      return explicit;
+    }
+    return detectVatMode(editedData?.client_data);
+  }, [editedData?.vat_mode, editedData?.client_data]);
+
+  const vatRate = getVatRate(vatMode);
+  const vatPercentLabel = (vatRate * 100).toFixed(0);
+  const legalMention = VAT_MODE_LEGAL_MENTION[vatMode];
+
+  const setVatMode = (mode: VatMode) => {
+    setEditedData((prev: any) => ({ ...prev, vat_mode: mode }));
+  };
+
   const handleSave = async () => {
     try {
-      // Recalculate totals before saving
-      const updatedData = { ...editedData };
+      // Recalculate totals before saving — using the active VAT mode so the
+      // PDF / Peppol pipeline gets the correct figures and the legal mention.
+      const updatedData = { ...editedData, vat_mode: vatMode };
       if (updatedData.equipment_data && Array.isArray(updatedData.equipment_data)) {
         const totalExclVat = updatedData.equipment_data.reduce((sum: number, item: any) => {
           return sum + (item.selling_price_excl_vat * item.quantity);
         }, 0);
-        
+
+        const vatAmount = totalExclVat * vatRate;
         updatedData.invoice_totals = {
           total_excl_vat: totalExclVat,
-          vat_amount: totalExclVat * 0.21,
-          total_incl_vat: totalExclVat * 1.21
+          vat_amount: vatAmount,
+          vat_rate: vatRate,
+          total_incl_vat: totalExclVat + vatAmount,
         };
+        // Stash the legal mention next to the totals so the PDF generator
+        // can pull it without re-implementing the mode → mention mapping.
+        updatedData.legal_mention = legalMention || null;
       }
-      
+
       onUpdate(updatedData);
       setEditMode(false);
       toast.success('Données de facturation mises à jour');
@@ -287,14 +390,55 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
             </Table>
           </div>
 
+          {/* TVA / régime de facturation */}
+          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold">Régime de TVA</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Auto-détecté depuis le pays et le numéro TVA du client.
+                  Modifiable manuellement si la situation diffère.
+                </p>
+              </div>
+              <div className="min-w-[280px]">
+                {editMode ? (
+                  <Select value={vatMode} onValueChange={(v) => setVatMode(v as VatMode)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">{VAT_MODE_LABELS.standard}</SelectItem>
+                      <SelectItem value="intracom">{VAT_MODE_LABELS.intracom}</SelectItem>
+                      <SelectItem value="export">{VAT_MODE_LABELS.export}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-sm font-medium text-right">
+                    {VAT_MODE_LABELS[vatMode]}
+                  </div>
+                )}
+              </div>
+            </div>
+            {legalMention && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs leading-relaxed">
+                  <strong className="font-semibold">Mention légale apposée sur la facture :</strong>
+                  <br />
+                  {legalMention}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
           {/* Équipements - Lignes de commande */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">Lignes de commande</h3>
               {editMode && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={addEquipmentLine}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -410,12 +554,12 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
                     </TableRow>
                     <TableRow>
                       <TableCell colSpan={editMode ? 5 : 4} className="text-right font-medium">
-                        TVA (21%):
+                        TVA ({vatPercentLabel}%){vatMode !== 'standard' ? ' — autoliquidation' : ''}:
                       </TableCell>
                       <TableCell className="text-right font-bold">
-                        {(editedData.equipment_data.reduce((sum: number, item: any) => 
+                        {(editedData.equipment_data.reduce((sum: number, item: any) =>
                           sum + ((item.selling_price_excl_vat || 0) * (item.quantity || 1)), 0
-                        ) * 0.21).toFixed(2)} €
+                        ) * vatRate).toFixed(2)} €
                       </TableCell>
                       {editMode && <TableCell></TableCell>}
                     </TableRow>
@@ -424,9 +568,9 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
                         Total TTC:
                       </TableCell>
                       <TableCell className="text-right font-bold text-lg">
-                        {(editedData.equipment_data.reduce((sum: number, item: any) => 
+                        {(editedData.equipment_data.reduce((sum: number, item: any) =>
                           sum + ((item.selling_price_excl_vat || 0) * (item.quantity || 1)), 0
-                        ) * 1.21).toFixed(2)} €
+                        ) * (1 + vatRate)).toFixed(2)} €
                       </TableCell>
                       {editMode && <TableCell></TableCell>}
                     </TableRow>
