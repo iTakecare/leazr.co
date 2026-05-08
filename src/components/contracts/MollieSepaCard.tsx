@@ -439,12 +439,14 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     
     setLoadingDetails(true);
     try {
-      // Fetch subscription and payments in parallel
+      // Fetch subscription and payments in parallel.
+      // limit=100 covers a 3-year contract with retries, charge-backs and
+      // ad-hoc fee payments — well within Mollie's 250-per-page max.
       const [subResult, paymentsResult] = await Promise.all([
-        contract.mollie_subscription_id 
+        contract.mollie_subscription_id
           ? getMollieSubscription(contract.mollie_customer_id, contract.mollie_subscription_id)
           : Promise.resolve({ success: false as const, data: undefined, error: undefined }),
-        getMolliePayments(contract.mollie_customer_id, 5)
+        getMolliePayments(contract.mollie_customer_id, 100)
       ]);
 
       if (subResult.success && subResult.data) {
@@ -929,14 +931,23 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             <>
               <Separator />
               <div className="space-y-2">
-                <h4 className="font-medium text-sm flex items-center gap-2">
-                  <Euro className="h-4 w-4" />
-                  Historique récent
+                <h4 className="font-medium text-sm flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2">
+                    <Euro className="h-4 w-4" />
+                    Historique des paiements
+                  </span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {recentPayments.length} prélèvement{recentPayments.length > 1 ? "s" : ""}
+                  </span>
                 </h4>
-                <div className="space-y-2">
-                  {recentPayments.slice(0, 5).map((payment) => (
-                    <div 
-                      key={payment.id} 
+                {/* Scrollable container — caps the card height around ~6
+                    rows so a long history (24+ months of contracts) doesn't
+                    push everything else off-screen, but lets the user scroll
+                    through every single entry. */}
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1 -mr-1">
+                  {recentPayments.map((payment) => (
+                    <div
+                      key={payment.id}
                       className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm"
                     >
                       <span className="text-muted-foreground">
