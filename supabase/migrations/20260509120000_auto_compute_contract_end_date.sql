@@ -45,23 +45,20 @@ COMMENT ON FUNCTION public.compute_contract_end_date IS
 'Returns start_date + duration_months. Matches the convention used across Leazr UI / reports.';
 
 -- ---------- 2) Trigger function ----------
+-- NOTE: contracts has only contract_duration, no lease_duration column
+-- (lease_duration lives on offers). Earlier draft of this migration had
+-- a COALESCE on a non-existent column — fixed.
 CREATE OR REPLACE FUNCTION public.auto_calculate_contract_end_date()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_duration integer;
 BEGIN
-  -- Prefer the newer contract_duration column; fall back to lease_duration
-  -- for legacy rows where contract_duration was never written.
-  v_duration := COALESCE(NEW.contract_duration, NEW.lease_duration);
-
   IF NEW.contract_start_date IS NOT NULL
-     AND v_duration IS NOT NULL
-     AND v_duration > 0 THEN
-    NEW.contract_end_date := compute_contract_end_date(NEW.contract_start_date, v_duration);
+     AND NEW.contract_duration IS NOT NULL
+     AND NEW.contract_duration > 0 THEN
+    NEW.contract_end_date := compute_contract_end_date(NEW.contract_start_date, NEW.contract_duration);
   END IF;
 
   RETURN NEW;
@@ -71,30 +68,27 @@ $$;
 -- Drop+recreate so re-running the migration is idempotent.
 DROP TRIGGER IF EXISTS trigger_auto_calculate_contract_end_date ON public.contracts;
 CREATE TRIGGER trigger_auto_calculate_contract_end_date
-  BEFORE INSERT OR UPDATE OF contract_start_date, contract_duration, lease_duration
+  BEFORE INSERT OR UPDATE OF contract_start_date, contract_duration
   ON public.contracts
   FOR EACH ROW
   EXECUTE FUNCTION auto_calculate_contract_end_date();
 
 COMMENT ON TRIGGER trigger_auto_calculate_contract_end_date ON public.contracts IS
-'Keeps contract_end_date in sync with contract_start_date + contract_duration (or lease_duration). Fires on any change to those source columns.';
+'Keeps contract_end_date in sync with contract_start_date + contract_duration. Fires on any change to those source columns.';
 
 -- ---------- 3) One-shot backfill ----------
 -- Recompute end_date for every contract that has the inputs needed and
 -- where the current end_date is either NULL or does not match. Skip rows
--- without a duration set anywhere — those are genuinely undefined and
--- should be looked at by hand rather than guessed.
+-- without a duration set — those are genuinely undefined and should be
+-- looked at by hand rather than guessed.
 WITH backfill AS (
   SELECT
     id,
     contract_end_date AS old_end,
-    compute_contract_end_date(
-      contract_start_date,
-      COALESCE(contract_duration, lease_duration)
-    ) AS new_end
+    compute_contract_end_date(contract_start_date, contract_duration) AS new_end
   FROM public.contracts
   WHERE contract_start_date IS NOT NULL
-    AND COALESCE(contract_duration, lease_duration) > 0
+    AND contract_duration > 0
 )
 UPDATE public.contracts c
    SET contract_end_date = b.new_end,
