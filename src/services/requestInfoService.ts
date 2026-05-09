@@ -34,7 +34,8 @@ export interface ProductRequestData {
   phone?: string;
   company_id?: string;
   has_client_account?: boolean;
-  voice_consent?: boolean;
+  // voice_consent removed 2026-05-09 — see RequestSummary.tsx for context.
+  // The receiving edge function (create-product-request) never read it.
 }
 
 export interface RequestInfoData {
@@ -141,7 +142,6 @@ export const createProductRequest = async (data: ProductRequestData, cartItems?:
       total: data.monthly_payment || 0,
       subtotal: data.amount || 0,
       create_client_account: data.has_client_account || false,
-      voice_consent: data.voice_consent || false,
       notes: data.message || data.equipment_description || '',
     };
 
