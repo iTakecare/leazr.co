@@ -1,0 +1,5 @@
+# Proprietary GRENKE documentation — do not commit to a public repo.
+# Keep these locally for reference, only commit our own *.md notes.
+*.pdf
+*.zip
+swagger.json

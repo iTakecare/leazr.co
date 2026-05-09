@@ -7,6 +7,7 @@ import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, Cr
 import CompanyWebIntegrationSettings from './CompanyWebIntegrationSettings';
 import WooCommerceConfigurationManager from './WooCommerceConfigurationManager';
 import AdiOSIntegrationCard from './AdiOSIntegrationCard';
+import GrenkeIntegrationCard from './GrenkeIntegrationCard';
 
 interface Integration {
   id: string;
@@ -183,11 +184,10 @@ const integrations: Integration[] = [
   {
     id: 'grenke',
     name: 'Grenke',
-    description: 'Solutions de location financière pour équipements IT et professionnels',
+    description: 'Soumission directe des dossiers de financement (BE / FR / LU)',
     logoUrl: 'https://logo.clearbit.com/grenke.com',
-    status: 'inactive',
-    category: 'Leasing',
-    comingSoon: true
+    status: 'available',
+    category: 'Leasing'
   },
   {
     id: 'atlance',
@@ -569,7 +569,11 @@ const IntegrationsManager = () => {
               <AdiOSIntegrationCard />
             )}
 
-            {selectedIntegration && !['woocommerce', 'companyweb', 'adios'].includes(selectedIntegration) && (
+            {selectedIntegration === 'grenke' && (
+              <GrenkeIntegrationCard />
+            )}
+
+            {selectedIntegration && !['woocommerce', 'companyweb', 'adios', 'grenke'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>

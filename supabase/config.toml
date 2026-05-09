@@ -266,3 +266,6 @@ verify_jwt = false
 
 [functions.voice-tool-report-blockers]
 verify_jwt = false
+
+[functions.grenke-api]
+verify_jwt = true

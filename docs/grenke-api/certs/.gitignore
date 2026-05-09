@@ -1,0 +1,4 @@
+# Private keys and signed certificates — NEVER commit any of this to git.
+# Stored locally only, then uploaded to Supabase Vault.
+*
+!.gitignore
