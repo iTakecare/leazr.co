@@ -170,6 +170,10 @@ export const createProductRequestSchema = z.object({
   subtotal: z.number().nonnegative().max(10000000, 'Sous-total invalide').optional(),
   total: z.number().nonnegative().max(10000000, 'Total invalide').optional(),
   create_client_account: z.boolean().optional(),
+  // Voice-AI consent (RGPD opt-in). When true, the client is flagged as
+  // contactable by the Alex voice assistant — voice-call-start checks
+  // clients.voice_consent_given_at IS NOT NULL before initiating a call.
+  voice_consent: z.boolean().optional(),
   notes: z.string().trim().max(2000, 'Notes trop longues').optional(),
   request_type: z.enum(['quote', 'order'], { errorMap: () => ({ message: 'Type de requête invalide' }) }).optional(),
   

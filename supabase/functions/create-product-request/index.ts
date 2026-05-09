@@ -546,6 +546,30 @@ serve(async (req) => {
       if (clientError) throw new Error(`Erreur client: ${clientError.message}`);
     }
 
+    // RGPD voice-AI consent capture.
+    // Set voice_consent_given_at = now() iff:
+    //   - the public form sent voice_consent=true, AND
+    //   - the client doesn't already have a consent timestamp on file
+    //     (we preserve the original consent date — the law cares about
+    //      WHEN consent was first given, not the most recent re-affirmation).
+    // The .is('voice_consent_given_at', null) clause makes this a no-op
+    // for clients who already consented in the past.
+    if (data.voice_consent === true) {
+      const { error: consentError } = await supabaseAdmin
+        .from('clients')
+        .update({ voice_consent_given_at: new Date().toISOString() })
+        .eq('id', clientId)
+        .is('voice_consent_given_at', null);
+      if (consentError) {
+        // Non-fatal: don't fail the whole request because consent capture failed.
+        // The client + offer creation is the primary intent; consent can be
+        // re-asked on a future interaction.
+        console.warn(`[voice-consent] failed to record for ${clientId}:`, consentError);
+      } else {
+        console.log(`📞 voice-AI consent recorded for ${clientId}`);
+      }
+    }
+
     // Déterminer le leaser
     const { data: leaserIdData } = await supabaseAdmin
       .from('leasers').select('id').eq('name', 'Grenke Lease').single();
