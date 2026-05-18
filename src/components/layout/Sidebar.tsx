@@ -29,7 +29,7 @@ import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
 import SidebarMenuItem from "./SidebarMenuItem";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
-import { useTaskNotifications } from "@/hooks/useTaskNotifications";
+import { useAssignedTaskCount } from "@/hooks/useAssignedTaskCount";
 import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
 import { GlobalSearch } from "@/components/ui/GlobalSearch";
 
@@ -42,7 +42,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const { companyId } = useMultiTenant();
   const { settings, loading: settingsLoading } = useSiteSettings();
   const { hasModuleAccess } = useModuleAccess();
-  const { unreadCount: taskUnreadCount } = useTaskNotifications();
+  const taskUnreadCount = useAssignedTaskCount();
   const { unreadCount: supportUnreadCount } = useTicketReplyNotifications({ role: "admin" });
   const { preferences, updateSidebarCollapsed } = useUserPreferences();
   const location = useLocation();
