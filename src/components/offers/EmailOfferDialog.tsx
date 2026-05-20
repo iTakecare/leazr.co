@@ -109,6 +109,12 @@ export const EmailOfferDialog = ({
         .eq('offer_id', offerId)
         .order('created_at', { ascending: true });
 
+      const { enrichExternalServicesWithLogos } = await import('@/services/offers/enrichExternalServicesWithLogos');
+      const enrichedExternalServices = await enrichExternalServicesWithLogos(
+        externalServicesData as any,
+        offerData.company_id
+      );
+
       // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
       const computedTotalMonthly = equipmentData.reduce(
         (sum, eq) => sum + (Number(eq.monthly_payment) || 0),
@@ -232,14 +238,7 @@ export const EmailOfferDialog = ({
             return acc;
           }, {}) || {}
         })),
-        externalServices: (externalServicesData || []).map((s: any) => ({
-          providerName: s.provider_name,
-          productName: s.product_name,
-          description: s.description || undefined,
-          priceHtva: Number(s.price_htva || 0),
-          billingPeriod: s.billing_period || 'monthly',
-          quantity: s.quantity || 1,
-        })),
+        externalServices: enrichedExternalServices,
         totalMonthly: isPurchase ? 0 : computedTotalMonthly,
         totalSellingPrice: totalSellingPrice,
         contractDuration: Number(offerData.duration) || 36,

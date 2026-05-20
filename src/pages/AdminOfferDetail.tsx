@@ -329,6 +329,13 @@ const [notesLoading, setNotesLoading] = useState(false);
         .eq('offer_id', offer.id)
         .order('created_at', { ascending: true });
 
+      // Enrichir avec les logos prestataires (base64 pour html2canvas)
+      const { enrichExternalServicesWithLogos } = await import('@/services/offers/enrichExternalServicesWithLogos');
+      const enrichedExternalServices = await enrichExternalServicesWithLogos(
+        externalServicesData as any,
+        offer.company_id
+      );
+
       // Récupérer les données complètes du client depuis la table clients
       const { data: clientData } = await supabase
         .from('clients')
@@ -495,14 +502,7 @@ const [notesLoading, setNotesLoading] = useState(false);
         })),
 
         // Services prestataires externes (carte dédiée en fin de page équipements)
-        externalServices: (externalServicesData || []).map((s: any) => ({
-          providerName: s.provider_name,
-          productName: s.product_name,
-          description: s.description || undefined,
-          priceHtva: Number(s.price_htva || 0),
-          billingPeriod: s.billing_period || 'monthly',
-          quantity: s.quantity || 1,
-        })),
+        externalServices: enrichedExternalServices,
         
         // Totaux et informations financières - adaptés selon le mode
         totalMonthly: isPurchase ? 0 : (Number(offer.monthly_payment) || 0),

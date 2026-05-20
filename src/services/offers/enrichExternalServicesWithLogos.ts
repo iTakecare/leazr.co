@@ -1,0 +1,83 @@
+import { supabase } from "@/integrations/supabase/client";
+
+interface RawExternalService {
+  provider_name: string;
+  product_name: string;
+  description?: string | null;
+  price_htva: number | string;
+  billing_period: string;
+  quantity: number;
+}
+
+export interface EnrichedExternalService {
+  providerName: string;
+  providerLogoUrl?: string | null;
+  productName: string;
+  description?: string;
+  priceHtva: number;
+  billingPeriod: string;
+  quantity: number;
+}
+
+/**
+ * Fetch logo_url for each unique provider_name (scoped to companyId) and
+ * convert it to base64 so it survives html2canvas rendering (avoids CORS).
+ * Returns the external services in the shape CommercialOffer expects.
+ */
+export async function enrichExternalServicesWithLogos(
+  rawServices: RawExternalService[] | null | undefined,
+  companyId: string
+): Promise<EnrichedExternalService[]> {
+  if (!rawServices || rawServices.length === 0) return [];
+
+  const uniqueProviderNames = Array.from(
+    new Set(rawServices.map((s) => s.provider_name).filter(Boolean))
+  );
+
+  // Build a name → base64 logo map. Skip providers without a configured logo.
+  const logoByName: Record<string, string | null> = {};
+  if (uniqueProviderNames.length > 0) {
+    const { data: providers } = await supabase
+      .from("external_providers")
+      .select("name, logo_url")
+      .eq("company_id", companyId)
+      .in("name", uniqueProviderNames);
+
+    await Promise.all(
+      (providers || []).map(async (p: any) => {
+        if (!p.logo_url) {
+          logoByName[p.name] = null;
+          return;
+        }
+        try {
+          const res = await fetch(p.logo_url);
+          if (!res.ok) {
+            logoByName[p.name] = null;
+            return;
+          }
+          const blob = await res.blob();
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          logoByName[p.name] = base64;
+        } catch (e) {
+          console.warn(`[external-provider-logo] Failed to base64-encode logo for ${p.name}:`, e);
+          logoByName[p.name] = null;
+        }
+      })
+    );
+  }
+
+  return rawServices.map((s) => ({
+    providerName: s.provider_name,
+    providerLogoUrl: logoByName[s.provider_name] || null,
+    productName: s.product_name,
+    description: s.description || undefined,
+    priceHtva: Number(s.price_htva || 0),
+    billingPeriod: s.billing_period || "monthly",
+    quantity: s.quantity || 1,
+  }));
+}

@@ -32,6 +32,7 @@ interface CommercialOfferProps {
   // Ne sont JAMAIS inclus dans le total mensuel — affichés dans une carte séparée.
   externalServices?: Array<{
     providerName: string;
+    providerLogoUrl?: string | null;
     productName: string;
     description?: string;
     priceHtva: number;
@@ -955,15 +956,41 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       🤝 Services partenaires complémentaires
                     </div>
 
-                    {Object.entries(grouped).map(([providerName, items]) => (
+                    {Object.entries(grouped).map(([providerName, items]) => {
+                      const providerLogo = items[0]?.providerLogoUrl;
+                      return (
                       <div key={providerName} style={{ marginBottom: styles.spacing.md }}>
                         <div style={{
-                          fontWeight: 600,
-                          color: '#1E3A8A',
-                          fontSize: styles.fontSize.sm,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: styles.spacing.md,
                           marginBottom: styles.spacing.xs,
+                          paddingBottom: styles.spacing.xs,
+                          borderBottom: '1px solid #DBEAFE',
                         }}>
-                          {providerName}
+                          <div style={{
+                            fontWeight: 600,
+                            color: '#1E3A8A',
+                            fontSize: styles.fontSize.md,
+                          }}>
+                            {providerName}
+                          </div>
+                          {providerLogo && (
+                            <img
+                              src={providerLogo}
+                              alt={providerName}
+                              crossOrigin="anonymous"
+                              style={{
+                                height: '40px',
+                                maxWidth: '120px',
+                                objectFit: 'contain',
+                                background: 'white',
+                                borderRadius: styles.borderRadius.sm,
+                                padding: '4px 8px',
+                              }}
+                            />
+                          )}
                         </div>
                         {items.map((s, i) => (
                           <div key={`${providerName}-${i}`} style={{
@@ -989,7 +1016,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                           </div>
                         ))}
                       </div>
-                    ))}
+                      );
+                    })}
 
                     <div style={{
                       marginTop: styles.spacing.sm,
