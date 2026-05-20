@@ -626,7 +626,19 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       equipmentCount: equipmentList.length,
       totalMonthly: currentTotalMonthly
     });
-  }, [equipmentList.length, leaser?.is_own_company, leaser?.id]);
+    // IMPORTANT : on inclut une clé qui change avec les quantités (et IDs) pour que
+    // toute modification de quantité dans la liste recalcule la baseline. Sans ça, le
+    // forçage self-leasing fige le montant financé à sa valeur d'origine lorsqu'on
+    // augmente la quantité d'une ligne — d'où une marge qui se dégrade au lieu de
+    // monter (bug remonté le 2026-05-20 : qty 1→2, financé reste à 2100€, marge tombe
+    // de 200% à 50%).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    equipmentList.length,
+    equipmentList.map(eq => `${eq.id}:${eq.quantity}:${eq.purchasePrice}:${eq.margin}`).join('|'),
+    leaser?.is_own_company,
+    leaser?.id,
+  ]);
 
   console.log("🎯 HOOK - État final:", {
     equipmentCount: equipmentList.length,
