@@ -27,6 +27,17 @@ interface CommercialOfferProps {
     attributes?: Record<string, string>;
     specifications?: Record<string, string>;
   }>;
+
+  // Services prestataires externes (facturés directement par le prestataire)
+  // Ne sont JAMAIS inclus dans le total mensuel — affichés dans une carte séparée.
+  externalServices?: Array<{
+    providerName: string;
+    productName: string;
+    description?: string;
+    priceHtva: number;
+    billingPeriod: 'monthly' | 'yearly' | 'one_time' | string;
+    quantity: number;
+  }>;
   
   // Totaux
   totalMonthly?: number;
@@ -197,6 +208,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   companyName = 'iTakecare',
   validityDays = 10,
   equipment = [],
+  externalServices = [],
   totalMonthly = 0,
   totalSellingPrice = 0,
   contractDuration = 36,
@@ -912,6 +924,86 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   )}
                 </div>
               );
+              })()}
+
+              {/* Carte Services prestataires externes — uniquement sur la dernière page produits */}
+              {isLastProductPage && externalServices && externalServices.length > 0 && (() => {
+                const periodLabel = (p: string) =>
+                  p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
+
+                const grouped = externalServices.reduce<Record<string, typeof externalServices>>((acc, s) => {
+                  if (!acc[s.providerName]) acc[s.providerName] = [];
+                  acc[s.providerName].push(s);
+                  return acc;
+                }, {});
+
+                return (
+                  <div style={{
+                    marginTop: styles.spacing.xl,
+                    padding: styles.spacing.xl,
+                    backgroundColor: '#EFF6FF',
+                    border: '1px solid #BFDBFE',
+                    borderLeft: '4px solid #3B82F6',
+                    borderRadius: styles.borderRadius.lg,
+                  }}>
+                    <div style={{
+                      fontWeight: 700,
+                      color: '#1E3A8A',
+                      fontSize: styles.fontSize.md,
+                      marginBottom: styles.spacing.sm,
+                    }}>
+                      🤝 Services partenaires complémentaires
+                    </div>
+
+                    {Object.entries(grouped).map(([providerName, items]) => (
+                      <div key={providerName} style={{ marginBottom: styles.spacing.md }}>
+                        <div style={{
+                          fontWeight: 600,
+                          color: '#1E3A8A',
+                          fontSize: styles.fontSize.sm,
+                          marginBottom: styles.spacing.xs,
+                        }}>
+                          {providerName}
+                        </div>
+                        {items.map((s, i) => (
+                          <div key={`${providerName}-${i}`} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: styles.spacing.md,
+                            paddingLeft: styles.spacing.md,
+                            fontSize: styles.fontSize.sm,
+                            color: '#1F2937',
+                            marginBottom: 2,
+                          }}>
+                            <div style={{ flex: 3 }}>
+                              {s.productName}
+                              {s.quantity > 1 ? ` × ${s.quantity}` : ''}
+                              {s.description ? (
+                                <div style={{ color: '#6B7280', fontSize: styles.fontSize.xs }}>{s.description}</div>
+                              ) : null}
+                            </div>
+                            <div style={{ flex: 1.5, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                              <strong>{formatCurrency(s.priceHtva)}</strong> HTVA{' '}
+                              <span style={{ color: '#64748B' }}>{periodLabel(s.billingPeriod)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+
+                    <div style={{
+                      marginTop: styles.spacing.sm,
+                      fontSize: styles.fontSize.xs,
+                      fontStyle: 'italic',
+                      color: '#475569',
+                      lineHeight: 1.4,
+                    }}>
+                      Ces services sont fournis et facturés directement par chaque prestataire partenaire.
+                      Leurs tarifs sont gérés indépendamment et ne sont <strong>PAS inclus</strong> dans votre mensualité
+                      de location ci-dessus.
+                    </div>
+                  </div>
+                );
               })()}
             </div>
           );

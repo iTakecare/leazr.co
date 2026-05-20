@@ -32,6 +32,14 @@ interface CommercialOfferData {
     attributes: Record<string, string>;
     specifications: Record<string, string>;
   }>;
+  externalServices?: Array<{
+    providerName: string;
+    productName: string;
+    description?: string;
+    priceHtva: number;
+    billingPeriod: string;
+    quantity: number;
+  }>;
   totalMonthly: number;
   totalSellingPrice: number;
   contractDuration: number;
@@ -114,6 +122,13 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
     // Récupérer les équipements
     const { getOfferEquipment } = await import('@/services/offers/offerEquipment');
     const equipmentData = await getOfferEquipment(offerId);
+
+    // Services prestataires externes (facturés directement, NON inclus dans le total)
+    const { data: externalServicesData } = await supabase
+      .from('offer_external_services' as any)
+      .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+      .eq('offer_id', offerId)
+      .order('created_at', { ascending: true });
 
     // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
     const computedTotalMonthly = equipmentData.reduce(
@@ -236,6 +251,14 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
           acc[spec.key] = spec.value;
           return acc;
         }, {}) || {}
+      })),
+      externalServices: (externalServicesData || []).map((s: any) => ({
+        providerName: s.provider_name,
+        productName: s.product_name,
+        description: s.description || undefined,
+        priceHtva: Number(s.price_htva || 0),
+        billingPeriod: s.billing_period || 'monthly',
+        quantity: s.quantity || 1,
       })),
       totalMonthly: isPurchase ? 0 : computedTotalMonthly,
       totalSellingPrice: totalSellingPrice,

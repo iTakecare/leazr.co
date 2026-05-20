@@ -321,6 +321,14 @@ const [notesLoading, setNotesLoading] = useState(false);
       const { getOfferEquipment } = await import('@/services/offers/offerEquipment');
       const equipmentData = await getOfferEquipment(offer.id);
 
+      // Récupérer les services prestataires externes attachés à cette offre
+      // (facturés directement par le prestataire, NON inclus dans le total mensuel)
+      const { data: externalServicesData } = await supabase
+        .from('offer_external_services' as any)
+        .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+        .eq('offer_id', offer.id)
+        .order('created_at', { ascending: true });
+
       // Récupérer les données complètes du client depuis la table clients
       const { data: clientData } = await supabase
         .from('clients')
@@ -484,6 +492,16 @@ const [notesLoading, setNotesLoading] = useState(false);
             acc[spec.key] = spec.value;
             return acc;
           }, {}) || {}
+        })),
+
+        // Services prestataires externes (carte dédiée en fin de page équipements)
+        externalServices: (externalServicesData || []).map((s: any) => ({
+          providerName: s.provider_name,
+          productName: s.product_name,
+          description: s.description || undefined,
+          priceHtva: Number(s.price_htva || 0),
+          billingPeriod: s.billing_period || 'monthly',
+          quantity: s.quantity || 1,
         })),
         
         // Totaux et informations financières - adaptés selon le mode

@@ -102,6 +102,13 @@ export const EmailOfferDialog = ({
       const { getOfferEquipment } = await import('@/services/offers/offerEquipment');
       const equipmentData = await getOfferEquipment(offerId);
 
+      // Services prestataires externes (carte dédiée, NON inclus dans totaux)
+      const { data: externalServicesData } = await supabase
+        .from('offer_external_services' as any)
+        .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+        .eq('offer_id', offerId)
+        .order('created_at', { ascending: true });
+
       // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
       const computedTotalMonthly = equipmentData.reduce(
         (sum, eq) => sum + (Number(eq.monthly_payment) || 0),
@@ -224,6 +231,14 @@ export const EmailOfferDialog = ({
             acc[spec.key] = spec.value;
             return acc;
           }, {}) || {}
+        })),
+        externalServices: (externalServicesData || []).map((s: any) => ({
+          providerName: s.provider_name,
+          productName: s.product_name,
+          description: s.description || undefined,
+          priceHtva: Number(s.price_htva || 0),
+          billingPeriod: s.billing_period || 'monthly',
+          quantity: s.quantity || 1,
         })),
         totalMonthly: isPurchase ? 0 : computedTotalMonthly,
         totalSellingPrice: totalSellingPrice,
