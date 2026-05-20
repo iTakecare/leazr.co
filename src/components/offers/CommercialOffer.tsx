@@ -963,19 +963,22 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         <div style={{
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'space-between',
+                          justifyContent: providerLogo ? 'flex-end' : 'space-between',
                           gap: styles.spacing.md,
                           marginBottom: styles.spacing.xs,
                           paddingBottom: styles.spacing.xs,
                           borderBottom: '1px solid #DBEAFE',
                         }}>
-                          <div style={{
-                            fontWeight: 600,
-                            color: '#1E3A8A',
-                            fontSize: styles.fontSize.md,
-                          }}>
-                            {providerName}
-                          </div>
+                          {/* Nom du prestataire affiché uniquement si pas de logo configuré */}
+                          {!providerLogo && (
+                            <div style={{
+                              fontWeight: 600,
+                              color: '#1E3A8A',
+                              fontSize: styles.fontSize.md,
+                            }}>
+                              {providerName}
+                            </div>
+                          )}
                           {providerLogo && (
                             <img
                               src={providerLogo}
@@ -983,7 +986,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                               crossOrigin="anonymous"
                               style={{
                                 height: '40px',
-                                maxWidth: '120px',
+                                maxWidth: '160px',
                                 objectFit: 'contain',
                                 background: 'white',
                                 borderRadius: styles.borderRadius.sm,
