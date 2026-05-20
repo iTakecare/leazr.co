@@ -331,16 +331,24 @@ serve(async (req) => {
       if (product.unit_price && product.unit_price > 0) {
         // Contrat API : iTakecare envoie le prix BRUT (non remisé). Leazr applique la remise.
         brutMonthlyPrice = product.unit_price;
+
+        // Garde-fou anti pricing-corruption (cf. bug 2026-05-20) :
+        // si la DB connaît un prix mensuel pour cette variante et que celui envoyé
+        // par le site diffère de plus de 5 %, on bascule sur le prix DB (source de
+        // vérité). Cela évite qu'un panier corrompu (ex: monthly × quantité) ne se
+        // transforme en mensualité × N² une fois multipliée par la quantité en aval.
+        const dbMonthly = variantMonthlyPrice || productMonthlyPrice || 0;
+        if (dbMonthly > 0 && Math.abs(brutMonthlyPrice - dbMonthly) / dbMonthly > 0.05) {
+          console.warn(
+            `⚠️ Écart >5% entre brut envoyé (${brutMonthlyPrice}€) et DB (${dbMonthly}€) pour ${productName} — utilisation du prix DB comme source de vérité`
+          );
+          brutMonthlyPrice = dbMonthly;
+        }
+
         monthlyPrice = discountPct > 0
           ? Math.round(brutMonthlyPrice * (1 - discountPct / 100) * 100) / 100
           : brutMonthlyPrice;
-        console.log(`📊 Mensualité UNITAIRE iTakecare: brut=${brutMonthlyPrice}€, remise=${discountPct}%, final=${monthlyPrice}€`);
-
-        // Validation cohérence avec la DB (log seulement) — sur le BRUT
-        const dbMonthly = variantMonthlyPrice || productMonthlyPrice || 0;
-        if (dbMonthly > 0 && Math.abs(brutMonthlyPrice - dbMonthly) / dbMonthly > 0.05) {
-          console.warn(`⚠️ Écart >5% entre brut iTakecare (${brutMonthlyPrice}€) et DB (${dbMonthly}€) pour ${productName}`);
-        }
+        console.log(`📊 Mensualité UNITAIRE finale: brut=${brutMonthlyPrice}€, remise=${discountPct}%, final=${monthlyPrice}€`);
       } else {
         // Fallback : calcul depuis la DB (cas sans iTakecare)
         brutMonthlyPrice = variantMonthlyPrice || productMonthlyPrice || 0;
