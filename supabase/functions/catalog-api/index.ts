@@ -324,7 +324,12 @@ Deno.serve(async (req) => {
           }
         } else {
           // GET /providers - Liste des prestataires externes actifs
-          data = await getProviders(supabaseAdmin, companyId)
+          // Optional query params:
+          //   ?catalog_only=true   → only providers flagged as visible in the catalog
+          //   ?with_products=true  → include each provider's active products inline
+          const catalogOnly = url.searchParams.get('catalog_only') === 'true'
+          const withProducts = url.searchParams.get('with_products') === 'true'
+          data = await getProviders(supabaseAdmin, companyId, { catalogOnly, withProducts })
         }
         break
 
@@ -1758,24 +1763,59 @@ async function getPartnerProviders(supabase: any, companyId: string, partnerIdOr
 // EXTERNAL PROVIDERS ENDPOINTS
 // ============================================
 
-async function getProviders(supabase: any, companyId: string) {
-  console.log('🏢 GET PROVIDERS - Starting for company:', companyId)
-  
-  const { data: providers, error } = await supabase
+async function getProviders(
+  supabase: any,
+  companyId: string,
+  opts: { catalogOnly?: boolean; withProducts?: boolean } = {}
+) {
+  console.log('🏢 GET PROVIDERS - Starting for company:', companyId, 'opts:', opts)
+
+  let query = supabase
     .from('external_providers')
-    .select('id, name, logo_url, website_url, description, is_active, created_at')
+    .select('id, name, logo_url, website_url, description, is_active, is_visible_in_catalog, created_at')
     .eq('company_id', companyId)
     .eq('is_active', true)
-    .order('name')
 
+  if (opts.catalogOnly) {
+    query = query.eq('is_visible_in_catalog', true)
+  }
+
+  const { data: providers, error } = await query.order('name')
   if (error) throw error
-  return { providers: providers || [] }
+
+  if (!opts.withProducts || !providers || providers.length === 0) {
+    return { providers: providers || [] }
+  }
+
+  // Eager-load active products for all providers in one query
+  const providerIds = providers.map((p: any) => p.id)
+  const { data: products, error: prodErr } = await supabase
+    .from('external_provider_products')
+    .select('id, provider_id, name, description, price_htva, billing_period, is_active, position')
+    .in('provider_id', providerIds)
+    .eq('is_active', true)
+    .order('position')
+
+  if (prodErr) throw prodErr
+
+  const productsByProvider = (products || []).reduce((acc: any, p: any) => {
+    if (!acc[p.provider_id]) acc[p.provider_id] = []
+    acc[p.provider_id].push(p)
+    return acc
+  }, {})
+
+  return {
+    providers: providers.map((p: any) => ({
+      ...p,
+      products: productsByProvider[p.id] || [],
+    })),
+  }
 }
 
 async function getProvider(supabase: any, companyId: string, providerId: string) {
   const { data: provider, error } = await supabase
     .from('external_providers')
-    .select('id, name, logo_url, website_url, description, is_active, created_at')
+    .select('id, name, logo_url, website_url, description, is_active, is_visible_in_catalog, created_at')
     .eq('id', providerId)
     .eq('company_id', companyId)
     .eq('is_active', true)

@@ -51,6 +51,7 @@ const ExternalProviderManager: React.FC = () => {
     website_url: "",
     description: "",
     is_active: true,
+    is_visible_in_catalog: true,
   });
 
   const [productForm, setProductForm] = useState<Omit<CreateExternalProviderProductData, 'provider_id'>>({
@@ -151,7 +152,7 @@ const ExternalProviderManager: React.FC = () => {
 
   const openCreateProvider = () => {
     setEditingProvider(null);
-    setProviderForm({ name: "", logo_url: "", website_url: "", description: "", is_active: true });
+    setProviderForm({ name: "", logo_url: "", website_url: "", description: "", is_active: true, is_visible_in_catalog: true });
     setDialogOpen(true);
   };
 
@@ -163,9 +164,19 @@ const ExternalProviderManager: React.FC = () => {
       website_url: provider.website_url || "",
       description: provider.description || "",
       is_active: provider.is_active,
+      is_visible_in_catalog: provider.is_visible_in_catalog ?? true,
     });
     setDialogOpen(true);
   };
+
+  const toggleVisibilityMut = useMutation({
+    mutationFn: ({ id, is_visible_in_catalog }: { id: string; is_visible_in_catalog: boolean }) =>
+      updateExternalProvider(id, { is_visible_in_catalog }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["external_providers"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const handleSubmitProvider = () => {
     if (!providerForm.name.trim()) {
@@ -258,8 +269,20 @@ const ExternalProviderManager: React.FC = () => {
                       <Badge variant={provider.is_active ? "default" : "secondary"}>
                         {provider.is_active ? "Actif" : "Inactif"}
                       </Badge>
+                      <Badge variant={provider.is_visible_in_catalog ? "default" : "outline"}>
+                        {provider.is_visible_in_catalog ? "Visible catalogue" : "Masqué catalogue"}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mr-2" title="Visible sur les pages produit du catalogue">
+                        <Switch
+                          checked={provider.is_visible_in_catalog}
+                          onCheckedChange={(v) =>
+                            toggleVisibilityMut.mutate({ id: provider.id, is_visible_in_catalog: v })
+                          }
+                        />
+                        <Label className="text-xs text-muted-foreground hidden md:inline">Catalogue</Label>
+                      </div>
                       <Button variant="ghost" size="icon" onClick={() => openEditProvider(provider)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -413,6 +436,18 @@ const ExternalProviderManager: React.FC = () => {
             <div className="flex items-center gap-2">
               <Switch checked={providerForm.is_active} onCheckedChange={(v) => setProviderForm(p => ({ ...p, is_active: v }))} />
               <Label>Actif</Label>
+            </div>
+            <div className="flex items-start gap-2">
+              <Switch
+                checked={providerForm.is_visible_in_catalog ?? true}
+                onCheckedChange={(v) => setProviderForm(p => ({ ...p, is_visible_in_catalog: v }))}
+              />
+              <div>
+                <Label>Visible sur les pages produit du catalogue</Label>
+                <p className="text-xs text-muted-foreground">
+                  Si activé, ce prestataire apparaît en upsell sur toutes les pages produit (public, ambassadeur, client).
+                </p>
+              </div>
             </div>
           </div>
           <DialogFooter>

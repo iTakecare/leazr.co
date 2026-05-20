@@ -74,6 +74,41 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
     // Fetch equipment using the shared service to ensure proper RLS and structure
     const equipmentData: OfferEquipment[] = await getOfferEquipment(offerId);
 
+    // Fetch external provider services attached to this offer (billed directly
+    // by the provider, NOT included in the monthly total). Uses the
+    // company-wide offer_external_services table.
+    const { data: providerServicesData } = await supabase
+      .from('offer_external_services')
+      .select('provider_name, product_name, price_htva, billing_period, quantity')
+      .eq('offer_id', offerId)
+      .order('created_at');
+
+    // Best-effort enrichment: look up each provider's logo_url by name.
+    const uniqueProviderNames = Array.from(
+      new Set((providerServicesData || []).map((r: any) => r.provider_name).filter(Boolean))
+    );
+    let logoByName: Record<string, string | undefined> = {};
+    if (uniqueProviderNames.length > 0) {
+      const { data: providersData } = await supabase
+        .from('external_providers')
+        .select('name, logo_url')
+        .eq('company_id', offerData.company_id)
+        .in('name', uniqueProviderNames as string[]);
+      logoByName = (providersData || []).reduce((acc: any, p: any) => {
+        acc[p.name] = p.logo_url || undefined;
+        return acc;
+      }, {});
+    }
+
+    const externalProviderProducts = (providerServicesData || []).map((row: any) => ({
+      provider_name: row.provider_name || 'Prestataire',
+      provider_logo_url: logoByName[row.provider_name] || undefined,
+      product_name: row.product_name || 'Service',
+      price_htva: Number(row.price_htva || 0),
+      billing_period: row.billing_period || 'monthly',
+      quantity: row.quantity || 1,
+    }));
+
     // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
     const totalMonthlyPayment = equipmentData.reduce(
       (sum, item) => sum + (item.monthly_payment || 0),
@@ -178,6 +213,8 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       coefficient: coefficient,
       adjusted_monthly_payment: adjustedMonthlyPayment,
       financed_amount_after_down_payment: financedAmountAfterDownPayment,
+      // External provider products (billed directly by providers, NOT in monthly total)
+      external_provider_products: externalProviderProducts,
       // Purchase mode fields
       is_purchase: offerData.is_purchase || false,
       total_selling_price: offerData.is_purchase 

@@ -4,11 +4,17 @@ import { saveEquipment } from "@/services/offers/offerEquipment";
 import { supabase } from "@/integrations/supabase/client";
 import { getLeaserById } from "@/services/leaserService";
 import { getCoefficientFromLeaser } from "@/utils/leaserCalculator";
+import { saveOfferExternalProviderProducts } from "@/services/externalProviderService";
+import type { SelectedExternalProviderProduct } from "@/types/partner";
 
 /**
  * Crée une nouvelle demande client (offre) avec équipements structurés
  */
-export const createClientRequest = async (data: any, cartItems?: any[]) => {
+export const createClientRequest = async (
+  data: any,
+  cartItems?: any[],
+  externalProviderProducts?: SelectedExternalProviderProduct[]
+) => {
   try {
     console.log("Creating client request with data:", data);
     
@@ -160,7 +166,18 @@ export const createClientRequest = async (data: any, cartItems?: any[]) => {
         }
       }
     }
-    
+
+    // Persist external provider product selections (billed directly by the provider)
+    if (externalProviderProducts && externalProviderProducts.length > 0 && result?.id) {
+      try {
+        await saveOfferExternalProviderProducts(result.id, externalProviderProducts);
+        console.log("External provider products saved for offer:", result.id);
+      } catch (providerError) {
+        console.error("Error saving external provider products:", providerError);
+        // Non-fatal: offer is already created
+      }
+    }
+
     return { data: result, error: null };
   } catch (error) {
     console.error("Exception in createClientRequest:", error);

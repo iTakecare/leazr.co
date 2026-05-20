@@ -17,10 +17,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Check, User, Mail, Building, Package, Euro, Loader2, Send, Monitor } from 'lucide-react';
+import SelectedExternalProvidersList from '@/components/cart/SelectedExternalProvidersList';
 
 const ClientRequestSummary: React.FC = () => {
   const { navigateToClient } = useRoleNavigation();
-  const { items, cartTotal, clearCart } = useCart();
+  const { items, cartTotal, clearCart, externalProviderProducts } = useCart();
   const { clientData, loading: clientLoading } = useClientData();
   const { companyId } = useMultiTenant();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -152,7 +153,7 @@ const ClientRequestSummary: React.FC = () => {
     console.log("Submitting client request with data:", requestData);
     
     try {
-      const response = await createClientRequest(requestData, cartItemsWithPricing);
+      const response = await createClientRequest(requestData, cartItemsWithPricing, externalProviderProducts);
       
       if (response.error) {
         console.error("Error from createClientRequest:", response.error);
@@ -335,7 +336,10 @@ const ClientRequestSummary: React.FC = () => {
             </p>
           </div>
         </div>
-        
+
+        {/* External Provider Products */}
+        <SelectedExternalProvidersList variant="card" />
+
         {/* Software Selection Section */}
         {softwareCatalog.length > 0 && (
           <div className="bg-card rounded-lg border overflow-hidden">

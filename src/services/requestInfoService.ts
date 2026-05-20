@@ -49,7 +49,11 @@ export interface RequestInfoData {
  * Crée une demande de produit (offre) à partir du catalogue public
  * Transforme les données plates en format structuré attendu par l'edge function
  */
-export const createProductRequest = async (data: ProductRequestData, cartItems?: any[]) => {
+export const createProductRequest = async (
+  data: ProductRequestData,
+  cartItems?: any[],
+  externalProviderProducts?: import("@/types/partner").SelectedExternalProviderProduct[]
+) => {
   try {
     console.log("Creating product request with data:", data);
     
@@ -189,6 +193,18 @@ export const createProductRequest = async (data: ProductRequestData, cartItems?:
     sessionStorage.setItem('lastSubmittedRequest', JSON.stringify(responseData));
     sessionStorage.setItem('lastSubmittedOfferId', responseData.id);
     
+    // Persist external provider product selections (billed directly by the provider)
+    if (externalProviderProducts && externalProviderProducts.length > 0 && responseData?.id) {
+      try {
+        const { saveOfferExternalProviderProducts } = await import("@/services/externalProviderService");
+        await saveOfferExternalProviderProducts(responseData.id, externalProviderProducts);
+        console.log("External provider products saved for offer:", responseData.id);
+      } catch (providerError) {
+        console.error("Error saving external provider products:", providerError);
+        // Non-fatal: offer already created
+      }
+    }
+
     console.log("Request stored successfully:", responseData);
     toast.success("Votre demande a été envoyée avec succès");
     return responseData;

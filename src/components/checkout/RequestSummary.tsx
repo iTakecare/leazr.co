@@ -40,7 +40,7 @@ interface RequestSummaryProps {
 }
 
 const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactData, onBack, companyId, onRequestCompleted }) => {
-  const { items, clearCart } = useCart();
+  const { items, clearCart, externalProviderProducts } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -139,7 +139,7 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         };
       });
       
-      const result = await createProductRequest(requestData, cartItemsWithPrices);
+      const result = await createProductRequest(requestData, cartItemsWithPrices, externalProviderProducts);
       
       clearCart();
       

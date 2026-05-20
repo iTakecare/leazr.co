@@ -4,6 +4,13 @@ import { colors } from '../styles/pdfStyles';
 import { OfferEquipment } from '@/types/offerEquipment';
 import { getCategoryEmoji } from '@/utils/equipmentCategoryEmojis';
 import { stripHtmlTags } from '@/utils/htmlToPdfText';
+import type { ExternalProviderPDFLine } from './OfferPDFDocument';
+
+const BILLING_PERIOD_PDF_LABELS: Record<string, string> = {
+  monthly: 'mensuel',
+  yearly: 'annuel',
+  one_time: 'paiement unique',
+};
 
 interface OfferEquipmentPageProps {
   equipment: OfferEquipment[];
@@ -26,6 +33,7 @@ interface OfferEquipmentPageProps {
   discountValue?: number;
   discountAmount?: number;
   monthlyPaymentBeforeDiscount?: number;
+  externalProviderProducts?: ExternalProviderPDFLine[];
   contentBlocks?: {
     title?: string;
     footer_note?: string;
@@ -53,6 +61,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
   discountValue,
   discountAmount,
   monthlyPaymentBeforeDiscount,
+  externalProviderProducts,
   contentBlocks,
   styles,
 }) => {
@@ -184,6 +193,74 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
           );
         })}
       </View>
+
+      {/* External provider products — billed directly by each provider, NOT in monthly total */}
+      {externalProviderProducts && externalProviderProducts.length > 0 && (
+        <View
+          style={{
+            marginTop: 18,
+            padding: 12,
+            backgroundColor: '#EFF6FF',
+            borderRadius: 4,
+            borderLeftWidth: 4,
+            borderLeftColor: '#3B82F6',
+          }}
+        >
+          <Text style={{ ...styles.textBold, marginBottom: 8, color: '#1E3A8A', fontSize: 12 }}>
+            Services partenaires complémentaires
+          </Text>
+
+          {Object.entries(
+            externalProviderProducts.reduce<Record<string, ExternalProviderPDFLine[]>>((acc, line) => {
+              const key = line.provider_name || 'Prestataire';
+              if (!acc[key]) acc[key] = [];
+              acc[key].push(line);
+              return acc;
+            }, {})
+          ).map(([providerName, lines]) => (
+            <View key={providerName} style={{ marginBottom: 8 }}>
+              <Text style={{ ...styles.textBold, fontSize: 10, color: '#1E3A8A', marginBottom: 3 }}>
+                {providerName}
+              </Text>
+              {lines.map((line, i) => (
+                <View
+                  key={`${providerName}-${i}`}
+                  style={{
+                    ...styles.row,
+                    marginBottom: 2,
+                    paddingLeft: 8,
+                  }}
+                >
+                  <Text style={{ ...styles.text, fontSize: 10, flex: 3 }}>
+                    {line.product_name}
+                    {line.quantity > 1 ? ` × ${line.quantity}` : ''}
+                  </Text>
+                  <Text style={{ ...styles.text, fontSize: 10, flex: 1.5, textAlign: 'right' }}>
+                    {formatCurrency(line.price_htva)} HTVA{' '}
+                    <Text style={{ color: '#64748B' }}>
+                      ({BILLING_PERIOD_PDF_LABELS[line.billing_period] || line.billing_period})
+                    </Text>
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ))}
+
+          <Text
+            style={{
+              fontSize: 9,
+              fontStyle: 'italic',
+              color: '#475569',
+              marginTop: 6,
+              lineHeight: 1.4,
+            }}
+          >
+            Ces services sont fournis et facturés directement par chaque prestataire partenaire.
+            Leurs tarifs sont gérés indépendamment et ne sont PAS inclus dans la mensualité de
+            location ci-dessous.
+          </Text>
+        </View>
+      )}
 
       {/* Summary */}
       <View style={{ marginTop: 20, paddingTop: 15, borderTop: `2pt solid ${colors.border}` }}>

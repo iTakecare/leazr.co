@@ -61,6 +61,7 @@ export interface ExternalProvider {
   website_url?: string;
   description?: string;
   is_active: boolean;
+  is_visible_in_catalog: boolean;
   created_at: string;
   updated_at: string;
   // Computed
@@ -112,6 +113,37 @@ export interface CreateExternalProviderData {
   website_url?: string;
   description?: string;
   is_active?: boolean;
+  is_visible_in_catalog?: boolean;
+}
+
+// Provider + its products bundled together for catalog display
+export interface ExternalProviderWithProducts extends ExternalProvider {
+  products: ExternalProviderProduct[];
+}
+
+// A user's selection in the cart: provider product + quantity
+export interface SelectedExternalProviderProduct {
+  provider_id: string;
+  provider_name: string;
+  provider_logo_url?: string;
+  product_id: string;
+  product_name: string;
+  price_htva: number;
+  billing_period: 'monthly' | 'yearly' | 'one_time';
+  quantity: number;
+}
+
+// Persisted on an offer in public.offer_external_services
+export interface OfferExternalProviderProduct {
+  id: string;
+  offer_id: string;
+  provider_name: string;
+  product_name: string;
+  description?: string;
+  price_htva: number;
+  billing_period: string;
+  quantity: number;
+  created_at: string;
 }
 
 export interface CreateExternalProviderProductData {

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '@/types/catalog';
 import { getProductPrice } from '@/utils/productPricing';
 import { toast } from 'sonner';
+import type { SelectedExternalProviderProduct } from '@/types/partner';
 
 
 type CartItem = {
@@ -20,14 +21,37 @@ interface CartContextType {
   clearCart: () => void;
   cartCount: number;
   cartTotal: number;
+  // External provider products (billed separately by the provider — NOT in cartTotal)
+  externalProviderProducts: SelectedExternalProviderProduct[];
+  addExternalProviderProduct: (item: SelectedExternalProviderProduct) => void;
+  removeExternalProviderProduct: (productId: string) => void;
+  updateExternalProviderProductQuantity: (productId: string, quantity: number) => void;
+  clearExternalProviderProducts: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
-  
-  
+  const [externalProviderProducts, setExternalProviderProducts] = useState<SelectedExternalProviderProduct[]>([]);
+
+  // Load external provider selections from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('itakecare-cart-providers');
+    if (saved) {
+      try {
+        setExternalProviderProducts(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse provider selections:', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('itakecare-cart-providers', JSON.stringify(externalProviderProducts));
+  }, [externalProviderProducts]);
+
+
   // Load cart from localStorage on component mount
   useEffect(() => {
     const savedCart = localStorage.getItem('itakecare-cart');
@@ -163,10 +187,38 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const clearCart = () => {
     setItems([]);
-    
-    
+    setExternalProviderProducts([]);
+
+
     toast.info('Panier vidé');
   };
+
+  const addExternalProviderProduct = (item: SelectedExternalProviderProduct) => {
+    setExternalProviderProducts(prev => {
+      const existingIdx = prev.findIndex(p => p.product_id === item.product_id);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = { ...updated[existingIdx], quantity: updated[existingIdx].quantity + item.quantity };
+        toast.success('Quantité prestataire mise à jour');
+        return updated;
+      }
+      toast.success(`${item.provider_name} ajouté à votre demande`);
+      return [...prev, item];
+    });
+  };
+
+  const removeExternalProviderProduct = (productId: string) => {
+    setExternalProviderProducts(prev => prev.filter(p => p.product_id !== productId));
+    toast.info('Prestataire retiré');
+  };
+
+  const updateExternalProviderProductQuantity = (productId: string, quantity: number) => {
+    setExternalProviderProducts(prev =>
+      prev.map(p => (p.product_id === productId ? { ...p, quantity: Math.max(1, quantity) } : p))
+    );
+  };
+
+  const clearExternalProviderProducts = () => setExternalProviderProducts([]);
   
   const cartCount = items.reduce((total, item) => total + item.quantity, 0);
   
@@ -188,7 +240,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateQuantity,
     clearCart,
     cartCount,
-    cartTotal
+    cartTotal,
+    externalProviderProducts,
+    addExternalProviderProduct,
+    removeExternalProviderProduct,
+    updateExternalProviderProductQuantity,
+    clearExternalProviderProducts,
   };
   
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

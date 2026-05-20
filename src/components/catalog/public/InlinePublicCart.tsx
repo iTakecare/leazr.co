@@ -5,6 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
 import { getProductPrice } from '@/utils/productPricing';
 import { Trash2, ShoppingBag, ArrowLeft, ArrowRight } from 'lucide-react';
+import SelectedExternalProvidersList from '@/components/cart/SelectedExternalProvidersList';
 
 interface InlinePublicCartProps {
   onBackToCatalog: () => void;
@@ -136,8 +137,10 @@ const InlinePublicCart: React.FC<InlinePublicCartProps> = ({
                 </div>
               </div>
             </div>
+
+            <SelectedExternalProvidersList className="mt-6" variant="card" />
           </div>
-          
+
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm overflow-hidden sticky top-4">
               <div className="p-6">

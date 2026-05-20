@@ -8,6 +8,7 @@ import ProductLoadingState from "@/components/product-detail/ProductLoadingState
 import ProductConfigurationSection from "@/components/product-detail/ProductConfigurationSection";
 import ProductMainContent from "@/components/product-detail/ProductMainContent";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
+import ExternalProviderUpsell from "@/components/catalog/ExternalProviderUpsell";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
 
 interface ClientProductDetailProps {
@@ -152,11 +153,14 @@ const ClientProductDetail: React.FC<ClientProductDetailProps> = ({
         </div>
       </div>
 
+      {/* External Provider upsells */}
+      <ExternalProviderUpsell companyId={companyId} className="mt-12" />
+
       {/* Related Products */}
       <div className="mt-16">
-        <RelatedProducts 
+        <RelatedProducts
           companyId={companyId}
-          currentProductId={productId} 
+          currentProductId={productId}
           category={productCategory}
         />
       </div>

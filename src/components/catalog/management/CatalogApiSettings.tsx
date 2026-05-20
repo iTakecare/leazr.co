@@ -432,14 +432,21 @@ const CatalogApiSettings = () => {
     {
       method: 'GET',
       path: 'providers',
-      description: 'Liste des prestataires externes actifs',
-      example: '{ "providers": [{ "id": "uuid", "name": "Proximus", "logo_url": "https://...", "description": "Opérateur télécom", "is_active": true }] }'
+      description: 'Liste des prestataires externes actifs. Params optionnels: ?catalog_only=true (renvoie uniquement les prestataires dont is_visible_in_catalog=true, à utiliser pour afficher les upsells sur les pages produit publiques), ?with_products=true (inclut directement les produits actifs de chaque prestataire dans la réponse pour éviter un round-trip).',
+      params: '?catalog_only=true&with_products=true',
+      example: '{ "providers": [{ "id": "uuid", "name": "Proximus", "logo_url": "https://...", "description": "Opérateur télécom", "is_active": true, "is_visible_in_catalog": true, "products": [{ "id": "uuid", "name": "Abonnement mobile", "price_htva": 9.99, "billing_period": "monthly" }] }] }'
+    },
+    {
+      method: 'GET',
+      path: 'providers/{id}',
+      description: 'Détail d\'un prestataire externe. Le champ is_visible_in_catalog indique s\'il doit apparaître comme upsell sur les pages produit du catalogue.',
+      example: '{ "provider": { "id": "uuid", "name": "Proximus", "logo_url": "https://...", "website_url": "https://...", "description": "Opérateur télécom", "is_active": true, "is_visible_in_catalog": true } }'
     },
     {
       method: 'GET',
       path: 'providers/{id}/products',
-      description: 'Produits/services d\'un prestataire externe',
-      example: '{ "products": [{ "id": "uuid", "name": "Abonnement mobile", "price_htva": 9.99, "billing_period": "monthly", "is_active": true }] }'
+      description: 'Produits/services actifs d\'un prestataire externe. Les prix (price_htva) sont gérés et facturés directement par le prestataire — ils ne doivent PAS être additionnés au loyer mensuel de l\'offre.',
+      example: '{ "products": [{ "id": "uuid", "name": "Abonnement mobile", "description": "...", "price_htva": 9.99, "billing_period": "monthly", "is_active": true, "position": 0 }] }'
     },
     {
       method: 'POST',
@@ -450,7 +457,7 @@ const CatalogApiSettings = () => {
     {
       method: 'POST',
       path: 'create-product-request (Edge Function)',
-      description: 'Créer une demande de devis/commande. Le champ reference_number (obtenu via next-reference) est utilisé comme numéro de dossier. Si absent, un numéro séquentiel est généré automatiquement.',
+      description: 'Créer une demande de devis/commande. Le champ reference_number (obtenu via next-reference) est utilisé comme numéro de dossier. Si absent, un numéro séquentiel est généré automatiquement. Le tableau optionnel external_services attache des services de prestataires externes (téléphonie, etc.) à la demande — leur prix est facturé directement par le prestataire et n\'est PAS ajouté au loyer mensuel. Ces services apparaissent dans une carte dédiée du PDF de l\'offre.',
       body: '{\n  "products": [{ "product_id": "uuid", "variant_id": "uuid", "quantity": 2, "unit_price": 25.99 }],\n  "contact_info": { "first_name": "Jean", "last_name": "Dupont", "email": "jean@example.com" },\n  "company_info": { "company_name": "Acme SA", "vat_number": "BE0123456789" },\n  "reference_number": "ITC-2026-OFF-9976",\n  "partner_slug": "the-pod",\n  "partner_name": "The Pod",\n  "external_services": [\n    { "provider_name": "Proximus", "product_name": "Mobile Pro", "price_htva": 9.99, "billing_period": "monthly", "quantity": 1 }\n  ]\n}',
       example: '{ "success": true, "request_id": "uuid", "message": "Demande créée avec succès" }'
     }

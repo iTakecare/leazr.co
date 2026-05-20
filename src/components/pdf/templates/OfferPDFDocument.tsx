@@ -6,6 +6,15 @@ import { OfferValuesPage } from './OfferValuesPage';
 import { OfferEquipment } from '@/types/offerEquipment';
 import { createOfferPdfStyles } from '../styles/pdfStyles';
 
+export interface ExternalProviderPDFLine {
+  provider_name: string;
+  provider_logo_url?: string;
+  product_name: string;
+  price_htva: number;
+  billing_period: 'monthly' | 'yearly' | 'one_time' | string;
+  quantity: number;
+}
+
 export interface OfferPDFData {
   id: string;
   offer_number: string;
@@ -58,6 +67,8 @@ export interface OfferPDFData {
   discount_value?: number;
   discount_amount?: number;
   monthly_payment_before_discount?: number;
+  // External provider products (billed separately by each provider — NOT part of total_monthly_payment)
+  external_provider_products?: ExternalProviderPDFLine[];
   // Purchase mode fields
   is_purchase?: boolean;
   total_selling_price?: number;
@@ -133,6 +144,7 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         discountValue={offer.discount_value}
         discountAmount={offer.discount_amount}
         monthlyPaymentBeforeDiscount={offer.monthly_payment_before_discount}
+        externalProviderProducts={offer.external_provider_products}
         contentBlocks={{
           title: offer.content_blocks?.equipment_title,
           footer_note: offer.content_blocks?.equipment_footer_note,
