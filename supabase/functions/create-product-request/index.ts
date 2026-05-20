@@ -193,6 +193,87 @@ serve(async (req) => {
     let totalBrutMonthlyPayment = 0;
     let totalFinancedAmountEstimate = 0;
 
+    // ============================================================
+    // RÈGLE PACK META/SITE (2026-05-20) :
+    // Quand une demande arrive du site/Meta avec un total mensuel qui
+    // correspond à un pack actif, on cale chaque produit de la demande
+    // sur les prix individuels autoritaires du pack (unit_purchase_price
+    // + unit_monthly_price + margin_percentage de product_pack_items).
+    // Ça évite les marges incohérentes (78%, 131%…) liées au fait que
+    // le front envoie des unit_price qui ne reflètent pas la marge réelle
+    // négociée dans le pack.
+    // ============================================================
+    type PackOverride = { unit_purchase_price: number; unit_monthly_price: number; margin_percentage: number; pack_id: string };
+    const packOverrides: Record<string, PackOverride> = {};
+    try {
+      const incomingMonthlyTotal = Number(data.total || 0);
+      if (incomingMonthlyTotal > 0 && Array.isArray(data.products) && data.products.length > 0) {
+        const incomingProductIds = data.products
+          .map((p: any) => p.product_id)
+          .filter(Boolean);
+
+        // Fenêtre de matching ±1 % autour du total demandé
+        const min = incomingMonthlyTotal * 0.99;
+        const max = incomingMonthlyTotal * 1.01;
+
+        const { data: candidatePacks } = await supabaseAdmin
+          .from('product_packs')
+          .select('id, name, total_monthly_price, pack_monthly_price, company_id, is_active')
+          .eq('company_id', targetCompanyId)
+          .eq('is_active', true)
+          .or(
+            `total_monthly_price.gte.${min},pack_monthly_price.gte.${min}`
+          );
+
+        // Filtrer côté JS car Supabase ne combine pas facilement gte+lte sur 2 colonnes
+        const matchingPacks = (candidatePacks || []).filter((p: any) => {
+          const t = Number(p.total_monthly_price || 0);
+          const m = Number(p.pack_monthly_price || 0);
+          const tMatch = t >= min && t <= max;
+          const mMatch = m >= min && m <= max;
+          return tMatch || mMatch;
+        });
+
+        console.log(`🎯 PACK-MATCH: total demandé ${incomingMonthlyTotal}€, ${matchingPacks.length} pack(s) candidat(s) actifs avec total ≈ demande`);
+
+        for (const candidate of matchingPacks) {
+          const { data: items } = await supabaseAdmin
+            .from('product_pack_items')
+            .select('product_id, variant_price_id, quantity, unit_purchase_price, unit_monthly_price, margin_percentage')
+            .eq('pack_id', candidate.id);
+
+          if (!items || items.length === 0) continue;
+
+          // Pour qu'on accepte le match, il faut que tous les product_ids de la demande
+          // soient présents dans le pack — composition cohérente, pas un faux positif.
+          const packProductIds = new Set(items.map((i: any) => i.product_id));
+          const allCovered = incomingProductIds.every((pid: string) => packProductIds.has(pid));
+
+          if (!allCovered) {
+            console.log(`⏭️ PACK-MATCH: pack ${candidate.name} ignoré (composition incomplète)`);
+            continue;
+          }
+
+          // Construire un dictionnaire product_id → prix autoritaires
+          for (const item of items) {
+            // Priorité au variant_price_id si fourni, sinon clé par product_id
+            const key = item.variant_price_id || item.product_id;
+            packOverrides[key] = {
+              unit_purchase_price: Number(item.unit_purchase_price || 0),
+              unit_monthly_price: Number(item.unit_monthly_price || 0),
+              margin_percentage: Number(item.margin_percentage || 0),
+              pack_id: candidate.id,
+            };
+          }
+
+          console.log(`✅ PACK-MATCH: utilisation des prix autoritaires du pack "${candidate.name}" (${candidate.id})`);
+          break; // on prend le premier pack qui colle parfaitement
+        }
+      }
+    } catch (packMatchErr) {
+      console.error("⚠️ PACK-MATCH error (non-fatal, continue with payload prices):", packMatchErr);
+    }
+
     // Traitement des produits individuels
     for (const product of data.products) {
       console.log("Produit reçu:", JSON.stringify(product, null, 2));
@@ -315,13 +396,30 @@ serve(async (req) => {
           .select('price, monthly_price')
           .eq('id', product.product_id)
           .single();
-        
+
         price = productPrices?.price || 0;
         productMonthlyPrice = productPrices?.monthly_price || 0;
         if (price > 0) priceResolutionMethod = 'product_fallback';
         console.log(`✅ [product_fallback] Prix: achat=${price}€, mensuel=${productMonthlyPrice}€`);
       }
-      
+
+      // 6) OVERRIDE PACK (règle Meta/site) : si le produit est couvert par un pack actif
+      // dont le total mensuel correspond à la demande, on remplace les prix
+      // catalogue par les prix autoritaires définis dans product_pack_items.
+      const overrideKey = product.variant_id || product.product_id;
+      const packOverride = packOverrides[overrideKey] || packOverrides[product.product_id];
+      if (packOverride) {
+        const oldPrice = price;
+        const oldVariantMonthly = variantMonthlyPrice;
+        price = packOverride.unit_purchase_price;
+        variantMonthlyPrice = packOverride.unit_monthly_price;
+        productMonthlyPrice = packOverride.unit_monthly_price;
+        // On force aussi le unit_price reçu pour qu'il soit utilisé dans le calcul aval.
+        product.unit_price = packOverride.unit_monthly_price;
+        priceResolutionMethod = 'pack_override';
+        console.log(`🔒 PACK-OVERRIDE pour "${productName}": achat ${oldPrice}€ → ${price}€, mensuel ${oldVariantMonthly}€ → ${variantMonthlyPrice}€ (pack ${packOverride.pack_id}, marge ${packOverride.margin_percentage}%)`);
+      }
+
       console.log(`📊 Résolution prix pour "${productName}": méthode=${priceResolutionMethod}, achat=${price}€`);
 
       let monthlyPrice = 0;
