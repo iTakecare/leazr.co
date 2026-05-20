@@ -1214,14 +1214,39 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
           }
         }
 
-        // Get default leaser (Grenke Lease BE)
+        // Get default leaser (Grenke Lease BE) with its coefficient ranges
         const { data: leaser } = await supabase
           .from('leasers')
-          .select('id')
+          .select('id, leaser_ranges(min, max, coefficient)')
           .eq('name', '1. Grenke Lease')
           .maybeSingle();
 
         const leaserId = leaser?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949';
+
+        // Compute the actual Grenke coefficient for the financed amount tier.
+        // Converges in a few iterations because coef itself depends on the
+        // financed amount it produces. Fixed-point iteration starting from 3.53.
+        const findCoefficientForAmount = (amount: number): number => {
+          const ranges = (leaser as any)?.leaser_ranges || [];
+          if (!ranges.length) return 3.53;
+          const sorted = [...ranges].sort((a: any, b: any) => a.min - b.min);
+          const range = sorted.find((r: any) => amount >= r.min && amount <= r.max);
+          return range?.coefficient || sorted[sorted.length - 1]?.coefficient || 3.53;
+        };
+
+        let estimatedFinanced = monthlyPayment ? (monthlyPayment * 100) / 3.53 : 0;
+        let resolvedCoefficient = findCoefficientForAmount(estimatedFinanced);
+        for (let i = 0; i < 5; i++) {
+          const newFinanced = monthlyPayment ? (monthlyPayment * 100) / resolvedCoefficient : 0;
+          const newCoef = findCoefficientForAmount(newFinanced);
+          if (Math.abs(newCoef - resolvedCoefficient) < 0.001) break;
+          resolvedCoefficient = newCoef;
+        }
+        const resolvedFinanced = monthlyPayment ? (monthlyPayment * 100) / resolvedCoefficient : 0;
+        const resolvedMargin = purchaseAmount > 0
+          ? ((resolvedFinanced - purchaseAmount) / purchaseAmount) * 100
+          : 0;
+        console.log(`[META IMPORT] Coefficient résolu: ${resolvedCoefficient}% → financed ${resolvedFinanced.toFixed(2)}€, marge ${resolvedMargin.toFixed(2)}%`);
 
         // Format creation date for remarks
         const leadDate = new Date(lead.created_time);
@@ -1275,10 +1300,11 @@ ${packRemarks}
           products_to_be_determined: productsMatched === 0,
           amount: purchaseAmount,
           monthly_payment: monthlyPayment,
-          margin: marginAmount,
+          // On stocke le %, cohérent avec les autres flux d'offres.
+          margin: resolvedMargin,
           pack_id: packId,
-          financed_amount: monthlyPayment ? (monthlyPayment * 100) / 3.53 : 0,
-          coefficient: 3.53
+          financed_amount: resolvedFinanced,
+          coefficient: resolvedCoefficient
         };
 
         const { data: offer, error: offerError } = await supabase
