@@ -52,6 +52,8 @@ const ExternalProviderManager: React.FC = () => {
     description: "",
     is_active: true,
     is_visible_in_catalog: true,
+    contact_email: "",
+    contact_phone: "",
   });
 
   const [productForm, setProductForm] = useState<Omit<CreateExternalProviderProductData, 'provider_id'>>({
@@ -152,7 +154,16 @@ const ExternalProviderManager: React.FC = () => {
 
   const openCreateProvider = () => {
     setEditingProvider(null);
-    setProviderForm({ name: "", logo_url: "", website_url: "", description: "", is_active: true, is_visible_in_catalog: true });
+    setProviderForm({
+      name: "",
+      logo_url: "",
+      website_url: "",
+      description: "",
+      is_active: true,
+      is_visible_in_catalog: true,
+      contact_email: "",
+      contact_phone: "",
+    });
     setDialogOpen(true);
   };
 
@@ -165,6 +176,8 @@ const ExternalProviderManager: React.FC = () => {
       description: provider.description || "",
       is_active: provider.is_active,
       is_visible_in_catalog: provider.is_visible_in_catalog ?? true,
+      contact_email: provider.contact_email || "",
+      contact_phone: provider.contact_phone || "",
     });
     setDialogOpen(true);
   };
@@ -432,6 +445,30 @@ const ExternalProviderManager: React.FC = () => {
             <div>
               <Label>Site web</Label>
               <Input value={providerForm.website_url || ""} onChange={(e) => setProviderForm(p => ({ ...p, website_url: e.target.value }))} placeholder="https://..." />
+            </div>
+            <div className="border rounded-md p-3 bg-muted/30 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                Coordonnées de notification — utilisées quand un client demande un service de ce prestataire
+                via le catalogue (le prestataire reçoit un email avec les infos du client pour le recontacter).
+              </p>
+              <div>
+                <Label>Email de contact</Label>
+                <Input
+                  type="email"
+                  value={providerForm.contact_email || ""}
+                  onChange={(e) => setProviderForm(p => ({ ...p, contact_email: e.target.value }))}
+                  placeholder="ex: commercial@interfone.be"
+                />
+              </div>
+              <div>
+                <Label>Téléphone de contact (optionnel)</Label>
+                <Input
+                  type="tel"
+                  value={providerForm.contact_phone || ""}
+                  onChange={(e) => setProviderForm(p => ({ ...p, contact_phone: e.target.value }))}
+                  placeholder="+32 ..."
+                />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={providerForm.is_active} onCheckedChange={(v) => setProviderForm(p => ({ ...p, is_active: v }))} />

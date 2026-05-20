@@ -62,6 +62,8 @@ export interface ExternalProvider {
   description?: string;
   is_active: boolean;
   is_visible_in_catalog: boolean;
+  contact_email?: string;
+  contact_phone?: string;
   created_at: string;
   updated_at: string;
   // Computed
@@ -114,6 +116,8 @@ export interface CreateExternalProviderData {
   description?: string;
   is_active?: boolean;
   is_visible_in_catalog?: boolean;
+  contact_email?: string;
+  contact_phone?: string;
 }
 
 // Provider + its products bundled together for catalog display
