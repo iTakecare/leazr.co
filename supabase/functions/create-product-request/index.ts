@@ -194,20 +194,25 @@ serve(async (req) => {
     let totalFinancedAmountEstimate = 0;
 
     // ============================================================
-    // RÈGLE PACK META/SITE (2026-05-20) :
-    // Quand une demande arrive du site/Meta avec un total mensuel qui
-    // correspond à un pack actif, on cale chaque produit de la demande
-    // sur les prix individuels autoritaires du pack (unit_purchase_price
-    // + unit_monthly_price + margin_percentage de product_pack_items).
-    // Ça évite les marges incohérentes (78%, 131%…) liées au fait que
-    // le front envoie des unit_price qui ne reflètent pas la marge réelle
-    // négociée dans le pack.
+    // RÈGLE PACK META (2026-05-20) :
+    // SCOPE STRICT — uniquement les demandes pack (data.packs[] envoyé,
+    // type='custom_pack_request'). N'affecte PAS les demandes catalogue
+    // standard (web_request) ni les demandes ambassadeur/partenaire,
+    // qui gardent leurs prix d'origine.
+    //
+    // Quand une demande pack arrive (typiquement via une landing Meta),
+    // on cale chaque produit sur les prix individuels autoritaires du
+    // pack actif correspondant (unit_purchase_price + unit_monthly_price
+    // + margin_percentage de product_pack_items). Le matching se fait
+    // par total mensuel ≈ total_monthly_price du pack ET composition
+    // produits identique.
     // ============================================================
     type PackOverride = { unit_purchase_price: number; unit_monthly_price: number; margin_percentage: number; pack_id: string };
     const packOverrides: Record<string, PackOverride> = {};
+    const isPackRequest = Array.isArray(data.packs) && data.packs.length > 0;
     try {
       const incomingMonthlyTotal = Number(data.total || 0);
-      if (incomingMonthlyTotal > 0 && Array.isArray(data.products) && data.products.length > 0) {
+      if (isPackRequest && incomingMonthlyTotal > 0 && Array.isArray(data.products) && data.products.length > 0) {
         const incomingProductIds = data.products
           .map((p: any) => p.product_id)
           .filter(Boolean);
@@ -272,6 +277,10 @@ serve(async (req) => {
       }
     } catch (packMatchErr) {
       console.error("⚠️ PACK-MATCH error (non-fatal, continue with payload prices):", packMatchErr);
+    }
+
+    if (!isPackRequest) {
+      console.log("📋 PACK-MATCH: skipped (not a pack request — type sera web_request ou partner_request)");
     }
 
     // Traitement des produits individuels
