@@ -708,6 +708,24 @@ const CatalogApiSettings = () => {
                 </ul>
               </div>
               
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-blue-900 mb-2">🛒 Prestataires externes sur les pages produit du catalogue (v2026.5)</h4>
+                <p className="text-sm text-blue-700 mb-2">
+                  Les prestataires externes peuvent désormais apparaître comme upsell sur <strong>toutes les pages produit du catalogue</strong> (public, ambassadeur, client) — indépendamment de leur lien avec un partenaire.
+                </p>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Nouveau champ <code className="bg-blue-100 px-1 rounded">is_visible_in_catalog</code> sur les prestataires (toggle côté admin Leazr)</li>
+                  <li>• <strong>GET</strong> <code className="bg-blue-100 px-1 rounded">/providers?catalog_only=true&with_products=true</code> → ✅ <strong>l'endpoint à utiliser pour afficher les upsells sur les fiches produit</strong>. Renvoie tous les prestataires actifs marqués visibles dans le catalogue avec leurs produits embarqués (1 seul appel)</li>
+                  <li>• Pour mémoire : <code className="bg-blue-100 px-1 rounded">GET /partners/{'{slug}'}/providers</code> reste réservé aux pages partenaires dédiées (logique <code>partner_provider_links</code>)</li>
+                  <li>• Logique d'affichage : <strong>les prestataires visibles dans le catalogue s'affichent sur toutes les pages produit, sans mapping par catégorie ni par produit individuel</strong>. Le toggle Leazr admin contrôle visible/masqué globalement.</li>
+                  <li>• Les services sélectionnés sont envoyés via <code className="bg-blue-100 px-1 rounded">external_services[]</code> dans <code>create-product-request</code> (déjà supporté depuis v2026.3). Leur <strong>prix est facturé directement par le prestataire et n'est PAS additionné au loyer mensuel</strong> — ils apparaissent dans une carte dédiée du PDF de l'offre.</li>
+                </ul>
+                <div className="mt-2 bg-blue-100 p-2 rounded text-xs font-mono text-blue-900">
+                  curl -H "x-api-key: VOTRE_CLE" \<br/>
+                  &nbsp;&nbsp;"{baseApiUrl}/providers?catalog_only=true&amp;with_products=true"
+                </div>
+              </div>
+
               <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-lg mt-4">
                 <h4 className="font-medium text-emerald-900 mb-2">🆕 Numéros de dossier séquentiels (v2026.3)</h4>
                 <p className="text-sm text-emerald-700 mb-2">
