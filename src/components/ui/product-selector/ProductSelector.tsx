@@ -2,11 +2,12 @@
 import React from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Package, Warehouse } from "lucide-react";
+import { Package, Warehouse, Headphones } from "lucide-react";
 import SearchBar from "./SearchBar";
 import ProductTypeTabs from "./ProductTypeTabs";
 import ProductList from "./ProductList";
 import StockItemSelectorList from "./StockItemSelectorList";
+import ProviderSelectorList, { type SelectableExternalService } from "./ProviderSelectorList";
 import { useProductSelector } from "@/hooks/products/useProductSelector";
 import { useProductFilter } from "@/hooks/products/useProductFilter";
 import { Product } from "@/types/catalog";
@@ -24,9 +25,12 @@ interface ProductSelectorProps {
   /** When set, enables a "Stock disponible" tab (admin only). */
   stockCompanyId?: string;
   onSelectStockItem?: (item: StockItem) => void;
+  /** When set, enables a "Prestataires" tab listing external providers. */
+  providersCompanyId?: string;
+  onSelectExternalService?: (service: SelectableExternalService) => void;
 }
 
-type SourceMode = "catalog" | "stock";
+type SourceMode = "catalog" | "stock" | "providers";
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
   isOpen,
@@ -38,8 +42,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   description = "Parcourez notre catalogue pour ajouter un produit à votre offre",
   stockCompanyId,
   onSelectStockItem,
+  providersCompanyId,
+  onSelectExternalService,
 }) => {
   const stockEnabled = !!stockCompanyId && !!onSelectStockItem;
+  const providersEnabled = !!providersCompanyId && !!onSelectExternalService;
   const [sourceMode, setSourceMode] = React.useState<SourceMode>("catalog");
 
   // Fetch products data
@@ -82,8 +89,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
             <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
           
-          {/* Source toggle (catalog / stock) — only when stock is enabled */}
-          {stockEnabled && (
+          {/* Source toggle (catalog / stock / providers) */}
+          {(stockEnabled || providersEnabled) && (
             <div className="px-4 pt-3 border-b pb-3">
               <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
                 <button
@@ -98,18 +105,34 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   <Package className="h-3.5 w-3.5" />
                   Catalogue
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSourceMode("stock")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                    sourceMode === "stock"
-                      ? "bg-background shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Warehouse className="h-3.5 w-3.5" />
-                  Stock disponible
-                </button>
+                {stockEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setSourceMode("stock")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                      sourceMode === "stock"
+                        ? "bg-background shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Warehouse className="h-3.5 w-3.5" />
+                    Stock disponible
+                  </button>
+                )}
+                {providersEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setSourceMode("providers")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                      sourceMode === "providers"
+                        ? "bg-background shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Headphones className="h-3.5 w-3.5" />
+                    Prestataires
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -158,11 +181,18 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                 </ScrollArea>
               </div>
             </>
-          ) : (
+          ) : sourceMode === "stock" ? (
             <div className="flex-1 overflow-hidden">
               <StockItemSelectorList
                 companyId={stockCompanyId!}
                 onSelectStockItem={handleStockItemSelect}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-hidden">
+              <ProviderSelectorList
+                companyId={providersCompanyId!}
+                onSelectExternalService={(service) => onSelectExternalService?.(service)}
               />
             </div>
           )}

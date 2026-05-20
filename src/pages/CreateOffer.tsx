@@ -104,6 +104,18 @@ const CreateOffer = () => {
     quantity: number;
     unit_monthly_price: number;
   }>>([]);
+  // Services prestataires externes attachés à cette offre — NON inclus dans le total
+  const [selectedExternalServices, setSelectedExternalServices] = useState<Array<{
+    provider_id: string;
+    provider_name: string;
+    provider_logo_url?: string;
+    product_id: string;
+    product_name: string;
+    description?: string;
+    price_htva: number;
+    billing_period: string;
+    quantity: number;
+  }>>([]);
   const {
     equipment,
     setEquipment,
@@ -434,6 +446,32 @@ const CreateOffer = () => {
               }
             }
             
+            // Charger les services prestataires externes attachés à l'offre
+            try {
+              const { data: externalSvc } = await supabase
+                .from('offer_external_services' as any)
+                .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+                .eq('offer_id', offer.id)
+                .order('created_at', { ascending: true });
+              if (externalSvc && externalSvc.length > 0) {
+                console.log(`📞 STEP 3: Loading ${externalSvc.length} external service(s) for offer`);
+                setSelectedExternalServices(
+                  (externalSvc as any[]).map((s) => ({
+                    provider_id: '', // unknown here, will be filled if user opens selector
+                    provider_name: s.provider_name,
+                    product_id: `${s.provider_name}-${s.product_name}-${Math.random().toString(36).slice(2, 8)}`,
+                    product_name: s.product_name,
+                    description: s.description || undefined,
+                    price_htva: Number(s.price_htva || 0),
+                    billing_period: s.billing_period || 'monthly',
+                    quantity: Number(s.quantity || 1),
+                  }))
+                );
+              }
+            } catch (e) {
+              console.warn("⚠️ Erreur chargement services prestataires externes:", e);
+            }
+
             // Charger l'acompte si présent
             if (offer.down_payment !== undefined && offer.down_payment !== null) {
               console.log("💰 STEP 3: Loading down payment:", offer.down_payment);
@@ -617,6 +655,42 @@ const CreateOffer = () => {
 
   const handlePackRemove = (packId: string) => {
     setSelectedPacks(prev => prev.filter(p => p.pack_id !== packId));
+  };
+
+  // Ajouter un service prestataire externe à l'offre (non inclus dans le total)
+  const handleExternalServiceSelect = (service: {
+    provider_id: string;
+    provider_name: string;
+    provider_logo_url?: string;
+    product_id: string;
+    product_name: string;
+    description?: string;
+    price_htva: number;
+    billing_period: string;
+    quantity: number;
+  }) => {
+    setSelectedExternalServices(prev => {
+      const existing = prev.findIndex(s => s.product_id === service.product_id);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { ...updated[existing], quantity: updated[existing].quantity + 1 };
+        toast.success(`Quantité mise à jour : ${service.product_name}`);
+        return updated;
+      }
+      toast.success(`${service.provider_name} — ${service.product_name} ajouté`);
+      return [...prev, service];
+    });
+    setIsCatalogOpen(false);
+  };
+
+  const handleExternalServiceRemove = (productId: string) => {
+    setSelectedExternalServices(prev => prev.filter(s => s.product_id !== productId));
+  };
+
+  const handleExternalServiceQtyChange = (productId: string, qty: number) => {
+    setSelectedExternalServices(prev =>
+      prev.map(s => (s.product_id === productId ? { ...s, quantity: Math.max(1, qty) } : s))
+    );
   };
   const handleSaveOffer = async () => {
     if (!user) {
@@ -851,12 +925,14 @@ const CreateOffer = () => {
       console.log("💾 CRÉATION OFFRE - Commission FINALE:", offerData.commission);
       console.log("💾 CRÉATION OFFRE - Selected Ambassador:", selectedAmbassador?.name);
       let result;
+      let savedOfferId: string | null = null;
       if (isEditMode && offerId) {
         result = await updateOffer(offerId, offerData);
         // updateOffer retourne directement les données (array), pas {data: ...}
         if (result && ((Array.isArray(result) && result.length > 0) || (!Array.isArray(result) && typeof result === 'object'))) {
           console.log("✅ OFFRE MISE À JOUR avec succès:", result);
           toast.success("Offre mise à jour avec succès !");
+          savedOfferId = offerId;
         } else {
           const errMsg = "Échec de la mise à jour de l'offre";
           console.error("❌ ÉCHEC MISE À JOUR OFFRE - Aucune donnée retournée:", result);
@@ -868,11 +944,7 @@ const CreateOffer = () => {
         if (result && result.data) {
           console.log("✅ OFFRE CRÉÉE avec succès:", result.data);
           console.log("✅ ID de l'offre créée:", result.data.id);
-          console.log("✅ Marge sauvegardée:", result.data.margin);
-          console.log("✅ Commission sauvegardée:", result.data.commission);
-          console.log("✅ Type d'offre:", result.data.type);
-          console.log("✅ Ambassador ID:", result.data.ambassador_id);
-          console.log("✅ Workflow Status:", result.data.workflow_status);
+          savedOfferId = result.data.id;
           toast.success("Offre créée avec succès !");
         } else {
           console.error("❌ ERREUR - Pas de données retournées:", result);
@@ -882,6 +954,41 @@ const CreateOffer = () => {
           } else {
             throw new Error("Failed to create offer - no data returned");
           }
+        }
+      }
+
+      // Persister les services prestataires externes (carte dédiée, NON inclus dans le total)
+      if (savedOfferId) {
+        try {
+          // En édition, on remplace l'ensemble : delete + re-insert (simple et idempotent)
+          if (isEditMode) {
+            await supabase
+              .from('offer_external_services' as any)
+              .delete()
+              .eq('offer_id', savedOfferId);
+          }
+          if (selectedExternalServices.length > 0) {
+            const rows = selectedExternalServices.map(s => ({
+              offer_id: savedOfferId!,
+              provider_name: s.provider_name,
+              product_name: s.product_name,
+              description: s.description || null,
+              price_htva: s.price_htva,
+              billing_period: s.billing_period,
+              quantity: s.quantity,
+            }));
+            const { error: svcErr } = await supabase
+              .from('offer_external_services' as any)
+              .insert(rows);
+            if (svcErr) {
+              console.error("⚠️ Erreur sauvegarde services prestataires:", svcErr);
+              toast.error("L'offre est sauvegardée mais les services prestataires n'ont pas pu être enregistrés.");
+            } else {
+              console.log(`✅ ${rows.length} service(s) prestataire(s) sauvegardé(s)`);
+            }
+          }
+        } catch (e) {
+          console.error("⚠️ Exception sauvegarde services prestataires:", e);
         }
       }
 
@@ -1181,6 +1288,61 @@ const CreateOffer = () => {
                                 disabled={productsToBeDetermined}
                               />
                             )}
+
+                            {/* Services prestataires externes — affichés mais NON inclus dans le total */}
+                            {selectedExternalServices.length > 0 && (
+                              <div className="bg-card rounded-lg border p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div>
+                                    <h3 className="text-base font-semibold flex items-center gap-2">
+                                      🤝 Services prestataires externes
+                                    </h3>
+                                    <p className="text-xs text-muted-foreground">
+                                      Facturés directement par chaque prestataire — non inclus dans le total à financer.
+                                    </p>
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    {selectedExternalServices.length} service{selectedExternalServices.length > 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                                <div className="divide-y border rounded-md">
+                                  {selectedExternalServices.map((s) => {
+                                    const periodLabel = s.billing_period === 'monthly' ? '/mois' : s.billing_period === 'yearly' ? '/an' : s.billing_period === 'one_time' ? 'unique' : s.billing_period;
+                                    return (
+                                      <div key={s.product_id} className="flex items-center justify-between gap-3 p-3">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium truncate">{s.product_name}</p>
+                                          <p className="text-xs text-muted-foreground">{s.provider_name}</p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {s.price_htva.toFixed(2)} € HTVA <span>{periodLabel}</span>
+                                          </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <button
+                                            type="button"
+                                            className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded-l hover:bg-muted"
+                                            onClick={() => handleExternalServiceQtyChange(s.product_id, s.quantity - 1)}
+                                          >-</button>
+                                          <span className="w-8 h-6 flex items-center justify-center border-t border-b border-gray-300 text-sm">
+                                            {s.quantity}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded-r hover:bg-muted"
+                                            onClick={() => handleExternalServiceQtyChange(s.product_id, s.quantity + 1)}
+                                          >+</button>
+                                          <button
+                                            type="button"
+                                            className="ml-2 text-destructive text-xs hover:underline"
+                                            onClick={() => handleExternalServiceRemove(s.product_id)}
+                                          >Retirer</button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -1266,6 +1428,8 @@ const CreateOffer = () => {
           description="Sélectionnez un produit du catalogue à ajouter à votre offre"
           stockCompanyId={canPickFromStock ? companyId : undefined}
           onSelectStockItem={canPickFromStock ? handleStockItemSelect : undefined}
+          providersCompanyId={companyId || undefined}
+          onSelectExternalService={handleExternalServiceSelect}
         />
 
         <PackSelectorModal
