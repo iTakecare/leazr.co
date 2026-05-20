@@ -1,10 +1,55 @@
 ===========================================
-   DOCUMENTATION API CATALOG LOVABLE 
+   DOCUMENTATION API CATALOG LOVABLE
 ===========================================
 
-VERSION : 2026.5  
-DATE : 16 mars 2026 — Endpoints MDM complets (appareils, logiciels, profils, enrôlement, commandes)
+VERSION : 2026.6
+DATE : 20 mai 2026 — Prestataires externes sur les pages produit du catalogue
 STATUT : Prêt pour production
+
+===========================================
+   NOUVEAUTES VERSION 2026.6
+===========================================
+
+Les prestataires externes peuvent maintenant apparaître comme upsell sur
+TOUTES les pages produit du catalogue (public anonyme, ambassadeur, client
+connecté), indépendamment de leur lien avec un partenaire.
+
+NOUVELLES FONCTIONNALITES :
+
+1. **Nouveau flag `is_visible_in_catalog`** sur les prestataires externes
+   - Bouton/toggle disponible côté admin Leazr ("Gestion du catalogue →
+     Prestataires externes → switch Catalogue")
+   - Valeur par défaut : `true` (les prestataires existants restent visibles)
+   - Indépendant de `is_active` (qui contrôle l'état global du prestataire)
+
+2. **GET /providers — params optionnels enrichis**
+   - `?catalog_only=true` : ne renvoie que les prestataires dont
+     `is_visible_in_catalog = true`. À utiliser pour afficher les upsells
+     sur les fiches produit.
+   - `?with_products=true` : inclut directement les produits actifs de
+     chaque prestataire dans la réponse (évite un round-trip par prestataire).
+   - Les deux params sont combinables.
+   - Le champ `is_visible_in_catalog` est désormais exposé dans la réponse.
+
+3. **GET /providers/{id}**
+   - Le champ `is_visible_in_catalog` est désormais exposé.
+
+4. **Modèle d'affichage côté consommateur de l'API**
+   - Les prestataires "visibles dans le catalogue" s'affichent sur TOUTES
+     les pages produit (pas de mapping par catégorie ni par produit).
+   - Pour limiter à certains contextes (ex: page partenaire dédiée),
+     continuez d'utiliser `GET /partners/{slug}/providers` qui est régi
+     par les liens `partner_provider_links`.
+
+5. **Persistance côté offre**
+   - Les services sélectionnés par le client sont envoyés via
+     `external_services[]` dans `create-product-request` (déjà supporté
+     depuis v2026.3 — aucune migration nécessaire).
+   - Stockés dans la table existante `offer_external_services`.
+   - Le PDF de l'offre généré contient désormais une carte dédiée
+     "Services partenaires complémentaires" après le tableau équipements.
+   - DISCLAIMER : leur prix est facturé directement par le prestataire
+     et n'est PAS additionné au loyer mensuel.
 
 ===========================================
    NOUVEAUTES VERSION 2026.5
@@ -655,12 +700,88 @@ EXEMPLE DE REPONSE (option enrichie) :
 ## 7.4 PRESTATAIRES EXTERNES
 
 Les prestataires externes sont des fournisseurs de services tiers
-(téléphonie, assurance, etc.) dont les produits sont présentés sur
-la page partenaire sous forme de cartes de services.
+(téléphonie, assurance, etc.). Depuis la v2026.6, ils peuvent
+apparaître dans DEUX contextes complémentaires :
 
-Le client peut souscrire directement via le site du prestataire
-(lien externe). Les produits prestataires ont une période de
-facturation : `monthly`, `yearly` ou `one_time`.
+A) **Pages produit du catalogue (toutes les fiches produit)**
+   - Endpoint : GET /providers?catalog_only=true&with_products=true
+   - Renvoie tous les prestataires actifs marqués
+     `is_visible_in_catalog = true` avec leurs produits actifs embarqués.
+   - À utiliser pour afficher les upsells "Services partenaires
+     disponibles" sur chaque fiche produit du catalogue.
+
+B) **Pages partenaires dédiées**
+   - Endpoint : GET /partners/{slug}/providers
+   - Logique régie par les liens `partner_provider_links` (un partenaire
+     curate sa propre sélection de prestataires).
+   - Réponse : provider_cards avec card_title et selected_product_ids.
+
+PRODUITS PRESTATAIRES :
+- Chaque produit a une `billing_period` : monthly | yearly | one_time
+- Le `price_htva` est géré et facturé DIRECTEMENT par le prestataire
+- Le client peut souscrire directement via le site du prestataire
+  (lien externe via `website_url`)
+- Le prix N'EST PAS ajouté au loyer mensuel de l'offre Leazr
+- Pour persister la sélection sur une demande, envoyer un tableau
+  `external_services[]` dans `create-product-request`
+
+ENDPOINTS DÉTAILLÉS :
+
+```
+GET /catalog-api/v1/{companySlug}/providers
+GET /catalog-api/v1/{companySlug}/providers?catalog_only=true
+GET /catalog-api/v1/{companySlug}/providers?with_products=true
+GET /catalog-api/v1/{companySlug}/providers?catalog_only=true&with_products=true
+GET /catalog-api/v1/{companySlug}/providers/{id}
+GET /catalog-api/v1/{companySlug}/providers/{id}/products
+```
+
+EXEMPLE — Liste pour upsells catalogue :
+
+```bash
+curl -H "x-api-key: VOTRE_CLE" \
+  "https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/{companySlug}/providers?catalog_only=true&with_products=true"
+```
+
+```json
+{
+  "providers": [
+    {
+      "id": "uuid",
+      "name": "Interfone",
+      "logo_url": "https://...",
+      "website_url": "https://interfone.be/",
+      "description": "Opérateur télécom",
+      "is_active": true,
+      "is_visible_in_catalog": true,
+      "created_at": "2026-03-13T22:44:07Z",
+      "products": [
+        {
+          "id": "uuid",
+          "provider_id": "uuid",
+          "name": "Magic IPv4",
+          "description": "Central téléphonique boosté à l'IA",
+          "price_htva": 15.95,
+          "billing_period": "monthly",
+          "is_active": true,
+          "position": 0
+        }
+      ]
+    }
+  ]
+}
+```
+
+MODÈLE D'INTÉGRATION CÔTÉ CONSOMMATEUR DE L'API :
+1. Au chargement d'une page produit, appeler GET /providers avec les
+   deux params `catalog_only=true&with_products=true`.
+2. Afficher chaque prestataire (logo, nom, description) avec la liste
+   de ses produits (nom + price_htva + billing_period).
+3. Permettre à l'utilisateur de cocher plusieurs produits prestataires.
+4. Ajouter une mention explicite : "Ces services sont facturés directement
+   par chaque prestataire et ne sont pas inclus dans votre loyer mensuel".
+5. Au moment de la soumission via POST /create-product-request, envoyer
+   le tableau `external_services[]` avec les produits sélectionnés.
 
 ## 7.5 ISOLATION DU CATALOGUE
 

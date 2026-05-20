@@ -709,7 +709,7 @@ const CatalogApiSettings = () => {
               </div>
               
               <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mt-4">
-                <h4 className="font-medium text-blue-900 mb-2">🛒 Prestataires externes sur les pages produit du catalogue (v2026.5)</h4>
+                <h4 className="font-medium text-blue-900 mb-2">🛒 Prestataires externes sur les pages produit du catalogue (v2026.6)</h4>
                 <p className="text-sm text-blue-700 mb-2">
                   Les prestataires externes peuvent désormais apparaître comme upsell sur <strong>toutes les pages produit du catalogue</strong> (public, ambassadeur, client) — indépendamment de leur lien avec un partenaire.
                 </p>
