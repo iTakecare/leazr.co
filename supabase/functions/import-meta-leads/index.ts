@@ -1278,6 +1278,26 @@ ${packRemarks}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
+        // Numéro de dossier séquentiel (format ITC-YYYY-OFF-XXXX).
+        // Même RPC que create-product-request — chaque lead Meta obtient
+        // automatiquement son numéro à la création.
+        let metaDossierNumber: string | null = null;
+        try {
+          const { data: seqNumber, error: seqError } = await supabase.rpc('get_next_dossier_number');
+          if (seqError || !seqNumber) {
+            console.warn('[META IMPORT] get_next_dossier_number a échoué, fallback:', seqError?.message);
+            const year = new Date().getFullYear();
+            metaDossierNumber = `ITC-${year}-OFF-${Date.now().toString().slice(-4)}`;
+          } else {
+            metaDossierNumber = seqNumber as string;
+          }
+        } catch (dossierErr) {
+          console.warn('[META IMPORT] Exception génération dossier number:', dossierErr);
+          const year = new Date().getFullYear();
+          metaDossierNumber = `ITC-${year}-OFF-${Date.now().toString().slice(-4)}`;
+        }
+        console.log(`[META IMPORT] Numéro de dossier: ${metaDossierNumber}`);
+
         // Create offer with source 'meta'
         const offerData: any = {
           company_id: company.id,
@@ -1285,6 +1305,7 @@ ${packRemarks}
           client_name: fullName,
           client_email: validEmail,
           equipment_description: parsedPack.equipmentDescription,
+          dossier_number: metaDossierNumber,
           type: 'client_request',
           source: 'meta',
           // Deterministic platform tag, used by the AdiOS conversion webhook to
