@@ -11535,6 +11535,13 @@ export type Database = {
         }
         Returns: Json
       }
+      set_tulip_enabled: {
+        Args: {
+          p_company_id: string
+          p_enabled: boolean
+        }
+        Returns: undefined
+      }
       set_signed_contract_pdf_url_public: {
         Args: { p_pdf_url: string; p_token: string }
         Returns: Json

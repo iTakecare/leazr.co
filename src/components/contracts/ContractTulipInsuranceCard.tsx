@@ -35,6 +35,8 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
   const [tulipEnv, setTulipEnv] = useState<TulipEnvironment | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [statusLoaded, setStatusLoaded] = useState(false);
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -42,14 +44,21 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
       const { data } = await supabase.rpc("get_tulip_integration_status", {
         p_company_id: companyId,
       });
-      const envs = (data as { environments?: { sandbox: boolean; production: boolean } } | null)
-        ?.environments;
+      const status = data as
+        | { is_enabled?: boolean; environments?: { sandbox: boolean; production: boolean } }
+        | null;
+      const envs = status?.environments;
       if (envs?.production) setTulipEnv("production");
       else if (envs?.sandbox) setTulipEnv("sandbox");
       else setTulipEnv(null);
+      setIsEnabled(status?.is_enabled ?? false);
+      setStatusLoaded(true);
     };
     fetchStatus();
   }, [companyId]);
+
+  // Société qui n'utilise pas Tulip → on n'affiche rien.
+  if (!statusLoaded || !isEnabled) return null;
 
   const isConfigured = !!tulipEnv;
   const isInsured = !!contract.tulip_contract_id;

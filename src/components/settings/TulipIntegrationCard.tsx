@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -57,6 +58,7 @@ export default function TulipIntegrationCard() {
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
+  const [togglingEnabled, setTogglingEnabled] = useState(false);
 
   const [activeTab, setActiveTab] = useState<Environment>("sandbox");
   const [apiKey, setApiKey] = useState("");
@@ -98,6 +100,32 @@ export default function TulipIntegrationCard() {
       console.error("[Tulip] fetch error:", e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleEnabled = async (enabled: boolean) => {
+    if (!companyId) {
+      toast.error("Company ID manquant");
+      return;
+    }
+    try {
+      setTogglingEnabled(true);
+      const { error } = await supabase.rpc("set_tulip_enabled", {
+        p_company_id: companyId,
+        p_enabled: enabled,
+      });
+      if (error) {
+        console.error("[Tulip] toggle failed:", error);
+        toast.error(`Échec : ${error.message}`);
+        return;
+      }
+      toast.success(enabled ? "Intégration Tulip activée" : "Intégration Tulip désactivée");
+      await fetchStatus();
+    } catch (e) {
+      console.error("[Tulip] toggle error:", e);
+      toast.error("Erreur lors de l'activation");
+    } finally {
+      setTogglingEnabled(false);
     }
   };
 
@@ -249,6 +277,24 @@ export default function TulipIntegrationCard() {
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Enable toggle — affiche la carte d'assurance sur les contrats */}
+        <div className="flex items-center justify-between rounded-lg border p-3">
+          <div className="space-y-0.5">
+            <Label htmlFor="tulip-enabled" className="text-sm font-medium">
+              Activer l'intégration Tulip
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Affiche la carte d'assurance Tulip sur les fiches contrat de ta société.
+            </p>
+          </div>
+          <Switch
+            id="tulip-enabled"
+            checked={status?.is_enabled ?? false}
+            onCheckedChange={handleToggleEnabled}
+            disabled={togglingEnabled}
+          />
+        </div>
+
         {/* Info notice */}
         <Alert>
           <AlertCircle className="h-4 w-4" />
