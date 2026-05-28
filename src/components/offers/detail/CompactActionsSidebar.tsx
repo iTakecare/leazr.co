@@ -17,7 +17,8 @@ import {
   Star,
   ClipboardList,
   Bell,
-  Repeat
+  Repeat,
+  Sparkles
 } from "lucide-react";
 import ReactivateOfferButton from "./ReactivateOfferButton";
 import RelaunchYoungCompanyButton from "./RelaunchYoungCompanyButton";
@@ -59,6 +60,7 @@ interface CompactActionsSidebarProps {
   onOpenReminder?: () => void;
   onCallLogged?: () => void;
   onContractBuyback?: () => void;
+  onPromoCard?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -81,7 +83,8 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   sentReminders,
   onOpenReminder,
   onCallLogged,
-  onContractBuyback
+  onContractBuyback,
+  onPromoCard
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
@@ -350,6 +353,18 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             >
               <Repeat className="w-4 h-4 mr-2" />
               <span>Rachat contrat</span>
+            </Button>
+          )}
+
+          {onPromoCard && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start text-sm h-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200"
+              onClick={onPromoCard}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              <span>Carte promo</span>
             </Button>
           )}
           

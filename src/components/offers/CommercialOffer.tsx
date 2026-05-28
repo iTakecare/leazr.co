@@ -369,15 +369,31 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
 
       {/* PAGE 2+ : Équipements (avec pagination) */}
       {(() => {
-        const productsPerPage = 15;
+        const productsPerPage = 9;
         const totalProductPages = Math.ceil(equipment.length / productsPerPage);
-        
+
         return Array.from({ length: totalProductPages }, (_, pageIndex) => {
           const startIdx = pageIndex * productsPerPage;
           const endIdx = startIdx + productsPerPage;
           const pageProducts = equipment.slice(startIdx, endIdx);
           const isLastProductPage = pageIndex === totalProductPages - 1;
-          
+
+          // Densité adaptative : au-delà de 3 produits sur la page, on réduit
+          // progressivement espacements/images/textes pour que tout (produits +
+          // carte promo + résumé) tienne dans le cadre A4 (html2canvas crope à 1123px).
+          const n = pageProducts.length;
+          const dense = n > 6;
+          const compact = n > 3;
+          const d = {
+            gap: dense ? '4px' : compact ? '6px' : styles.spacing.sm,
+            pad: dense ? '6px' : compact ? '9px' : styles.spacing.md,
+            img: dense ? 28 : compact ? 34 : 40,
+            title: dense ? '11px' : compact ? '12px' : styles.fontSize.sm,
+            price: dense ? '14px' : compact ? '16px' : styles.fontSize.lg,
+            headerMb: compact ? styles.spacing.sm : styles.spacing['2xl'],
+            listMb: compact ? styles.spacing.md : styles.spacing['2xl'],
+          };
+
           return (
             <div 
               key={`equipment-page-${pageIndex}`}
@@ -402,7 +418,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                 <p className="section-subtitle" style={{
                   fontSize: styles.fontSize.sm,
                   color: '#6B7280',
-                  marginBottom: styles.spacing['2xl'],
+                  marginBottom: d.headerMb,
                 }}>
                   Des appareils premium pour vos besoins professionnels
                 </p>
@@ -412,17 +428,17 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: styles.spacing.sm,
-                marginBottom: styles.spacing['2xl'],
+                gap: d.gap,
+                marginBottom: d.listMb,
               }}>
                 {pageProducts.map((item) => (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: styles.spacing.md,
-                      padding: styles.spacing.md,
+                      padding: d.pad,
                       backgroundColor: '#F9FAFB',
                       borderRadius: styles.borderRadius.md,
                       border: '1px solid #E5E7EB',
@@ -430,9 +446,9 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   >
                     {/* Image ou icône produit */}
                     <div style={{
-                      width: isPDFMode ? '40px' : '2.5rem',
-                      height: isPDFMode ? '40px' : '2.5rem',
-                      minWidth: isPDFMode ? '40px' : '2.5rem',
+                      width: isPDFMode ? `${d.img}px` : '2.5rem',
+                      height: isPDFMode ? `${d.img}px` : '2.5rem',
+                      minWidth: isPDFMode ? `${d.img}px` : '2.5rem',
                       backgroundColor: '#E5E7EB',
                       borderRadius: styles.borderRadius.md,
                       display: 'flex',
@@ -461,7 +477,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     {/* Infos produit */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: styles.fontSize.sm,
+                        fontSize: d.title,
                         fontWeight: '600',
                         color: '#111827',
                         marginBottom: styles.spacing.xs,
@@ -525,7 +541,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                             </span>
                           </div>
                           <div style={{
-                            fontSize: styles.fontSize.lg,
+                            fontSize: d.price,
                             fontWeight: '600',
                             color: '#1E40AF',
                           }}>
@@ -589,7 +605,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                                 </div>
                              )}
                              <div style={{
-                               fontSize: styles.fontSize.lg,
+                               fontSize: d.price,
                                fontWeight: '600',
                                color: '#1E40AF',
                              }}>

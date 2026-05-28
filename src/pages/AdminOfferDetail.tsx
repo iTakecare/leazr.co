@@ -33,7 +33,7 @@ import FinancialSection from "@/components/offers/detail/FinancialSection";
 import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
 import ExternalServicesSection from "@/components/offers/detail/ExternalServicesSection";
-import PromoProductsSection from "@/components/offers/detail/PromoProductsSection";
+import AddPromoProductsModal from "@/components/offers/detail/AddPromoProductsModal";
 import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
 import ScoringModal from "@/components/offers/detail/ScoringModal";
@@ -87,6 +87,7 @@ const AdminOfferDetail = () => {
   const [dateEditorType, setDateEditorType] = useState<'created' | 'request'>('request');
   const [isBuybackOpen, setIsBuybackOpen] = useState(false);
   const [isImputingBuyback, setIsImputingBuyback] = useState(false);
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
 const [scoringTargetStatus, setScoringTargetStatus] = useState<string | null>(null);
 
 // Modale d'email de validation après score A (leaser)
@@ -383,6 +384,17 @@ const [notesLoading, setNotesLoading] = useState(false);
         offer.company_id
       );
 
+      // Produits promo (carte "Avez-vous pensé à...?", NON inclus dans le total)
+      const { data: promoData } = await supabase
+        .from('offer_promo_products' as any)
+        .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+        .eq('offer_id', offer.id)
+        .order('position', { ascending: true });
+      const enrichedPromoProducts = await enrichExternalServicesWithLogos(
+        promoData as any,
+        offer.company_id
+      );
+
       // Récupérer les données complètes du client depuis la table clients
       const { data: clientData } = await supabase
         .from('clients')
@@ -550,6 +562,9 @@ const [notesLoading, setNotesLoading] = useState(false);
 
         // Services prestataires externes (carte dédiée en fin de page équipements)
         externalServices: enrichedExternalServices,
+
+        // Produits promo (carte "Avez-vous pensé à...?")
+        promoProducts: enrichedPromoProducts,
         
         // Totaux et informations financières - adaptés selon le mode
         totalMonthly: isPurchase ? 0 : (Number(offer.monthly_payment) || 0),
@@ -1149,9 +1164,6 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                     <ClientSection offer={offer} />
                     <NewEquipmentSection offer={offer} onOfferUpdate={() => { setEquipmentRefreshKey((k) => k + 1); fetchOfferDetails(); }} />
                     <ExternalServicesSection offerId={offer.id} />
-                    {offer.company_id && (
-                      <PromoProductsSection offerId={offer.id} companyId={offer.company_id} />
-                    )}
                     <EquipmentOrderTracker
                       sourceType="offer"
                       sourceId={offer.id}
@@ -1219,6 +1231,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   onOpenReminder={() => setReminderModalOpen(true)}
                   onCallLogged={() => setActiveTab("calls")}
                   onContractBuyback={offer.is_purchase ? undefined : () => setIsBuybackOpen(true)}
+                  onPromoCard={offer.company_id ? () => setIsPromoModalOpen(true) : undefined}
                 />
                 
                 {/* Configuration de l'offre */}
@@ -1274,6 +1287,15 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           onImpute={handleBuybackImpute}
           isImputing={isImputingBuyback}
         />
+
+        {offer.company_id && (
+          <AddPromoProductsModal
+            open={isPromoModalOpen}
+            onOpenChange={setIsPromoModalOpen}
+            companyId={offer.company_id}
+            offerId={offer.id}
+          />
+        )}
 
         {/* Modal de scoring */}
         <ScoringModal
