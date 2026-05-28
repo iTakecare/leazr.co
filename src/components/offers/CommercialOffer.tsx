@@ -392,6 +392,11 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             price: dense ? '14px' : compact ? '16px' : styles.fontSize.lg,
             headerMb: compact ? styles.spacing.sm : styles.spacing['2xl'],
             listMb: compact ? styles.spacing.md : styles.spacing['2xl'],
+            // Résumé financier : on le compacte aussi quand il y a beaucoup de produits
+            sumPad: dense ? '12px' : compact ? '16px' : styles.spacing['2xl'],
+            sumGap: dense ? styles.spacing.sm : compact ? styles.spacing.md : styles.spacing.lg,
+            bigPrice: dense ? '28px' : compact ? '32px' : (isPDFMode ? '40px' : '2.5rem'),
+            duration: dense ? '22px' : compact ? '26px' : (isPDFMode ? '32px' : '2rem'),
           };
 
           return (
@@ -652,13 +657,13 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                 <div style={{
                   background: styles.background.totalBox,
                   borderRadius: styles.borderRadius.lg,
-                  padding: styles.spacing['2xl'],
+                  padding: d.sumPad,
                   boxShadow: styles.shadow.lg,
                 }}>
                   {/* Bloc Acompte - si présent */}
                   {hasDownPayment && !isPurchase && (
                     <div style={{
-                      marginBottom: styles.spacing.lg,
+                      marginBottom: d.sumGap,
                       padding: styles.spacing.md,
                       backgroundColor: '#FEF3C7',
                       borderRadius: styles.borderRadius.md,
@@ -700,7 +705,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   {/* Bloc Remise commerciale - si présent */}
                   {hasDiscount && !isPurchase && (
                     <div style={{
-                      marginBottom: styles.spacing.lg,
+                      marginBottom: d.sumGap,
                       padding: styles.spacing.md,
                       backgroundColor: '#FEE2E2',
                       borderRadius: styles.borderRadius.md,
@@ -754,7 +759,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginBottom: styles.spacing.lg,
+                    marginBottom: d.sumGap,
                   }}>
                     <div>
                       <p style={{
@@ -762,15 +767,15 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         color: '#1E40AF',
                         marginBottom: styles.spacing.xs,
                       }}>
-                        {isPurchase 
-                          ? 'Total HTVA' 
-                          : (hasDiscount 
+                        {isPurchase
+                          ? 'Total HTVA'
+                          : (hasDiscount
                               ? (hasDownPayment ? 'Mensualité HTVA (après acompte et remise)' : 'Mensualité HTVA (après remise)')
                               : (hasDownPayment ? 'Mensualité HTVA (après acompte)' : 'Mensualité HTVA'))
                         }
                       </p>
                       <p style={{
-                        fontSize: isPDFMode ? '40px' : '2.5rem',
+                        fontSize: d.bigPrice,
                         fontWeight: '700',
                         color: '#1E40AF',
                         lineHeight: '1',
@@ -778,7 +783,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         {formatCurrency(isPurchase ? totalSellingPrice : displayMonthlyPayment)}
                       </p>
                     </div>
-                    
+
                     {!isPurchase && (
                       <div style={{ textAlign: 'right' }}>
                         <p style={{
@@ -789,7 +794,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                           Durée du contrat
                         </p>
                         <p style={{
-                          fontSize: isPDFMode ? '32px' : '2rem',
+                          fontSize: d.duration,
                           fontWeight: '600',
                           color: '#1E40AF',
                           lineHeight: '1',
@@ -804,8 +809,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   {isPurchase ? (
                     /* MODE ACHAT : Seulement Livraison + Garantie constructeur */
                     <div style={{
-                      marginTop: styles.spacing.lg,
-                      paddingTop: styles.spacing.lg,
+                      marginTop: d.sumGap,
+                      paddingTop: d.sumGap,
                       borderTop: '1px solid #93C5FD',
                       display: 'flex',
                       justifyContent: 'center',
@@ -861,8 +866,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   ) : (
                     /* MODE LEASING : Livraison + Maintenance + Garantie échange */
                     <div style={{
-                      marginTop: styles.spacing.lg,
-                      paddingTop: styles.spacing.lg,
+                      marginTop: d.sumGap,
+                      paddingTop: d.sumGap,
                       borderTop: '1px solid #93C5FD',
                       display: 'grid',
                       gridTemplateColumns: 'repeat(3, 1fr)',
@@ -943,12 +948,12 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   {/* Frais de dossier et assurance : UNIQUEMENT en mode leasing */}
                   {!isPurchase && (
                     <div style={{
-                      marginTop: styles.spacing.lg,
+                      marginTop: d.sumGap,
                       fontSize: styles.fontSize.xs,
                       color: '#1E40AF',
                       textAlign: 'center',
                     }}>
-                      💼 Frais de dossier unique : <strong>{formatCurrency(fileFee)}</strong> • 
+                      💼 Frais de dossier unique : <strong>{formatCurrency(fileFee)}</strong> •
                       🛡️ Montant de l'assurance annuelle : <strong>{formatCurrency(insuranceCost)}</strong>
                     </div>
                   )}
