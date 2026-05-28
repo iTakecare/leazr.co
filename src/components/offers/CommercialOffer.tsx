@@ -956,228 +956,234 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               );
               })()}
 
-              {/* Carte Services prestataires externes — uniquement sur la dernière page produits */}
-              {isLastProductPage && externalServices && externalServices.length > 0 && (() => {
-                const periodLabel = (p: string) =>
-                  p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
-
-                const grouped = externalServices.reduce<Record<string, typeof externalServices>>((acc, s) => {
-                  if (!acc[s.providerName]) acc[s.providerName] = [];
-                  acc[s.providerName].push(s);
-                  return acc;
-                }, {});
-
-                return (
-                  <div style={{
-                    marginTop: styles.spacing.xl,
-                    padding: styles.spacing.xl,
-                    backgroundColor: '#EFF6FF',
-                    border: '1px solid #BFDBFE',
-                    borderLeft: '4px solid #3B82F6',
-                    borderRadius: styles.borderRadius.lg,
-                  }}>
-                    <div style={{
-                      fontWeight: 700,
-                      color: '#1E3A8A',
-                      fontSize: styles.fontSize.md,
-                      marginBottom: styles.spacing.sm,
-                    }}>
-                      🤝 Services partenaires complémentaires
-                    </div>
-
-                    {Object.entries(grouped).map(([providerName, items]) => {
-                      const providerLogo = items[0]?.providerLogoUrl;
-                      return (
-                      <div key={providerName} style={{ marginBottom: styles.spacing.md }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: providerLogo ? 'flex-end' : 'space-between',
-                          gap: styles.spacing.md,
-                          marginBottom: styles.spacing.xs,
-                          paddingBottom: styles.spacing.xs,
-                          borderBottom: '1px solid #DBEAFE',
-                        }}>
-                          {/* Nom du prestataire affiché uniquement si pas de logo configuré */}
-                          {!providerLogo && (
-                            <div style={{
-                              fontWeight: 600,
-                              color: '#1E3A8A',
-                              fontSize: styles.fontSize.md,
-                            }}>
-                              {providerName}
-                            </div>
-                          )}
-                          {providerLogo && (
-                            <img
-                              src={providerLogo}
-                              alt={providerName}
-                              crossOrigin="anonymous"
-                              style={{
-                                height: '40px',
-                                maxWidth: '160px',
-                                objectFit: 'contain',
-                                background: 'white',
-                                borderRadius: styles.borderRadius.sm,
-                                padding: '4px 8px',
-                              }}
-                            />
-                          )}
-                        </div>
-                        {items.map((s, i) => (
-                          <div key={`${providerName}-${i}`} style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            gap: styles.spacing.md,
-                            paddingLeft: styles.spacing.md,
-                            fontSize: styles.fontSize.sm,
-                            color: '#1F2937',
-                            marginBottom: 2,
-                          }}>
-                            <div style={{ flex: 3 }}>
-                              {s.productName}
-                              {s.quantity > 1 ? ` × ${s.quantity}` : ''}
-                              {s.description ? (
-                                <div style={{ color: '#6B7280', fontSize: styles.fontSize.xs }}>{s.description}</div>
-                              ) : null}
-                            </div>
-                            <div style={{ flex: 1.5, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                              <strong>{formatCurrency(s.priceHtva)}</strong> HTVA{' '}
-                              <span style={{ color: '#64748B' }}>{periodLabel(s.billingPeriod)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      );
-                    })}
-
-                    <div style={{
-                      marginTop: styles.spacing.sm,
-                      fontSize: styles.fontSize.xs,
-                      fontStyle: 'italic',
-                      color: '#475569',
-                      lineHeight: 1.4,
-                    }}>
-                      Ces services sont fournis et facturés directement par chaque prestataire partenaire.
-                      Leurs tarifs sont gérés indépendamment et ne sont <strong>PAS inclus</strong> dans votre mensualité
-                      de location ci-dessus.
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Carte promo "Avez-vous pensé à...?" — uniquement sur la dernière page produits */}
-              {isLastProductPage && promoProducts && promoProducts.length > 0 && (() => {
-                const periodLabel = (p: string) =>
-                  p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
-
-                const grouped = promoProducts.reduce<Record<string, typeof promoProducts>>((acc, s) => {
-                  if (!acc[s.providerName]) acc[s.providerName] = [];
-                  acc[s.providerName].push(s);
-                  return acc;
-                }, {});
-
-                return (
-                  <div style={{
-                    marginTop: styles.spacing.xl,
-                    padding: styles.spacing.xl,
-                    backgroundColor: '#FFFBEB',
-                    border: '1px solid #FDE68A',
-                    borderLeft: '4px solid #F59E0B',
-                    borderRadius: styles.borderRadius.lg,
-                  }}>
-                    <div style={{
-                      fontWeight: 700,
-                      color: '#92400E',
-                      fontSize: styles.fontSize.md,
-                      marginBottom: styles.spacing.sm,
-                    }}>
-                      ✨ Avez-vous pensé à... ?
-                    </div>
-
-                    {Object.entries(grouped).map(([providerName, items]) => {
-                      const providerLogo = items[0]?.providerLogoUrl;
-                      return (
-                      <div key={providerName} style={{ marginBottom: styles.spacing.md }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: providerLogo ? 'flex-end' : 'space-between',
-                          gap: styles.spacing.md,
-                          marginBottom: styles.spacing.xs,
-                          paddingBottom: styles.spacing.xs,
-                          borderBottom: '1px solid #FDE68A',
-                        }}>
-                          {!providerLogo && (
-                            <div style={{
-                              fontWeight: 600,
-                              color: '#92400E',
-                              fontSize: styles.fontSize.md,
-                            }}>
-                              {providerName}
-                            </div>
-                          )}
-                          {providerLogo && (
-                            <img
-                              src={providerLogo}
-                              alt={providerName}
-                              crossOrigin="anonymous"
-                              style={{
-                                height: '40px',
-                                maxWidth: '160px',
-                                objectFit: 'contain',
-                                background: 'white',
-                                borderRadius: styles.borderRadius.sm,
-                                padding: '4px 8px',
-                              }}
-                            />
-                          )}
-                        </div>
-                        {items.map((s, i) => (
-                          <div key={`${providerName}-${i}`} style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            gap: styles.spacing.md,
-                            paddingLeft: styles.spacing.md,
-                            fontSize: styles.fontSize.sm,
-                            color: '#1F2937',
-                            marginBottom: 2,
-                          }}>
-                            <div style={{ flex: 3 }}>
-                              {s.productName}
-                              {s.quantity > 1 ? ` × ${s.quantity}` : ''}
-                              {s.description ? (
-                                <div style={{ color: '#6B7280', fontSize: styles.fontSize.xs }}>{s.description}</div>
-                              ) : null}
-                            </div>
-                            <div style={{ flex: 1.5, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                              <strong>{formatCurrency(s.priceHtva)}</strong> HTVA{' '}
-                              <span style={{ color: '#64748B' }}>{periodLabel(s.billingPeriod)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      );
-                    })}
-
-                    <div style={{
-                      marginTop: styles.spacing.sm,
-                      fontSize: styles.fontSize.xs,
-                      fontStyle: 'italic',
-                      color: '#78350F',
-                      lineHeight: 1.4,
-                    }}>
-                      Suggestions de nos prestataires partenaires pour compléter votre solution.
-                      Ces options sont facturées directement par chaque prestataire et ne sont
-                      <strong> pas incluses</strong> dans votre mensualité.
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           );
         });
       })()}
+
+      {/* Page dédiée : Services partenaires + Carte promo "Avez-vous pensé à...?" */}
+      {((externalServices && externalServices.length > 0) || (promoProducts && promoProducts.length > 0)) && (
+        <div
+          className="page page-2"
+          style={{ pageBreakBefore: 'always', pageBreakInside: 'avoid' }}
+        >
+          {externalServices && externalServices.length > 0 && (() => {
+            const periodLabel = (p: string) =>
+              p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
+
+            const grouped = externalServices.reduce<Record<string, typeof externalServices>>((acc, s) => {
+              if (!acc[s.providerName]) acc[s.providerName] = [];
+              acc[s.providerName].push(s);
+              return acc;
+            }, {});
+
+            return (
+              <div style={{
+                marginTop: styles.spacing.xl,
+                padding: styles.spacing.xl,
+                backgroundColor: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderLeft: '4px solid #3B82F6',
+                borderRadius: styles.borderRadius.lg,
+              }}>
+                <div style={{
+                  fontWeight: 700,
+                  color: '#1E3A8A',
+                  fontSize: styles.fontSize.lg,
+                  marginBottom: styles.spacing.md,
+                }}>
+                  🤝 Services partenaires complémentaires
+                </div>
+
+                {Object.entries(grouped).map(([providerName, items]) => {
+                  const providerLogo = items[0]?.providerLogoUrl;
+                  return (
+                  <div key={providerName} style={{ marginBottom: styles.spacing.md }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: providerLogo ? 'flex-end' : 'space-between',
+                      gap: styles.spacing.md,
+                      marginBottom: styles.spacing.xs,
+                      paddingBottom: styles.spacing.xs,
+                      borderBottom: '1px solid #DBEAFE',
+                    }}>
+                      {!providerLogo && (
+                        <div style={{
+                          fontWeight: 600,
+                          color: '#1E3A8A',
+                          fontSize: styles.fontSize.md,
+                        }}>
+                          {providerName}
+                        </div>
+                      )}
+                      {providerLogo && (
+                        <img
+                          src={providerLogo}
+                          alt={providerName}
+                          crossOrigin="anonymous"
+                          style={{
+                            height: '40px',
+                            maxWidth: '160px',
+                            objectFit: 'contain',
+                            background: 'white',
+                            borderRadius: styles.borderRadius.sm,
+                            padding: '4px 8px',
+                          }}
+                        />
+                      )}
+                    </div>
+                    {items.map((s, i) => (
+                      <div key={`${providerName}-${i}`} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: styles.spacing.md,
+                        paddingLeft: styles.spacing.md,
+                        fontSize: styles.fontSize.sm,
+                        color: '#1F2937',
+                        marginBottom: 2,
+                      }}>
+                        <div style={{ flex: 3 }}>
+                          {s.productName}
+                          {s.quantity > 1 ? ` × ${s.quantity}` : ''}
+                          {s.description ? (
+                            <div style={{ color: '#6B7280', fontSize: styles.fontSize.xs }}>{s.description}</div>
+                          ) : null}
+                        </div>
+                        <div style={{ flex: 1.5, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <strong>{formatCurrency(s.priceHtva)}</strong> HTVA{' '}
+                          <span style={{ color: '#64748B' }}>{periodLabel(s.billingPeriod)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  );
+                })}
+
+                <div style={{
+                  marginTop: styles.spacing.sm,
+                  fontSize: styles.fontSize.xs,
+                  fontStyle: 'italic',
+                  color: '#475569',
+                  lineHeight: 1.4,
+                }}>
+                  Ces services sont fournis et facturés directement par chaque prestataire partenaire.
+                  Leurs tarifs sont gérés indépendamment et ne sont <strong>PAS inclus</strong> dans votre mensualité
+                  de location.
+                </div>
+              </div>
+            );
+          })()}
+
+          {promoProducts && promoProducts.length > 0 && (() => {
+            const periodLabel = (p: string) =>
+              p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
+
+            const grouped = promoProducts.reduce<Record<string, typeof promoProducts>>((acc, s) => {
+              if (!acc[s.providerName]) acc[s.providerName] = [];
+              acc[s.providerName].push(s);
+              return acc;
+            }, {});
+
+            return (
+              <div style={{
+                marginTop: styles.spacing.xl,
+                padding: styles.spacing.xl,
+                backgroundColor: '#FFFBEB',
+                border: '1px solid #FDE68A',
+                borderLeft: '4px solid #F59E0B',
+                borderRadius: styles.borderRadius.lg,
+              }}>
+                <div style={{
+                  fontWeight: 700,
+                  color: '#92400E',
+                  fontSize: styles.fontSize.lg,
+                  marginBottom: styles.spacing.md,
+                }}>
+                  ✨ Avez-vous pensé à... ?
+                </div>
+
+                {Object.entries(grouped).map(([providerName, items]) => {
+                  const providerLogo = items[0]?.providerLogoUrl;
+                  return (
+                  <div key={providerName} style={{ marginBottom: styles.spacing.md }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: providerLogo ? 'flex-end' : 'space-between',
+                      gap: styles.spacing.md,
+                      marginBottom: styles.spacing.xs,
+                      paddingBottom: styles.spacing.xs,
+                      borderBottom: '1px solid #FDE68A',
+                    }}>
+                      {!providerLogo && (
+                        <div style={{
+                          fontWeight: 600,
+                          color: '#92400E',
+                          fontSize: styles.fontSize.md,
+                        }}>
+                          {providerName}
+                        </div>
+                      )}
+                      {providerLogo && (
+                        <img
+                          src={providerLogo}
+                          alt={providerName}
+                          crossOrigin="anonymous"
+                          style={{
+                            height: '40px',
+                            maxWidth: '160px',
+                            objectFit: 'contain',
+                            background: 'white',
+                            borderRadius: styles.borderRadius.sm,
+                            padding: '4px 8px',
+                          }}
+                        />
+                      )}
+                    </div>
+                    {items.map((s, i) => (
+                      <div key={`${providerName}-${i}`} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: styles.spacing.md,
+                        paddingLeft: styles.spacing.md,
+                        fontSize: styles.fontSize.sm,
+                        color: '#1F2937',
+                        marginBottom: 2,
+                      }}>
+                        <div style={{ flex: 3 }}>
+                          {s.productName}
+                          {s.quantity > 1 ? ` × ${s.quantity}` : ''}
+                          {s.description ? (
+                            <div style={{ color: '#6B7280', fontSize: styles.fontSize.xs }}>{s.description}</div>
+                          ) : null}
+                        </div>
+                        <div style={{ flex: 1.5, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <strong>{formatCurrency(s.priceHtva)}</strong> HTVA{' '}
+                          <span style={{ color: '#64748B' }}>{periodLabel(s.billingPeriod)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  );
+                })}
+
+                <div style={{
+                  marginTop: styles.spacing.sm,
+                  fontSize: styles.fontSize.xs,
+                  fontStyle: 'italic',
+                  color: '#78350F',
+                  lineHeight: 1.4,
+                }}>
+                  Suggestions de nos prestataires partenaires pour compléter votre solution.
+                  Ces options sont facturées directement par chaque prestataire et ne sont
+                  <strong> pas incluses</strong> dans votre mensualité.
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* PAGE 3: Valeurs */}
       <div className="page page-3" style={{
