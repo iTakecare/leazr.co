@@ -18,6 +18,7 @@ import ContractTerminationToggle from "@/components/contracts/ContractTerminatio
 import MollieSepaCard from "@/components/contracts/MollieSepaCard";
 import ContractFeesSepaCard from "@/components/contracts/ContractFeesSepaCard";
 import ContractBreakevenCard from "@/components/contracts/ContractBreakevenCard";
+import ContractTulipInsuranceCard from "@/components/contracts/ContractTulipInsuranceCard";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
@@ -245,6 +246,14 @@ const ContractDetail = () => {
                   onSuccess={() => refetch()}
                 />
               )}
+
+              {/* Carte assurance Tulip — visible si une clé Tulip est configurée */}
+              <ContractTulipInsuranceCard
+                contract={contract}
+                equipment={equipment}
+                companyId={companyId}
+                onUpdate={refetch}
+              />
 
               {/* Toggle de terminaison - visible pour contrats actifs/prolongés */}
               <ContractTerminationToggle
