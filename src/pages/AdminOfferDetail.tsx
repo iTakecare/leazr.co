@@ -33,6 +33,7 @@ import FinancialSection from "@/components/offers/detail/FinancialSection";
 import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
 import ExternalServicesSection from "@/components/offers/detail/ExternalServicesSection";
+import PromoProductsSection from "@/components/offers/detail/PromoProductsSection";
 import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
 import ScoringModal from "@/components/offers/detail/ScoringModal";
@@ -1148,6 +1149,9 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                     <ClientSection offer={offer} />
                     <NewEquipmentSection offer={offer} onOfferUpdate={() => { setEquipmentRefreshKey((k) => k + 1); fetchOfferDetails(); }} />
                     <ExternalServicesSection offerId={offer.id} />
+                    {offer.company_id && (
+                      <PromoProductsSection offerId={offer.id} companyId={offer.company_id} />
+                    )}
                     <EquipmentOrderTracker
                       sourceType="offer"
                       sourceId={offer.id}

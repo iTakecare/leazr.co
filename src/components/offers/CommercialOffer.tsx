@@ -39,7 +39,19 @@ interface CommercialOfferProps {
     billingPeriod: 'monthly' | 'yearly' | 'one_time' | string;
     quantity: number;
   }>;
-  
+
+  // Carte promo "Avez-vous pensé à...?" — suggestions promotionnelles de
+  // prestataires externes. Jamais incluses dans le total. Affichées dans une carte dédiée.
+  promoProducts?: Array<{
+    providerName: string;
+    providerLogoUrl?: string | null;
+    productName: string;
+    description?: string;
+    priceHtva: number;
+    billingPeriod: 'monthly' | 'yearly' | 'one_time' | string;
+    quantity: number;
+  }>;
+
   // Totaux
   totalMonthly?: number;
   totalSellingPrice?: number; // Total prix de vente pour mode achat
@@ -210,6 +222,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   validityDays = 10,
   equipment = [],
   externalServices = [],
+  promoProducts = [],
   totalMonthly = 0,
   totalSellingPrice = 0,
   contractDuration = 36,
@@ -1032,6 +1045,115 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       Ces services sont fournis et facturés directement par chaque prestataire partenaire.
                       Leurs tarifs sont gérés indépendamment et ne sont <strong>PAS inclus</strong> dans votre mensualité
                       de location ci-dessus.
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Carte promo "Avez-vous pensé à...?" — uniquement sur la dernière page produits */}
+              {isLastProductPage && promoProducts && promoProducts.length > 0 && (() => {
+                const periodLabel = (p: string) =>
+                  p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
+
+                const grouped = promoProducts.reduce<Record<string, typeof promoProducts>>((acc, s) => {
+                  if (!acc[s.providerName]) acc[s.providerName] = [];
+                  acc[s.providerName].push(s);
+                  return acc;
+                }, {});
+
+                return (
+                  <div style={{
+                    marginTop: styles.spacing.xl,
+                    padding: styles.spacing.xl,
+                    backgroundColor: '#FFFBEB',
+                    border: '1px solid #FDE68A',
+                    borderLeft: '4px solid #F59E0B',
+                    borderRadius: styles.borderRadius.lg,
+                  }}>
+                    <div style={{
+                      fontWeight: 700,
+                      color: '#92400E',
+                      fontSize: styles.fontSize.md,
+                      marginBottom: styles.spacing.sm,
+                    }}>
+                      ✨ Avez-vous pensé à... ?
+                    </div>
+
+                    {Object.entries(grouped).map(([providerName, items]) => {
+                      const providerLogo = items[0]?.providerLogoUrl;
+                      return (
+                      <div key={providerName} style={{ marginBottom: styles.spacing.md }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: providerLogo ? 'flex-end' : 'space-between',
+                          gap: styles.spacing.md,
+                          marginBottom: styles.spacing.xs,
+                          paddingBottom: styles.spacing.xs,
+                          borderBottom: '1px solid #FDE68A',
+                        }}>
+                          {!providerLogo && (
+                            <div style={{
+                              fontWeight: 600,
+                              color: '#92400E',
+                              fontSize: styles.fontSize.md,
+                            }}>
+                              {providerName}
+                            </div>
+                          )}
+                          {providerLogo && (
+                            <img
+                              src={providerLogo}
+                              alt={providerName}
+                              crossOrigin="anonymous"
+                              style={{
+                                height: '40px',
+                                maxWidth: '160px',
+                                objectFit: 'contain',
+                                background: 'white',
+                                borderRadius: styles.borderRadius.sm,
+                                padding: '4px 8px',
+                              }}
+                            />
+                          )}
+                        </div>
+                        {items.map((s, i) => (
+                          <div key={`${providerName}-${i}`} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: styles.spacing.md,
+                            paddingLeft: styles.spacing.md,
+                            fontSize: styles.fontSize.sm,
+                            color: '#1F2937',
+                            marginBottom: 2,
+                          }}>
+                            <div style={{ flex: 3 }}>
+                              {s.productName}
+                              {s.quantity > 1 ? ` × ${s.quantity}` : ''}
+                              {s.description ? (
+                                <div style={{ color: '#6B7280', fontSize: styles.fontSize.xs }}>{s.description}</div>
+                              ) : null}
+                            </div>
+                            <div style={{ flex: 1.5, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                              <strong>{formatCurrency(s.priceHtva)}</strong> HTVA{' '}
+                              <span style={{ color: '#64748B' }}>{periodLabel(s.billingPeriod)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      );
+                    })}
+
+                    <div style={{
+                      marginTop: styles.spacing.sm,
+                      fontSize: styles.fontSize.xs,
+                      fontStyle: 'italic',
+                      color: '#78350F',
+                      lineHeight: 1.4,
+                    }}>
+                      Suggestions de nos prestataires partenaires pour compléter votre solution.
+                      Ces options sont facturées directement par chaque prestataire et ne sont
+                      <strong> pas incluses</strong> dans votre mensualité.
                     </div>
                   </div>
                 );

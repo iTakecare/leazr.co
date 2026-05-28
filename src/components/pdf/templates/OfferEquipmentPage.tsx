@@ -1,4 +1,4 @@
-import { Page, View, Text } from '@react-pdf/renderer';
+import { Page, View, Text, Image } from '@react-pdf/renderer';
 import { renderHTMLAsPDF } from '@/utils/htmlToPdfText';
 import { colors } from '../styles/pdfStyles';
 import { OfferEquipment } from '@/types/offerEquipment';
@@ -34,6 +34,7 @@ interface OfferEquipmentPageProps {
   discountAmount?: number;
   monthlyPaymentBeforeDiscount?: number;
   externalProviderProducts?: ExternalProviderPDFLine[];
+  promoProducts?: ExternalProviderPDFLine[];
   contentBlocks?: {
     title?: string;
     footer_note?: string;
@@ -62,6 +63,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
   discountAmount,
   monthlyPaymentBeforeDiscount,
   externalProviderProducts,
+  promoProducts,
   contentBlocks,
   styles,
 }) => {
@@ -258,6 +260,93 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
             Ces services sont fournis et facturés directement par chaque prestataire partenaire.
             Leurs tarifs sont gérés indépendamment et ne sont PAS inclus dans la mensualité de
             location ci-dessous.
+          </Text>
+        </View>
+      )}
+
+      {/* Carte promo "Avez-vous pensé à...?" — suggestions, NOT in monthly total */}
+      {promoProducts && promoProducts.length > 0 && (
+        <View
+          style={{
+            marginTop: 18,
+            padding: 12,
+            backgroundColor: '#FFFBEB',
+            borderRadius: 4,
+            borderLeftWidth: 4,
+            borderLeftColor: '#F59E0B',
+          }}
+        >
+          <Text style={{ ...styles.textBold, marginBottom: 8, color: '#92400E', fontSize: 12 }}>
+            Avez-vous pensé à... ?
+          </Text>
+
+          {Object.entries(
+            promoProducts.reduce<Record<string, ExternalProviderPDFLine[]>>((acc, line) => {
+              const key = line.provider_name || 'Prestataire';
+              if (!acc[key]) acc[key] = [];
+              acc[key].push(line);
+              return acc;
+            }, {})
+          ).map(([providerName, lines]) => {
+            const logo = lines[0]?.provider_logo_url;
+            return (
+              <View key={providerName} style={{ marginBottom: 8 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: logo ? 'flex-end' : 'flex-start',
+                    marginBottom: 3,
+                  }}
+                >
+                  {logo ? (
+                    <Image
+                      src={logo}
+                      style={{ height: 24, maxWidth: 100, objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <Text style={{ ...styles.textBold, fontSize: 10, color: '#92400E' }}>
+                      {providerName}
+                    </Text>
+                  )}
+                </View>
+                {lines.map((line, i) => (
+                  <View
+                    key={`${providerName}-${i}`}
+                    style={{
+                      ...styles.row,
+                      marginBottom: 2,
+                      paddingLeft: 8,
+                    }}
+                  >
+                    <Text style={{ ...styles.text, fontSize: 10, flex: 3 }}>
+                      {line.product_name}
+                      {line.quantity > 1 ? ` × ${line.quantity}` : ''}
+                    </Text>
+                    <Text style={{ ...styles.text, fontSize: 10, flex: 1.5, textAlign: 'right' }}>
+                      {formatCurrency(line.price_htva)} HTVA{' '}
+                      <Text style={{ color: '#64748B' }}>
+                        ({BILLING_PERIOD_PDF_LABELS[line.billing_period] || line.billing_period})
+                      </Text>
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            );
+          })}
+
+          <Text
+            style={{
+              fontSize: 9,
+              fontStyle: 'italic',
+              color: '#78350F',
+              marginTop: 6,
+              lineHeight: 1.4,
+            }}
+          >
+            Suggestions de nos prestataires partenaires pour compléter votre solution.
+            Ces options sont facturées directement par chaque prestataire et ne sont pas
+            incluses dans la mensualité.
           </Text>
         </View>
       )}

@@ -69,6 +69,8 @@ export interface OfferPDFData {
   monthly_payment_before_discount?: number;
   // External provider products (billed separately by each provider — NOT part of total_monthly_payment)
   external_provider_products?: ExternalProviderPDFLine[];
+  // Promo products — carte "Avez-vous pensé à...?" (suggestions, NOT in total)
+  promo_products?: ExternalProviderPDFLine[];
   // Purchase mode fields
   is_purchase?: boolean;
   total_selling_price?: number;
@@ -145,6 +147,7 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         discountAmount={offer.discount_amount}
         monthlyPaymentBeforeDiscount={offer.monthly_payment_before_discount}
         externalProviderProducts={offer.external_provider_products}
+        promoProducts={offer.promo_products}
         contentBlocks={{
           title: offer.content_blocks?.equipment_title,
           footer_note: offer.content_blocks?.equipment_footer_note,

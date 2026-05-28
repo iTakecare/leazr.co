@@ -150,6 +150,25 @@ export interface OfferExternalProviderProduct {
   created_at: string;
 }
 
+// Persisted on an offer in public.offer_promo_products — carte promo
+// "Avez-vous pensé à...?". Distinct des services partenaires complémentaires :
+// purement promotionnel, jamais inclus dans les totaux de l'offre.
+export interface OfferPromoProduct {
+  id: string;
+  offer_id: string;
+  provider_id?: string;
+  provider_name: string;
+  provider_logo_url?: string;
+  product_id?: string;
+  product_name: string;
+  description?: string;
+  price_htva: number;
+  billing_period: string;
+  quantity: number;
+  position: number;
+  created_at: string;
+}
+
 export interface CreateExternalProviderProductData {
   provider_id: string;
   name: string;

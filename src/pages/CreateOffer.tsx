@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import PackSelectorModal from "@/components/offers/PackSelectorModal";
+import AddPromoProductsModal from "@/components/offers/detail/AddPromoProductsModal";
 import ContractBuybackModal, { BuybackLine } from "@/components/offers/ContractBuybackModal";
 import { ProductPack } from "@/types/pack";
 import PageTransition from "@/components/layout/PageTransition";
@@ -119,6 +120,20 @@ const CreateOffer = () => {
     billing_period: string;
     quantity: number;
   }>>([]);
+  // Carte promo "Avez-vous pensé à...?" — prestataires externes en mode promotionnel,
+  // jamais inclus dans le total. Persistée dans offer_promo_products.
+  const [selectedPromoProducts, setSelectedPromoProducts] = useState<Array<{
+    provider_id: string;
+    provider_name: string;
+    provider_logo_url?: string;
+    product_id: string;
+    product_name: string;
+    description?: string;
+    price_htva: number;
+    billing_period: string;
+    quantity: number;
+  }>>([]);
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const { absorbingCategoryIds } = useAbsorbingCategories();
   const {
     equipment,
@@ -505,6 +520,32 @@ const CreateOffer = () => {
               console.warn("⚠️ Erreur chargement services prestataires externes:", e);
             }
 
+            // Charger les produits promo (carte "Avez-vous pensé à...?")
+            try {
+              const { data: promoData } = await supabase
+                .from('offer_promo_products' as any)
+                .select('*')
+                .eq('offer_id', offer.id)
+                .order('position', { ascending: true });
+              if (promoData && promoData.length > 0) {
+                setSelectedPromoProducts(
+                  (promoData as any[]).map((p) => ({
+                    provider_id: p.provider_id || '',
+                    provider_name: p.provider_name,
+                    provider_logo_url: p.provider_logo_url || undefined,
+                    product_id: p.product_id || `${p.provider_name}-${p.product_name}-${Math.random().toString(36).slice(2, 8)}`,
+                    product_name: p.product_name,
+                    description: p.description || undefined,
+                    price_htva: Number(p.price_htva || 0),
+                    billing_period: p.billing_period || 'monthly',
+                    quantity: Number(p.quantity || 1),
+                  }))
+                );
+              }
+            } catch (e) {
+              console.warn("⚠️ Erreur chargement produits promo:", e);
+            }
+
             // Charger l'acompte si présent
             if (offer.down_payment !== undefined && offer.down_payment !== null) {
               console.log("💰 STEP 3: Loading down payment:", offer.down_payment);
@@ -745,6 +786,34 @@ const CreateOffer = () => {
     setSelectedExternalServices(prev =>
       prev.map(s => (s.product_id === productId ? { ...s, quantity: Math.max(1, qty) } : s))
     );
+  };
+
+  const handlePromoProductSelect = (service: {
+    provider_id: string;
+    provider_name: string;
+    provider_logo_url?: string;
+    product_id: string;
+    product_name: string;
+    description?: string;
+    price_htva: number;
+    billing_period: string;
+    quantity: number;
+  }) => {
+    setSelectedPromoProducts(prev => {
+      const existing = prev.findIndex(s => s.product_id === service.product_id);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { ...updated[existing], quantity: updated[existing].quantity + 1 };
+        toast.success(`Quantité mise à jour : ${service.product_name}`);
+        return updated;
+      }
+      toast.success(`${service.product_name} ajouté à la carte promo`);
+      return [...prev, service];
+    });
+  };
+
+  const handlePromoProductRemove = (productId: string) => {
+    setSelectedPromoProducts(prev => prev.filter(s => s.product_id !== productId));
   };
   const handleSaveOffer = async () => {
     if (!user) {
@@ -1049,6 +1118,44 @@ const CreateOffer = () => {
           }
         } catch (e) {
           console.error("⚠️ Exception sauvegarde services prestataires:", e);
+        }
+      }
+
+      // Persister les produits promo (carte "Avez-vous pensé à...?", NON inclus dans le total)
+      if (savedOfferId) {
+        try {
+          if (isEditMode) {
+            await supabase
+              .from('offer_promo_products' as any)
+              .delete()
+              .eq('offer_id', savedOfferId);
+          }
+          if (selectedPromoProducts.length > 0) {
+            const promoRows = selectedPromoProducts.map((s, index) => ({
+              offer_id: savedOfferId!,
+              provider_id: s.provider_id || null,
+              provider_name: s.provider_name,
+              provider_logo_url: s.provider_logo_url || null,
+              product_id: s.product_id || null,
+              product_name: s.product_name,
+              description: s.description || null,
+              price_htva: s.price_htva,
+              billing_period: s.billing_period,
+              quantity: s.quantity,
+              position: index,
+            }));
+            const { error: promoErr } = await supabase
+              .from('offer_promo_products' as any)
+              .insert(promoRows);
+            if (promoErr) {
+              console.error("⚠️ Erreur sauvegarde produits promo:", promoErr);
+              toast.error("L'offre est sauvegardée mais la carte promo n'a pas pu être enregistrée.");
+            } else {
+              console.log(`✅ ${promoRows.length} produit(s) promo sauvegardé(s)`);
+            }
+          }
+        } catch (e) {
+          console.error("⚠️ Exception sauvegarde produits promo:", e);
         }
       }
 
@@ -1419,6 +1526,57 @@ const CreateOffer = () => {
                                 </div>
                               </div>
                             )}
+
+                            {/* Carte promo "Avez-vous pensé à...?" — NON incluse dans le total */}
+                            <div className="bg-card rounded-lg border p-4">
+                              <div className="flex items-center justify-between mb-2 gap-3">
+                                <div>
+                                  <h3 className="text-base font-semibold flex items-center gap-2">
+                                    ✨ Carte promo — Avez-vous pensé à... ?
+                                  </h3>
+                                  <p className="text-xs text-muted-foreground">
+                                    Suggestions promotionnelles de prestataires externes affichées sur le PDF — non incluses dans le total.
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!companyId}
+                                  onClick={() => setIsPromoModalOpen(true)}
+                                >
+                                  + Ajouter
+                                </Button>
+                              </div>
+                              {selectedPromoProducts.length > 0 && (
+                                <div className="divide-y border rounded-md">
+                                  {selectedPromoProducts.map((s) => {
+                                    const periodLabel = s.billing_period === 'monthly' ? '/mois' : s.billing_period === 'yearly' ? '/an' : s.billing_period === 'one_time' ? 'unique' : s.billing_period;
+                                    return (
+                                      <div key={s.product_id} className="flex items-center justify-between gap-3 p-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                          {s.provider_logo_url && (
+                                            <img src={s.provider_logo_url} alt={s.provider_name} className="h-8 w-8 rounded object-contain border bg-white p-0.5 shrink-0" />
+                                          )}
+                                          <div className="min-w-0">
+                                            <p className="text-sm font-medium truncate">{s.product_name}</p>
+                                            <p className="text-xs text-muted-foreground">{s.provider_name}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                              {s.price_htva.toFixed(2)} € HTVA <span>{periodLabel}</span>
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          className="text-destructive text-xs hover:underline shrink-0"
+                                          onClick={() => handlePromoProductRemove(s.product_id)}
+                                        >Retirer</button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -1545,6 +1703,15 @@ const CreateOffer = () => {
           onSelectAmbassador={handleAmbassadorChange}
           selectedAmbassadorId={selectedAmbassador?.id}
         />
+
+        {companyId && (
+          <AddPromoProductsModal
+            open={isPromoModalOpen}
+            onOpenChange={setIsPromoModalOpen}
+            companyId={companyId}
+            onSelect={handlePromoProductSelect}
+          />
+        )}
       </div>
     </PageTransition>;
 };

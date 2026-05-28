@@ -7,6 +7,7 @@ import type {
   ExternalProviderWithProducts,
   OfferExternalProviderProduct,
   SelectedExternalProviderProduct,
+  OfferPromoProduct,
 } from "@/types/partner";
 
 // ============================================
@@ -170,4 +171,87 @@ export const fetchOfferExternalProviderProducts = async (
 
   if (error) throw error;
   return (data || []) as OfferExternalProviderProduct[];
+};
+
+// ============================================
+// OFFER ↔ PROMO PRODUCTS (carte "Avez-vous pensé à...?")
+// ============================================
+// Concept distinct des services complémentaires : table dédiée
+// public.offer_promo_products. Purement promotionnel, jamais inclus dans les
+// totaux/mensualités de l'offre. Stocke un snapshot du logo prestataire pour
+// l'affichage de la carte promo sur le PDF.
+
+export const fetchOfferPromoProducts = async (
+  offerId: string
+): Promise<OfferPromoProduct[]> => {
+  const { data, error } = await supabase
+    .from("offer_promo_products" as any)
+    .select("*")
+    .eq("offer_id", offerId)
+    .order("position")
+    .order("created_at");
+
+  if (error) throw error;
+  return (data || []) as unknown as OfferPromoProduct[];
+};
+
+export const addOfferPromoProduct = async (
+  offerId: string,
+  selection: SelectedExternalProviderProduct,
+  position = 0
+): Promise<OfferPromoProduct> => {
+  const { data, error } = await supabase
+    .from("offer_promo_products" as any)
+    .insert({
+      offer_id: offerId,
+      provider_id: selection.provider_id,
+      provider_name: selection.provider_name,
+      provider_logo_url: selection.provider_logo_url,
+      product_id: selection.product_id,
+      product_name: selection.product_name,
+      description: (selection as any).description ?? null,
+      price_htva: selection.price_htva,
+      billing_period: selection.billing_period,
+      quantity: selection.quantity,
+      position,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as unknown as OfferPromoProduct;
+};
+
+export const deleteOfferPromoProduct = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from("offer_promo_products" as any)
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+};
+
+// Bulk insert used by the create-offer flow (selections accumulated in local
+// state, persisted once the offer row exists).
+export const saveOfferPromoProducts = async (
+  offerId: string,
+  selections: SelectedExternalProviderProduct[]
+): Promise<void> => {
+  if (!selections || selections.length === 0) return;
+
+  const rows = selections.map((s, index) => ({
+    offer_id: offerId,
+    provider_id: s.provider_id,
+    provider_name: s.provider_name,
+    provider_logo_url: s.provider_logo_url,
+    product_id: s.product_id,
+    product_name: s.product_name,
+    description: (s as any).description ?? null,
+    price_htva: s.price_htva,
+    billing_period: s.billing_period,
+    quantity: s.quantity,
+    position: index,
+  }));
+
+  const { error } = await supabase.from("offer_promo_products" as any).insert(rows);
+  if (error) throw error;
 };

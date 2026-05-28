@@ -109,6 +109,24 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       quantity: row.quantity || 1,
     }));
 
+    // Produits promo (carte "Avez-vous pensé à...?", NON inclus dans le total).
+    // Le logo prestataire est stocké en snapshot dans la table promo ; on retombe
+    // sur le logo courant du prestataire par nom si le snapshot est absent.
+    const { data: promoData } = await supabase
+      .from('offer_promo_products' as any)
+      .select('provider_name, provider_logo_url, product_name, price_htva, billing_period, quantity')
+      .eq('offer_id', offerId)
+      .order('position');
+
+    const promoProducts = (promoData || []).map((row: any) => ({
+      provider_name: row.provider_name || 'Prestataire',
+      provider_logo_url: row.provider_logo_url || logoByName[row.provider_name] || undefined,
+      product_name: row.product_name || 'Produit',
+      price_htva: Number(row.price_htva || 0),
+      billing_period: row.billing_period || 'monthly',
+      quantity: row.quantity || 1,
+    }));
+
     // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
     const totalMonthlyPayment = equipmentData.reduce(
       (sum, item) => sum + (item.monthly_payment || 0),
@@ -215,6 +233,8 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       financed_amount_after_down_payment: financedAmountAfterDownPayment,
       // External provider products (billed directly by providers, NOT in monthly total)
       external_provider_products: externalProviderProducts,
+      // Promo products (carte "Avez-vous pensé à...?", NOT in monthly total)
+      promo_products: promoProducts,
       // Purchase mode fields
       is_purchase: offerData.is_purchase || false,
       total_selling_price: offerData.is_purchase 

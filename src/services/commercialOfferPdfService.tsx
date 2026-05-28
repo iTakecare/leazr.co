@@ -40,6 +40,15 @@ interface CommercialOfferData {
     billingPeriod: string;
     quantity: number;
   }>;
+  promoProducts?: Array<{
+    providerName: string;
+    providerLogoUrl?: string | null;
+    productName: string;
+    description?: string;
+    priceHtva: number;
+    billingPeriod: string;
+    quantity: number;
+  }>;
   totalMonthly: number;
   totalSellingPrice: number;
   contractDuration: number;
@@ -133,6 +142,18 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
     const { enrichExternalServicesWithLogos } = await import('@/services/offers/enrichExternalServicesWithLogos');
     const enrichedExternalServices = await enrichExternalServicesWithLogos(
       externalServicesData as any,
+      offerData.company_id
+    );
+
+    // Produits promo (carte "Avez-vous pensé à...?", NON inclus dans le total)
+    const { data: promoData } = await supabase
+      .from('offer_promo_products' as any)
+      .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+      .eq('offer_id', offerId)
+      .order('position', { ascending: true });
+
+    const enrichedPromoProducts = await enrichExternalServicesWithLogos(
+      promoData as any,
       offerData.company_id
     );
 
@@ -259,6 +280,7 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
         }, {}) || {}
       })),
       externalServices: enrichedExternalServices,
+      promoProducts: enrichedPromoProducts,
       totalMonthly: isPurchase ? 0 : computedTotalMonthly,
       totalSellingPrice: totalSellingPrice,
       contractDuration: Number(offerData.duration) || 36,
