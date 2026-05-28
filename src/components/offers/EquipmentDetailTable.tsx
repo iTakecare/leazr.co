@@ -207,7 +207,14 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                             </button>
                           )}
                           <div className="flex-1">
-                            <div className="font-medium">{item.title}</div>
+                            <div className="font-medium flex items-center gap-2">
+                              {item.title}
+                              {(item as any).isGifted && (
+                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                                  Offert
+                                </span>
+                              )}
+                            </div>
                             {renderAttributeBadges(item)}
                           </div>
                         </div>
@@ -215,7 +222,15 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                     </td>
                     <td className="py-3 px-4 text-center">{item.quantity}</td>
                     {!hideFinancialDetails && (
-                      <td className="py-3 px-4 text-right">{formatCurrency(item.purchasePrice || 0)}</td>
+                      <td className="py-3 px-4 text-right">
+                        {(item as any).isGifted ? (
+                          <span className="text-gray-400 line-through">
+                            {formatCurrency((item as any).basePurchasePrice ?? item.purchasePrice ?? 0)}
+                          </span>
+                        ) : (
+                          formatCurrency(item.purchasePrice || 0)
+                        )}
+                      </td>
                     )}
                     {!hideFinancialDetails && (
                       <td className="py-3 px-4 text-right">{formatCurrency(monthlyPayment)}</td>

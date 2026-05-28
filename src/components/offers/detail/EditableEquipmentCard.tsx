@@ -239,7 +239,12 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
             placeholder="Nom de l'équipement"
           />
         ) : (
-          <h4 className="font-medium text-lg">{item.title || `Équipement ${index + 1}`}</h4>
+          <h4 className="font-medium text-lg flex items-center gap-2">
+            {item.title || `Équipement ${index + 1}`}
+            {item.isGifted && (
+              <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Offert</Badge>
+            )}
+          </h4>
         )}
         
         <div className="flex items-center gap-2">
@@ -265,14 +270,16 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
           
           {!isEditing ? (
             <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-              
+              {!item.isGifted && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+              )}
+
               {(() => {
                 const hasValidId = item.id && !item.id.toString().startsWith('temp-');
                 console.log("🗑️ RENDER DELETE - Debug info:", {
@@ -362,6 +369,10 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
                 step="0.01"
                 min="0"
               />
+            ) : item.isGifted ? (
+              <p className="font-medium text-gray-400 line-through">
+                {formatCurrency(item.basePurchasePrice ?? item.purchasePrice ?? 0)}
+              </p>
             ) : (
               <p className="font-medium">{formatCurrency(item.purchasePrice || 0)}</p>
             )}

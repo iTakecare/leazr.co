@@ -39,6 +39,7 @@ import ClientInfo from "@/components/offer/ClientInfo";
 import OfferConfiguration from "@/components/offer/OfferConfiguration";
 import DownPaymentCard from "@/components/offer/DownPaymentCard";
 import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
+import { useAbsorbingCategories } from "@/hooks/useAbsorbingCategories";
 import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
 import AmbassadorSelector, { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
 import { calculateEquipmentTotals, getFinancedAmount } from "@/utils/marginCalculations";
@@ -118,6 +119,7 @@ const CreateOffer = () => {
     billing_period: string;
     quantity: number;
   }>>([]);
+  const { absorbingCategoryIds } = useAbsorbingCategories();
   const {
     equipment,
     setEquipment,
@@ -131,6 +133,7 @@ const CreateOffer = () => {
     calculatedFromSalePrice,
     equipmentList,
     setEquipmentList,
+    ventilatedList,
     totalMonthlyPayment,
     globalMarginAdjustment,
     editingId,
@@ -144,10 +147,10 @@ const CreateOffer = () => {
     findCoefficient,
     toggleAdaptMonthlyPayment,
     calculations
-  } = useSimplifiedEquipmentCalculator(selectedLeaser, selectedDuration);
+  } = useSimplifiedEquipmentCalculator(selectedLeaser, selectedDuration, absorbingCategoryIds);
 
-  // Calcul de la marge totale depuis les équipements
-  const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
+  // Calcul de la marge totale depuis les équipements (liste ventilée : tient compte des offerts)
+  const totalEquipmentMargin = ventilatedList.reduce((sum, eq) => {
     const equipmentMargin = eq.purchasePrice * eq.quantity * eq.margin / 100;
     return sum + equipmentMargin;
   }, 0);
@@ -389,18 +392,46 @@ const CreateOffer = () => {
                 const equipmentData = JSON.parse(offer.equipment_description);
                 if (Array.isArray(equipmentData) && equipmentData.length > 0) {
                   console.log("📦 STEP 3a: Processing equipment data:", equipmentData);
-                  const formattedEquipment = equipmentData.map(item => ({
-                    id: item.id || crypto.randomUUID(),
-                    title: item.title,
-                    purchasePrice: parseFloat(item.purchasePrice) || 0,
-                    quantity: parseInt(item.quantity, 10) || 1,
-                    margin: parseFloat(item.margin) || 20,
-                    monthlyPayment: parseFloat(item.monthlyPayment) || 0,
-                    attributes: item.attributes || {},
-                    specifications: item.specifications || {},
-                    productId: item.productId,
-                    categoryId: item.categoryId
-                  }));
+                  // Si l'offre contient des produits offerts, on recharge les valeurs de BASE
+                  // (prix d'achat / marge avant ventilation) pour éviter une double ventilation.
+                  // Sinon, comportement legacy strictement inchangé.
+                  const hasGifted = equipmentData.some((it: any) => it.isGifted ?? it.is_gifted);
+                  const formattedEquipment = equipmentData.map(item => {
+                    if (!hasGifted) {
+                      return {
+                        id: item.id || crypto.randomUUID(),
+                        title: item.title,
+                        purchasePrice: parseFloat(item.purchasePrice) || 0,
+                        quantity: parseInt(item.quantity, 10) || 1,
+                        margin: parseFloat(item.margin) || 20,
+                        monthlyPayment: parseFloat(item.monthlyPayment) || 0,
+                        attributes: item.attributes || {},
+                        specifications: item.specifications || {},
+                        productId: item.productId,
+                        categoryId: item.categoryId
+                      };
+                    }
+                    const isGifted = !!(item.isGifted ?? item.is_gifted);
+                    const base = parseFloat(item.basePurchasePrice ?? item.base_purchase_price) || parseFloat(item.purchasePrice) || 0;
+                    const selling = parseFloat(item.sellingPrice ?? item.selling_price) || 0;
+                    const baseMargin = (!isGifted && selling > 0 && base > 0)
+                      ? ((selling - base) / base) * 100
+                      : (parseFloat(item.margin) || (isGifted ? 0 : 20));
+                    return {
+                      id: item.id || crypto.randomUUID(),
+                      title: item.title,
+                      purchasePrice: base,
+                      quantity: parseInt(item.quantity, 10) || 1,
+                      margin: isGifted ? 0 : baseMargin,
+                      monthlyPayment: isGifted ? 0 : (parseFloat(item.monthlyPayment) || 0),
+                      attributes: item.attributes || {},
+                      specifications: item.specifications || {},
+                      productId: item.productId,
+                      categoryId: item.categoryId,
+                      isGifted,
+                      basePurchasePrice: base
+                    };
+                  });
                   console.log("✅ STEP 3a: Equipment formatted:", formattedEquipment);
 
                   // ATTENDRE UN PEU pour que le hook soit prêt
@@ -767,21 +798,23 @@ const CreateOffer = () => {
       // Préparer les données d'équipement avec les attributs et spécifications
       // IMPORTANT: En mode achat, forcer monthlyPayment à 0 et calculer sellingPrice proportionnellement
       // MODE ACHAT: Utiliser les mêmes totaux que le leasing (priorité aux totaux)
-      const totalPurchaseForDistribution = calculations?.totalPurchasePrice || equipmentList.reduce((sum, eq) => 
+      const totalPurchaseForDistribution = calculations?.totalPurchasePrice || ventilatedList.reduce((sum, eq) =>
         sum + (eq.purchasePrice * eq.quantity), 0);
       const totalFinancedForDistribution = calculations?.totalFinancedAmount || 0;
-      
-      const equipmentData = equipmentList.map(eq => {
+
+      // IMPORTANT : on persiste depuis la liste VENTILÉE (valeurs effectives des produits offerts).
+      // Champs offerts portés : isGifted, categoryId, basePurchasePrice. Le PV/mensualité d'une
+      // ligne offerte sont à 0, son prix d'achat est ventilé sur les lignes absorbantes.
+      const equipmentData = ventilatedList.map(eq => {
         // MODE ACHAT: Forcer mensualité à 0 et calculer sellingPrice proportionnellement
         if (isPurchase) {
           // Répartition proportionnelle du montant financé total sur chaque ligne
           const linePA = eq.purchasePrice * eq.quantity;
-          const proportionalTotalSelling = totalPurchaseForDistribution > 0 
-            ? (linePA / totalPurchaseForDistribution) * totalFinancedForDistribution 
+          const proportionalTotalSelling = totalPurchaseForDistribution > 0
+            ? (linePA / totalPurchaseForDistribution) * totalFinancedForDistribution
             : linePA;
-          const sellingPriceUnit = proportionalTotalSelling / eq.quantity;
-          
-          console.log(`💾 SAVE ACHAT - ${eq.title}: PA=${eq.purchasePrice}, qty=${eq.quantity}, PV proportionnel unitaire=${sellingPriceUnit}`);
+          const sellingPriceUnit = eq.quantity > 0 ? proportionalTotalSelling / eq.quantity : 0;
+
           return {
             id: eq.id,
             title: eq.title,
@@ -789,25 +822,25 @@ const CreateOffer = () => {
             quantity: eq.quantity,
             margin: eq.margin,
             monthlyPayment: 0, // Toujours 0 en achat
-            sellingPrice: sellingPriceUnit, // PV unitaire proportionnel pour persistance
+            sellingPrice: eq.isGifted ? 0 : sellingPriceUnit, // PV unitaire proportionnel pour persistance
+            isGifted: eq.isGifted ?? false,
+            categoryId: eq.categoryId,
+            basePurchasePrice: eq.basePurchasePrice ?? eq.purchasePrice,
             attributes: eq.attributes || {},
             specifications: eq.specifications || {}
           };
         }
-        
-        // MODE LEASING: Préserver le monthlyPayment s'il existe (venant du catalogue)
-        // Sinon, calculer à partir du prix d'achat + marge + coefficient
-        let finalMonthlyPayment = eq.monthlyPayment;
-        
-        // Seulement recalculer si pas de monthlyPayment existant ou si c'est 0
-        if (!eq.monthlyPayment || eq.monthlyPayment <= 0) {
+
+        // MODE LEASING: ligne offerte → mensualité 0. Sinon préserver le monthlyPayment
+        // (anchor), ou le calculer si absent.
+        let finalMonthlyPayment = eq.isGifted ? 0 : eq.monthlyPayment;
+
+        if (!eq.isGifted && (!eq.monthlyPayment || eq.monthlyPayment <= 0)) {
           const financedAmountForEquipment = eq.purchasePrice * eq.quantity * (1 + eq.margin / 100);
           const coeff = findCoefficientForAmount(financedAmountForEquipment, selectedLeaser, selectedDuration);
           finalMonthlyPayment = (financedAmountForEquipment * coeff) / 100;
         }
-        
-        console.log(`💾 SAVE LEASING - ${eq.title}: stored=${eq.monthlyPayment}, final=${finalMonthlyPayment}`);
-        
+
         return {
           id: eq.id,
           title: eq.title,
@@ -815,6 +848,10 @@ const CreateOffer = () => {
           quantity: eq.quantity,
           margin: eq.margin,
           monthlyPayment: finalMonthlyPayment,
+          sellingPrice: eq.isGifted ? 0 : eq.sellingPrice,
+          isGifted: eq.isGifted ?? false,
+          categoryId: eq.categoryId,
+          basePurchasePrice: eq.basePurchasePrice ?? eq.purchasePrice,
           attributes: eq.attributes || {},
           specifications: eq.specifications || {}
         };
@@ -1280,7 +1317,7 @@ const CreateOffer = () => {
 
                           <div className="xl:col-span-1 space-y-4">
                             <EquipmentList
-                              equipmentList={equipmentList}
+                              equipmentList={ventilatedList}
                               editingId={editingId}
                               startEditing={startEditing}
                               removeFromList={removeFromList}
@@ -1433,7 +1470,7 @@ const CreateOffer = () => {
                           handleSaveOffer={handleSaveOffer}
                           isSubmitting={isSubmitting}
                           selectedLeaser={selectedLeaser}
-                          equipmentList={equipmentList}
+                          equipmentList={ventilatedList}
                           productsToBeDetermined={productsToBeDetermined}
                         />
 

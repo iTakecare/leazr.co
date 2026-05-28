@@ -343,8 +343,12 @@ export const createOffer = async (offerData: OfferData) => {
             selling_price: sellingPrice,
             serial_number: equipment.serialNumber || equipment.serial_number,
             product_id: equipment.productId || equipment.product_id || null,
-            image_url: equipment.imageUrl || equipment.image_url || 
-                      (equipment.image_urls && equipment.image_urls[0]) || null
+            image_url: equipment.imageUrl || equipment.image_url ||
+                      (equipment.image_urls && equipment.image_urls[0]) || null,
+            is_gifted: equipment.isGifted ?? equipment.is_gifted ?? false,
+            category_id: equipment.categoryId || equipment.category_id || null,
+            base_purchase_price:
+              equipment.basePurchasePrice ?? equipment.base_purchase_price ?? purchasePrice
           };
           
           console.log("💾 Sauvegarde équipement:", newEquipment);

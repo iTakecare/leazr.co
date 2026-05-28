@@ -296,7 +296,18 @@ const EquipmentList = ({
                       </td>
                       {!hidePriceColumn && (
                         <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
-                          {formatCurrency(item.purchasePrice)}
+                          {item.isGifted ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="text-gray-400 line-through">
+                                {formatCurrency(item.basePurchasePrice ?? 0)}
+                              </span>
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                                Offert
+                              </span>
+                            </span>
+                          ) : (
+                            formatCurrency(item.purchasePrice)
+                          )}
                         </td>
                       )}
                       <td className="px-2 py-3 text-sm text-gray-900">
@@ -338,11 +349,13 @@ const EquipmentList = ({
                       </td>
                       {!isAmbassadorMode && (
                         <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
-                          {item.margin}%
+                          {item.isGifted ? '—' : `${item.margin}%`}
                         </td>
                       )}
                       <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
-                        {isPurchase 
+                        {item.isGifted
+                          ? formatCurrency(0)
+                          : isPurchase
                           ? (() => {
                               // En mode achat, afficher le prix de vente proportionnel
                               // basé sur le montant financé total du leasing

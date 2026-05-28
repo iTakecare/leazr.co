@@ -8,6 +8,9 @@ export interface Equipment {
   monthlyPayment?: number;
   productId?: string;
   categoryId?: string;
+  // Produits offerts (ventilation du prix d'achat)
+  isGifted?: boolean;
+  basePurchasePrice?: number;
   imageUrl?: string;
   image_url?: string;
   image_urls?: string[];

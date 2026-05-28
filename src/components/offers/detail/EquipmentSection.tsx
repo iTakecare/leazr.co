@@ -27,6 +27,10 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer, onOfferUpdat
     sellingPrice: item.selling_price,
     coefficient: item.coefficient,
     serialNumber: item.serial_number,
+    // Produits offerts
+    isGifted: item.is_gifted ?? false,
+    basePurchasePrice: item.base_purchase_price,
+    categoryId: item.category_id,
     // Convertir les attributs de array vers object pour l'affichage
     attributes: item.attributes?.reduce((acc: any, attr: any) => {
       acc[attr.key] = attr.value;
@@ -93,6 +97,13 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer, onOfferUpdat
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {equipmentItems.some((it: any) => it.isGifted) && (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            Cette offre contient des produits offerts : leur prix d'achat est ventilé sur les
+            lignes PC / portable / tablette. Pour modifier les montants, passez par le
+            calculateur (bouton « Modifier ») afin de recalculer la ventilation.
+          </div>
+        )}
         {equipmentItems.length > 0 ? (
           <div className="space-y-4">
             {equipmentItems.map((item: any, index: number) => (

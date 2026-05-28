@@ -75,6 +75,7 @@ export default function SimplifiedCategoryManager() {
           name: category.name.trim(),
           translation: category.translation?.trim() || category.name.trim(),
           description: category.description?.trim() || undefined,
+          absorbs_gifted_cost: category.absorbs_gifted_cost ?? false,
         });
         toast.success("Catégorie créée");
         setIsDialogOpen(false); // fermer, sinon on reste sur un objet à id vide
@@ -84,6 +85,7 @@ export default function SimplifiedCategoryManager() {
           name: category.name.trim(),
           translation: category.translation?.trim() || category.name.trim(),
           description: category.description?.trim() || undefined,
+          absorbs_gifted_cost: category.absorbs_gifted_cost ?? false,
         });
         toast.success("Catégorie mise à jour");
       }
@@ -152,7 +154,16 @@ export default function SimplifiedCategoryManager() {
                     className="cursor-pointer hover:bg-accent/50"
                     onClick={() => handleViewCategory(category)}
                   >
-                    <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="inline-flex items-center gap-2">
+                        {category.name}
+                        {category.absorbs_gifted_cost && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                            Absorbe offerts
+                          </span>
+                        )}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-right">{category.product_count || 0}</TableCell>
                   </TableRow>
                 ))

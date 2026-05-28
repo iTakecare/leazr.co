@@ -6,6 +6,7 @@ export interface SimplifiedCategory {
   translation: string;
   description?: string;
   company_id: string;
+  absorbs_gifted_cost?: boolean;
   created_at: string;
   updated_at: string;
   product_count?: number;

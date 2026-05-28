@@ -2,14 +2,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
-import { 
-  calculateEquipmentResults, 
-  findCoefficientForAmount, 
+import {
+  calculateEquipmentResults,
+  findCoefficientForAmount,
   calculateFinancedAmountForEquipment,
   roundToTwoDecimals
 } from '@/utils/equipmentCalculations';
+import { applyVentilationToEquipmentList } from '@/utils/giftedVentilation';
 
-export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, duration: number = 36) => {
+export const useSimplifiedEquipmentCalculator = (
+  selectedLeaser: Leaser | null,
+  duration: number = 36,
+  absorbingCategoryIds: Set<string> = new Set()
+) => {
   const leaser = selectedLeaser;
   
   // États pour l'équipement en cours de création/édition
@@ -235,11 +240,16 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       // Calculer le prix de vente unitaire pour le mode Achat
       const sellingPriceUnit = roundToTwoDecimals(equipment.purchasePrice * (1 + marginToUse / 100));
       
+      // Produit offert : PV / mensualité / marge nuls pour le client (le PA réel reste
+      // sur la ligne et sera ventilé sur les lignes absorbantes).
+      const isGifted = !!equipment.isGifted;
+
       const equipmentToAdd = {
         ...equipment,
-        margin: Number(marginToUse.toFixed(2)),
-        monthlyPayment: currentMonthlyPayment,
-        sellingPrice: sellingPriceUnit // Prix de vente unitaire pour le mode Achat
+        margin: isGifted ? 0 : Number(marginToUse.toFixed(2)),
+        monthlyPayment: isGifted ? 0 : currentMonthlyPayment,
+        sellingPrice: isGifted ? 0 : sellingPriceUnit, // Prix de vente unitaire pour le mode Achat
+        isGifted,
       };
       
       console.log("🔧 ADDING EQUIPMENT TO LIST:", {
@@ -344,8 +354,12 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     );
   };
 
-  // Calculs globaux basés sur la liste des équipements
-  let calculations = calculateEquipmentResults(equipmentList, leaser, duration);
+  // Liste ventilée (produits offerts) : valeurs effectives pour les calculs et l'affichage.
+  // GARANTIE : sans ligne offerte, ventilatedList === equipmentList (aucun changement).
+  const ventilatedList = applyVentilationToEquipmentList(equipmentList, absorbingCategoryIds);
+
+  // Calculs globaux basés sur la liste ventilée
+  let calculations = calculateEquipmentResults(ventilatedList, leaser, duration);
   
   // ========== FORÇAGE DU MONTANT FINANCÉ EN SELF-LEASING ==========
   // En self-leasing (is_own_company), si on a une baseline valide et qu'on n'est pas en mode ajustement global,
@@ -374,8 +388,8 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     };
   }
   
-  // Log des marges pour debugging
-  const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
+  // Log des marges pour debugging (sur la liste ventilée)
+  const totalEquipmentMargin = ventilatedList.reduce((sum, eq) => {
     const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
     return sum + equipmentMargin;
   }, 0);
@@ -665,6 +679,9 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     // Liste des équipments
     equipmentList,
     setEquipmentList,
+    // Liste avec valeurs effectives après ventilation des produits offerts
+    // (= equipmentList si aucune ligne offerte). À utiliser pour l'affichage et la sauvegarde.
+    ventilatedList,
     editingId,
     
     // Calculs globaux

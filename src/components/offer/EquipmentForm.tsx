@@ -10,6 +10,9 @@ import PriceDetailsDisplay from "./PriceDetailsDisplay";
 import FormActionButtons from "./FormActionButtons";
 import CatalogDialog from "./CatalogDialog";
 import EquipmentDeliverySection from "./EquipmentDeliverySection";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Gift } from "lucide-react";
 
 interface EquipmentFormProps {
   equipment: Equipment;
@@ -86,7 +89,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
     }
   }, [isQuickCatalogOpen]);
 
-  const handleChange = (field: keyof Equipment, value: string | number) => {
+  const handleChange = (field: keyof Equipment, value: string | number | boolean) => {
     setEquipment({ ...equipment, [field]: value });
     
     if (errors[field as keyof typeof errors]) {
@@ -140,6 +143,9 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
       ...equipment,
       title: product.name,
       purchasePrice: product.price || 0,
+      // Capturer la catégorie (nécessaire à la ventilation des produits offerts)
+      categoryId: product.category_id || product.categoryId || equipment.categoryId,
+      productId: product.id || equipment.productId,
       // Stocker les attributs sélectionnés
       attributes: productAttributes,
       // Stocker les spécifications du produit
@@ -185,11 +191,31 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             hidePurchasePrice={hidePurchasePrice}
           />
 
+          {!isPurchase && (
+            <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+              <div className="flex items-start gap-2">
+                <Gift className="mt-0.5 h-4 w-4 text-primary" />
+                <div className="space-y-0.5">
+                  <Label htmlFor="isGifted">Produit offert</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Gratuit pour le client (mensualité 0). Son prix d'achat est ventilé sur les
+                    lignes PC / portable / tablette.
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="isGifted"
+                checked={!!equipment.isGifted}
+                onCheckedChange={(checked) => handleChange("isGifted", checked)}
+              />
+            </div>
+          )}
+
           <PriceDetailsDisplay
             marginAmount={marginAmount}
             priceWithMargin={priceWithMargin}
             coefficient={coefficient}
-            displayMonthlyPayment={displayMonthlyPayment}
+            displayMonthlyPayment={equipment.isGifted ? 0 : displayMonthlyPayment}
             hideFinancialDetails={hideFinancialDetails}
             calculatedMargin={calculatedMargin.percentage > 0 ? calculatedMargin : undefined}
             isPurchase={isPurchase}

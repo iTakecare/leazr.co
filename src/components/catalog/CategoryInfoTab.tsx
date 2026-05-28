@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { SimplifiedCategory, getCategoryStats } from "@/services/simplifiedCategoryService";
 import { Pencil, Trash2, Save, X, Package, DollarSign, CheckCircle, Tag } from "lucide-react";
 import { format } from "date-fns";
@@ -22,6 +23,7 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
     name: category.name,
     translation: category.translation,
     description: category.description || "",
+    absorbs_gifted_cost: category.absorbs_gifted_cost ?? false,
   });
 
   const { data: stats, isLoading: loadingStats } = useQuery({
@@ -47,6 +49,7 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
       name: category.name,
       translation: category.translation,
       description: category.description || "",
+      absorbs_gifted_cost: category.absorbs_gifted_cost ?? false,
     });
     setMode('view');
   };
@@ -90,6 +93,21 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
               rows={4}
             />
           </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="absorbs_gifted_cost">Absorbe le coût des produits offerts</Label>
+              <p className="text-xs text-muted-foreground">
+                Le prix d'achat des produits offerts est ventilé sur les lignes de cette catégorie
+                (PC, ordinateurs portables, tablettes…).
+              </p>
+            </div>
+            <Switch
+              id="absorbs_gifted_cost"
+              checked={formData.absorbs_gifted_cost}
+              onCheckedChange={(checked) => setFormData({ ...formData, absorbs_gifted_cost: checked })}
+            />
+          </div>
         </div>
 
         <div className="flex gap-2 pt-4 border-t">
@@ -128,6 +146,10 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
               <p className="font-medium">
                 {category.created_at ? format(new Date(category.created_at), "dd MMM yyyy", { locale: fr }) : "N/A"}
               </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Absorbe les offerts</p>
+              <p className="font-medium">{category.absorbs_gifted_cost ? "Oui" : "Non"}</p>
             </div>
           </div>
         </div>

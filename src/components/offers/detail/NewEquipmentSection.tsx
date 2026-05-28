@@ -679,6 +679,14 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {equipment.some((it: any) => it.is_gifted) && (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            Cette offre contient des produits offerts (prix d'achat barré). Leur coût est ventilé
+            sur les lignes PC / portable / tablette ; la mensualité du client est inchangée. Pour
+            modifier les montants, utilisez le calculateur (bouton « Modifier ») afin de recalculer
+            la ventilation.
+          </div>
+        )}
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -758,7 +766,14 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                             className="font-medium"
                           />
                         ) : (
-                          <div className="font-medium">{item.title}</div>
+                          <div className="font-medium flex items-center gap-2">
+                            {item.title}
+                            {(item as any).is_gifted && (
+                              <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">
+                                Offert
+                              </Badge>
+                            )}
+                          </div>
                         )}
                         {attributes && attributes.length > 0 && (
                           <div className="flex flex-col gap-0.5 mt-1">
@@ -813,12 +828,22 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                           }}
                           className="w-32 text-right"
                         />
+                      ) : (item as any).is_gifted ? (
+                        <span className="text-gray-400 line-through">
+                          {formatPrice((item as any).base_purchase_price ?? item.purchase_price)}
+                        </span>
                       ) : (
                         <span>{formatPrice(item.purchase_price)}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span>{formatPrice(item.purchase_price * item.quantity)}</span>
+                      {(item as any).is_gifted ? (
+                        <span className="text-gray-400 line-through">
+                          {formatPrice(((item as any).base_purchase_price ?? item.purchase_price) * item.quantity)}
+                        </span>
+                      ) : (
+                        <span>{formatPrice(item.purchase_price * item.quantity)}</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       {isEditing ? (

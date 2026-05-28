@@ -753,6 +753,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          absorbs_gifted_cost: boolean
           company_id: string
           created_at: string
           description: string | null
@@ -762,6 +763,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          absorbs_gifted_cost?: boolean
           company_id: string
           created_at?: string
           description?: string | null
@@ -771,6 +773,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          absorbs_gifted_cost?: boolean
           company_id?: string
           created_at?: string
           description?: string | null
@@ -2543,12 +2546,15 @@ export type Database = {
         Row: {
           actual_purchase_date: string | null
           actual_purchase_price: number | null
+          base_purchase_price: number | null
           bought_back_at: string | null
           bought_back_price: number | null
+          category_id: string | null
           collaborator_id: string | null
           contract_id: string
           created_at: string
           id: string
+          is_gifted: boolean
           individual_serial_number: string | null
           is_individual: boolean | null
           margin: number
@@ -2571,12 +2577,15 @@ export type Database = {
         Insert: {
           actual_purchase_date?: string | null
           actual_purchase_price?: number | null
+          base_purchase_price?: number | null
           bought_back_at?: string | null
           bought_back_price?: number | null
+          category_id?: string | null
           collaborator_id?: string | null
           contract_id: string
           created_at?: string
           id?: string
+          is_gifted?: boolean
           individual_serial_number?: string | null
           is_individual?: boolean | null
           margin?: number
@@ -2599,12 +2608,15 @@ export type Database = {
         Update: {
           actual_purchase_date?: string | null
           actual_purchase_price?: number | null
+          base_purchase_price?: number | null
           bought_back_at?: string | null
           bought_back_price?: number | null
+          category_id?: string | null
           collaborator_id?: string | null
           contract_id?: string
           created_at?: string
           id?: string
+          is_gifted?: boolean
           individual_serial_number?: string | null
           is_individual?: boolean | null
           margin?: number
@@ -5665,8 +5677,11 @@ export type Database = {
       }
       offer_equipment: {
         Row: {
+          base_purchase_price: number | null
+          category_id: string | null
           coefficient: number | null
           collaborator_id: string | null
+          is_gifted: boolean
           created_at: string
           custom_pack_id: string | null
           delivery_address: string | null
@@ -5710,6 +5725,8 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          base_purchase_price?: number | null
+          category_id?: string | null
           coefficient?: number | null
           collaborator_id?: string | null
           created_at?: string
@@ -5730,6 +5747,7 @@ export type Database = {
           duration?: number
           id?: string
           image_url?: string | null
+          is_gifted?: boolean
           is_part_of_custom_pack?: boolean | null
           margin?: number
           monthly_payment?: number | null
@@ -5755,6 +5773,8 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          base_purchase_price?: number | null
+          category_id?: string | null
           coefficient?: number | null
           collaborator_id?: string | null
           created_at?: string
@@ -5775,6 +5795,7 @@ export type Database = {
           duration?: number
           id?: string
           image_url?: string | null
+          is_gifted?: boolean
           is_part_of_custom_pack?: boolean | null
           margin?: number
           monthly_payment?: number | null
@@ -10111,6 +10132,7 @@ export type Database = {
     Views: {
       categories_with_product_count: {
         Row: {
+          absorbs_gifted_cost: boolean | null
           company_id: string | null
           created_at: string | null
           description: string | null
@@ -11363,6 +11385,8 @@ export type Database = {
           }
       insert_offer_equipment_secure: {
         Args: {
+          p_base_purchase_price?: number
+          p_category_id?: string
           p_coefficient?: number
           p_collaborator_id?: string
           p_delivery_address?: string
@@ -11375,6 +11399,7 @@ export type Database = {
           p_delivery_site_id?: string
           p_delivery_type?: string
           p_image_url?: string
+          p_is_gifted?: boolean
           p_margin: number
           p_monthly_payment?: number
           p_offer_id: string
@@ -11619,6 +11644,8 @@ export type Database = {
           }
         | {
             Args: {
+              p_base_purchase_price?: number
+              p_category_id?: string
               p_coefficient?: number
               p_collaborator_id?: string
               p_delivery_address?: string
@@ -11632,6 +11659,7 @@ export type Database = {
               p_delivery_type?: string
               p_equipment_id: string
               p_image_url?: string
+              p_is_gifted?: boolean
               p_margin?: number
               p_monthly_payment?: number
               p_product_id?: string

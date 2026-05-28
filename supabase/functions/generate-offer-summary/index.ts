@@ -135,7 +135,7 @@ serve(async (req) => {
     // ── 2. Fetch equipment ─────────────────────────────────────────────────
     const { data: equipment } = await supabase
       .from("offer_equipment")
-      .select("title, quantity, monthly_payment, purchase_price")
+      .select("title, quantity, monthly_payment, purchase_price, is_gifted, base_purchase_price")
       .eq("offer_id", offer_id)
       .limit(10);
 
@@ -170,14 +170,17 @@ serve(async (req) => {
 
     const equipmentText =
       (equipment || [])
-        .map(
-          (e: any) =>
-            `- ${e.title} (x${e.quantity}) — ${
-              offer.is_purchase
-                ? `prix: ${e.purchase_price?.toFixed(0) ?? "?"} €`
-                : `mensualité: ${e.monthly_payment?.toFixed(0) ?? "?"} €/m`
-            }`
-        )
+        .map((e: any) => {
+          if (e.is_gifted) {
+            const cost = (e.base_purchase_price ?? 0).toFixed(0);
+            return `- ${e.title} (x${e.quantity}) — OFFERT (coût ${cost} € absorbé, gratuit pour le client)`;
+          }
+          return `- ${e.title} (x${e.quantity}) — ${
+            offer.is_purchase
+              ? `prix: ${e.purchase_price?.toFixed(0) ?? "?"} €`
+              : `mensualité: ${e.monthly_payment?.toFixed(0) ?? "?"} €/m`
+          }`;
+        })
         .join("\n") || "Aucun équipement renseigné";
 
     const callLogsText =

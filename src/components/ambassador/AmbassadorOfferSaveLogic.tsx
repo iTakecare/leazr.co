@@ -207,11 +207,15 @@ export const useAmbassadorOfferSave = ({
               purchase_price: equipmentItem.purchasePrice,
               quantity: equipmentItem.quantity,
               margin: equipmentItem.margin,
-              monthly_payment: equipmentItem.monthlyPayment || 0,
+              monthly_payment: equipmentItem.isGifted ? 0 : (equipmentItem.monthlyPayment || 0),
+              selling_price: equipmentItem.isGifted ? 0 : (equipmentItem as any).sellingPrice,
               serial_number: null,
               product_id: equipmentItem.productId || null,
-              image_url: equipmentItem.imageUrl || equipmentItem.image_url || 
-                        (equipmentItem.image_urls && equipmentItem.image_urls[0]) || null
+              image_url: equipmentItem.imageUrl || equipmentItem.image_url ||
+                        (equipmentItem.image_urls && equipmentItem.image_urls[0]) || null,
+              is_gifted: equipmentItem.isGifted ?? false,
+              category_id: equipmentItem.categoryId || null,
+              base_purchase_price: equipmentItem.basePurchasePrice ?? equipmentItem.purchasePrice
             },
             equipmentItem.attributes || {},
             {}

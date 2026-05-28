@@ -3,8 +3,13 @@ import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
 import { roundToTwoDecimals } from '@/utils/equipmentCalculations';
+import { applyVentilationToEquipmentList } from '@/utils/giftedVentilation';
 
-export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: number = 36) => {
+export const useEquipmentCalculator = (
+  selectedLeaser: Leaser | null,
+  duration: number = 36,
+  absorbingCategoryIds: Set<string> = new Set()
+) => {
   const leaser = selectedLeaser || (defaultLeasers.length > 0 ? defaultLeasers[0] : null);
   const calculationsInProgressRef = useRef<Record<string, boolean>>({});
   
@@ -178,11 +183,14 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
       const currentMonthlyPayment = targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment;
       
       const marginToUse = calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin;
-      
+      const isGifted = !!equipment.isGifted;
+
       const equipmentToAdd = {
         ...equipment,
-        margin: Number(marginToUse.toFixed(2)),
-        monthlyPayment: currentMonthlyPayment
+        margin: isGifted ? 0 : Number(marginToUse.toFixed(2)),
+        monthlyPayment: isGifted ? 0 : currentMonthlyPayment,
+        sellingPrice: isGifted ? 0 : (equipment as any).sellingPrice,
+        isGifted
       };
       
       if (editingId) {
@@ -375,27 +383,30 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
       return;
     }
 
+    // Liste ventilée (produits offerts) — sans ligne offerte, identique à equipmentList.
+    const vlist = applyVentilationToEquipmentList(equipmentList, absorbingCategoryIds);
+
     // Calculer le prix d'achat total (avec quantités)
-    const totalBaseAmount = equipmentList.reduce((sum, eq) => {
+    const totalBaseAmount = vlist.reduce((sum, eq) => {
       return sum + (eq.purchasePrice * eq.quantity);
     }, 0);
 
     // Calculer la marge normale (somme des marges individuelles avec quantités)
-    const normalMarginAmount = equipmentList.reduce((sum, eq) => {
+    const normalMarginAmount = vlist.reduce((sum, eq) => {
       return sum + (eq.purchasePrice * eq.quantity * eq.margin / 100);
     }, 0);
 
     // Calculer le montant financé total (avec quantités)
-    const totalFinancedAmount = equipmentList.reduce((sum, eq) => {
+    const totalFinancedAmount = vlist.reduce((sum, eq) => {
       const financedAmountForOne = calculateFinancedAmount(eq);
       return sum + (financedAmountForOne * eq.quantity);
     }, 0);
 
     // Trouver le coefficient basé sur le montant financé total
     const globalCoef = findCoefficient(totalFinancedAmount);
-    
+
     // Calculer la mensualité normale basée sur les équipements individuels (avec quantités)
-    const normalMonthly = equipmentList.reduce((sum, eq) => {
+    const normalMonthly = vlist.reduce((sum, eq) => {
       return sum + ((eq.monthlyPayment || 0) * eq.quantity);
     }, 0);
     
@@ -465,18 +476,21 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
     setTotalMonthlyPayment(appliedMonthly);
   };
 
-  // Calculate financial summary for display
+  // Liste ventilée (produits offerts) — sans ligne offerte, identique à equipmentList.
+  const ventilatedList = applyVentilationToEquipmentList(equipmentList, absorbingCategoryIds);
+
+  // Calculate financial summary for display (sur la liste ventilée)
   const calculations = {
-    totalPurchasePrice: equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
-    totalFinancedAmount: equipmentList.reduce((sum, eq) => {
+    totalPurchasePrice: ventilatedList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
+    totalFinancedAmount: ventilatedList.reduce((sum, eq) => {
       const financedAmount = calculateFinancedAmount(eq);
       return sum + (financedAmount * eq.quantity);
     }, 0),
-    normalMarginAmount: equipmentList.reduce((sum, eq) => {
+    normalMarginAmount: ventilatedList.reduce((sum, eq) => {
       return sum + (eq.purchasePrice * eq.quantity * eq.margin / 100);
     }, 0),
     finalMonthlyPayment: totalMonthlyPayment,
-    coefficient: equipmentList.length > 0 ? findCoefficient(equipmentList.reduce((sum, eq) => {
+    coefficient: ventilatedList.length > 0 ? findCoefficient(ventilatedList.reduce((sum, eq) => {
       const financedAmount = calculateFinancedAmount(eq);
       return sum + (financedAmount * eq.quantity);
     }, 0)) : 0
@@ -492,6 +506,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
     calculatedMargin,
     equipmentList,
     setEquipmentList,
+    ventilatedList,
     totalMonthlyPayment,
     globalMarginAdjustment: {
       ...globalMarginAdjustment,

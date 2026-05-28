@@ -22,7 +22,12 @@ const parseEquipmentFromJson = (equipmentJson: string): OfferEquipment[] => {
       quantity: Number(item.quantity) || 1,
       margin: Number(item.margin) || 0,
       monthly_payment: Number(item.monthlyPayment || item.monthly_payment) || 0,
+      selling_price: Number(item.sellingPrice || item.selling_price) || 0,
       serial_number: item.serialNumber || item.serial_number,
+      product_id: item.productId || item.product_id,
+      is_gifted: item.isGifted ?? item.is_gifted ?? false,
+      category_id: item.categoryId || item.category_id,
+      base_purchase_price: Number(item.basePurchasePrice ?? item.base_purchase_price) || undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       attributes: item.attributes ? Object.entries(item.attributes).map(([key, value]) => ({
@@ -463,9 +468,12 @@ export const saveEquipment = async (
         p_delivery_contact_email: equipment.delivery_contact_email,
         p_delivery_contact_phone: equipment.delivery_contact_phone,
         p_product_id: equipment.product_id || null,
-        p_image_url: equipment.image_url || null
+        p_image_url: equipment.image_url || null,
+        p_is_gifted: equipment.is_gifted ?? false,
+        p_category_id: equipment.category_id || null,
+        p_base_purchase_price: equipment.base_purchase_price ?? null
       });
-    
+
     if (equipmentError) {
       console.error("Erreur lors de la sauvegarde de l'équipement:", equipmentError);
       return null;
@@ -518,7 +526,11 @@ export const saveEquipment = async (
       quantity: equipment.quantity,
       margin: equipment.margin,
       monthly_payment: equipment.monthly_payment,
+      selling_price: equipment.selling_price,
       serial_number: equipment.serial_number,
+      is_gifted: equipment.is_gifted ?? false,
+      category_id: equipment.category_id,
+      base_purchase_price: equipment.base_purchase_price,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       attributes: Object.entries(attributes).map(([key, value]) => ({
@@ -575,6 +587,12 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
       const providedSellingPrice = Number(item.sellingPrice || item.selling_price) || 0;
       const calculatedSellingPrice = purchasePrice * (1 + margin / 100);
       
+      // Produits offerts : porter is_gifted / category_id / base_purchase_price
+      const isGifted = item.isGifted ?? item.is_gifted ?? false;
+      const categoryId = item.categoryId || item.category_id || null;
+      const basePurchasePrice =
+        item.basePurchasePrice ?? item.base_purchase_price ?? purchasePrice;
+
       // Créer l'équipement de base avec selling_price
       const newEquipment = {
         offer_id: offerId,
@@ -584,7 +602,11 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
         margin: margin,
         monthly_payment: Number(item.monthlyPayment || item.monthly_payment) || 0,
         serial_number: item.serialNumber || item.serial_number,
-        selling_price: providedSellingPrice > 0 ? providedSellingPrice : calculatedSellingPrice
+        selling_price: providedSellingPrice > 0 ? providedSellingPrice : calculatedSellingPrice,
+        product_id: item.productId || item.product_id || null,
+        is_gifted: isGifted,
+        category_id: categoryId,
+        base_purchase_price: Number(basePurchasePrice) || 0
       };
       
       // Extraire les attributs et spécifications
@@ -658,7 +680,12 @@ export const convertEquipmentToJson = (equipment: OfferEquipment[]): string => {
         quantity: item.quantity,
         margin: item.margin,
         monthlyPayment: item.monthly_payment,
+        sellingPrice: item.selling_price,
         serialNumber: item.serial_number,
+        productId: item.product_id,
+        isGifted: item.is_gifted ?? false,
+        categoryId: item.category_id,
+        basePurchasePrice: item.base_purchase_price,
         attributes,
         specifications
       };
@@ -730,6 +757,9 @@ export const updateOfferEquipment = async (
       | 'delivery_contact_phone'
       | 'product_id'
       | 'image_url'
+      | 'is_gifted'
+      | 'category_id'
+      | 'base_purchase_price'
     >
   >
 ): Promise<boolean> => {
@@ -760,9 +790,12 @@ export const updateOfferEquipment = async (
         p_delivery_contact_email: updates.delivery_contact_email ?? null,
         p_delivery_contact_phone: updates.delivery_contact_phone ?? null,
         p_product_id: updates.product_id ?? null,
-        p_image_url: updates.image_url ?? null
+        p_image_url: updates.image_url ?? null,
+        p_is_gifted: updates.is_gifted ?? null,
+        p_category_id: updates.category_id ?? null,
+        p_base_purchase_price: updates.base_purchase_price ?? null
       });
-    
+
     if (error) {
       console.error("🔴 UPDATE EQUIPMENT SERVICE - RPC Error:", error);
       console.error("🔴 UPDATE EQUIPMENT SERVICE - Error details:", {

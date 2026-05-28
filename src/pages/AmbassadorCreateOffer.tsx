@@ -15,6 +15,7 @@ import OffersLoading from "@/components/offers/OffersLoading";
 import { useAmbassadorOfferState } from "@/hooks/useAmbassadorOfferState";
 import { useAmbassadorOfferSave } from "@/components/ambassador/AmbassadorOfferSaveLogic";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+import { useAbsorbingCategories } from "@/hooks/useAbsorbingCategories";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -101,9 +102,11 @@ const AmbassadorCreateOffer = () => {
   }
 
   // Wrap equipment calculator in try-catch
+  const { absorbingCategoryIds } = useAbsorbingCategories();
   let equipmentHook = null;
   try {
-    equipmentHook = useEquipmentCalculator(selectedLeaser);
+    // NB: durée laissée à 36 (comportement existant) ; on ajoute juste les catégories absorbantes
+    equipmentHook = useEquipmentCalculator(selectedLeaser, 36, absorbingCategoryIds);
   } catch (error) {
     console.error("❌ Error in useEquipmentCalculator:", error);
     return <div className="p-8 text-red-600">Erreur de chargement du calculateur</div>;
@@ -119,6 +122,7 @@ const AmbassadorCreateOffer = () => {
     calculatedMargin,
     equipmentList,
     setEquipmentList,
+    ventilatedList,
     totalMonthlyPayment,
     globalMarginAdjustment,
     editingId,
@@ -217,19 +221,47 @@ const AmbassadorCreateOffer = () => {
         if (equipmentData && equipmentData.length > 0) {
           console.log("✅ Equipment loaded:", equipmentData.length, "items");
           
-          // Convertir les données de la DB vers le format attendu par equipmentList
-          const convertedEquipment = equipmentData.map((eq: any) => ({
-            id: eq.id,
-            title: eq.title,
-            purchasePrice: eq.purchase_price || 0,
-            quantity: eq.quantity || 1,
-            margin: eq.margin || 20,
-            monthlyPayment: eq.monthly_payment || 0,
-            imageUrl: eq.image_url || null,
-            specifications: eq.specifications || [],
-            attributes: eq.attributes || []
-          }));
-          
+          // Convertir les données de la DB vers le format attendu par equipmentList.
+          // Si l'offre contient des produits offerts, recharger les valeurs de BASE
+          // (avant ventilation) pour éviter une double ventilation. Sinon, comportement inchangé.
+          const hasGifted = equipmentData.some((eq: any) => eq.is_gifted);
+          const convertedEquipment = equipmentData.map((eq: any) => {
+            if (!hasGifted) {
+              return {
+                id: eq.id,
+                title: eq.title,
+                purchasePrice: eq.purchase_price || 0,
+                quantity: eq.quantity || 1,
+                margin: eq.margin || 20,
+                monthlyPayment: eq.monthly_payment || 0,
+                imageUrl: eq.image_url || null,
+                specifications: eq.specifications || [],
+                attributes: eq.attributes || []
+              };
+            }
+            const isGifted = !!eq.is_gifted;
+            const base = (eq.base_purchase_price ?? eq.purchase_price) || 0;
+            const selling = eq.selling_price || 0;
+            const baseMargin = (!isGifted && selling > 0 && base > 0)
+              ? ((selling - base) / base) * 100
+              : (eq.margin || (isGifted ? 0 : 20));
+            return {
+              id: eq.id,
+              title: eq.title,
+              purchasePrice: base,
+              quantity: eq.quantity || 1,
+              margin: isGifted ? 0 : baseMargin,
+              monthlyPayment: isGifted ? 0 : (eq.monthly_payment || 0),
+              imageUrl: eq.image_url || null,
+              specifications: eq.specifications || [],
+              attributes: eq.attributes || [],
+              categoryId: eq.category_id,
+              productId: eq.product_id,
+              isGifted,
+              basePurchasePrice: base
+            };
+          });
+
           setEquipmentList(convertedEquipment);
         }
         
@@ -250,7 +282,7 @@ const AmbassadorCreateOffer = () => {
   try {
     offerSaveHook = useAmbassadorOfferSave({
       client,
-      equipmentList,
+      equipmentList: ventilatedList,
       globalMarginAdjustment,
       coefficient,
       remarks,
@@ -291,7 +323,7 @@ const AmbassadorCreateOffer = () => {
     handleSaveOffer: handleSaveOffer,
     isSubmitting: isSubmitting,
     selectedLeaser: selectedLeaser,
-    equipmentList: equipmentList,
+    equipmentList: ventilatedList,
     hideFinancialDetails: true
   };
 
@@ -440,7 +472,7 @@ const AmbassadorCreateOffer = () => {
 
                   <div className="xl:col-span-1 space-y-8">
                     <EquipmentList
-                      equipmentList={equipmentList || []}
+                      equipmentList={ventilatedList || []}
                       editingId={editingId}
                       startEditing={startEditing}
                       removeFromList={removeFromList}

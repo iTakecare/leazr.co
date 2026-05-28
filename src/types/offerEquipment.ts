@@ -12,6 +12,10 @@ export interface OfferEquipment {
   serial_number?: string;
   product_id?: string;
   image_url?: string;
+  // Produits offerts (ventilation du prix d'achat)
+  is_gifted?: boolean;
+  category_id?: string;
+  base_purchase_price?: number;
   // Delivery information fields
   collaborator_id?: string;
   delivery_site_id?: string;

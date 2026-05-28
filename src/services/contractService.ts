@@ -285,7 +285,10 @@ const createContractEquipmentFromOffer = async (contractId: string, offerId: str
           quantity: equipment.quantity,
           margin: equipment.margin,
           monthly_payment: equipment.monthly_payment,
-          serial_number: equipment.serial_number
+          serial_number: equipment.serial_number,
+          is_gifted: equipment.is_gifted ?? false,
+          category_id: equipment.category_id ?? null,
+          base_purchase_price: equipment.base_purchase_price ?? equipment.purchase_price
         })
         .select()
         .single();
