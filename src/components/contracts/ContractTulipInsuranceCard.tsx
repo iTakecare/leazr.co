@@ -51,9 +51,7 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
     fetchStatus();
   }, [companyId]);
 
-  // Pas de clé Tulip configurée → on n'affiche rien.
-  if (!tulipEnv) return null;
-
+  const isConfigured = !!tulipEnv;
   const isInsured = !!contract.tulip_contract_id;
   const hasMissingSerials = !areAllSerialNumbersComplete(equipment);
 
@@ -100,7 +98,11 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
         <CardTitle className="flex items-center gap-2 text-base">
           <Umbrella className="h-5 w-5" /> Assurance Tulip
         </CardTitle>
-        <CardDescription>Assurance du matériel via Tulip ({ENV_LABELS[tulipEnv]})</CardDescription>
+        <CardDescription>
+          {isConfigured
+            ? `Assurance du matériel via Tulip (${ENV_LABELS[tulipEnv]})`
+            : "Assurance du matériel via Tulip"}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {isInsured ? (
@@ -139,7 +141,7 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
                   <div className="w-fit">
                     <Button
                       onClick={handleSubscribe}
-                      disabled={isSubscribing || hasMissingSerials}
+                      disabled={!isConfigured || isSubscribing || hasMissingSerials}
                       className="flex items-center gap-2"
                     >
                       <ShieldCheck className="h-4 w-4" />
@@ -147,14 +149,25 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
                     </Button>
                   </div>
                 </TooltipTrigger>
-                {hasMissingSerials && (
+                {!isConfigured && (
+                  <TooltipContent>
+                    <p>Configurez votre clé API Tulip dans Réglages → Intégrations</p>
+                  </TooltipContent>
+                )}
+                {isConfigured && hasMissingSerials && (
                   <TooltipContent>
                     <p>Renseignez tous les numéros de série avant d'assurer le matériel</p>
                   </TooltipContent>
                 )}
               </Tooltip>
             </TooltipProvider>
-            {hasMissingSerials && (
+            {!isConfigured && (
+              <p className="text-xs text-amber-600">
+                Clé API Tulip non configurée — ajoutez-la dans Réglages → Intégrations → Tulip pour
+                activer l'assurance.
+              </p>
+            )}
+            {isConfigured && hasMissingSerials && (
               <p className="text-xs text-amber-600">
                 Numéros de série requis (Tulip les exige pour un contrat longue durée).
               </p>
