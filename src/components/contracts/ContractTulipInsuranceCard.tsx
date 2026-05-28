@@ -56,6 +56,10 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
   const hasMissingSerials = !areAllSerialNumbersComplete(equipment);
 
   const handleSubscribe = async () => {
+    if (!tulipEnv) {
+      toast.info("L'assurance Tulip sera bientôt disponible.");
+      return;
+    }
     setIsSubscribing(true);
     try {
       const result = await subscribeContractInsurance(contract.id, tulipEnv);
@@ -97,6 +101,9 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Umbrella className="h-5 w-5" /> Assurance Tulip
+          {!isConfigured && !isInsured && (
+            <Badge variant="secondary" className="ml-auto">Bientôt</Badge>
+          )}
         </CardTitle>
         <CardDescription>
           {isConfigured
@@ -141,7 +148,7 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
                   <div className="w-fit">
                     <Button
                       onClick={handleSubscribe}
-                      disabled={!isConfigured || isSubscribing || hasMissingSerials}
+                      disabled={isSubscribing || (isConfigured && hasMissingSerials)}
                       className="flex items-center gap-2"
                     >
                       <ShieldCheck className="h-4 w-4" />
@@ -149,11 +156,6 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
                     </Button>
                   </div>
                 </TooltipTrigger>
-                {!isConfigured && (
-                  <TooltipContent>
-                    <p>Configurez votre clé API Tulip dans Réglages → Intégrations</p>
-                  </TooltipContent>
-                )}
                 {isConfigured && hasMissingSerials && (
                   <TooltipContent>
                     <p>Renseignez tous les numéros de série avant d'assurer le matériel</p>
@@ -162,10 +164,7 @@ const ContractTulipInsuranceCard: React.FC<Props> = ({ contract, equipment, comp
               </Tooltip>
             </TooltipProvider>
             {!isConfigured && (
-              <p className="text-xs text-amber-600">
-                Clé API Tulip non configurée — ajoutez-la dans Réglages → Intégrations → Tulip pour
-                activer l'assurance.
-              </p>
+              <p className="text-xs text-muted-foreground">Bientôt disponible.</p>
             )}
             {isConfigured && hasMissingSerials && (
               <p className="text-xs text-amber-600">
