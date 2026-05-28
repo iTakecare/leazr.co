@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Loader2, Info, Package, Warehouse } from "lucide-react";
+import { Search, Loader2, Info, Package, Warehouse, Headphones } from "lucide-react";
 import CatalogProductCard from "./CatalogProductCard";
 import ProductVariantSelector from "@/components/catalog/ProductVariantSelector";
 import StockItemSelectorList from "./product-selector/StockItemSelectorList";
+import ProviderSelectorList, { type SelectableExternalService } from "./product-selector/ProviderSelectorList";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { StockItem } from "@/services/stockService";
+import { Headphones } from "lucide-react";
 
 interface ProductSelectorProps {
   isOpen: boolean;
@@ -25,9 +27,12 @@ interface ProductSelectorProps {
   /** When set, enables a "Stock disponible" tab (admin only). */
   stockCompanyId?: string;
   onSelectStockItem?: (item: StockItem) => void;
+  /** When set, enables a "Prestataires" tab listing external providers. */
+  providersCompanyId?: string;
+  onSelectExternalService?: (service: SelectableExternalService) => void;
 }
 
-type SourceMode = "catalog" | "stock";
+type SourceMode = "catalog" | "stock" | "providers";
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
   isOpen,
@@ -38,8 +43,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   description = "Parcourez notre catalogue pour ajouter un produit à votre offre",
   stockCompanyId,
   onSelectStockItem,
+  providersCompanyId,
+  onSelectExternalService,
 }) => {
   const stockEnabled = !!stockCompanyId && !!onSelectStockItem;
+  const providersEnabled = !!providersCompanyId && !!onSelectExternalService;
   const [sourceMode, setSourceMode] = useState<SourceMode>("catalog");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -201,7 +209,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
             <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
 
-          {stockEnabled && (
+          {(stockEnabled || providersEnabled) && (
             <div className="px-4 pt-3 border-b pb-3 flex items-center justify-between">
               <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
                 <button
@@ -216,18 +224,34 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   <Package className="h-3.5 w-3.5" />
                   Catalogue
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSourceMode("stock")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                    sourceMode === "stock"
-                      ? "bg-background shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Warehouse className="h-3.5 w-3.5" />
-                  Stock disponible
-                </button>
+                {stockEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setSourceMode("stock")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                      sourceMode === "stock"
+                        ? "bg-background shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Warehouse className="h-3.5 w-3.5" />
+                    Stock disponible
+                  </button>
+                )}
+                {providersEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setSourceMode("providers")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                      sourceMode === "providers"
+                        ? "bg-background shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Headphones className="h-3.5 w-3.5" />
+                    Prestataires
+                  </button>
+                )}
               </div>
               <SheetClose asChild>
                 <Button variant="outline" size="sm" onClick={onClose}>Fermer</Button>
@@ -240,6 +264,13 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
               <StockItemSelectorList
                 companyId={stockCompanyId!}
                 onSelectStockItem={handleStockItemSelect}
+              />
+            </div>
+          ) : sourceMode === "providers" ? (
+            <div className="flex-1 overflow-hidden">
+              <ProviderSelectorList
+                companyId={providersCompanyId!}
+                onSelectExternalService={(service) => onSelectExternalService?.(service)}
               />
             </div>
           ) : (
@@ -256,7 +287,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   className="pl-9"
                 />
               </div>
-              {!stockEnabled && (
+              {!(stockEnabled || providersEnabled) && (
                 <SheetClose asChild>
                   <Button variant="outline" onClick={onClose}>Fermer</Button>
                 </SheetClose>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import ProductSelector from "@/components/ui/ProductSelector";
 import { Product } from "@/types/catalog";
 import { StockItem } from "@/services/stockService";
+import { type SelectableExternalService } from "@/components/ui/product-selector/ProviderSelectorList";
 
 interface CatalogDialogProps {
   isOpen: boolean;
@@ -12,6 +13,8 @@ interface CatalogDialogProps {
   handleProductSelect: (product: Product) => void;
   stockCompanyId?: string;
   onSelectStockItem?: (item: StockItem) => void;
+  providersCompanyId?: string;
+  onSelectExternalService?: (service: SelectableExternalService) => void;
 }
 
 const CatalogDialog: React.FC<CatalogDialogProps> = ({
@@ -20,6 +23,8 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   handleProductSelect,
   stockCompanyId,
   onSelectStockItem,
+  providersCompanyId,
+  onSelectExternalService,
 }) => {
   useEffect(() => {
     if (!isOpen) {
@@ -35,6 +40,11 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
 
   const handleStockItemSelect = (item: StockItem) => {
     onSelectStockItem?.(item);
+    onClose();
+  };
+
+  const handleExternalServiceSelect = (service: SelectableExternalService) => {
+    onSelectExternalService?.(service);
     onClose();
   };
 
@@ -56,6 +66,8 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             description="Parcourez notre catalogue pour ajouter un produit à votre offre"
             stockCompanyId={stockCompanyId}
             onSelectStockItem={onSelectStockItem ? handleStockItemSelect : undefined}
+            providersCompanyId={providersCompanyId}
+            onSelectExternalService={onSelectExternalService ? handleExternalServiceSelect : undefined}
           />
         </div>
       </DialogContent>

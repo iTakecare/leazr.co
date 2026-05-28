@@ -13,6 +13,7 @@ import EquipmentDeliverySection from "./EquipmentDeliverySection";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Gift } from "lucide-react";
+import { type SelectableExternalService } from "@/components/ui/product-selector/ProviderSelectorList";
 
 interface EquipmentFormProps {
   equipment: Equipment;
@@ -38,6 +39,8 @@ interface EquipmentFormProps {
   isPurchase?: boolean; // Mode achat direct
   stockCompanyId?: string;
   onSelectStockItem?: (item: StockItem) => void;
+  providersCompanyId?: string;
+  onSelectExternalService?: (service: SelectableExternalService) => void;
 }
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({
@@ -64,6 +67,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   isPurchase = false,
   stockCompanyId,
   onSelectStockItem,
+  providersCompanyId,
+  onSelectExternalService,
 }) => {
   const [errors, setErrors] = useState({
     title: false,
@@ -261,6 +266,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
         handleProductSelect={handleProductSelect}
         stockCompanyId={stockCompanyId}
         onSelectStockItem={onSelectStockItem}
+        providersCompanyId={providersCompanyId}
+        onSelectExternalService={onSelectExternalService}
       />
     </Card>
   );

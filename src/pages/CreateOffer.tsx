@@ -1312,6 +1312,8 @@ const CreateOffer = () => {
                               isPurchase={isPurchase}
                               stockCompanyId={canPickFromStock ? companyId : undefined}
                               onSelectStockItem={canPickFromStock ? handleStockItemSelect : undefined}
+                              providersCompanyId={companyId || undefined}
+                              onSelectExternalService={handleExternalServiceSelect}
                             />
                           </div>
 
