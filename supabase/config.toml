@@ -269,3 +269,6 @@ verify_jwt = false
 
 [functions.grenke-api]
 verify_jwt = true
+
+[functions.tulip-api]
+verify_jwt = true

@@ -10864,6 +10864,16 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      get_tulip_credentials: {
+        Args: { p_company_id: string; p_environment: string }
+        Returns: {
+          api_key: string
+        }[]
+      }
+      get_tulip_integration_status: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       get_menus_cms: {
         Args: { location_name: string }
         Returns: {
@@ -11502,6 +11512,14 @@ export type Database = {
           p_company_id: string
           p_environment: string
           p_key_pem: string
+        }
+        Returns: Json
+      }
+      set_tulip_credentials: {
+        Args: {
+          p_api_key: string
+          p_company_id: string
+          p_environment: string
         }
         Returns: Json
       }

@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database, ShoppingCart, Megaphone } from 'lucide-react';
+import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database, ShoppingCart, Megaphone, Umbrella } from 'lucide-react';
 import CompanyWebIntegrationSettings from './CompanyWebIntegrationSettings';
 import WooCommerceConfigurationManager from './WooCommerceConfigurationManager';
 import AdiOSIntegrationCard from './AdiOSIntegrationCard';
 import GrenkeIntegrationCard from './GrenkeIntegrationCard';
+import TulipIntegrationCard from './TulipIntegrationCard';
 
 interface Integration {
   id: string;
@@ -270,7 +271,17 @@ const integrations: Integration[] = [
     category: 'Comptabilité',
     comingSoon: true
   },
-  
+
+  // Assurance
+  {
+    id: 'tulip',
+    name: 'Tulip',
+    description: 'Assurance du matériel directement via API (assureur français)',
+    logoUrl: 'https://logo.clearbit.com/tulip.co',
+    status: 'available',
+    category: 'Assurance'
+  },
+
   // CRM
   {
     id: 'salesforce',
@@ -406,6 +417,8 @@ const getCategoryIcon = (category: string) => {
       return <CreditCard className="h-6 w-6 text-emerald-600" />;
     case 'RH & Paie':
       return <CreditCard className="h-6 w-6 text-pink-600" />;
+    case 'Assurance':
+      return <Umbrella className="h-6 w-6 text-teal-600" />;
     case 'Marketing':
       return <Megaphone className="h-6 w-6 text-purple-600" />;
     default:
@@ -436,6 +449,8 @@ const getIntegrationIcon = (integration: Integration) => {
     case 'graydon-creditsafe':
     case 'companyweb':
       return <Shield className="h-6 w-6 text-indigo-600" />;
+    case 'tulip':
+      return <Umbrella className="h-6 w-6 text-teal-600" />;
     default:
       return getCategoryIcon(integration.category);
   }
@@ -573,7 +588,11 @@ const IntegrationsManager = () => {
               <GrenkeIntegrationCard />
             )}
 
-            {selectedIntegration && !['woocommerce', 'companyweb', 'adios', 'grenke'].includes(selectedIntegration) && (
+            {selectedIntegration === 'tulip' && (
+              <TulipIntegrationCard />
+            )}
+
+            {selectedIntegration && !['woocommerce', 'companyweb', 'adios', 'grenke', 'tulip'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
