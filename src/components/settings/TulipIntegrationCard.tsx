@@ -1,14 +1,13 @@
-// Tulip insurance API integration card — Phase 1 (scaffold).
+// Tulip insurance API integration card.
 //
-// Shipping now:
 //   - Read current integration status (sandbox / production key configured?)
 //   - Paste an API key per environment, persisted via set_tulip_credentials RPC
 //     (which stores the key in Supabase Vault, never in JSONB).
-//   - "Test connection" calls the tulip-api edge function with action=echo.
-//     Until the Tulip API doc is in hand, echo confirms the key decrypts
-//     correctly; the real network round-trip turns on once endpoints are known.
+//   - "Test connection" calls the tulip-api edge function with action=echo,
+//     which does a real authenticated GET /products against the Tulip API.
 //
-// Phase 2+ (once the doc lands): quote, subscribe, policy status, cancel.
+// Insurance actions (quote, subscribe, get_contract, cancel_contract) are
+// exposed by the tulip-api edge function and called from the contract flow.
 
 import React, { useEffect, useState } from "react";
 import {
@@ -151,18 +150,9 @@ export default function TulipIntegrationCard() {
         status?: number;
         error?: string;
         message?: string;
-        pending_api_doc?: boolean;
         data?: unknown;
       };
-      if (result.success && result.pending_api_doc) {
-        toast.info(
-          <div>
-            <strong>Clé {ENV_LABELS[env]} validée</strong>
-            <p className="text-sm mt-1">{result.message}</p>
-          </div>,
-          { duration: 8000 },
-        );
-      } else if (result.success) {
+      if (result.success) {
         toast.success(
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -259,16 +249,16 @@ export default function TulipIntegrationCard() {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Awaiting API doc notice */}
+        {/* Info notice */}
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-sm space-y-1">
-            <p className="font-medium">Intégration en préparation</p>
+            <p className="font-medium">Comment ça marche</p>
             <p>
-              Le socle est en place : tu peux déjà enregistrer ta clé API Tulip
-              (stockée chiffrée dans Vault). Les appels d'assurance (devis,
-              souscription, statut de police) seront activés dès réception de la
-              documentation de l'API Tulip.
+              Enregistre ta clé API Tulip par environnement (stockée chiffrée
+              dans Vault). La clé de test crée des contrats d'essai, la clé de
+              production des contrats réels. L'assurance du matériel est
+              souscrite via l'API Tulip une fois l'offre devenue un contrat.
             </p>
           </AlertDescription>
         </Alert>

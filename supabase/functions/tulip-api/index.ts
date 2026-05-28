@@ -1,24 +1,33 @@
-// Tulip insurance API proxy — Phase 1 (scaffold, awaiting API doc).
+// Tulip insurance API proxy.
+//
+// Tulip API v2 — https://docs.mytulip.io/docs/api-reference
+//   - Single base URL for every environment: https://api.mytulip.io/v2
+//   - The environment (sandbox vs production) is decided by *which API key*
+//     is used: a test key produces test contracts, a live key real ones.
+//     We keep the `environment` field only to pick the right key from Vault.
+//   - Auth is a raw `key: <apiKey>` header (NOT Authorization: Bearer).
+//
+// Domain note: Tulip insures *contracts* (équipement loué), not "policies".
+// In Leazr we insure the equipment once an offer becomes a contract.
 //
 // Auth + key flow (mirrors grenke-api):
 //   1. Caller sends a Bearer token (the user's session token).
 //   2. We resolve the user's company_id via profiles.
 //   3. We call the SECURITY DEFINER RPC get_tulip_credentials(company, env)
 //      with service_role to fetch the API key from Supabase Vault.
-//   4. We attach the key as a Bearer header and proxy the call.
+//   4. We attach the key as a `key` header and proxy the call.
 //
 // Actions:
-//   - "echo" : health-check used by the Settings UI's "Test connection" button.
-//              Confirms an API key is configured. Once the Tulip API doc is in
-//              hand, point TULIP_HOSTS at the real base URL + ECHO_PATH at a
-//              lightweight endpoint (e.g. /ping or /me) and flip
-//              `ENDPOINTS_KNOWN` to true to do a real round-trip.
+//   - "echo"            : health check — GET /products (no params) to confirm
+//                         the key is valid and authorized.
+//   - "quote"           : POST /contracts?preview=true — computes the contract
+//                         price (primes TTC) without committing anything.
+//   - "subscribe"       : POST /contracts — creates the insurance contract.
+//   - "get_contract"    : GET /contracts/{id} — fetch a contract.
+//   - "cancel_contract" : DELETE /contracts/{id} — terminate a contract.
 //
-// Future actions (return 501 until the doc lands):
-//   - "quote"          : request an insurance quote for equipment
-//   - "subscribe"      : underwrite / create a policy
-//   - "get_policy"     : fetch policy status
-//   - "cancel_policy"  : cancel a policy
+// quote/subscribe relay the caller's payload as the Tulip request body.
+// Mapping a Leazr contract → a Tulip contract body lives in the caller.
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -28,23 +37,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// TODO(tulip-doc): replace with the real base URLs once the API doc is available.
-const TULIP_HOSTS = {
-  sandbox: "https://sandbox.api.tulip.example",
-  production: "https://api.tulip.example",
-} as const;
+const TULIP_BASE_URL = "https://api.mytulip.io/v2";
 
-// TODO(tulip-doc): set to a real lightweight endpoint and flip ENDPOINTS_KNOWN.
-const ECHO_PATH = "/health";
-const ENDPOINTS_KNOWN = false;
-
-type Environment = keyof typeof TULIP_HOSTS;
+type Environment = "sandbox" | "production";
 
 interface TulipRequest {
-  action: "echo" | "quote" | "subscribe" | "get_policy" | "cancel_policy";
+  action: "echo" | "quote" | "subscribe" | "get_contract" | "cancel_contract";
   environment?: Environment;
   payload?: Record<string, unknown>;
-  policy_id?: string;
+  contract_id?: string;
 }
 
 function jsonResponse(body: unknown, status: number): Response {
@@ -102,7 +103,7 @@ serve(async (req) => {
     const action = body.action;
     const environment: Environment = body.environment ?? "sandbox";
 
-    if (!TULIP_HOSTS[environment]) {
+    if (environment !== "sandbox" && environment !== "production") {
       return jsonResponse({ success: false, error: "invalid_environment" }, 400);
     }
 
@@ -123,18 +124,50 @@ serve(async (req) => {
     // ---------- dispatch ----------
     switch (action) {
       case "echo":
-        return await handleEcho(environment, apiKey);
+        return await tulipFetch("GET", "/products", apiKey, environment);
 
       case "quote":
+        return await tulipFetch(
+          "POST",
+          "/contracts?preview=true",
+          apiKey,
+          environment,
+          body.payload ?? {},
+        );
+
       case "subscribe":
-      case "get_policy":
-      case "cancel_policy":
-        return jsonResponse({
-          success: false,
-          error: "not_implemented",
-          action,
-          message: "Action will ship once the Tulip API documentation is available.",
-        }, 501);
+        return await tulipFetch(
+          "POST",
+          "/contracts",
+          apiKey,
+          environment,
+          body.payload ?? {},
+        );
+
+      case "get_contract": {
+        if (!body.contract_id) {
+          return jsonResponse({ success: false, error: "missing_contract_id" }, 400);
+        }
+        return await tulipFetch(
+          "GET",
+          `/contracts/${encodeURIComponent(body.contract_id)}`,
+          apiKey,
+          environment,
+        );
+      }
+
+      case "cancel_contract": {
+        if (!body.contract_id) {
+          return jsonResponse({ success: false, error: "missing_contract_id" }, 400);
+        }
+        return await tulipFetch(
+          "DELETE",
+          `/contracts/${encodeURIComponent(body.contract_id)}`,
+          apiKey,
+          environment,
+          body.payload ?? {},
+        );
+      }
 
       default:
         return jsonResponse({ success: false, error: "unknown_action", action }, 400);
@@ -173,32 +206,29 @@ async function loadApiKey(
 }
 
 // =====================================================================
-// echo — health check.
-//
-// Until the real endpoints are known (ENDPOINTS_KNOWN === false) this simply
-// confirms a key is present in Vault. Once the doc lands, flip the flag and
-// this performs a real authenticated round-trip against ECHO_PATH.
+// Thin authenticated proxy to the Tulip API.
 // =====================================================================
-async function handleEcho(environment: Environment, apiKey: string): Promise<Response> {
-  if (!ENDPOINTS_KNOWN) {
-    return jsonResponse({
-      success: true,
-      environment,
-      pending_api_doc: true,
-      message:
-        "Clé API Tulip trouvée et déchiffrée. Le test réseau réel sera activé " +
-        "dès réception de la documentation de l'API Tulip.",
-    }, 200);
+async function tulipFetch(
+  method: "GET" | "POST" | "DELETE" | "PATCH" | "PUT",
+  path: string,
+  apiKey: string,
+  environment: Environment,
+  body?: Record<string, unknown>,
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    key: apiKey,
+    Accept: "application/json",
+  };
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
   }
 
   let response: Response;
   try {
-    response = await fetch(TULIP_HOSTS[environment] + ECHO_PATH, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: "application/json",
-      },
+    response = await fetch(TULIP_BASE_URL + path, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch (e) {
     return jsonResponse({
@@ -222,5 +252,5 @@ async function handleEcho(environment: Environment, apiKey: string): Promise<Res
     status: response.status,
     environment,
     data: parsed,
-  }, response.ok ? 200 : 502);
+  }, response.ok ? 200 : response.status);
 }

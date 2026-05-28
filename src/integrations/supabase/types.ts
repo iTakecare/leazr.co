@@ -2885,6 +2885,10 @@ export type Database = {
       contracts: {
         Row: {
           billing_entity_id: string | null
+          tulip_contract_id: string | null
+          tulip_status: string | null
+          tulip_environment: string | null
+          tulip_subscribed_at: string | null
           cc_email: string | null
           client_bic: string | null
           client_email: string | null
@@ -2956,6 +2960,10 @@ export type Database = {
         }
         Insert: {
           billing_entity_id?: string | null
+          tulip_contract_id?: string | null
+          tulip_status?: string | null
+          tulip_environment?: string | null
+          tulip_subscribed_at?: string | null
           cc_email?: string | null
           client_bic?: string | null
           client_email?: string | null
@@ -3027,6 +3035,10 @@ export type Database = {
         }
         Update: {
           billing_entity_id?: string | null
+          tulip_contract_id?: string | null
+          tulip_status?: string | null
+          tulip_environment?: string | null
+          tulip_subscribed_at?: string | null
           cc_email?: string | null
           client_bic?: string | null
           client_email?: string | null

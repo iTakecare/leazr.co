@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Calendar as CalendarIcon, User, Building2, Euro, FileText, Receipt, Pencil, Mail, MailCheck, Clock } from "lucide-react";
+import { ChevronLeft, Calendar as CalendarIcon, User, Building2, Euro, FileText, Receipt, Pencil, Mail, MailCheck, Clock, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ContractReferenceEditor } from "./ContractReferenceEditor";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -20,6 +20,7 @@ import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import ClientOtherDeals from "@/components/shared/ClientOtherDeals";
 import FollowupEmailModal from "./FollowupEmailModal";
+import { subscribeContractInsurance, TulipEnvironment } from "@/services/tulipInsuranceService";
 
 interface ContractDetailHeaderProps {
   contract: Contract;
@@ -42,6 +43,8 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
   );
   const [isUpdatingDate, setIsUpdatingDate] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [tulipEnv, setTulipEnv] = useState<TulipEnvironment | null>(null);
+  const [isSubscribingTulip, setIsSubscribingTulip] = useState(false);
 
   // Récupérer le nom du leaser depuis la DB si leaser_id existe
   useEffect(() => {
@@ -113,6 +116,41 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
 
     checkInvoiceEligibility();
   }, [contract.id, contract.status, companyId]);
+
+  // Tulip insurance — detect which environment is configured for this tenant.
+  useEffect(() => {
+    const fetchTulipStatus = async () => {
+      if (!companyId) return;
+      const { data } = await supabase.rpc("get_tulip_integration_status", {
+        p_company_id: companyId,
+      });
+      const envs = (data as { environments?: { sandbox: boolean; production: boolean } } | null)
+        ?.environments;
+      if (envs?.production) setTulipEnv("production");
+      else if (envs?.sandbox) setTulipEnv("sandbox");
+      else setTulipEnv(null);
+    };
+    fetchTulipStatus();
+  }, [companyId]);
+
+  const handleSubscribeTulip = async () => {
+    if (!tulipEnv) return;
+    setIsSubscribingTulip(true);
+    try {
+      const result = await subscribeContractInsurance(contract.id, tulipEnv);
+      if (result.success) {
+        toast.success("Matériel assuré via Tulip");
+        onRefresh?.();
+      } else {
+        toast.error(result.error || "Échec de la souscription Tulip");
+      }
+    } catch (error: any) {
+      console.error("Erreur souscription Tulip:", error);
+      toast.error(error.message || "Erreur lors de la souscription Tulip");
+    } finally {
+      setIsSubscribingTulip(false);
+    }
+  };
 
   const handleGenerateInvoice = async () => {
     if (!companyId) return;
@@ -274,6 +312,35 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
                 </Tooltip>
               </TooltipProvider>
             )}
+            {contract.tulip_contract_id ? (
+              <Badge variant="outline" className="flex items-center gap-1 text-green-700 border-green-300">
+                <ShieldCheck className="h-4 w-4" />
+                Assuré · Tulip
+              </Badge>
+            ) : tulipEnv ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button
+                        onClick={handleSubscribeTulip}
+                        disabled={isSubscribingTulip || hasMissingSerials}
+                        variant="outline"
+                        className="flex items-center gap-2"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                        {isSubscribingTulip ? "Souscription..." : "Assurer via Tulip"}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {hasMissingSerials && (
+                    <TooltipContent>
+                      <p>Renseignez tous les numéros de série avant d'assurer le matériel</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            ) : null}
             <ContractStatusBadge status={contract.status} />
           </div>
         </div>
