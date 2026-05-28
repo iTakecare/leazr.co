@@ -25,7 +25,11 @@ import { toast } from "sonner";
 import { getLeaserById } from "@/services/leaserService";
 import { Leaser } from "@/types/equipment";
 import { calculateSalePriceWithLeaser, getCoefficientFromLeaser } from "@/utils/leaserCalculator";
-import { calculateEquipmentResults, findCoefficientForAmount } from "@/utils/equipmentCalculations";
+import { calculateEquipmentResults, findCoefficientForAmount, roundToTwoDecimals } from "@/utils/equipmentCalculations";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useAbsorbingCategories } from "@/hooks/useAbsorbingCategories";
+import { applyVentilationToEquipmentList } from "@/utils/giftedVentilation";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
   TableBody,
@@ -62,6 +66,90 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
+  const { absorbingCategoryIds } = useAbsorbingCategories();
+  const [togglingGiftedId, setTogglingGiftedId] = useState<string | null>(null);
+
+  // Bascule "Offert" sur une ligne : reconstruit les valeurs de base, re-ventile
+  // l'ensemble, persiste chaque ligne, puis met à jour les totaux de l'offre.
+  const handleToggleGifted = async (toggledId: string, checked: boolean) => {
+    setTogglingGiftedId(toggledId);
+    try {
+      const coef = Number(offer.coefficient) || 0;
+
+      // 1. Reconstruire la liste de BASE (camelCase) à partir des lignes stockées.
+      const baseList = equipment.map((it: any) => {
+        const isGifted = it.id === toggledId ? checked : !!it.is_gifted;
+        const base = (it.base_purchase_price ?? it.purchase_price) || 0;
+        const selling = it.selling_price || 0;
+        const baseMargin = (!isGifted && selling > 0 && base > 0)
+          ? ((selling - base) / base) * 100
+          : (isGifted ? 0 : (it.margin || 0));
+        return {
+          id: it.id,
+          categoryId: it.category_id,
+          isGifted,
+          purchasePrice: base,
+          basePurchasePrice: base,
+          margin: baseMargin,
+          quantity: it.quantity || 1,
+          monthlyPayment: it.monthly_payment || 0,
+          // PV ancre (utile aussi quand la ventilation est identité, ex: on décoche le dernier offert)
+          sellingPrice: isGifted ? 0 : roundToTwoDecimals(base * (1 + baseMargin / 100)),
+        };
+      });
+
+      // 2. Ventiler (sans ligne offerte → identité).
+      const ventilated = applyVentilationToEquipmentList(baseList, absorbingCategoryIds);
+
+      // 3. Déterminer la mensualité finale par ligne (anchor conservé, 0 si offert,
+      //    recalcul si une ligne redevient payante).
+      const finalList = ventilated.map((v: any) => {
+        const orig = equipment.find((e: any) => e.id === v.id);
+        let monthly: number;
+        if (v.isGifted) {
+          monthly = 0;
+        } else {
+          const origMonthly = (orig as any)?.monthly_payment || 0;
+          monthly = origMonthly > 0
+            ? origMonthly
+            : roundToTwoDecimals((v.sellingPrice || 0) * (v.quantity || 1) * coef / 100);
+        }
+        return { ...v, monthlyPayment: monthly };
+      });
+
+      // 4. Persister chaque ligne.
+      for (const v of finalList) {
+        await updateOfferEquipment(v.id, {
+          purchase_price: v.purchasePrice,
+          margin: v.margin,
+          selling_price: v.isGifted ? 0 : (v.sellingPrice ?? null),
+          monthly_payment: v.monthlyPayment,
+          is_gifted: v.isGifted,
+          base_purchase_price: v.basePurchasePrice,
+        });
+      }
+
+      // 5. Recalculer et persister les totaux de l'offre.
+      const results = calculateEquipmentResults(finalList, leaser, offer.duration || 36);
+      await supabase
+        .from('offers')
+        .update({
+          monthly_payment: results.normalMonthlyPayment,
+          financed_amount: results.totalFinancedAmount,
+          margin: results.normalMarginAmount,
+        })
+        .eq('id', offer.id);
+
+      toast.success(checked ? "Produit marqué comme offert" : "Produit n'est plus offert");
+      refresh();
+      onOfferUpdate?.();
+    } catch (e: any) {
+      console.error("Erreur toggle offert:", e);
+      toast.error(e?.message || "Erreur lors de la mise à jour");
+    } finally {
+      setTogglingGiftedId(null);
+    }
+  };
 
   // Load leaser data
   useEffect(() => {
@@ -682,9 +770,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
         {equipment.some((it: any) => it.is_gifted) && (
           <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
             Cette offre contient des produits offerts (prix d'achat barré). Leur coût est ventilé
-            sur les lignes PC / portable / tablette ; la mensualité du client est inchangée. Pour
-            modifier les montants, utilisez le calculateur (bouton « Modifier ») afin de recalculer
-            la ventilation.
+            sur les lignes PC / portable / tablette ; la marge de ces lignes baisse en conséquence.
+            Cochez / décochez « Offert » pour recalculer automatiquement la ventilation.
           </div>
         )}
         <div className="overflow-x-auto">
@@ -730,6 +817,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     <div>mensuel</div>
                   </TableHead>
                 )}
+                <TableHead className="text-center whitespace-nowrap">Offert</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -983,6 +1071,14 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         )}
                       </TableCell>
                     )}
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={!!(item as any).is_gifted}
+                        disabled={isEditing || togglingGiftedId !== null}
+                        onCheckedChange={(checked) => handleToggleGifted(item.id, checked === true)}
+                        aria-label="Produit offert"
+                      />
+                    </TableCell>
                      <TableCell className="text-center">
                        {isEditing ? (
                          <div className="flex gap-1 justify-center">
@@ -1224,7 +1320,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     )}
                   </TableCell>
                 )}
-                
+
+                <TableCell className="py-4"></TableCell>
                 <TableCell className="py-4"></TableCell>
               </TableRow>
             </TableBody>
