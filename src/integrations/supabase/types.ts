@@ -1456,6 +1456,7 @@ export type Database = {
           user_account_created_at: string | null
           user_id: string | null
           vat_number: string | null
+          voice_consent_given_at: string | null
           young_company_relaunched_at: string | null
         }
         Insert: {
@@ -1501,6 +1502,7 @@ export type Database = {
           user_account_created_at?: string | null
           user_id?: string | null
           vat_number?: string | null
+          voice_consent_given_at?: string | null
           young_company_relaunched_at?: string | null
         }
         Update: {
@@ -1546,6 +1548,7 @@ export type Database = {
           user_account_created_at?: string | null
           user_id?: string | null
           vat_number?: string | null
+          voice_consent_given_at?: string | null
           young_company_relaunched_at?: string | null
         }
         Relationships: [
@@ -3876,10 +3879,13 @@ export type Database = {
       external_providers: {
         Row: {
           company_id: string
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
           description: string | null
           id: string
           is_active: boolean
+          is_visible_in_catalog: boolean
           logo_url: string | null
           name: string
           updated_at: string
@@ -3887,10 +3893,13 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          is_visible_in_catalog?: boolean
           logo_url?: string | null
           name: string
           updated_at?: string
@@ -3898,10 +3907,13 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          is_visible_in_catalog?: boolean
           logo_url?: string | null
           name?: string
           updated_at?: string
@@ -4595,6 +4607,38 @@ export type Database = {
           },
         ]
       }
+      grenke_reference_data: {
+        Row: {
+          company_id: string
+          environment: string
+          fetched_at: string
+          kind: string
+          payload: Json
+        }
+        Insert: {
+          company_id: string
+          environment: string
+          fetched_at?: string
+          kind: string
+          payload: Json
+        }
+        Update: {
+          company_id?: string
+          environment?: string
+          fetched_at?: string
+          kind?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grenke_reference_data_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hero_cms: {
         Row: {
           buttontext: string
@@ -4867,6 +4911,7 @@ export type Database = {
           name: string
           phone: string | null
           postal_code: string | null
+          residual_value_percentage: number
           updated_at: string | null
           use_duration_coefficients: boolean
           vat_number: string | null
@@ -4888,6 +4933,7 @@ export type Database = {
           name: string
           phone?: string | null
           postal_code?: string | null
+          residual_value_percentage?: number
           updated_at?: string | null
           use_duration_coefficients?: boolean
           vat_number?: string | null
@@ -4909,6 +4955,7 @@ export type Database = {
           name?: string
           phone?: string | null
           postal_code?: string | null
+          residual_value_percentage?: number
           updated_at?: string | null
           use_duration_coefficients?: boolean
           vat_number?: string | null
@@ -5875,6 +5922,54 @@ export type Database = {
           },
         ]
       }
+      offer_external_provider_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          notified_by: string | null
+          offer_id: string
+          provider_email: string
+          provider_id: string | null
+          provider_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          notified_by?: string | null
+          offer_id: string
+          provider_email: string
+          provider_id?: string | null
+          provider_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          notified_by?: string | null
+          offer_id?: string
+          provider_email?: string
+          provider_id?: string | null
+          provider_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_external_provider_notifications_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_external_provider_notifications_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "external_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_external_services: {
         Row: {
           billing_period: string
@@ -6167,6 +6262,13 @@ export type Database = {
           fbclid: string | null
           file_fee: number | null
           financed_amount: number | null
+          grenke_environment: string | null
+          grenke_financing_id: string | null
+          grenke_last_error: Json | null
+          grenke_request_id: string | null
+          grenke_state: string | null
+          grenke_state_updated_at: string | null
+          grenke_submitted_at: string | null
           id: string
           internal_score: string | null
           is_purchase: boolean | null
@@ -6240,6 +6342,13 @@ export type Database = {
           fbclid?: string | null
           file_fee?: number | null
           financed_amount?: number | null
+          grenke_environment?: string | null
+          grenke_financing_id?: string | null
+          grenke_last_error?: Json | null
+          grenke_request_id?: string | null
+          grenke_state?: string | null
+          grenke_state_updated_at?: string | null
+          grenke_submitted_at?: string | null
           id?: string
           internal_score?: string | null
           is_purchase?: boolean | null
@@ -6313,6 +6422,13 @@ export type Database = {
           fbclid?: string | null
           file_fee?: number | null
           financed_amount?: number | null
+          grenke_environment?: string | null
+          grenke_financing_id?: string | null
+          grenke_last_error?: Json | null
+          grenke_request_id?: string | null
+          grenke_state?: string | null
+          grenke_state_updated_at?: string | null
+          grenke_submitted_at?: string | null
           id?: string
           internal_score?: string | null
           is_purchase?: boolean | null
@@ -9739,6 +9855,103 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_calls: {
+        Row: {
+          client_blockers: Json | null
+          client_id: string
+          company_id: string
+          consent_snapshot_at: string
+          cost_eur: number | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          initiated_by: string | null
+          kyc_report_id: string | null
+          language: string | null
+          metadata: Json
+          provider: string
+          provider_agent_id: string | null
+          provider_call_sid: string | null
+          provider_conversation_id: string | null
+          recording_url: string | null
+          status: string
+          summary: string | null
+          to_phone: string
+          transcription: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_blockers?: Json | null
+          client_id: string
+          company_id: string
+          consent_snapshot_at: string
+          cost_eur?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          initiated_by?: string | null
+          kyc_report_id?: string | null
+          language?: string | null
+          metadata?: Json
+          provider?: string
+          provider_agent_id?: string | null
+          provider_call_sid?: string | null
+          provider_conversation_id?: string | null
+          recording_url?: string | null
+          status?: string
+          summary?: string | null
+          to_phone: string
+          transcription?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_blockers?: Json | null
+          client_id?: string
+          company_id?: string
+          consent_snapshot_at?: string
+          cost_eur?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          initiated_by?: string | null
+          kyc_report_id?: string | null
+          language?: string | null
+          metadata?: Json
+          provider?: string
+          provider_agent_id?: string | null
+          provider_call_sid?: string | null
+          provider_conversation_id?: string | null
+          recording_url?: string | null
+          status?: string
+          summary?: string | null
+          to_phone?: string
+          transcription?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_calls_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_calls_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_calls_kyc_report_id_fkey"
+            columns: ["kyc_report_id"]
+            isOneToOne: false
+            referencedRelation: "client_kyc_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       woocommerce_configs: {
         Row: {
           company_id: string
@@ -10052,6 +10265,10 @@ export type Database = {
           table_name: string
           user_company_data_count: number
         }[]
+      }
+      compute_contract_end_date: {
+        Args: { p_duration_months: number; p_start_date: string }
+        Returns: string
       }
       count_ambassador_clients_secure: {
         Args: { p_user_id: string }
@@ -10614,6 +10831,17 @@ export type Database = {
           vat_number: string
         }[]
       }
+      get_grenke_credentials: {
+        Args: { p_company_id: string; p_environment: string }
+        Returns: {
+          cert_pem: string
+          key_pem: string
+        }[]
+      }
+      get_grenke_integration_status: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       get_menus_cms: {
         Args: { location_name: string }
         Returns: {
@@ -10721,6 +10949,13 @@ export type Database = {
           fbclid: string | null
           file_fee: number | null
           financed_amount: number | null
+          grenke_environment: string | null
+          grenke_financing_id: string | null
+          grenke_last_error: Json | null
+          grenke_request_id: string | null
+          grenke_state: string | null
+          grenke_state_updated_at: string | null
+          grenke_submitted_at: string | null
           id: string
           internal_score: string | null
           is_purchase: boolean | null
@@ -11236,6 +11471,15 @@ export type Database = {
           region: string
         }[]
       }
+      set_grenke_credentials: {
+        Args: {
+          p_cert_pem: string
+          p_company_id: string
+          p_environment: string
+          p_key_pem: string
+        }
+        Returns: Json
+      }
       set_signed_contract_pdf_url_public: {
         Args: { p_pdf_url: string; p_token: string }
         Returns: Json
@@ -11581,5 +11825,3 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.98.2 (currently installed v2.90.0)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

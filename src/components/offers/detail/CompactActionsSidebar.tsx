@@ -16,7 +16,8 @@ import {
   UserX,
   Star,
   ClipboardList,
-  Bell
+  Bell,
+  Repeat
 } from "lucide-react";
 import ReactivateOfferButton from "./ReactivateOfferButton";
 import RelaunchYoungCompanyButton from "./RelaunchYoungCompanyButton";
@@ -57,6 +58,7 @@ interface CompactActionsSidebarProps {
   sentReminders?: OfferReminderRecord[];
   onOpenReminder?: () => void;
   onCallLogged?: () => void;
+  onContractBuyback?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -78,7 +80,8 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   allReminders,
   sentReminders,
   onOpenReminder,
-  onCallLogged
+  onCallLogged,
+  onContractBuyback
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
@@ -327,14 +330,26 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
         </CardHeader>
         <CardContent className="space-y-2">
           {canEdit && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
-              className="w-full justify-start text-sm h-8" 
+              className="w-full justify-start text-sm h-8"
               onClick={onEdit}
             >
               <Edit className="w-4 h-4 mr-2" />
               <span>Modifier</span>
+            </Button>
+          )}
+
+          {onContractBuyback && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start text-sm h-8"
+              onClick={onContractBuyback}
+            >
+              <Repeat className="w-4 h-4 mr-2" />
+              <span>Rachat contrat</span>
             </Button>
           )}
           

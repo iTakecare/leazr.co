@@ -57,9 +57,10 @@ export interface Leaser {
     | 'next_quarter_first' 
     | 'next_semester_first' 
     | 'next_year_first' 
-    | 'delivery_date' 
+    | 'delivery_date'
     | 'delivery_date_plus_15';
   is_own_company?: boolean;
+  residual_value_percentage?: number;
 }
 
 export interface LeasingRange {

@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import PackSelectorModal from "@/components/offers/PackSelectorModal";
+import ContractBuybackModal, { BuybackLine } from "@/components/offers/ContractBuybackModal";
 import { ProductPack } from "@/types/pack";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
@@ -84,6 +85,7 @@ const CreateOffer = () => {
   const [isAmbassadorSelectorOpen, setIsAmbassadorSelectorOpen] = useState(false);
   const [loadedOfferData, setLoadedOfferData] = useState<any>(null);
   const [isPackSelectorOpen, setIsPackSelectorOpen] = useState(false);
+  const [isBuybackOpen, setIsBuybackOpen] = useState(false);
   const [fileFeeEnabled, setFileFeeEnabled] = useState(true);
   const [fileFeeAmount, setFileFeeAmount] = useState(75);
   const [productsToBeDetermined, setProductsToBeDetermined] = useState(false);
@@ -657,6 +659,27 @@ const CreateOffer = () => {
     setSelectedPacks(prev => prev.filter(p => p.pack_id !== packId));
   };
 
+  // Imputer la valeur résiduelle d'un contrat racheté comme ligne d'équipement
+  const handleBuybackImpute = (line: BuybackLine) => {
+    const coef = findCoefficient(line.value);
+    const monthlyPayment = Math.round(((line.value * coef) / 100 + Number.EPSILON) * 100) / 100;
+    setEquipmentList(prev => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        title: line.title,
+        purchasePrice: line.value,
+        quantity: 1,
+        margin: 0,
+        monthlyPayment,
+        attributes: {},
+        specifications: {},
+      },
+    ]);
+    setIsBuybackOpen(false);
+    toast.success(`Valeur résiduelle imputée : ${line.value.toLocaleString('fr-FR')} €`);
+  };
+
   // Ajouter un service prestataire externe à l'offre (non inclus dans le total)
   const handleExternalServiceSelect = (service: {
     provider_id: string;
@@ -1214,6 +1237,20 @@ const CreateOffer = () => {
                           </div>
                         )}
 
+                        {!isPurchase && (
+                          <div className="flex justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsBuybackOpen(true)}
+                              disabled={!clientId}
+                              title={!clientId ? "Sélectionnez d'abord un client" : undefined}
+                            >
+                              Rachat contrat
+                            </Button>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                           <div className="xl:col-span-1">
                             <EquipmentForm
@@ -1438,6 +1475,13 @@ const CreateOffer = () => {
           selectedPacks={selectedPacks}
           onPackSelect={handlePackSelect}
           onPackRemove={handlePackRemove}
+        />
+
+        <ContractBuybackModal
+          open={isBuybackOpen}
+          onClose={() => setIsBuybackOpen(false)}
+          clientId={clientId}
+          onImpute={handleBuybackImpute}
         />
 
         <ClientSelector

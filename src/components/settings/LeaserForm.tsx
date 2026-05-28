@@ -89,6 +89,9 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const [contractStartRule, setContractStartRule] = useState<string>(
     (currentLeaser as any)?.contract_start_rule || 'next_month_first'
   );
+  const [residualValuePercentage, setResidualValuePercentage] = useState<number>(
+    (currentLeaser as any)?.residual_value_percentage ?? 3
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -358,6 +361,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         ranges: tempRanges,
         use_duration_coefficients: useDurationBasedCoefficients,
         is_own_company: isOwnCompany,
+        residual_value_percentage: residualValuePercentage,
         billing_frequency: billingFrequency as 'monthly' | 'quarterly' | 'semi-annual' | 'annual',
         contract_start_rule: contractStartRule as 'next_month_first' | 'next_quarter_first' | 'next_semester_first' | 'next_year_first' | 'delivery_date' | 'delivery_date_plus_15'
       };
@@ -760,6 +764,26 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
           onBillingFrequencyChange={setBillingFrequency}
           onContractStartRuleChange={setContractStartRule}
         />
+
+        {/* Valeur résiduelle (rachat de contrat) */}
+        <div className="space-y-2 border-t pt-4">
+          <Label htmlFor="residual_value_percentage" className="font-medium">
+            Valeur résiduelle (%)
+          </Label>
+          <Input
+            id="residual_value_percentage"
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            className="max-w-[160px]"
+            value={residualValuePercentage}
+            onChange={(e) => setResidualValuePercentage(parseFloat(e.target.value) || 0)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Pourcentage appliqué au montant financé pour calculer la valeur résiduelle lors d'un rachat de contrat.
+          </p>
+        </div>
       </div>
       
       <div className="flex justify-end gap-2 pt-4">

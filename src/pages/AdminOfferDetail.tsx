@@ -4,7 +4,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
-import { getOfferById, updateOfferStatus, deleteOffer, generateSignatureLink } from "@/services/offerService";
+import { getOfferById, updateOfferStatus, deleteOffer, generateSignatureLink, updateOffer } from "@/services/offerService";
+import { saveEquipment } from "@/services/offers/offerEquipment";
+import ContractBuybackModal, { BuybackLine } from "@/components/offers/ContractBuybackModal";
 import { workflowService } from "@/services/workflows/workflowService";
 import type { OfferType } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,6 +84,8 @@ const AdminOfferDetail = () => {
   const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0);
   const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
   const [dateEditorType, setDateEditorType] = useState<'created' | 'request'>('request');
+  const [isBuybackOpen, setIsBuybackOpen] = useState(false);
+  const [isImputingBuyback, setIsImputingBuyback] = useState(false);
 const [scoringTargetStatus, setScoringTargetStatus] = useState<string | null>(null);
 
 // Modale d'email de validation après score A (leaser)
@@ -301,6 +305,48 @@ const [notesLoading, setNotesLoading] = useState(false);
 
   const handleEditOffer = () => {
     navigateToAdmin(`edit-offer/${id}`);
+  };
+
+  // Imputer la valeur résiduelle d'un contrat racheté à l'offre courante
+  const handleBuybackImpute = async (line: BuybackLine) => {
+    if (!offer) return;
+    setIsImputingBuyback(true);
+    try {
+      const coef = Number(offer.coefficient) || 3.55;
+      const monthly = Math.round((line.value * coef) / 100 * 100 + Number.EPSILON) / 100;
+
+      const saved = await saveEquipment({
+        offer_id: offer.id,
+        title: line.title,
+        purchase_price: line.value,
+        quantity: 1,
+        margin: 0,
+        monthly_payment: monthly,
+        selling_price: line.value,
+      });
+
+      if (!saved) {
+        toast.error("Erreur lors de l'ajout de la ligne de rachat");
+        return;
+      }
+
+      const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+      await updateOffer(offer.id, {
+        amount: round2((Number(offer.amount) || 0) + line.value),
+        financed_amount: round2((Number(offer.financed_amount) || 0) + line.value),
+        monthly_payment: round2((Number(offer.monthly_payment) || 0) + monthly),
+      });
+
+      toast.success(`Valeur résiduelle imputée : ${line.value.toLocaleString('fr-FR')} €`);
+      setIsBuybackOpen(false);
+      setEquipmentRefreshKey((k) => k + 1);
+      await fetchOfferDetails();
+    } catch (e: any) {
+      console.error("Erreur imputation rachat:", e);
+      toast.error("Erreur lors de l'imputation de la valeur résiduelle");
+    } finally {
+      setIsImputingBuyback(false);
+    }
   };
 
   const handlePreview = () => {
@@ -1168,6 +1214,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   sentReminders={sentReminders}
                   onOpenReminder={() => setReminderModalOpen(true)}
                   onCallLogged={() => setActiveTab("calls")}
+                  onContractBuyback={offer.is_purchase ? undefined : () => setIsBuybackOpen(true)}
                 />
                 
                 {/* Configuration de l'offre */}
@@ -1214,6 +1261,14 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           onClose={() => setIsRequestInfoModalOpen(false)}
           offerId={id || ''}
           onSuccess={() => window.location.reload()}
+        />
+
+        <ContractBuybackModal
+          open={isBuybackOpen}
+          onClose={() => setIsBuybackOpen(false)}
+          clientId={offer.client_id}
+          onImpute={handleBuybackImpute}
+          isImputing={isImputingBuyback}
         />
 
         {/* Modal de scoring */}

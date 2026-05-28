@@ -32,6 +32,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
         available_durations,
         use_duration_coefficients,
         is_own_company,
+        residual_value_percentage,
         ranges:leaser_ranges(
           id,
           min,
@@ -75,6 +76,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       available_durations: leaser.available_durations || [12,18,24,36,48,60,72],
       use_duration_coefficients: leaser.use_duration_coefficients || false,
       is_own_company: leaser.is_own_company || false,
+      residual_value_percentage: leaser.residual_value_percentage ?? 3,
       ranges: (leaser.ranges || []).sort((a: any, b: any) => a.min - b.min)
     }));
     
@@ -115,6 +117,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
         available_durations,
         use_duration_coefficients,
         is_own_company,
+        residual_value_percentage,
         ranges:leaser_ranges(
           id,
           min,
@@ -154,6 +157,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
       available_durations: data.available_durations || [12,18,24,36,48,60,72],
       use_duration_coefficients: data.use_duration_coefficients || false,
       is_own_company: data.is_own_company || false,
+      residual_value_percentage: data.residual_value_percentage ?? 3,
       ranges: data.ranges.sort((a: any, b: any) => a.min - b.min)
     } as Leaser & { use_duration_coefficients?: boolean; is_own_company?: boolean };
   } catch (error) {
@@ -194,6 +198,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
         available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72],
         use_duration_coefficients: (leaser as any).use_duration_coefficients || false,
         is_own_company: (leaser as any).is_own_company || false,
+        residual_value_percentage: leaser.residual_value_percentage ?? 3,
         company_id: companyId
       })
       .select()
@@ -283,6 +288,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
       available_durations: data.available_durations ?? [12,18,24,36,48,60,72],
       use_duration_coefficients: (data as any).use_duration_coefficients ?? false,
       is_own_company: (data as any).is_own_company ?? false,
+      residual_value_percentage: (data as any).residual_value_percentage ?? 3,
       ranges: []
     } as Leaser & { use_duration_coefficients?: boolean; is_own_company?: boolean };
   } catch (error) {
@@ -322,7 +328,8 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
         email: leaser.email || null,
         available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72],
         use_duration_coefficients: (leaser as any).use_duration_coefficients || false,
-        is_own_company: (leaser as any).is_own_company || false
+        is_own_company: (leaser as any).is_own_company || false,
+        residual_value_percentage: leaser.residual_value_percentage ?? 3
       })
       .eq('id', id);
     
@@ -473,6 +480,7 @@ export const duplicateLeaser = async (id: string): Promise<Leaser | null> => {
       phone: sourceLeaser.phone,
       email: sourceLeaser.email,
       available_durations: sourceLeaser.available_durations,
+      residual_value_percentage: sourceLeaser.residual_value_percentage ?? 3,
       ranges: sourceLeaser.ranges.map(range => ({
         ...range,
         id: undefined // Remove ID so new ones are created
