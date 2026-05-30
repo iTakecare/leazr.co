@@ -30,12 +30,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GRENKE_HOSTS = {
-  uat: "https://uatapi.grenkeonline.com",
-  production: "https://api.grenkeonline.com",
+// We DON'T call Grenke's API directly. Their server uses TLS 1.2 post-handshake
+// client-cert auth (renegotiation), which rustls — the TLS lib behind Deno's
+// fetch — refuses to support (rustls policy, not a bug). Curl + OpenSSL handle
+// it fine, so we relay through a tiny nginx mTLS proxy on iTakecare's VPS.
+// See docs/grenke-api/INTEGRATION.md and the deploy at /opt/grenke-proxy/ on
+// itcmdm-vps.
+const GRENKE_PROXY_BASE = "https://grenke-proxy.itakecare.be";
+
+const GRENKE_UPSTREAM_PATH = {
+  // The proxy is a single host; we encode the target environment in the
+  // request path so the same proxy can later route both UAT and Production.
+  // (Today the proxy only handles production — UAT would need its own
+  //  cert/key bind-mount and a /uat/ location block.)
+  uat: "/uat",
+  production: "",
 } as const;
 
-type Environment = keyof typeof GRENKE_HOSTS;
+type Environment = keyof typeof GRENKE_UPSTREAM_PATH;
 
 interface GrenkeRequest {
   action:
@@ -111,13 +123,17 @@ serve(async (req) => {
     }
 
     const action = body.action;
-    const environment: Environment = body.environment ?? "uat";
+    const environment: Environment = body.environment ?? "production";
 
-    if (!GRENKE_HOSTS[environment]) {
+    if (!(environment in GRENKE_UPSTREAM_PATH)) {
       return jsonResponse({ success: false, error: "invalid_environment" }, 400);
     }
 
     // ---------- credentials ----------
+    // Note: cert+key are NOT used here anymore — the VPS proxy holds them.
+    // We still load the row so we can fail fast with a clear error if the
+    // tenant hasn't gone through the cert upload flow yet (which is the
+    // signal that they've completed the Grenke onboarding).
     const creds = await loadCredentials(adminSupabase, companyId, environment);
 
     if (!creds) {
@@ -188,46 +204,35 @@ async function loadCredentials(
 }
 
 // =====================================================================
-// Low-level fetch wrapper — mTLS via Deno.createHttpClient.
+// Low-level fetch wrapper — relays through the iTakecare nginx mTLS proxy.
+// The `creds` parameter is intentionally unused at this layer (kept in the
+// signature so callers don't need to know about the proxy redirection);
+// the actual cert+key are bind-mounted into the nginx container at
+// /opt/grenke-proxy/certs/ on itcmdm-vps. See docs/grenke-api/INTEGRATION.md.
 // =====================================================================
 async function grenkeFetch(
   environment: Environment,
   path: string,
   init: RequestInit,
-  creds: Credentials,
+  _creds: Credentials,
 ): Promise<Response> {
-  const url = GRENKE_HOSTS[environment] + path;
-  console.log(`[grenke-api] grenkeFetch → ${init.method ?? "GET"} ${url}`);
-
-  // Deno.createHttpClient is currently unstable in some Deno versions. If
-  // Supabase runtime rejects this we'll need to relay through a self-hosted
-  // mTLS proxy on the iTakecare VPS — see docs/grenke-api/INTEGRATION.md
-  // §"Implementation phases".
-  // deno-lint-ignore no-explicit-any
-  const createHttpClient = (Deno as any).createHttpClient;
-  if (typeof createHttpClient !== "function") {
+  const proxySecret = Deno.env.get("GRENKE_PROXY_SECRET");
+  if (!proxySecret) {
     throw new Error(
-      "Deno.createHttpClient is not available in this Supabase Edge runtime " +
-      "(Deno " + (Deno as any).version?.deno + "). " +
-      "mTLS requires this API — falling back to a self-hosted proxy is needed. " +
-      "See docs/grenke-api/INTEGRATION.md §'Implementation phases'.",
+      "GRENKE_PROXY_SECRET is not configured. Set it via " +
+      "'supabase secrets set GRENKE_PROXY_SECRET=...' — value lives in the " +
+      "nginx config at /opt/grenke-proxy/conf/nginx.conf on itcmdm-vps.",
     );
   }
-  // Force HTTP/1.1 — the GRENKE Leasing API server advertises h2 via ALPN
-  // but actively rejects HTTP/2 streams ("endpoint requires HTTP/1.1"),
-  // confirmed against api.grenkeonline.com 2026-05-30.
-  const client = createHttpClient({
-    cert: creds.cert,
-    key: creds.key,
-    http2: false,
-    http1: true,
-  });
 
-  return await fetch(url, {
-    ...init,
-    // deno-lint-ignore no-explicit-any
-    client,
-  } as any);
+  const url = GRENKE_PROXY_BASE + GRENKE_UPSTREAM_PATH[environment] + path;
+  console.log(`[grenke-api] grenkeFetch via proxy → ${init.method ?? "GET"} ${url}`);
+
+  const headers = new Headers(init.headers);
+  headers.set("X-Proxy-Secret", proxySecret);
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+
+  return await fetch(url, { ...init, headers });
 }
 
 // =====================================================================
