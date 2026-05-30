@@ -16,7 +16,7 @@
 | `GET /echo` end-to-end | ✅ Confirmed | "Connexion Production OK" toast |
 | `POST /basic/v1/calculate` | 🟡 **Blocked at Grenke side** | Returns 500 "No condition list found" — Grenke business config pending |
 | `POST /basic/v1/requests` (submit) | ⏳ Not started | Phase 3 |
-| UAT environment | ❌ Not set up | Only Production was provisioned |
+| UAT environment | ❌ Not set up | One Grenke API account = one env. To get UAT we have to ask Grenke to provision a **second**, separate API account (confirmed by Robin Quack 2026-05-26). |
 | Status polling cron | ⏳ Not started | Phase 3 |
 | Admin UI for offer submission | ⏳ Not started | Phase 3-4 |
 
@@ -152,6 +152,7 @@ cert expires (2028-05-29) or is revoked, **rotate in all three** — see Runbook
 | Person / channel | Role | When to reach out |
 |------------------|------|-------------------|
 | Marius Westenhoff (`mwestenhoff@grenke.de`) | Digital Sales Reseller Journey — GRENKE digital GmbH | Cert issuance, portal access, technical questions |
+| Robin Quack (`Digital Reseller Channel`, grenke AG, Baden-Baden) | Backup contact when Marius is away | Same as Marius — write to the original thread and CC if unsure |
 | `service.api@grenke-group.com` | GRENKE API team | Anything technical / cert problems / condition list setup |
 | iTakecare local branch (`api@itakecare.be` is the dev account; main commercial contact is via the local Belgian GRENKE branch) | Business setup (conditions, products allowed, etc.) | Pricing tables, product types enabled, market activation |
 | GitHub repo | `iTakecare/leazr.co` (main branch deploys to prod via Actions) | All code |
@@ -284,3 +285,5 @@ error. Workaround: enable manually in Database → Extensions → `supabase_vaul
 | 2026-05-30 | Add an nginx mTLS proxy on the VPS | Deno/rustls in Supabase Edge can't do TLS renegotiation, which Grenke's server uses for post-handshake client cert auth |
 | 2026-05-30 | Reuse Traefik for the proxy's public TLS (`grenke-proxy.itakecare.be`) | Existing infra, free LE auto-renew, no new processes |
 | 2026-05-30 | Single proxy container, multi-tenant via vault names later | YAGNI — 1 tenant today (iTakecare), refactor when a 2nd shows up |
+| 2026-05-26 | Account `api@itakecare.be` upgraded from "Documentation" to "Production" | Robin Quack flipped the switch after our request mail. |
+| 2026-05-26 | UAT not provisioned by default; would require a separate account | Per Robin Quack — explicitly noted so we don't waste time looking for a UAT toggle on our existing account. |
