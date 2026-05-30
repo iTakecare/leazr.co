@@ -213,7 +213,15 @@ async function grenkeFetch(
       "See docs/grenke-api/INTEGRATION.md §'Implementation phases'.",
     );
   }
-  const client = createHttpClient({ cert: creds.cert, key: creds.key });
+  // Force HTTP/1.1 — the GRENKE Leasing API server advertises h2 via ALPN
+  // but actively rejects HTTP/2 streams ("endpoint requires HTTP/1.1"),
+  // confirmed against api.grenkeonline.com 2026-05-30.
+  const client = createHttpClient({
+    cert: creds.cert,
+    key: creds.key,
+    http2: false,
+    http1: true,
+  });
 
   return await fetch(url, {
     ...init,
