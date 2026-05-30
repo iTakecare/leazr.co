@@ -33,7 +33,9 @@ import {
   ShieldCheck,
   ExternalLink,
   Clock,
+  Calculator,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -64,6 +66,21 @@ export default function GrenkeIntegrationCard() {
   const [activeTab, setActiveTab] = useState<Environment>("uat");
   const [certPem, setCertPem] = useState("");
   const [keyPem, setKeyPem] = useState("");
+
+  // Calculator playground state (Phase 2)
+  const [calcAmount, setCalcAmount] = useState<string>("3000");
+  const [calcPeriod, setCalcPeriod] = useState<string>("36");
+  const [calcEnv, setCalcEnv] = useState<Environment>("production");
+  const [calcRunning, setCalcRunning] = useState(false);
+  const [calcResult, setCalcResult] = useState<
+    | null
+    | {
+        success: boolean;
+        items?: Array<{ Period: number; MonthlyTotalInstalment: number; FinancingAmount: number; Currency: string }>;
+        error?: string;
+        message?: string;
+      }
+  >(null);
 
   useEffect(() => {
     fetchStatus();
@@ -226,6 +243,100 @@ export default function GrenkeIntegrationCard() {
       toast.error("Erreur inattendue lors du test");
     } finally {
       setTesting(null);
+    }
+  };
+
+  // Phase 2 — call POST /basic/v1/calculate via the edge function.
+  // This is a smoke-test playground in the Settings card; the real wiring
+  // into the offer-creation flow comes later.
+  const handleCalculate = async () => {
+    const amount = parseFloat(calcAmount);
+    const period = parseInt(calcPeriod, 10);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Montant invalide");
+      return;
+    }
+    if (!Number.isFinite(period) || period <= 0) {
+      toast.error("Durée invalide");
+      return;
+    }
+
+    try {
+      setCalcRunning(true);
+      setCalcResult(null);
+
+      const { data, error } = await supabase.functions.invoke("grenke-api", {
+        body: {
+          action: "calculate",
+          environment: calcEnv,
+          payload: {
+            FinancingAmount: amount,
+            Period: period,
+            ProductType: "ClassicLease",
+            PaymentFrequency: "Monthly",
+            Currency: "EUR",
+          },
+        },
+      });
+
+      // Read body from error.context when the function returned non-2xx
+      // (same pattern as handleTestConnection).
+      let result: Record<string, unknown> | null = data as never;
+      if (error) {
+        const ctx = (error as unknown as { context?: Response }).context;
+        if (ctx && typeof ctx.json === "function") {
+          try { result = await ctx.json(); } catch { /* fall through */ }
+        }
+      }
+
+      const r = result as {
+        success?: boolean;
+        error?: string;
+        message?: string;
+        data?: { Items?: Array<{ Period: number; MonthlyTotalInstalment: number; FinancingAmount: number; Currency: string }> };
+        grenke_response?: { Details?: string };
+      } | null;
+
+      if (r?.success && r.data?.Items) {
+        setCalcResult({ success: true, items: r.data.Items });
+        toast.success(`${r.data.Items.length} période(s) calculée(s)`);
+        return;
+      }
+
+      // Special-case the "account not provisioned" 503 from our edge function.
+      if (r?.error === "grenke_account_not_provisioned") {
+        setCalcResult({ success: false, error: r.error, message: r.message });
+        toast.error(
+          <div>
+            <strong>Compte Grenke pas encore activé</strong>
+            <p className="text-sm mt-1">
+              L'authentification fonctionne, mais Grenke n'a pas encore configuré
+              la "condition list" (grille tarifs/produits) pour ce compte.
+              Contactez votre représentant Grenke.
+            </p>
+          </div>,
+          { duration: 12000 },
+        );
+        return;
+      }
+
+      setCalcResult({
+        success: false,
+        error: r?.error ?? "unknown",
+        message: r?.message ?? r?.grenke_response?.Details ?? "Erreur inconnue",
+      });
+      toast.error(
+        <div>
+          <strong>Calcul échoué</strong>
+          <p className="text-sm mt-1">{r?.message ?? r?.grenke_response?.Details ?? r?.error ?? "Erreur inconnue"}</p>
+        </div>,
+        { duration: 10000 },
+      );
+    } catch (e) {
+      console.error("[Grenke] calculate error:", e);
+      toast.error("Erreur inattendue pendant le calcul");
+    } finally {
+      setCalcRunning(false);
     }
   };
 
@@ -428,6 +539,123 @@ export default function GrenkeIntegrationCard() {
             </TabsContent>
           ))}
         </Tabs>
+
+        {/* Phase 2 — Calculator playground (only visible if at least one env is configured) */}
+        {(uatOk || prodOk) && (
+          <>
+            <Separator />
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+              <div className="flex items-start gap-2">
+                <Calculator className="h-4 w-4 mt-0.5 text-blue-600" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium">Calculateur Grenke (test)</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Appelle <code className="text-[10px]">POST /basic/v1/calculate</code> via le proxy.
+                    Sert à vérifier que ton compte Grenke a bien sa grille tarifaire activée.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="calc-amount" className="text-xs">Montant (€)</Label>
+                  <Input
+                    id="calc-amount"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={calcAmount}
+                    onChange={(e) => setCalcAmount(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="calc-period" className="text-xs">Durée (mois)</Label>
+                  <Input
+                    id="calc-period"
+                    type="number"
+                    min="1"
+                    max="120"
+                    step="1"
+                    value={calcPeriod}
+                    onChange={(e) => setCalcPeriod(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="calc-env" className="text-xs">Environnement</Label>
+                  <select
+                    id="calc-env"
+                    value={calcEnv}
+                    onChange={(e) => setCalcEnv(e.target.value as Environment)}
+                    className="h-8 w-full text-sm rounded-md border border-input bg-background px-2"
+                  >
+                    {uatOk && <option value="uat">UAT</option>}
+                    {prodOk && <option value="production">Production</option>}
+                  </select>
+                </div>
+              </div>
+
+              <Button
+                size="sm"
+                className="w-full"
+                onClick={handleCalculate}
+                disabled={calcRunning}
+              >
+                {calcRunning ? (
+                  <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+                ) : (
+                  <Calculator className="h-3.5 w-3.5 mr-2" />
+                )}
+                Calculer via Grenke
+              </Button>
+
+              {calcResult && (
+                <div className="text-xs space-y-1 pt-2 border-t border-border/50">
+                  {calcResult.success && calcResult.items && (
+                    <>
+                      <div className="font-medium mb-1">
+                        Résultat Grenke ({calcResult.items.length} période{calcResult.items.length > 1 ? "s" : ""})
+                      </div>
+                      <div className="rounded border bg-background">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="p-2 text-left font-medium">Durée</th>
+                              <th className="p-2 text-right font-medium">Mensualité</th>
+                              <th className="p-2 text-right font-medium">Coefficient*</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {calcResult.items.map((it) => (
+                              <tr key={it.Period} className="border-b last:border-0">
+                                <td className="p-2">{it.Period} mois</td>
+                                <td className="p-2 text-right tabular-nums">
+                                  {new Intl.NumberFormat("fr-BE", { style: "currency", currency: it.Currency || "EUR" }).format(it.MonthlyTotalInstalment)}
+                                </td>
+                                <td className="p-2 text-right tabular-nums text-muted-foreground">
+                                  {((it.MonthlyTotalInstalment / it.FinancingAmount) * 100).toFixed(3)} %
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground italic mt-1">
+                        * Coefficient déduit = mensualité / montant × 100. Pour info — Grenke ne le renvoie pas directement.
+                      </p>
+                    </>
+                  )}
+                  {!calcResult.success && (
+                    <div className="text-destructive">
+                      <strong>Erreur :</strong> {calcResult.message ?? calcResult.error}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

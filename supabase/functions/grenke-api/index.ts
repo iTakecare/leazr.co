@@ -154,6 +154,8 @@ serve(async (req) => {
         return await handleEcho(environment, creds);
 
       case "calculate":
+        return await handleCalculate(environment, creds, body.payload ?? {});
+
       case "submit_offer":
       case "get_status":
       case "get_contract_doc":
@@ -265,4 +267,131 @@ async function handleEcho(environment: Environment, creds: Credentials): Promise
     environment,
     data: parsed,
   }, response.ok ? 200 : 502);
+}
+
+// =====================================================================
+// calculate — POST /basic/v1/calculate
+//
+// Body shape (Grenke):
+//   {
+//     FinancingAmount: number   (required)
+//     ProductType:    string    (required: ClassicLease | PartialAmortisation | Rent | AllIn | AllIn3 | AllIn6 | AllInWithoutBackup | OfficeDirect)
+//     PaymentFrequency: string  (required: "Monthly" | "Quarterly")
+//     Period?:         number   (1..n months — omit to get all available periods)
+//     PaymentMethod?:  string   ("Invoice" | "DirectDebit")
+//     Currency?:       string   (ISO 4217, e.g. "EUR")
+//     RecurringService?: number
+//     HasRepurchase?:  boolean
+//     Commission?:     number
+//   }
+//
+// Response on 200: { Items: [{ Period, MonthlyTotalInstalment, FinancingAmount, Currency, ... }] }
+// Response on 500 with "No condition list found": the cert is fine but Grenke
+//   hasn't yet provisioned a leasing condition grid for this account. That's
+//   a business onboarding step, not a code bug — we surface it explicitly
+//   so the UI can show a useful message.
+// =====================================================================
+
+interface CalculateInput {
+  FinancingAmount: number;
+  ProductType?: string;
+  PaymentFrequency?: string;
+  Period?: number;
+  PaymentMethod?: string;
+  Currency?: string;
+  RecurringService?: number;
+  HasRepurchase?: boolean;
+  Commission?: number;
+}
+
+async function handleCalculate(
+  environment: Environment,
+  creds: Credentials,
+  payload: Record<string, unknown>,
+): Promise<Response> {
+  // Light validation — fail fast on missing required fields. Grenke's own
+  // 400 messages are useful but we save a round-trip when the input is
+  // obviously wrong (and we can tell the caller what's missing).
+  const input = payload as CalculateInput;
+  if (typeof input.FinancingAmount !== "number" || !(input.FinancingAmount > 0)) {
+    return jsonResponse({
+      success: false,
+      error: "validation_error",
+      field: "FinancingAmount",
+      message: "FinancingAmount must be a positive number",
+    }, 400);
+  }
+
+  // Defaults that mirror iTakecare's standard offer — overridable via payload.
+  const body: CalculateInput = {
+    Currency: "EUR",
+    ProductType: "ClassicLease",
+    PaymentFrequency: "Monthly",
+    ...input,
+  };
+
+  let response: Response;
+  try {
+    response = await grenkeFetch(
+      environment,
+      "/basic/v1/calculate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+      creds,
+    );
+  } catch (e) {
+    return jsonResponse({
+      success: false,
+      error: "network_or_tls_error",
+      environment,
+      message: e instanceof Error ? e.message : String(e),
+    }, 502);
+  }
+
+  const text = await response.text();
+  let parsed: unknown = text;
+  try {
+    parsed = JSON.parse(text);
+  } catch { /* keep raw */ }
+
+  if (response.ok) {
+    return jsonResponse({
+      success: true,
+      status: response.status,
+      environment,
+      input: body,
+      data: parsed,
+    }, 200);
+  }
+
+  // Special-case the "no condition list" error — it's frequent during
+  // onboarding and the generic 500 hides the actual cause.
+  const grenkeErr = parsed as { Message?: string; Details?: string; CorrelationId?: string } | undefined;
+  if (response.status === 500 && grenkeErr?.Details?.includes("No condition list")) {
+    return jsonResponse({
+      success: false,
+      error: "grenke_account_not_provisioned",
+      status: response.status,
+      environment,
+      message:
+        "Authentication works but Grenke has not yet configured the leasing " +
+        "condition list (pricing / products / markets) for this API account. " +
+        "Contact your Grenke representative to enable conditions for " +
+        "ClassicLease in BE/FR/LU.",
+      grenke_response: parsed,
+      input: body,
+    }, 503); // 503 = downstream-not-ready, distinct from 5xx app bugs
+  }
+
+  return jsonResponse({
+    success: false,
+    error: "grenke_error",
+    status: response.status,
+    environment,
+    grenke_response: parsed,
+    input: body,
+  }, response.status >= 500 ? 502 : response.status);
 }
