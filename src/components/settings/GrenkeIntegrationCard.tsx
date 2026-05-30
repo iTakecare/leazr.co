@@ -160,17 +160,40 @@ export default function GrenkeIntegrationCard() {
       const { data, error } = await supabase.functions.invoke("grenke-api", {
         body: { action: "echo", environment: env },
       });
-      if (error) {
-        toast.error(`Test ${ENV_LABELS[env]} échoué : ${error.message}`);
-        return;
-      }
-      const result = data as {
+
+      // When the edge function returns a non-2xx status, supabase-js sets
+      // `error` to a FunctionsHttpError and `data` is null. The actual JSON
+      // body (which contains our useful `error`/`message`/details fields)
+      // is reachable via error.context (a Response). Read it so we can
+      // surface the real failure cause instead of a generic
+      // "non-2xx status code" message.
+      let result: {
         success: boolean;
         status?: number;
         error?: string;
         message?: string;
         data?: unknown;
-      };
+      } | null = data as never;
+
+      if (error) {
+        const ctx = (error as unknown as { context?: Response }).context;
+        if (ctx && typeof ctx.json === "function") {
+          try {
+            result = await ctx.json();
+          } catch {
+            /* body wasn't JSON — fall through to generic toast */
+          }
+        }
+        if (!result) {
+          toast.error(`Test ${ENV_LABELS[env]} échoué : ${error.message}`);
+          return;
+        }
+      }
+
+      if (!result) {
+        toast.error(`Test ${ENV_LABELS[env]} échoué : réponse vide`);
+        return;
+      }
       if (result.success) {
         toast.success(
           <div className="flex items-center gap-2">

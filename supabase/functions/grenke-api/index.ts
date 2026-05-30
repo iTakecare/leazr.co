@@ -65,6 +65,7 @@ function jsonResponse(body: unknown, status: number): Response {
 }
 
 serve(async (req) => {
+  console.log(`[grenke-api] ${req.method} request received`);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -196,16 +197,23 @@ async function grenkeFetch(
   creds: Credentials,
 ): Promise<Response> {
   const url = GRENKE_HOSTS[environment] + path;
+  console.log(`[grenke-api] grenkeFetch → ${init.method ?? "GET"} ${url}`);
 
   // Deno.createHttpClient is currently unstable in some Deno versions. If
   // Supabase runtime rejects this we'll need to relay through a self-hosted
   // mTLS proxy on the iTakecare VPS — see docs/grenke-api/INTEGRATION.md
   // §"Implementation phases".
   // deno-lint-ignore no-explicit-any
-  const client = (Deno as any).createHttpClient({
-    cert: creds.cert,
-    key: creds.key,
-  });
+  const createHttpClient = (Deno as any).createHttpClient;
+  if (typeof createHttpClient !== "function") {
+    throw new Error(
+      "Deno.createHttpClient is not available in this Supabase Edge runtime " +
+      "(Deno " + (Deno as any).version?.deno + "). " +
+      "mTLS requires this API — falling back to a self-hosted proxy is needed. " +
+      "See docs/grenke-api/INTEGRATION.md §'Implementation phases'.",
+    );
+  }
+  const client = createHttpClient({ cert: creds.cert, key: creds.key });
 
   return await fetch(url, {
     ...init,
