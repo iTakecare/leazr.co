@@ -759,7 +759,7 @@ interface EquipmentDebug {
   resolved_manufacturer: string;
   resolved_object_type_id: number | null;
   resolved_net_price: number;
-  price_source: "selling_price" | "purchase_price";
+  price_source: "monthly_coefficient" | "selling_price" | "purchase_price";
 }
 
 // Strip "BE" / "FR" / "LU" prefixes + non-digits from a VAT number.
@@ -861,7 +861,7 @@ async function buildOfferPayloadCore(
   // ---------- 1. Load offer + verify ownership ----------
   const { data: offer, error: offerErr } = await adminSupabase
     .from("offers")
-    .select("id, company_id, client_id, financed_amount, duration, leaser_id, monthly_payment")
+    .select("id, company_id, client_id, financed_amount, duration, leaser_id, monthly_payment, coefficient, is_purchase")
     .eq("id", offerId)
     .maybeSingle();
 
@@ -909,7 +909,7 @@ async function buildOfferPayloadCore(
   const { data: equipment, error: equipErr } = await adminSupabase
     .from("offer_equipment")
     .select(`
-      id, title, quantity, purchase_price, selling_price,
+      id, title, quantity, purchase_price, selling_price, monthly_payment,
       category_id, serial_number, order_notes,
       product_id, grenke_manufacturer_override,
       products:product_id (
@@ -1038,6 +1038,7 @@ async function buildOfferPayloadCore(
     quantity: number;
     purchase_price: number;
     selling_price: number | null;
+    monthly_payment: number | null;
     category_id: string | null;
     serial_number: string | null;
     order_notes: string | null;
@@ -1055,6 +1056,15 @@ async function buildOfferPayloadCore(
   const financingObjects: GrenkeFinancingObject[] = [];
   const equipmentDebug: EquipmentDebug[] = [];
   let computedTotal = 0;
+
+  // Leasing pricing basis. In a leasing offer the value Grenke must finance is
+  // the P.V. (selling price) the UI shows, which is derived from the agreed
+  // monthly and the leasing coefficient — NOT offer_equipment.selling_price,
+  // a margin-based convenience field that goes stale when the monthly is edited.
+  // UI relationship (NewEquipmentSection): monthly_line = P.V.unit × qty × coef/100.
+  const offerCoef = Number((offer as { coefficient?: number }).coefficient) || 0;
+  const isLeasing = (offer as { is_purchase?: boolean }).is_purchase !== true;
+  const useMonthlyBasis = isLeasing && offerCoef > 0;
 
   for (const [idx, raw] of ((equipment ?? []) as unknown as EquipmentRow[]).entries()) {
     const eq = raw;
@@ -1149,14 +1159,25 @@ async function buildOfferPayloadCore(
     // purchase cost). offer_equipment.selling_price is the canonical value.
     // We fall back to purchase_price only if selling_price is null (which
     // shouldn't happen on a properly priced offer).
-    let netPrice = eq.selling_price;
+    // Per-unit net price (= P.V. unitaire shown in the UI).
+    //   leasing  → monthly_line × 100 / (coef × quantity)   [matches the UI]
+    //   else     → stored selling_price, then purchase_price as a last resort.
+    let netPrice: number | null = null;
     let priceSource: EquipmentDebug["price_source"] = "selling_price";
-    if (netPrice == null || netPrice <= 0) {
+    const lineMonthly = Number(eq.monthly_payment) || 0;
+    const lineQty = eq.quantity || 1;
+    if (useMonthlyBasis && lineMonthly > 0 && lineQty > 0) {
+      netPrice = (lineMonthly * 100) / (offerCoef * lineQty);
+      priceSource = "monthly_coefficient";
+    } else if (eq.selling_price != null && eq.selling_price > 0) {
+      netPrice = eq.selling_price;
+      priceSource = "selling_price";
+    } else {
       netPrice = eq.purchase_price;
       priceSource = "purchase_price";
       warnings.push({
         field: `FinancingObjects[${idx}].NetPricePerObject`,
-        message: `"${eq.title}" n'a pas de selling_price — fallback sur purchase_price (${eq.purchase_price}). Vérifiez la pricing de la ligne.`,
+        message: `"${eq.title}" n'a ni mensualité+coefficient ni selling_price — fallback sur purchase_price (${eq.purchase_price}). Vérifiez la pricing de la ligne.`,
         equipment_id: eq.id,
         fix_kind: "selling_price",
       });
@@ -1212,13 +1233,17 @@ async function buildOfferPayloadCore(
   // Grenke validates FinancingAmount === Σ(Quantity × NetPricePerObject)
   // EXACTLY. We therefore ALWAYS send the computed line-item sum, so the two
   // can never disagree by a rounding cent. We compare against the offer's
-  // declared financed_amount only to decide whether to warn:
+  // EXPECTED financed amount only to decide whether to warn. For a leasing offer
+  // the expected amount is monthly × 100 / coef (the P.V. the UI shows) — NOT
+  // offers.financed_amount, which is a stored field that goes stale when the
+  // monthly is edited (it was the source of the wrong amount sent to Grenke).
   //   - small delta (≤ 1 EUR): pure rounding, send computedTotal silently.
-  //   - large delta (> 1 EUR): the offer pricing is genuinely out of sync,
-  //     keep a warning so the user investigates (but we still send the sum,
-  //     which is the only value Grenke will accept).
+  //   - large delta (> 1 EUR): the offer pricing is genuinely out of sync.
   computedTotal = Math.round(computedTotal * 100) / 100;
-  const declaredAmount = Math.round((offer.financed_amount ?? 0) * 100) / 100;
+  const expectedAmount = (useMonthlyBasis && Number(offer.monthly_payment) > 0)
+    ? Math.round((Number(offer.monthly_payment) * 100 / offerCoef) * 100) / 100
+    : Math.round((offer.financed_amount ?? 0) * 100) / 100;
+  const declaredAmount = expectedAmount;
   const amountDelta = Math.round((computedTotal - declaredAmount) * 100) / 100;
   const ROUNDING_TOLERANCE = 1.0;
   if (Math.abs(amountDelta) > ROUNDING_TOLERANCE) {

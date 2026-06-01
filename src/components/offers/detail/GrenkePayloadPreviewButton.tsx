@@ -53,7 +53,7 @@ interface EquipmentDebug {
   resolved_manufacturer: string;
   resolved_object_type_id: number | null;
   resolved_net_price: number;
-  price_source: "selling_price" | "purchase_price";
+  price_source: "monthly_coefficient" | "selling_price" | "purchase_price";
 }
 
 interface PayloadResponse {
