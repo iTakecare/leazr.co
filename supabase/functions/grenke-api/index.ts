@@ -59,7 +59,8 @@ interface GrenkeRequest {
     | "upload_document"
     | "refresh_reference_data"
     | "build_offer_payload"
-    | "backfill_product_links";
+    | "backfill_product_links"
+    | "poll_grenke_statuses";
   environment?: Environment;
   // future fields (calculate, submit_offer, …) live under `payload`
   payload?: Record<string, unknown>;
@@ -91,6 +92,23 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // ---------- cron path (no user auth) ----------
+    // The status poller is invoked by pg_cron with an X-Cron-Secret header
+    // instead of a user Bearer token. It runs as service-role across all
+    // companies that have Grenke configured. We peek the body to detect it.
+    const rawBody = await req.text();
+    let earlyBody: GrenkeRequest = {} as GrenkeRequest;
+    try { earlyBody = JSON.parse(rawBody) as GrenkeRequest; } catch { /* */ }
+
+    if (earlyBody.action === "poll_grenke_statuses") {
+      const cronSecret = Deno.env.get("GRENKE_CRON_SECRET");
+      const provided = req.headers.get("X-Cron-Secret");
+      if (!cronSecret || provided !== cronSecret) {
+        return jsonResponse({ success: false, error: "unauthorized_cron" }, 401);
+      }
+      return await handlePollGrenkeStatuses(adminSupabase);
+    }
+
     // ---------- auth ----------
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -118,9 +136,10 @@ serve(async (req) => {
     const companyId: string = profile.company_id;
 
     // ---------- request parsing ----------
+    // Body was already read as text (rawBody) for the cron peek. Reuse it.
     let body: GrenkeRequest;
     try {
-      body = (await req.json()) as GrenkeRequest;
+      body = JSON.parse(rawBody) as GrenkeRequest;
     } catch {
       return jsonResponse({ success: false, error: "invalid_json_body" }, 400);
     }
@@ -172,6 +191,9 @@ serve(async (req) => {
           (body.payload?.dry_run as boolean) ?? true,
         );
 
+      case "get_status":
+        return await handleGetStatus(adminSupabase, companyId, environment, creds, body.offer_id);
+
       case "submit_offer":
         return await handleSubmitOffer(
           adminSupabase,
@@ -182,7 +204,6 @@ serve(async (req) => {
           (body.payload?.force as boolean) ?? false,
         );
 
-      case "get_status":
       case "get_contract_doc":
       case "upload_document":
         return jsonResponse({
@@ -1229,6 +1250,149 @@ async function handleSubmitOffer(
     grenke_request_id: requestId,
     grenke_state: state,
     grenke_response: parsed,
+  }, 200);
+}
+
+// =====================================================================
+// get_status / poll_grenke_statuses — fetch the current Grenke state of a
+// submitted offer and persist it (+ map terminal-negative states to the
+// Leazr workflow). The Contracted → contract auto-creation is handled in a
+// dedicated step (see handleContractedOffer), kept separate because contract
+// creation is non-trivial and must stay idempotent.
+// =====================================================================
+
+const GRENKE_TERMINAL_STATES = new Set(["Contracted", "Declined", "Cancelled"]);
+
+type OfferStatusRow = {
+  id: string;
+  company_id: string;
+  grenke_financing_id: string | null;
+  grenke_environment: string | null;
+  grenke_state: string | null;
+  workflow_status: string | null;
+};
+
+// Fetch one offer's status from Grenke and persist grenke_state. Maps
+// Declined/Cancelled → leaser_rejected. Returns the new state.
+async function fetchAndPersistStatus(
+  adminSupabase: ReturnType<typeof createClient>,
+  environment: Environment,
+  creds: Credentials,
+  offer: OfferStatusRow,
+): Promise<{ state: string | null; workflowChanged: boolean; error?: string }> {
+  const financingId = offer.grenke_financing_id;
+  if (!financingId) return { state: null, workflowChanged: false, error: "no_financing_id" };
+
+  let response: Response;
+  try {
+    response = await grenkeFetch(environment, `/basic/v1/requests/${financingId}`, { method: "GET" }, creds);
+  } catch (e) {
+    return { state: null, workflowChanged: false, error: e instanceof Error ? e.message : String(e) };
+  }
+  const text = await response.text();
+  let parsed: unknown = text;
+  try { parsed = JSON.parse(text); } catch { /* keep raw */ }
+  if (!response.ok) {
+    return { state: null, workflowChanged: false, error: `HTTP ${response.status}: ${text.slice(0, 200)}` };
+  }
+
+  const state = (parsed as { State?: string })?.State ?? null;
+  const now = new Date().toISOString();
+  const update: Record<string, unknown> = {
+    grenke_state: state,
+    grenke_state_updated_at: now,
+  };
+
+  let workflowChanged = false;
+  if ((state === "Declined" || state === "Cancelled") && offer.workflow_status !== "leaser_rejected") {
+    update.workflow_status = "leaser_rejected";
+    workflowChanged = true;
+  }
+  // NOTE: Contracted → contract creation is intentionally NOT done here yet.
+  // It's handled by handleContractedOffer (idempotent) in the next step.
+
+  await adminSupabase.from("offers").update(update).eq("id", offer.id);
+  return { state, workflowChanged };
+}
+
+async function handleGetStatus(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  offerId: string | undefined,
+): Promise<Response> {
+  if (!offerId) {
+    return jsonResponse({ success: false, error: "validation_error", message: "offer_id is required" }, 400);
+  }
+  const { data: offer, error } = await adminSupabase
+    .from("offers")
+    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (error) return jsonResponse({ success: false, error: "offer_lookup_failed", message: error.message }, 500);
+  if (!offer) return jsonResponse({ success: false, error: "offer_not_found" }, 404);
+  if ((offer as OfferStatusRow).company_id !== companyId) {
+    return jsonResponse({ success: false, error: "forbidden" }, 403);
+  }
+  if (!(offer as OfferStatusRow).grenke_financing_id) {
+    return jsonResponse({ success: false, error: "not_submitted", message: "Cette offre n'a pas encore été soumise à Grenke." }, 400);
+  }
+  const env = ((offer as OfferStatusRow).grenke_environment as Environment) || environment;
+  const res = await fetchAndPersistStatus(adminSupabase, env, creds, offer as OfferStatusRow);
+  if (res.error) {
+    return jsonResponse({ success: false, error: "grenke_status_failed", message: res.error }, 502);
+  }
+  return jsonResponse({
+    success: true,
+    offer_id: offerId,
+    grenke_state: res.state,
+    workflow_changed: res.workflowChanged,
+  }, 200);
+}
+
+// Cron entry point — polls every submitted offer still in a non-terminal
+// Grenke state, across all companies that have Grenke configured.
+async function handlePollGrenkeStatuses(
+  adminSupabase: ReturnType<typeof createClient>,
+): Promise<Response> {
+  const { data: offers, error } = await adminSupabase
+    .from("offers")
+    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status")
+    .not("grenke_financing_id", "is", null)
+    .not("grenke_state", "in", "(Contracted,Declined,Cancelled)")
+    .limit(200);
+  if (error) {
+    return jsonResponse({ success: false, error: "poll_lookup_failed", message: error.message }, 500);
+  }
+  const rows = (offers ?? []) as OfferStatusRow[];
+
+  const credsCache = new Map<string, Credentials | null>();
+  let polled = 0, changed = 0, errors = 0, skipped = 0;
+
+  for (const offer of rows) {
+    const env = ((offer.grenke_environment as Environment) || "production");
+    const cacheKey = `${offer.company_id}:${env}`;
+    let creds = credsCache.get(cacheKey);
+    if (creds === undefined) {
+      creds = await loadCredentials(adminSupabase, offer.company_id, env);
+      credsCache.set(cacheKey, creds);
+    }
+    if (!creds) { skipped++; continue; }
+    const res = await fetchAndPersistStatus(adminSupabase, env, creds, offer);
+    polled++;
+    if (res.error) errors++;
+    else if (res.workflowChanged) changed++;
+  }
+
+  return jsonResponse({
+    success: true,
+    candidates: rows.length,
+    polled,
+    changed,
+    errors,
+    skipped,
+    at: new Date().toISOString(),
   }, 200);
 }
 
