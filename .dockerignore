@@ -1,0 +1,23 @@
+# Keep the Docker build context tiny. Without this, `docker build` shipped
+# ~800MB (node_modules + .git + dist) on every deploy — the build-context
+# transfer alone took 7+ minutes on the VPS and blew past the SSH timeout.
+# The image builds its own deps (npm install) and output (npm run build)
+# inside the builder stage, so none of these are needed in the context.
+node_modules
+dist
+.git
+.github
+.claude
+.vscode
+ios
+android
+docs
+supabase
+coverage
+*.log
+.DS_Store
+.env
+.env.*
+npm-debug.log*
+.cache
+.idea
