@@ -20,6 +20,9 @@ interface GrenkeWorkflowPanelProps {
   offerId: string;
   leaserId: string | null | undefined;
   onRefresh?: () => void;
+  // Called after a successful Grenke submission so the workflow can advance to
+  // the "Introduit leaser" step in the same click (merging the two actions).
+  onSubmitted?: () => void | Promise<void>;
 }
 
 // Map a Grenke state to a French label + visual style.
@@ -58,7 +61,7 @@ function ToneIcon({ tone }: { tone: "pending" | "progress" | "ok" | "ko" }) {
   return <Send className="h-3.5 w-3.5" />;
 }
 
-export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh }: GrenkeWorkflowPanelProps) {
+export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSubmitted }: GrenkeWorkflowPanelProps) {
   const [state, setState] = useState<{
     grenke_state: string | null;
     grenke_financing_id: string | null;
@@ -172,7 +175,12 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh }: Gr
         <div className="ml-auto flex items-center gap-2">
           {!submitted && (
             // Submit flow lives in the payload preview modal (validates first).
-            <GrenkePayloadPreviewButton offerId={offerId} leaserId={leaserId} />
+            // On success we reload our own state AND advance the workflow step.
+            <GrenkePayloadPreviewButton
+              offerId={offerId}
+              leaserId={leaserId}
+              onSubmitted={async () => { await load(); await onSubmitted?.(); onRefresh?.(); }}
+            />
           )}
           {submitted && (
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="gap-1.5">

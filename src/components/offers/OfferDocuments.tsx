@@ -9,13 +9,17 @@ import { Check, X, Download, Trash2, MessageSquare, Mail, FileText, Eye } from '
 import { getOfferDocuments, updateDocumentStatus, deleteDocument, downloadDocument, rejectDocumentWithEmail, markDocumentsAsViewed, DOCUMENT_TYPES, type OfferDocument } from '@/services/offers/offerDocuments';
 import { toast } from 'sonner';
 import { PDFViewer } from '@/components/pdf/PDFViewer';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OfferDocumentsProps {
   offerId: string;
 }
 
+type ClientDoc = OfferDocument & { offer_ref?: string };
+
 const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
   const [documents, setDocuments] = useState<OfferDocument[]>([]);
+  const [clientDocs, setClientDocs] = useState<ClientDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingDoc, setUpdatingDoc] = useState<string | null>(null);
   const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
@@ -29,6 +33,7 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
 
   useEffect(() => {
     loadDocuments();
+    loadClientDocuments();
     // Marquer les documents comme consultés quand l'admin ouvre cet onglet
     markDocumentsAsViewed(offerId);
   }, [offerId]);
@@ -43,6 +48,37 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
       toast.error("Erreur lors du chargement des documents");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load the client's documents from their OTHER offers (read-only context).
+  const loadClientDocuments = async () => {
+    try {
+      const { data: offer } = await supabase.from('offers').select('client_id').eq('id', offerId).maybeSingle();
+      const clientId = (offer as { client_id?: string } | null)?.client_id;
+      if (!clientId) { setClientDocs([]); return; }
+
+      const { data: otherOffers } = await supabase
+        .from('offers')
+        .select('id, dossier_number')
+        .eq('client_id', clientId)
+        .neq('id', offerId);
+      const rows = (otherOffers ?? []) as Array<{ id: string; dossier_number: string | null }>;
+      if (rows.length === 0) { setClientDocs([]); return; }
+
+      const refByOffer = new Map(rows.map((o) => [o.id, o.dossier_number ?? o.id.slice(0, 8)]));
+      const { data: docs } = await supabase
+        .from('offer_documents')
+        .select('*')
+        .in('offer_id', rows.map((o) => o.id))
+        .order('uploaded_at', { ascending: false });
+
+      setClientDocs(((docs ?? []) as OfferDocument[]).map((d) => ({
+        ...d,
+        offer_ref: refByOffer.get((d as { offer_id: string }).offer_id) ?? undefined,
+      })));
+    } catch (e) {
+      console.error("Erreur chargement documents client:", e);
     }
   };
 
@@ -378,8 +414,50 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
             ))}
           </div>
         )}
+
+        {/* Documents du client provenant d'autres demandes (lecture seule) */}
+        {clientDocs.length > 0 && (
+          <div className="mt-6 pt-4 border-t">
+            <div className="flex items-center gap-2 mb-1">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Documents du client (autres demandes)</span>
+              <Badge variant="outline" className="text-xs">{clientDocs.length}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Documents déjà fournis par ce client sur d'autres dossiers.
+            </p>
+            <div className="space-y-2">
+              {clientDocs.map((doc) => (
+                <div key={doc.id} className="border rounded-lg p-3 flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <FileText className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="text-sm font-medium">{getDocumentTypeName(doc.document_type)}</span>
+                      {getStatusBadge(doc.status)}
+                      {doc.offer_ref && (
+                        <Badge variant="outline" className="text-[10px]">Dossier {doc.offer_ref}</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">{doc.file_name}</p>
+                    <p className="text-[11px] text-gray-400">
+                      Uploadé le {new Date(doc.uploaded_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Button variant="outline" size="sm" onClick={() => handleView(doc)} title="Visualiser">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDownload(doc)} title="Télécharger">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
-      
+
       {/* PDF Viewer Modal */}
       <PDFViewer
         isOpen={pdfViewerOpen}

@@ -28,6 +28,10 @@ const GRENKE_LEASER_UUID = "d60b86d7-a129-4a17-a877-e8e5caa66949";
 interface GrenkePayloadPreviewButtonProps {
   offerId: string;
   leaserId: string | null | undefined;
+  // Fired once the offer has been successfully submitted to Grenke. Lets the
+  // parent merge the workflow "introduce to leaser" transition into this single
+  // action (submitting to Grenke == introducing the dossier to the leaser).
+  onSubmitted?: () => void | Promise<void>;
 }
 
 interface PayloadWarning {
@@ -75,6 +79,7 @@ const ENTITY_TYPES_LABEL: Record<string, string> = {
 export default function GrenkePayloadPreviewButton({
   offerId,
   leaserId,
+  onSubmitted,
 }: GrenkePayloadPreviewButtonProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -222,6 +227,8 @@ export default function GrenkePayloadPreviewButton({
           </div>,
           { duration: 10000 },
         );
+        // Merge with the workflow: submitting to Grenke IS "introduce to leaser".
+        try { await onSubmitted?.(); } catch (cbErr) { console.error("[GrenkePayloadPreview] onSubmitted callback error:", cbErr); }
       } else {
         setSubmitResult({
           success: false,

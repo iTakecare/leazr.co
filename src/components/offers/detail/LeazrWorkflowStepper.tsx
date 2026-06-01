@@ -30,6 +30,9 @@ import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
 import { getOfferById } from "@/services/offerService";
 import GrenkeWorkflowPanel from "./GrenkeWorkflowPanel";
 
+// Grenke's row in the leasers table (same UUID used across the Grenke panels).
+const GRENKE_LEASER_UUID = "d60b86d7-a129-4a17-a877-e8e5caa66949";
+
 interface LeazrWorkflowStepperProps {
   currentStatus: string;
   offerId: string;
@@ -365,6 +368,38 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
 
   const currentIndex = getCurrentStepIndex();
   const nextStep = activeSteps[currentIndex + 1];
+  const isGrenkeOffer = offer?.leaser_id === GRENKE_LEASER_UUID;
+
+  // Merge "Vers Introduit leaser" + "Soumettre à Grenke" into one action:
+  // for a Grenke offer, the dossier is "introduced to the leaser" precisely by
+  // submitting it to Grenke. So we hide the manual transition button toward the
+  // "leaser_introduced" step and, on a successful Grenke submit, advance the
+  // workflow automatically (no extra confirm — the Grenke modal already did).
+  const hideNextStepForGrenke = isGrenkeOffer && nextStep?.key === 'leaser_introduced';
+
+  const advanceAfterGrenkeSubmit = async () => {
+    const idx = getCurrentStepIndex();
+    const next = activeSteps[idx + 1];
+    if (!next) { onRefresh?.(); return; }
+    try {
+      setUpdating(true);
+      const success = await updateOfferStatus(
+        offerId,
+        next.key,
+        currentStatus,
+        "Soumission à Grenke — dossier introduit au leaser",
+      );
+      if (success) {
+        onStatusChange?.(next.key);
+        toast.success(`Dossier soumis à Grenke — étape « ${next.label} »`);
+      }
+    } catch (e) {
+      console.error("Erreur avancement workflow après soumission Grenke:", e);
+    } finally {
+      setUpdating(false);
+      onRefresh?.();
+    }
+  };
   const workflowName = workflowTemplateId && templateSteps.length > 0 
     ? templateSteps[0]?.template_name || "Workflow personnalisé"
     : "Standard";
@@ -511,9 +546,11 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
                           </button>
                         )}
 
-                        {/* Next step button */}
-                        {nextStep && (
-                          <button 
+                        {/* Next step button — hidden for the Grenke-merged
+                            "Introduit leaser" transition: submitting to Grenke
+                            (button in the panel below) does this step in one go. */}
+                        {nextStep && !hideNextStepForGrenke && (
+                          <button
                             className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg border border-orange-200 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -524,6 +561,15 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
                             <span>Vers {nextStep.label}</span>
                             <ArrowRight className="w-3 h-3" />
                           </button>
+                        )}
+
+                        {/* Grenke-merged transition hint: the action lives in the
+                            Grenke panel below ("Soumettre à Grenke"). */}
+                        {nextStep && hideNextStepForGrenke && (
+                          <div className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg border border-blue-200">
+                            <Send className="w-3.5 h-3.5" />
+                            <span>« Soumettre à Grenke » ci-dessous introduit le dossier au leaser</span>
+                          </div>
                         )}
 
                         {/* If no next step - Final step indicator */}
@@ -594,6 +640,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
           offerId={offerId}
           leaserId={offer?.leaser_id}
           onRefresh={onRefresh}
+          onSubmitted={advanceAfterGrenkeSubmit}
         />
       </div>
 
