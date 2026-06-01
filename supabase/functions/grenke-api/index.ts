@@ -57,11 +57,13 @@ interface GrenkeRequest {
     | "get_status"
     | "get_contract_doc"
     | "upload_document"
-    | "refresh_reference_data";
+    | "refresh_reference_data"
+    | "build_offer_payload";
   environment?: Environment;
   // future fields (calculate, submit_offer, …) live under `payload`
   payload?: Record<string, unknown>;
   financing_id?: string;
+  offer_id?: string;
 }
 
 interface Credentials {
@@ -158,6 +160,9 @@ serve(async (req) => {
 
       case "refresh_reference_data":
         return await handleRefreshReferenceData(adminSupabase, companyId, environment, creds);
+
+      case "build_offer_payload":
+        return await handleBuildOfferPayload(adminSupabase, companyId, environment, body.offer_id);
 
       case "submit_offer":
       case "get_status":
@@ -495,4 +500,350 @@ async function handleRefreshReferenceData(
     refreshed_at: new Date().toISOString(),
   }, allOk ? 200 : 207); // 207 multi-status if partial
 }
+
+// =====================================================================
+// build_offer_payload — DRY RUN, no call to Grenke
+//
+// Loads a Leazr offer + its client + its equipment, applies the
+// per-company Leazr→Grenke mappings, and returns the FinancingRequest
+// payload that submit_offer WOULD send. Pure preview — the user
+// inspects what would be submitted before any real call.
+//
+// Validation is non-blocking: missing fields surface as 'warnings'
+// (one entry per problem) rather than as a 4xx error. The UI shows
+// the warnings prominently above the JSON.
+// =====================================================================
+
+interface GrenkeFinancingObject {
+  Quantity: number;
+  ObjectTypeId?: number;
+  Manufacturer: string;
+  NetPricePerObject: number;
+  Name: string;
+  SerialNumber?: string;
+  Details?: string;
+}
+
+interface GrenkeAddress {
+  Line1: string;
+  PostCode: string;
+  City: string;
+  Country: string;
+  Type: "Main" | "Billing" | "Delivery" | "Accountholder" | "Private";
+}
+
+interface GrenkeTelephone {
+  Number: string;
+  Type: "Phone" | "Mobile" | "Fax";
+}
+
+interface GrenkeLessee {
+  CompanyName: string;
+  ExternalId: string;
+  LegalFormId?: number;
+  FoundationDate?: string;
+  Email?: string;
+  Telephones?: GrenkeTelephone[];
+  Addresses: GrenkeAddress[];
+}
+
+interface GrenkeFinancingRequest {
+  FinancingAmount: number;
+  Period: number;
+  PaymentFrequency: "Quarterly" | "Monthly";
+  PaymentMethod?: "Invoice" | "DirectDebit";
+  Currency: string;
+  ProductType: string;
+  Lessee: GrenkeLessee;
+  FinancingObjects: GrenkeFinancingObject[];
+}
+
+interface PayloadWarning {
+  field: string;
+  message: string;
+}
+
+// Strip "BE" / "FR" / "LU" prefixes + non-digits from a VAT number.
+// Grenke wants the numeric/national identifier without the ISO prefix.
+function formatExternalId(vat: string | null, country: string | null): string {
+  if (!vat) return "";
+  const upper = vat.trim().toUpperCase().replace(/\s|\./g, "");
+  const c = (country ?? "").toUpperCase();
+  const prefix = c === "BE" || c === "FR" || c === "LU"
+    ? c
+    : (upper.startsWith("BE") || upper.startsWith("FR") || upper.startsWith("LU"))
+      ? upper.slice(0, 2)
+      : "";
+  return prefix && upper.startsWith(prefix) ? upper.slice(prefix.length) : upper;
+}
+
+// Minimal E.164 normalizer — Belgian-default to keep behaviour identical
+// to the helper in _shared/elevenlabs.ts. We duplicate (rather than import
+// across function boundaries) to keep the edge function self-contained.
+function normalizeBelgianPhone(input: string | null | undefined): string | null {
+  if (!input) return null;
+  let s = input.trim().replace(/[^\d+]/g, "");
+  if (s.startsWith("0032")) s = "+32" + s.slice(4);
+  else if (s.startsWith("00")) s = "+" + s.slice(2);
+  else if (s.startsWith("0")) s = "+32" + s.slice(1);
+  else if (!s.startsWith("+")) s = "+32" + s;
+  if (!/^\+\d{8,15}$/.test(s)) return null;
+  return s;
+}
+
+async function handleBuildOfferPayload(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  offerId: string | undefined,
+): Promise<Response> {
+  if (!offerId || typeof offerId !== "string") {
+    return jsonResponse({
+      success: false,
+      error: "validation_error",
+      message: "offer_id is required",
+    }, 400);
+  }
+
+  // ---------- 1. Load offer + verify ownership ----------
+  const { data: offer, error: offerErr } = await adminSupabase
+    .from("offers")
+    .select("id, company_id, client_id, financed_amount, duration, leaser_id, monthly_payment")
+    .eq("id", offerId)
+    .maybeSingle();
+
+  if (offerErr) {
+    console.error("[grenke-api] build_offer_payload: offer fetch failed", offerErr);
+    return jsonResponse({ success: false, error: "offer_lookup_failed", message: offerErr.message }, 500);
+  }
+  if (!offer) {
+    return jsonResponse({ success: false, error: "offer_not_found", message: `Offer ${offerId} not found` }, 404);
+  }
+  if (offer.company_id !== companyId) {
+    return jsonResponse({ success: false, error: "forbidden", message: "Offer belongs to a different company" }, 403);
+  }
+
+  // ---------- 2. Load client ----------
+  const { data: client, error: clientErr } = await adminSupabase
+    .from("clients")
+    .select(
+      "id, company, name, vat_number, entity_type, company_creation_date, email, phone, address, city, postal_code, country",
+    )
+    .eq("id", offer.client_id)
+    .maybeSingle();
+
+  if (clientErr) {
+    return jsonResponse({ success: false, error: "client_lookup_failed", message: clientErr.message }, 500);
+  }
+  if (!client) {
+    return jsonResponse({ success: false, error: "client_not_found", message: `Client ${offer.client_id} not found` }, 404);
+  }
+
+  // ---------- 3. Load equipment + products + brands ----------
+  const { data: equipment, error: equipErr } = await adminSupabase
+    .from("offer_equipment")
+    .select(`
+      id, title, quantity, purchase_price, category_id, serial_number, order_notes,
+      product_id,
+      products:product_id (
+        id, brand_name, brand_id
+      )
+    `)
+    .eq("offer_id", offerId)
+    .order("created_at");
+
+  if (equipErr) {
+    return jsonResponse({ success: false, error: "equipment_lookup_failed", message: equipErr.message }, 500);
+  }
+
+  // ---------- 4. Load mappings ----------
+  const { data: mappingRows } = await adminSupabase
+    .from("grenke_field_mappings")
+    .select("kind, leazr_key, grenke_value")
+    .eq("company_id", companyId);
+
+  const mappings: Record<string, Record<string, string>> = {
+    legal_form: {},
+    object_type: {},
+    manufacturer: {},
+  };
+  for (const row of (mappingRows ?? []) as Array<{ kind: string; leazr_key: string; grenke_value: string }>) {
+    if (row.kind in mappings) {
+      mappings[row.kind][row.leazr_key] = row.grenke_value;
+    }
+  }
+
+  // ---------- 5. Build the payload ----------
+  const warnings: PayloadWarning[] = [];
+
+  // --- Lessee ---
+  const legalFormRaw = mappings.legal_form[client.entity_type ?? ""];
+  let legalFormId: number | undefined;
+  if (legalFormRaw) {
+    const parsed = Number(legalFormRaw);
+    if (Number.isFinite(parsed)) legalFormId = parsed;
+  } else {
+    warnings.push({
+      field: "Lessee.LegalFormId",
+      message: client.entity_type
+        ? `entity_type "${client.entity_type}" n'est pas mappé. Voir Settings → Intégrations → Grenke → Mappings.`
+        : "entity_type du client est vide. Configurez-le sur la fiche client puis remappez.",
+    });
+  }
+
+  const externalId = formatExternalId(client.vat_number, client.country);
+  if (!externalId) {
+    warnings.push({
+      field: "Lessee.ExternalId",
+      message: "Le client n'a pas de numéro de TVA. Grenke exige le BCE/SIRET/RCS.",
+    });
+  }
+
+  const companyName = (client.company ?? client.name ?? "").trim();
+  if (!companyName) {
+    warnings.push({
+      field: "Lessee.CompanyName",
+      message: "Ni clients.company ni clients.name n'est renseigné.",
+    });
+  }
+
+  const phoneE164 = normalizeBelgianPhone(client.phone);
+  const telephones: GrenkeTelephone[] = phoneE164 ? [{ Number: phoneE164, Type: "Phone" }] : [];
+  if (!phoneE164 && client.phone) {
+    warnings.push({
+      field: "Lessee.Telephones",
+      message: `Le téléphone "${client.phone}" n'a pas pu être normalisé en E.164.`,
+    });
+  }
+
+  const addressLine1 = (client.address ?? "").trim();
+  if (!addressLine1) {
+    warnings.push({
+      field: "Lessee.Addresses[0].Line1",
+      message: "L'adresse du client est vide.",
+    });
+  }
+
+  const lessee: GrenkeLessee = {
+    CompanyName: companyName,
+    ExternalId: externalId,
+    LegalFormId: legalFormId,
+    FoundationDate: client.company_creation_date ?? undefined,
+    Email: client.email ?? undefined,
+    Telephones: telephones,
+    Addresses: [{
+      Line1: addressLine1,
+      PostCode: (client.postal_code ?? "").trim(),
+      City: (client.city ?? "").trim(),
+      Country: (client.country ?? "BE").toUpperCase(),
+      Type: "Main",
+    }],
+  };
+
+  // --- FinancingObjects ---
+  type EquipmentRow = {
+    id: string;
+    title: string;
+    quantity: number;
+    purchase_price: number;
+    category_id: string | null;
+    serial_number: string | null;
+    order_notes: string | null;
+    product_id: string | null;
+    products: { id: string; brand_name: string | null; brand_id: string | null } | null;
+  };
+
+  const financingObjects: GrenkeFinancingObject[] = [];
+  let computedTotal = 0;
+
+  for (const [idx, raw] of ((equipment ?? []) as unknown as EquipmentRow[]).entries()) {
+    const eq = raw;
+    // ObjectTypeId
+    const objectTypeRaw = mappings.object_type[eq.category_id ?? ""];
+    let objectTypeId: number | undefined;
+    if (objectTypeRaw) {
+      const parsed = Number(objectTypeRaw);
+      if (Number.isFinite(parsed)) objectTypeId = parsed;
+    } else if (!eq.category_id) {
+      warnings.push({
+        field: `FinancingObjects[${idx}].ObjectTypeId`,
+        message: `L'équipement "${eq.title}" n'a pas de catégorie Leazr. Renseignez-la sur le produit ou directement sur la ligne d'équipement.`,
+      });
+    } else {
+      warnings.push({
+        field: `FinancingObjects[${idx}].ObjectTypeId`,
+        message: `La catégorie de "${eq.title}" n'est pas mappée. Voir Settings → Intégrations → Grenke → Mappings.`,
+      });
+    }
+
+    // Manufacturer (pass-through unless override)
+    let manufacturer = "Other";
+    const brandId = eq.products?.brand_id ?? null;
+    if (brandId && mappings.manufacturer[brandId]) {
+      manufacturer = mappings.manufacturer[brandId];
+    } else if (eq.products?.brand_name) {
+      manufacturer = eq.products.brand_name;
+    } else {
+      warnings.push({
+        field: `FinancingObjects[${idx}].Manufacturer`,
+        message: `Aucune marque trouvée pour "${eq.title}" — envoi de "Other" comme fallback.`,
+      });
+    }
+
+    const obj: GrenkeFinancingObject = {
+      Quantity: eq.quantity,
+      ObjectTypeId: objectTypeId,
+      Manufacturer: manufacturer,
+      NetPricePerObject: eq.purchase_price,
+      Name: eq.title,
+    };
+    if (eq.serial_number) obj.SerialNumber = eq.serial_number;
+    if (eq.order_notes) obj.Details = eq.order_notes;
+
+    financingObjects.push(obj);
+    computedTotal += eq.quantity * eq.purchase_price;
+  }
+
+  if (financingObjects.length === 0) {
+    warnings.push({
+      field: "FinancingObjects",
+      message: "Aucun équipement sur cette offre.",
+    });
+  }
+
+  // Sanity check: Grenke requires FinancingAmount === Σ(Quantity * NetPricePerObject)
+  computedTotal = Math.round(computedTotal * 100) / 100;
+  const declaredAmount = Math.round((offer.financed_amount ?? 0) * 100) / 100;
+  if (computedTotal !== declaredAmount) {
+    warnings.push({
+      field: "FinancingAmount",
+      message: `Incohérence: FinancingAmount=${declaredAmount} mais Σ(quantity × purchase_price)=${computedTotal}. Grenke rejettera ce déséquilibre.`,
+    });
+  }
+
+  // --- Final payload ---
+  const payload: GrenkeFinancingRequest = {
+    FinancingAmount: declaredAmount,
+    Period: offer.duration ?? 36,
+    PaymentFrequency: "Quarterly",
+    PaymentMethod: "Invoice",
+    Currency: "EUR",
+    ProductType: "Rent",
+    Lessee: lessee,
+    FinancingObjects: financingObjects,
+  };
+
+  return jsonResponse({
+    success: warnings.length === 0,
+    environment,
+    offer_id: offerId,
+    payload,
+    warnings,
+    sums: {
+      computed_total: computedTotal,
+      declared_financing_amount: declaredAmount,
+    },
+  }, 200);
+}
+
 
