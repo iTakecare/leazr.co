@@ -696,7 +696,10 @@ interface GrenkeFinancingObject {
   ObjectTypeId?: number;
   Manufacturer: string;
   NetPricePerObject: number;
-  Name: string;
+  // "Name of Object Type" — an ALTERNATIVE to ObjectTypeId, NOT the product
+  // name. We always send ObjectTypeId, so Name is omitted. The product's own
+  // name/description goes in Details.
+  Name?: string;
   SerialNumber?: string;
   Details?: string;
 }
@@ -1171,10 +1174,14 @@ async function buildOfferPayloadCore(
       ObjectTypeId: objectTypeId,
       Manufacturer: manufacturer,
       NetPricePerObject: netPriceRounded,
-      Name: eq.title,
     };
     if (eq.serial_number) obj.SerialNumber = eq.serial_number;
-    if (eq.order_notes) obj.Details = eq.order_notes;
+    // The product's human-readable name + any order notes go in Details (free
+    // text). Name is reserved for the object-TYPE name and must stay unset when
+    // ObjectTypeId is supplied (else Grenke 400: "No Financing Object with
+    // Name '…' and ObjectType '…' is available").
+    const details = [eq.title, eq.order_notes].filter((s) => s && String(s).trim()).join(" — ");
+    if (details) obj.Details = details;
 
     financingObjects.push(obj);
     computedTotal += eq.quantity * netPriceRounded;
@@ -1227,7 +1234,9 @@ async function buildOfferPayloadCore(
     FinancingAmount: financingAmount,
     Period: offer.duration ?? 36,
     PaymentFrequency: "Quarterly",
-    PaymentMethod: "Invoice",
+    // iTakecare's Grenke BE profile only accepts DirectDebit (Grenke 400 on
+    // "Invoice": "Should be one of [DirectDebit]").
+    PaymentMethod: "DirectDebit",
     Currency: "EUR",
     ProductType: "Rent",
     Lessee: lessee,
