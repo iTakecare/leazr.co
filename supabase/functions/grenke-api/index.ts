@@ -173,6 +173,15 @@ serve(async (req) => {
         );
 
       case "submit_offer":
+        return await handleSubmitOffer(
+          adminSupabase,
+          companyId,
+          environment,
+          creds,
+          body.offer_id,
+          (body.payload?.force as boolean) ?? false,
+        );
+
       case "get_status":
       case "get_contract_doc":
       case "upload_document":
@@ -662,18 +671,28 @@ async function findCatalogProductByTitle(
   return rows[0];
 }
 
-async function handleBuildOfferPayload(
+// Result of the payload builder. ok=false carries an HTTP-ish status + error
+// so both the dry-run wrapper and submit_offer can react consistently.
+type BuildResult =
+  | { ok: false; status: number; error: string; message: string }
+  | {
+      ok: true;
+      payload: GrenkeFinancingRequest;
+      warnings: PayloadWarning[];
+      sums: { computed_total: number; declared_financing_amount: number };
+      equipment_debug: EquipmentDebug[];
+    };
+
+// Core builder — pure data in, structured result out. No Response. Reused by
+// handleBuildOfferPayload (dry-run preview) and handleSubmitOffer (real POST).
+async function buildOfferPayloadCore(
   adminSupabase: ReturnType<typeof createClient>,
   companyId: string,
-  environment: Environment,
+  _environment: Environment,
   offerId: string | undefined,
-): Promise<Response> {
+): Promise<BuildResult> {
   if (!offerId || typeof offerId !== "string") {
-    return jsonResponse({
-      success: false,
-      error: "validation_error",
-      message: "offer_id is required",
-    }, 400);
+    return { ok: false, status: 400, error: "validation_error", message: "offer_id is required" };
   }
 
   // ---------- 1. Load offer + verify ownership ----------
@@ -685,13 +704,13 @@ async function handleBuildOfferPayload(
 
   if (offerErr) {
     console.error("[grenke-api] build_offer_payload: offer fetch failed", offerErr);
-    return jsonResponse({ success: false, error: "offer_lookup_failed", message: offerErr.message }, 500);
+    return { ok: false, status: 500, error: "offer_lookup_failed", message: offerErr.message };
   }
   if (!offer) {
-    return jsonResponse({ success: false, error: "offer_not_found", message: `Offer ${offerId} not found` }, 404);
+    return { ok: false, status: 404, error: "offer_not_found", message: `Offer ${offerId} not found` };
   }
   if (offer.company_id !== companyId) {
-    return jsonResponse({ success: false, error: "forbidden", message: "Offer belongs to a different company" }, 403);
+    return { ok: false, status: 403, error: "forbidden", message: "Offer belongs to a different company" };
   }
 
   // ---------- 2. Load client ----------
@@ -711,10 +730,10 @@ async function handleBuildOfferPayload(
     .maybeSingle();
 
   if (clientErr) {
-    return jsonResponse({ success: false, error: "client_lookup_failed", message: clientErr.message }, 500);
+    return { ok: false, status: 500, error: "client_lookup_failed", message: clientErr.message };
   }
   if (!client) {
-    return jsonResponse({ success: false, error: "client_not_found", message: `Client ${offer.client_id} not found` }, 404);
+    return { ok: false, status: 404, error: "client_not_found", message: `Client ${offer.client_id} not found` };
   }
 
   // ---------- 3. Load equipment + products + brands ----------
@@ -739,7 +758,7 @@ async function handleBuildOfferPayload(
     .order("created_at");
 
   if (equipErr) {
-    return jsonResponse({ success: false, error: "equipment_lookup_failed", message: equipErr.message }, 500);
+    return { ok: false, status: 500, error: "equipment_lookup_failed", message: equipErr.message };
   }
 
   // ---------- 4. Load mappings ----------
@@ -1048,10 +1067,8 @@ async function handleBuildOfferPayload(
     FinancingObjects: financingObjects,
   };
 
-  return jsonResponse({
-    success: warnings.length === 0,
-    environment,
-    offer_id: offerId,
+  return {
+    ok: true,
     payload,
     warnings,
     sums: {
@@ -1061,6 +1078,157 @@ async function handleBuildOfferPayload(
     // Debug — per-equipment resolution trace, useful in the modal to
     // explain why a brand/category came back as "Other" / unmapped.
     equipment_debug: equipmentDebug,
+  };
+}
+
+// Dry-run wrapper — builds the payload and returns it as an HTTP response.
+async function handleBuildOfferPayload(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  offerId: string | undefined,
+): Promise<Response> {
+  const result = await buildOfferPayloadCore(adminSupabase, companyId, environment, offerId);
+  if (!result.ok) {
+    return jsonResponse({ success: false, error: result.error, message: result.message }, result.status);
+  }
+  return jsonResponse({
+    success: result.warnings.length === 0,
+    environment,
+    offer_id: offerId,
+    payload: result.payload,
+    warnings: result.warnings,
+    sums: result.sums,
+    equipment_debug: result.equipment_debug,
+  }, 200);
+}
+
+// =====================================================================
+// submit_offer — POST /basic/v1/requests (REAL Grenke dossier creation)
+//
+// Guardrails:
+//   - Re-builds the payload SERVER-SIDE from the DB (never trusts a
+//     client-supplied payload — prevents amount/identity spoofing).
+//   - Refuses if the payload still has warnings (must be clean).
+//   - Refuses if the offer already has a grenke_financing_id, unless
+//     force=true (anti-double-submit / idempotency).
+//   - On success: persists grenke_financing_id / request_id / state /
+//     submitted_at / environment on the offer.
+//   - On Grenke error: persists grenke_last_error and returns it.
+// =====================================================================
+async function handleSubmitOffer(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  offerId: string | undefined,
+  force: boolean,
+): Promise<Response> {
+  if (!offerId) {
+    return jsonResponse({ success: false, error: "validation_error", message: "offer_id is required" }, 400);
+  }
+
+  // Anti-double-submit: check existing grenke linkage first.
+  const { data: existing, error: existErr } = await adminSupabase
+    .from("offers")
+    .select("id, company_id, grenke_financing_id, grenke_state")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (existErr) {
+    return jsonResponse({ success: false, error: "offer_lookup_failed", message: existErr.message }, 500);
+  }
+  if (!existing) {
+    return jsonResponse({ success: false, error: "offer_not_found", message: `Offer ${offerId} not found` }, 404);
+  }
+  if (existing.company_id !== companyId) {
+    return jsonResponse({ success: false, error: "forbidden", message: "Offer belongs to a different company" }, 403);
+  }
+  if (existing.grenke_financing_id && !force) {
+    return jsonResponse({
+      success: false,
+      error: "already_submitted",
+      message: `Cette offre a déjà été soumise à Grenke (financingId ${existing.grenke_financing_id}, état ${existing.grenke_state ?? "?"}). Utilisez force=true pour re-soumettre.`,
+      grenke_financing_id: existing.grenke_financing_id,
+      grenke_state: existing.grenke_state,
+    }, 409);
+  }
+
+  // Re-build the payload server-side.
+  const built = await buildOfferPayloadCore(adminSupabase, companyId, environment, offerId);
+  if (!built.ok) {
+    return jsonResponse({ success: false, error: built.error, message: built.message }, built.status);
+  }
+  if (built.warnings.length > 0) {
+    return jsonResponse({
+      success: false,
+      error: "payload_has_warnings",
+      message: "Le payload contient des avertissements — corrigez-les avant de soumettre.",
+      warnings: built.warnings,
+    }, 422);
+  }
+
+  // POST to Grenke.
+  let response: Response;
+  try {
+    response = await grenkeFetch(
+      environment,
+      "/basic/v1/requests",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(built.payload),
+      },
+      creds,
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await adminSupabase.from("offers").update({
+      grenke_last_error: { stage: "network", message: msg, at: new Date().toISOString() },
+    }).eq("id", offerId);
+    return jsonResponse({ success: false, error: "network_or_tls_error", message: msg }, 502);
+  }
+
+  const text = await response.text();
+  let parsed: unknown = text;
+  try { parsed = JSON.parse(text); } catch { /* keep raw */ }
+
+  if (!response.ok) {
+    await adminSupabase.from("offers").update({
+      grenke_last_error: { stage: "grenke", status: response.status, body: parsed, at: new Date().toISOString() },
+    }).eq("id", offerId);
+    return jsonResponse({
+      success: false,
+      error: "grenke_rejected",
+      status: response.status,
+      grenke_response: parsed,
+    }, response.status >= 500 ? 502 : response.status);
+  }
+
+  // Success — extract the identifiers Grenke returns.
+  const r = parsed as { FinancingId?: string; RequestId?: string; State?: string } | undefined;
+  const financingId = r?.FinancingId ?? null;
+  const requestId = r?.RequestId ?? null;
+  const state = r?.State ?? "RequestToGrenke";
+  const now = new Date().toISOString();
+
+  await adminSupabase.from("offers").update({
+    grenke_financing_id: financingId,
+    grenke_request_id: requestId,
+    grenke_state: state,
+    grenke_environment: environment,
+    grenke_submitted_at: now,
+    grenke_state_updated_at: now,
+    grenke_last_error: null,
+  }).eq("id", offerId);
+
+  return jsonResponse({
+    success: true,
+    environment,
+    offer_id: offerId,
+    grenke_financing_id: financingId,
+    grenke_request_id: requestId,
+    grenke_state: state,
+    grenke_response: parsed,
   }, 200);
 }
 

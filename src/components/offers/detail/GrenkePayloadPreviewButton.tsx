@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, ClipboardCopy, Eye, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle2, ClipboardCopy, Eye, RefreshCw, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -85,6 +85,13 @@ export default function GrenkePayloadPreviewButton({
   const [pendingFixes, setPendingFixes] = useState<Record<string, { category_id?: string; manufacturer?: string }>>({});
   const [savingFixes, setSavingFixes] = useState(false);
 
+  // Submit state (Phase 3b)
+  const [submitting, setSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState<
+    | null
+    | { success: boolean; grenke_financing_id?: string | null; grenke_state?: string; error?: string; message?: string; grenke_response?: unknown }
+  >(null);
+
   // Don't render at all if the offer isn't targeting Grenke. Keeps the offer
   // detail page clean for non-Grenke leasers.
   if (!leaserId || leaserId !== GRENKE_LEASER_UUID) {
@@ -149,7 +156,88 @@ export default function GrenkePayloadPreviewButton({
   const handleOpen = async () => {
     setOpen(true);
     setPendingFixes({});
+    setSubmitResult(null);
     await Promise.all([fetchPayload(), loadCategories()]);
+  };
+
+  // Phase 3b — REAL submission. Double-confirm with client + amount, then
+  // POST. The edge function re-builds the payload server-side and refuses
+  // if there are warnings or if already submitted.
+  const handleSubmit = async () => {
+    const payload = result?.payload as
+      | { Lessee?: { CompanyName?: string }; FinancingAmount?: number }
+      | undefined;
+    const company = payload?.Lessee?.CompanyName ?? "ce client";
+    const amount = payload?.FinancingAmount ?? 0;
+    const fmtAmount = new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(amount);
+
+    const ok = window.confirm(
+      `⚠️ SOUMISSION RÉELLE À GRENKE\n\n` +
+      `Vous allez créer un VRAI dossier de financement chez Grenke pour :\n\n` +
+      `  Client : ${company}\n` +
+      `  Montant : ${fmtAmount}\n` +
+      `  Durée : 36 mois · Rent · Quarterly\n\n` +
+      `Ceci n'est pas un test — un dossier sera créé dans le système Grenke.\n\n` +
+      `Confirmer la soumission ?`,
+    );
+    if (!ok) return;
+
+    try {
+      setSubmitting(true);
+      setSubmitResult(null);
+      const { data, error } = await supabase.functions.invoke("grenke-api", {
+        body: { action: "submit_offer", environment: "production", offer_id: offerId },
+      });
+      type SubmitBody = {
+        success?: boolean;
+        grenke_financing_id?: string | null;
+        grenke_state?: string;
+        error?: string;
+        message?: string;
+        warnings?: Array<{ field: string; message: string }>;
+        grenke_response?: unknown;
+      };
+      let body: SubmitBody | null = (data ?? null) as SubmitBody | null;
+      if (error) {
+        const ctx = (error as unknown as { context?: Response }).context;
+        if (ctx?.json) { try { body = await ctx.json(); } catch { /* */ } }
+      }
+      const r = body;
+
+      if (r?.success) {
+        setSubmitResult({
+          success: true,
+          grenke_financing_id: r.grenke_financing_id,
+          grenke_state: r.grenke_state,
+        });
+        toast.success(
+          <div>
+            <strong>Dossier créé chez Grenke ✅</strong>
+            <p className="text-sm mt-1">État : {r.grenke_state ?? "RequestToGrenke"}</p>
+          </div>,
+          { duration: 10000 },
+        );
+      } else {
+        setSubmitResult({
+          success: false,
+          error: r?.error,
+          message: r?.message,
+          grenke_response: r?.grenke_response,
+        });
+        toast.error(
+          <div>
+            <strong>Soumission échouée</strong>
+            <p className="text-sm mt-1">{r?.message ?? r?.error ?? "Erreur inconnue"}</p>
+          </div>,
+          { duration: 12000 },
+        );
+      }
+    } catch (e) {
+      console.error("[GrenkePayloadPreview] submit error:", e);
+      toast.error("Erreur inattendue pendant la soumission");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Persist the pending fixes to offer_equipment then re-fetch the payload.
@@ -344,16 +432,57 @@ export default function GrenkePayloadPreviewButton({
                 </Alert>
               )}
 
-              {/* Success banner (no warnings) */}
-              {result.success && result.payload && (
+              {/* Success banner (no warnings) + REAL submit button */}
+              {result.success && result.payload && !submitResult?.success && (
                 <Alert variant="default" className="border-green-500/30 bg-green-50/30">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <AlertTitle className="text-green-800">
                     Payload prêt à être soumis
                   </AlertTitle>
-                  <AlertDescription className="text-xs text-green-700">
-                    Aucun champ manquant. Quand on activera Phase 3b (submit
-                    réel), ce JSON sera envoyé tel quel à Grenke.
+                  <AlertDescription className="text-xs text-green-700 space-y-2">
+                    <p>Aucun champ manquant. Tu peux soumettre ce dossier à Grenke.</p>
+                    <Button
+                      size="sm"
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {submitting ? (
+                        <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5 mr-2" />
+                      )}
+                      Soumettre le dossier à Grenke
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Submission result */}
+              {submitResult?.success && (
+                <Alert variant="default" className="border-green-600/50 bg-green-100/40">
+                  <CheckCircle2 className="h-4 w-4 text-green-700" />
+                  <AlertTitle className="text-green-900">Dossier créé chez Grenke ✅</AlertTitle>
+                  <AlertDescription className="text-xs text-green-800 space-y-0.5">
+                    <div>État Grenke : <strong>{submitResult.grenke_state ?? "RequestToGrenke"}</strong></div>
+                    {submitResult.grenke_financing_id && (
+                      <div>Financing ID : <code className="bg-green-200/50 px-1 rounded">{submitResult.grenke_financing_id}</code></div>
+                    )}
+                    <p className="pt-1">Vérifie l'apparition du dossier dans ton portail Grenke.</p>
+                  </AlertDescription>
+                </Alert>
+              )}
+              {submitResult && !submitResult.success && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Soumission échouée — {submitResult.error}</AlertTitle>
+                  <AlertDescription className="text-xs space-y-1">
+                    <p>{submitResult.message}</p>
+                    {submitResult.grenke_response != null && (
+                      <pre className="rounded border bg-background/60 p-2 overflow-x-auto max-h-40">
+                        {JSON.stringify(submitResult.grenke_response, null, 2)}
+                      </pre>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
