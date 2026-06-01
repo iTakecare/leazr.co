@@ -912,6 +912,8 @@ async function buildOfferPayloadCore(
       id, title, quantity, purchase_price, selling_price, monthly_payment,
       category_id, serial_number, order_notes,
       product_id, grenke_manufacturer_override,
+      attributes:offer_equipment_attributes ( key, value ),
+      specifications:offer_equipment_specifications ( key, value ),
       products:product_id (
         id, brand_name, brand_id, category_id,
         brands:brand_id ( id, name, translation )
@@ -1044,6 +1046,8 @@ async function buildOfferPayloadCore(
     order_notes: string | null;
     product_id: string | null;
     grenke_manufacturer_override: string | null;
+    attributes: Array<{ key: string; value: string }> | null;
+    specifications: Array<{ key: string; value: string }> | null;
     products: {
       id: string;
       brand_name: string | null;
@@ -1197,11 +1201,20 @@ async function buildOfferPayloadCore(
       NetPricePerObject: netPriceRounded,
     };
     if (eq.serial_number) obj.SerialNumber = eq.serial_number;
-    // The product's human-readable name + any order notes go in Details (free
-    // text). Name is reserved for the object-TYPE name and must stay unset when
-    // ObjectTypeId is supplied (else Grenke 400: "No Financing Object with
-    // Name '…' and ObjectType '…' is available").
-    const details = [eq.title, eq.order_notes].filter((s) => s && String(s).trim()).join(" — ");
+    // The product's human-readable name + its attributes/specs + any order notes
+    // go in Details (free text, Grenke's "détails du bien"). Name is reserved for
+    // the object-TYPE name and must stay unset when ObjectTypeId is supplied
+    // (else Grenke 400: "No Financing Object with Name '…' and ObjectType '…'…").
+    const specPairs = [
+      ...((eq.attributes ?? []) as Array<{ key: string; value: string }>),
+      ...((eq.specifications ?? []) as Array<{ key: string; value: string }>),
+    ]
+      .filter((p) => p?.key && String(p.value ?? "").trim())
+      .map((p) => `${p.key}: ${p.value}`);
+    const specText = specPairs.join(" · ");
+    const details = [eq.title, specText, eq.order_notes]
+      .filter((s) => s && String(s).trim())
+      .join(" — ");
     if (details) obj.Details = details;
 
     financingObjects.push(obj);

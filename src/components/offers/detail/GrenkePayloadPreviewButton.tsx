@@ -427,7 +427,7 @@ export default function GrenkePayloadPreviewButton({
                   Lessee?: { CompanyName?: string; Email?: string };
                   FinancingAmount?: number;
                   Period?: number;
-                  FinancingObjects?: Array<{ Quantity: number; Name: string; Manufacturer: string }>;
+                  FinancingObjects?: Array<{ Quantity: number; Name?: string; Details?: string; Manufacturer: string }>;
                 };
                 const fmt = (n?: number) =>
                   new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(n ?? 0);
@@ -453,7 +453,9 @@ export default function GrenkePayloadPreviewButton({
                         <ul className="space-y-0.5 text-sm">
                           {p.FinancingObjects.map((o, i) => (
                             <li key={i} className="flex justify-between gap-3">
-                              <span>{o.Quantity > 1 ? `${o.Quantity}× ` : ""}{o.Name}</span>
+                              {/* The product label now lives in Details (Name is reserved
+                                  for the object-type). Fall back to Name for safety. */}
+                              <span><span className="tabular-nums text-muted-foreground">{o.Quantity}×</span> {o.Details || o.Name || "(équipement)"}</span>
                               <span className="text-muted-foreground text-xs whitespace-nowrap">{o.Manufacturer}</span>
                             </li>
                           ))}
