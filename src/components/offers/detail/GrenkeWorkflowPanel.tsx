@@ -11,6 +11,7 @@ import { RefreshCw, Send, CheckCircle2, XCircle, Clock, AlertTriangle } from "lu
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GrenkePayloadPreviewButton from "./GrenkePayloadPreviewButton";
+import { updateOfferStatus } from "@/services/offers/offerStatus";
 
 const GRENKE_LEASER_UUID = "d60b86d7-a129-4a17-a877-e8e5caa66949";
 
@@ -63,20 +64,51 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh }: Gr
     grenke_submitted_at: string | null;
     grenke_state_updated_at: string | null;
     grenke_last_error: unknown;
+    workflow_status: string | null;
+    converted_to_contract: boolean | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
 
   const isGrenke = leaserId === GRENKE_LEASER_UUID;
 
   const load = async () => {
     const { data } = await supabase
       .from("offers")
-      .select("grenke_state, grenke_financing_id, grenke_submitted_at, grenke_state_updated_at, grenke_last_error")
+      .select("grenke_state, grenke_financing_id, grenke_submitted_at, grenke_state_updated_at, grenke_last_error, workflow_status, converted_to_contract")
       .eq("id", offerId)
       .maybeSingle();
     setState(data as never);
     setLoading(false);
+  };
+
+  // Phase 3c.2 — one-click finalize when Grenke has contracted. Reuses the
+  // existing, battle-tested updateOfferStatus → createContractFromOffer flow
+  // (setting a final status auto-creates the Leazr contract). We deliberately
+  // keep a human in the loop rather than auto-creating contracts unattended.
+  const handleFinalize = async () => {
+    const ok = window.confirm(
+      "Grenke a accepté le dossier (Contracted).\n\n" +
+      "Finaliser l'offre va créer le contrat Leazr correspondant.\n\nContinuer ?",
+    );
+    if (!ok) return;
+    try {
+      setFinalizing(true);
+      const success = await updateOfferStatus(offerId, "financed", state?.workflow_status ?? null);
+      if (success) {
+        toast.success("Offre finalisée — contrat créé.");
+        await load();
+        onRefresh?.();
+      } else {
+        toast.error("La finalisation a échoué.");
+      }
+    } catch (e) {
+      console.error("[GrenkeWorkflowPanel] finalize error:", e);
+      toast.error("Erreur inattendue pendant la finalisation");
+    } finally {
+      setFinalizing(false);
+    }
   };
 
   useEffect(() => {
@@ -145,6 +177,12 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh }: Gr
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="gap-1.5">
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
               Rafraîchir le statut
+            </Button>
+          )}
+          {grenkeState === "Contracted" && !state?.converted_to_contract && (
+            <Button size="sm" onClick={handleFinalize} disabled={finalizing} className="gap-1.5 bg-green-600 hover:bg-green-700 text-white">
+              {finalizing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              Finaliser → créer le contrat
             </Button>
           )}
         </div>
