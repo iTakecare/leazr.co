@@ -886,6 +886,7 @@ const CreateOffer = () => {
 
           return {
             id: eq.id,
+            productId: eq.productId, // link back to the catalog product (needed by Grenke + any product-aware feature)
             title: eq.title,
             purchasePrice: eq.purchasePrice,
             quantity: eq.quantity,
@@ -912,6 +913,7 @@ const CreateOffer = () => {
 
         return {
           id: eq.id,
+          productId: eq.productId, // link back to the catalog product (needed by Grenke + any product-aware feature)
           title: eq.title,
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
