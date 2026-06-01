@@ -1084,8 +1084,27 @@ async function handleBuildOfferPayload(
 // tier; multiple → ambiguous (reported, skipped).
 // =====================================================================
 
+// Normalize a product/equipment title for matching: lowercase, strip accents,
+// replace every non-alphanumeric char with a space, collapse whitespace.
+// This makes "MacBook Air 13" M1" and "Macbook Air 13 M1" compare equal.
 function normalizeTitle(s: string): string {
-  return s.toLowerCase().trim().replace(/\s+/g, " ");
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")        // strip diacritics
+    .replace(/[^a-z0-9]+/g, " ")            // non-alphanumeric → space
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+// Significant tokens of a normalized title (drop 1-char noise tokens).
+function titleTokens(norm: string): string[] {
+  return norm.split(" ").filter((t) => t.length >= 2);
+}
+
+// Is every token of `small` present in `big`'s token set? (order-independent)
+function tokensSubset(small: string[], big: Set<string>): boolean {
+  return small.length > 0 && small.every((t) => big.has(t));
 }
 
 async function handleBackfillProductLinks(
@@ -1102,7 +1121,10 @@ async function handleBackfillProductLinks(
     return jsonResponse({ success: false, error: "products_lookup_failed", message: prodErr.message }, 500);
   }
   const products = (productsRaw ?? []) as Array<{ id: string; name: string; category_id: string | null }>;
-  const normProducts = products.map((p) => ({ ...p, norm: normalizeTitle(p.name ?? "") }));
+  const normProducts = products.map((p) => {
+    const norm = normalizeTitle(p.name ?? "");
+    return { ...p, norm, tokens: new Set(titleTokens(norm)) };
+  });
 
   // 2. All offer_equipment rows with no product link, scoped to the company
   //    (join offers to get company_id).
@@ -1124,6 +1146,7 @@ async function handleBackfillProductLinks(
     total_unlinked: equipment.length,
     matched: 0,
     matched_with_category_set: 0,
+    category_only: 0, // ambiguous product but unanimous category → set category only
     ambiguous: 0,
     no_match: 0,
     skipped_short: 0,
@@ -1134,7 +1157,7 @@ async function handleBackfillProductLinks(
     },
   };
 
-  const updates: Array<{ id: string; product_id: string; category_id?: string }> = [];
+  const updates: Array<{ id: string; product_id?: string; category_id?: string }> = [];
 
   for (const eq of equipment) {
     const nt = normalizeTitle(eq.title ?? "");
@@ -1142,13 +1165,25 @@ async function handleBackfillProductLinks(
       report.skipped_short++;
       continue;
     }
+    const ntTokens = titleTokens(nt);
+    const ntTokenSet = new Set(ntTokens);
 
-    // Collect candidates with a tier.
+    // Collect candidates with a tier (lower = more confident):
+    //   1 exact normalized match
+    //   2 substring either direction
+    //   3 token-subset either direction (order-independent), ≥2 shared tokens
     const candidates: Array<{ p: typeof normProducts[number]; tier: number }> = [];
     for (const p of normProducts) {
       if (!p.norm) continue;
-      if (p.norm === nt) candidates.push({ p, tier: 1 });
-      else if (p.norm.includes(nt) || nt.includes(p.norm)) candidates.push({ p, tier: 2 });
+      if (p.norm === nt) { candidates.push({ p, tier: 1 }); continue; }
+      if (p.norm.includes(nt) || nt.includes(p.norm)) { candidates.push({ p, tier: 2 }); continue; }
+      // token-subset: all tokens of the shorter side present in the longer side
+      const pTokensArr = [...p.tokens];
+      if (pTokensArr.length >= 2 && ntTokens.length >= 2) {
+        if (tokensSubset(pTokensArr, ntTokenSet) || tokensSubset(ntTokens, p.tokens)) {
+          candidates.push({ p, tier: 3 });
+        }
+      }
     }
 
     if (candidates.length === 0) {
@@ -1160,33 +1195,42 @@ async function handleBackfillProductLinks(
     const bestTier = Math.min(...candidates.map((c) => c.tier));
     const best = candidates.filter((c) => c.tier === bestTier);
 
-    if (best.length > 1) {
-      // If every best-tier candidate shares the same category, it's just
-      // variants of the same model — still ambiguous for product_id, so skip.
-      report.ambiguous++;
-      if (report.samples.ambiguous.length < 15) {
-        report.samples.ambiguous.push({
-          title: eq.title,
-          candidates: best.slice(0, 5).map((c) => c.p.name),
-        });
+    if (best.length === 1) {
+      // Exactly one confident match → link product_id + fill category if empty.
+      const matched = best[0].p;
+      const update: { id: string; product_id?: string; category_id?: string } = {
+        id: eq.id,
+        product_id: matched.id,
+      };
+      if (!eq.category_id && matched.category_id) {
+        update.category_id = matched.category_id;
+        report.matched_with_category_set++;
+      }
+      updates.push(update);
+      report.matched++;
+      if (report.samples.matched.length < 15) {
+        report.samples.matched.push({ title: eq.title, product_name: matched.name });
       }
       continue;
     }
 
-    // Exactly one confident match.
-    const matched = best[0].p;
-    const update: { id: string; product_id: string; category_id?: string } = {
-      id: eq.id,
-      product_id: matched.id,
-    };
-    if (!eq.category_id && matched.category_id) {
-      update.category_id = matched.category_id;
-      report.matched_with_category_set++;
+    // Multiple best-tier candidates. If they ALL share the same category and
+    // the line has no category yet, we can at least set the category (which
+    // drives the Grenke ObjectType) even though the exact product is unclear.
+    const distinctCats = new Set(best.map((c) => c.p.category_id).filter(Boolean));
+    if (!eq.category_id && distinctCats.size === 1) {
+      const onlyCat = [...distinctCats][0] as string;
+      updates.push({ id: eq.id, category_id: onlyCat });
+      report.category_only++;
+      continue;
     }
-    updates.push(update);
-    report.matched++;
-    if (report.samples.matched.length < 15) {
-      report.samples.matched.push({ title: eq.title, product_name: matched.name });
+
+    report.ambiguous++;
+    if (report.samples.ambiguous.length < 15) {
+      report.samples.ambiguous.push({
+        title: eq.title,
+        candidates: best.slice(0, 5).map((c) => c.p.name),
+      });
     }
   }
 
@@ -1194,8 +1238,10 @@ async function handleBackfillProductLinks(
   let applied = 0;
   if (!dryRun) {
     for (const u of updates) {
-      const patch: Record<string, string> = { product_id: u.product_id };
+      const patch: Record<string, string> = {};
+      if (u.product_id) patch.product_id = u.product_id;
       if (u.category_id) patch.category_id = u.category_id;
+      if (Object.keys(patch).length === 0) continue;
       const { error } = await adminSupabase
         .from("offer_equipment")
         .update(patch)

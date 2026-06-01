@@ -108,6 +108,7 @@ export default function GrenkeIntegrationCard() {
           total_unlinked: number;
           matched: number;
           matched_with_category_set: number;
+          category_only?: number;
           ambiguous: number;
           no_match: number;
           skipped_short: number;
@@ -925,6 +926,12 @@ export default function GrenkeIntegrationCard() {
                     <span className="text-foreground tabular-nums">{backfillReport.report.matched}</span>
                     <span>↳ dont catégorie ajoutée :</span>
                     <span className="text-foreground tabular-nums">{backfillReport.report.matched_with_category_set}</span>
+                    {(backfillReport.report.category_only ?? 0) > 0 && (
+                      <>
+                        <span>🏷️ Catégorie seule (variantes) :</span>
+                        <span className="text-foreground tabular-nums">{backfillReport.report.category_only}</span>
+                      </>
+                    )}
                     <span>⚠ Ambiguës (plusieurs) :</span>
                     <span className="text-foreground tabular-nums">{backfillReport.report.ambiguous}</span>
                     <span>❌ Sans correspondance :</span>
