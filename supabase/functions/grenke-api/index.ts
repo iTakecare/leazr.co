@@ -1408,11 +1408,24 @@ async function handleSubmitOffer(
   // Success — extract the identifiers Grenke returns.
   const r = parsed as { FinancingId?: string; RequestId?: string; State?: string } | undefined;
   const financingId = r?.FinancingId ?? null;
-  const requestId = r?.RequestId ?? null;
+  let requestId = r?.RequestId ?? null;
   const state = r?.State ?? "RequestToGrenke";
   const now = new Date().toISOString();
 
-  await adminSupabase.from("offers").update({
+  // The human-readable partner request number (e.g. "180-33037") is Grenke's
+  // RequestId. If the POST response didn't echo it, fetch it via GET so we can
+  // store it as the leaser request number shown in Leazr.
+  if (!requestId && financingId) {
+    try {
+      const getResp = await grenkeFetch(environment, `/basic/v1/requests/${financingId}`, { method: "GET" }, creds);
+      if (getResp.ok) {
+        const gp = (await getResp.json().catch(() => null)) as { RequestId?: string } | null;
+        requestId = gp?.RequestId ?? null;
+      }
+    } catch { /* non-fatal — the poller will backfill it later */ }
+  }
+
+  const update: Record<string, unknown> = {
     grenke_financing_id: financingId,
     grenke_request_id: requestId,
     grenke_state: state,
@@ -1420,7 +1433,10 @@ async function handleSubmitOffer(
     grenke_submitted_at: now,
     grenke_state_updated_at: now,
     grenke_last_error: null,
-  }).eq("id", offerId);
+  };
+  // Mirror Grenke's RequestId into the user-facing "Numéro de demande leaseur".
+  if (requestId) update.leaser_request_number = requestId;
+  await adminSupabase.from("offers").update(update).eq("id", offerId);
 
   return jsonResponse({
     success: true,
@@ -1450,6 +1466,8 @@ type OfferStatusRow = {
   grenke_environment: string | null;
   grenke_state: string | null;
   workflow_status: string | null;
+  grenke_request_id: string | null;
+  leaser_request_number: string | null;
 };
 
 // Human-readable French label + notification copy for each Grenke state.
@@ -1496,11 +1514,20 @@ async function fetchAndPersistStatus(
   }
 
   const state = (parsed as { State?: string })?.State ?? null;
+  const requestId = (parsed as { RequestId?: string })?.RequestId ?? null;
   const now = new Date().toISOString();
   const update: Record<string, unknown> = {
     grenke_state: state,
     grenke_state_updated_at: now,
   };
+
+  // Backfill Grenke's human-readable request number (e.g. "180-33037"). Keep
+  // grenke_request_id in sync, and fill the user-facing leaser_request_number
+  // only when it's still empty (never clobber a manual edit).
+  if (requestId) {
+    if (offer.grenke_request_id !== requestId) update.grenke_request_id = requestId;
+    if (!offer.leaser_request_number) update.leaser_request_number = requestId;
+  }
 
   let workflowChanged = false;
   if ((state === "Declined" || state === "Cancelled") && offer.workflow_status !== "leaser_rejected") {
@@ -1545,7 +1572,7 @@ async function handleGetStatus(
   }
   const { data: offer, error } = await adminSupabase
     .from("offers")
-    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status")
+    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status, grenke_request_id, leaser_request_number")
     .eq("id", offerId)
     .maybeSingle();
   if (error) return jsonResponse({ success: false, error: "offer_lookup_failed", message: error.message }, 500);
@@ -1576,7 +1603,7 @@ async function handlePollGrenkeStatuses(
 ): Promise<Response> {
   const { data: offers, error } = await adminSupabase
     .from("offers")
-    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status")
+    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status, grenke_request_id, leaser_request_number")
     .not("grenke_financing_id", "is", null)
     .not("grenke_state", "in", "(Contracted,Declined,Cancelled)")
     .limit(200);
@@ -1662,7 +1689,7 @@ async function loadOfferForESign(
   if (!offerId) return { ok: false, status: 400, error: "validation_error", message: "offer_id is required" };
   const { data: offer, error } = await adminSupabase
     .from("offers")
-    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status")
+    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status, grenke_request_id, leaser_request_number")
     .eq("id", offerId)
     .maybeSingle();
   if (error) return { ok: false, status: 500, error: "offer_lookup_failed", message: error.message };
