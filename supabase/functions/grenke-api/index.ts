@@ -58,7 +58,8 @@ interface GrenkeRequest {
     | "get_contract_doc"
     | "upload_document"
     | "refresh_reference_data"
-    | "build_offer_payload";
+    | "build_offer_payload"
+    | "backfill_product_links";
   environment?: Environment;
   // future fields (calculate, submit_offer, …) live under `payload`
   payload?: Record<string, unknown>;
@@ -163,6 +164,13 @@ serve(async (req) => {
 
       case "build_offer_payload":
         return await handleBuildOfferPayload(adminSupabase, companyId, environment, body.offer_id);
+
+      case "backfill_product_links":
+        return await handleBackfillProductLinks(
+          adminSupabase,
+          companyId,
+          (body.payload?.dry_run as boolean) ?? true,
+        );
 
       case "submit_offer":
       case "get_status":
@@ -1053,6 +1061,155 @@ async function handleBuildOfferPayload(
     // Debug — per-equipment resolution trace, useful in the modal to
     // explain why a brand/category came back as "Other" / unmapped.
     equipment_debug: equipmentDebug,
+  }, 200);
+}
+
+// =====================================================================
+// backfill_product_links — repair offer_equipment.product_id on existing
+// offers by matching the line title against the company's catalog.
+//
+// Historically the admin offer builder dropped product_id during save
+// (fixed in CreateOffer.tsx). This backfills the gap on pre-existing
+// rows: for every offer_equipment with product_id IS NULL, find the
+// catalog product whose name matches the line title and set product_id
+// (+ category_id when the line has none).
+//
+// dry_run=true (default): report what WOULD change, no writes.
+// dry_run=false: apply the confident matches.
+//
+// Matching tiers (most → least confident):
+//   1. exact normalized name == title
+//   2. one side is a substring of the other
+// A match is only applied when there's exactly ONE product at the best
+// tier; multiple → ambiguous (reported, skipped).
+// =====================================================================
+
+function normalizeTitle(s: string): string {
+  return s.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+async function handleBackfillProductLinks(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  dryRun: boolean,
+): Promise<Response> {
+  // 1. All catalog products for the company
+  const { data: productsRaw, error: prodErr } = await adminSupabase
+    .from("products")
+    .select("id, name, category_id")
+    .eq("company_id", companyId);
+  if (prodErr) {
+    return jsonResponse({ success: false, error: "products_lookup_failed", message: prodErr.message }, 500);
+  }
+  const products = (productsRaw ?? []) as Array<{ id: string; name: string; category_id: string | null }>;
+  const normProducts = products.map((p) => ({ ...p, norm: normalizeTitle(p.name ?? "") }));
+
+  // 2. All offer_equipment rows with no product link, scoped to the company
+  //    (join offers to get company_id).
+  const { data: equipRaw, error: equipErr } = await adminSupabase
+    .from("offer_equipment")
+    .select("id, title, category_id, product_id, offers!inner(company_id)")
+    .is("product_id", null)
+    .eq("offers.company_id", companyId);
+  if (equipErr) {
+    return jsonResponse({ success: false, error: "equipment_lookup_failed", message: equipErr.message }, 500);
+  }
+  const equipment = (equipRaw ?? []) as unknown as Array<{
+    id: string;
+    title: string;
+    category_id: string | null;
+  }>;
+
+  const report = {
+    total_unlinked: equipment.length,
+    matched: 0,
+    matched_with_category_set: 0,
+    ambiguous: 0,
+    no_match: 0,
+    skipped_short: 0,
+    samples: {
+      matched: [] as Array<{ title: string; product_name: string }>,
+      ambiguous: [] as Array<{ title: string; candidates: string[] }>,
+      no_match: [] as string[],
+    },
+  };
+
+  const updates: Array<{ id: string; product_id: string; category_id?: string }> = [];
+
+  for (const eq of equipment) {
+    const nt = normalizeTitle(eq.title ?? "");
+    if (nt.length < 4) {
+      report.skipped_short++;
+      continue;
+    }
+
+    // Collect candidates with a tier.
+    const candidates: Array<{ p: typeof normProducts[number]; tier: number }> = [];
+    for (const p of normProducts) {
+      if (!p.norm) continue;
+      if (p.norm === nt) candidates.push({ p, tier: 1 });
+      else if (p.norm.includes(nt) || nt.includes(p.norm)) candidates.push({ p, tier: 2 });
+    }
+
+    if (candidates.length === 0) {
+      report.no_match++;
+      if (report.samples.no_match.length < 15) report.samples.no_match.push(eq.title);
+      continue;
+    }
+
+    const bestTier = Math.min(...candidates.map((c) => c.tier));
+    const best = candidates.filter((c) => c.tier === bestTier);
+
+    if (best.length > 1) {
+      // If every best-tier candidate shares the same category, it's just
+      // variants of the same model — still ambiguous for product_id, so skip.
+      report.ambiguous++;
+      if (report.samples.ambiguous.length < 15) {
+        report.samples.ambiguous.push({
+          title: eq.title,
+          candidates: best.slice(0, 5).map((c) => c.p.name),
+        });
+      }
+      continue;
+    }
+
+    // Exactly one confident match.
+    const matched = best[0].p;
+    const update: { id: string; product_id: string; category_id?: string } = {
+      id: eq.id,
+      product_id: matched.id,
+    };
+    if (!eq.category_id && matched.category_id) {
+      update.category_id = matched.category_id;
+      report.matched_with_category_set++;
+    }
+    updates.push(update);
+    report.matched++;
+    if (report.samples.matched.length < 15) {
+      report.samples.matched.push({ title: eq.title, product_name: matched.name });
+    }
+  }
+
+  // 3. Apply (unless dry run).
+  let applied = 0;
+  if (!dryRun) {
+    for (const u of updates) {
+      const patch: Record<string, string> = { product_id: u.product_id };
+      if (u.category_id) patch.category_id = u.category_id;
+      const { error } = await adminSupabase
+        .from("offer_equipment")
+        .update(patch)
+        .eq("id", u.id);
+      if (!error) applied++;
+      else console.error("[grenke-api] backfill update failed for", u.id, error.message);
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    dry_run: dryRun,
+    applied,
+    report,
   }, 200);
 }
 

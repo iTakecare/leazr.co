@@ -97,6 +97,29 @@ export default function GrenkeIntegrationCard() {
   >(null);
   const [refLastFetched, setRefLastFetched] = useState<{ legalforms?: string; objecttypes?: string; customslas?: string }>({});
 
+  // Phase 3a.2d — backfill product links state
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillReport, setBackfillReport] = useState<
+    | null
+    | {
+        dry_run: boolean;
+        applied: number;
+        report: {
+          total_unlinked: number;
+          matched: number;
+          matched_with_category_set: number;
+          ambiguous: number;
+          no_match: number;
+          skipped_short: number;
+          samples: {
+            matched: Array<{ title: string; product_name: string }>;
+            ambiguous: Array<{ title: string; candidates: string[] }>;
+            no_match: string[];
+          };
+        };
+      }
+  >(null);
+
   useEffect(() => {
     fetchStatus();
   }, []);
@@ -431,6 +454,52 @@ export default function GrenkeIntegrationCard() {
       toast.error("Erreur inattendue pendant le calcul");
     } finally {
       setCalcRunning(false);
+    }
+  };
+
+  // Phase 3a.2d — repair offer_equipment.product_id on existing offers.
+  const handleBackfill = async (dryRun: boolean) => {
+    if (!dryRun) {
+      const ok = window.confirm(
+        "Cela va écrire product_id (et la catégorie manquante) sur toutes les " +
+        "lignes d'équipement des offres existantes qui ont une correspondance " +
+        "catalogue sûre.\n\nContinuer ?",
+      );
+      if (!ok) return;
+    }
+    try {
+      setBackfilling(true);
+      const { data, error } = await supabase.functions.invoke("grenke-api", {
+        body: { action: "backfill_product_links", payload: { dry_run: dryRun } },
+      });
+      type BackfillResult = {
+        success?: boolean;
+        dry_run?: boolean;
+        applied?: number;
+        report?: NonNullable<typeof backfillReport>["report"];
+        message?: string;
+      };
+      let result: BackfillResult | null = (data ?? null) as BackfillResult | null;
+      if (error) {
+        const ctx = (error as unknown as { context?: Response }).context;
+        if (ctx?.json) { try { result = await ctx.json(); } catch { /* */ } }
+      }
+      const r = result;
+      if (!r?.report) {
+        toast.error(`Échec : ${r?.message ?? "réponse vide"}`);
+        return;
+      }
+      setBackfillReport({ dry_run: r.dry_run ?? dryRun, applied: r.applied ?? 0, report: r.report });
+      if (dryRun) {
+        toast.info(`Aperçu : ${r.report.matched} ligne(s) seraient liées sur ${r.report.total_unlinked} non liées.`);
+      } else {
+        toast.success(`${r.applied} ligne(s) corrigée(s).`);
+      }
+    } catch (e) {
+      console.error("[Grenke] backfill error:", e);
+      toast.error("Erreur inattendue pendant le backfill");
+    } finally {
+      setBackfilling(false);
     }
   };
 
@@ -807,6 +876,92 @@ export default function GrenkeIntegrationCard() {
 
             {/* Phase 3a.2a — Field mappings editor (legal forms / categories / brands) */}
             {companyId && <GrenkeFieldMappings companyId={companyId} />}
+
+            {/* Phase 3a.2d — Backfill product links on existing offers */}
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+              <div className="flex items-start gap-2">
+                <RefreshCw className="h-4 w-4 mt-0.5 text-blue-600" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium">Réparer les liens produits (offres existantes)</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Un ancien bug faisait perdre le lien équipement→produit sur les
+                    offres créées via le builder. Ceci recolle <code>product_id</code> +
+                    catégorie en cherchant chaque ligne dans le catalogue par titre.
+                    Lance d'abord l'aperçu, puis applique.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => handleBackfill(true)}
+                  disabled={backfilling}
+                >
+                  {backfilling ? <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> : null}
+                  Aperçu (dry-run)
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => handleBackfill(false)}
+                  disabled={backfilling || !backfillReport}
+                >
+                  Appliquer
+                </Button>
+              </div>
+
+              {backfillReport && (
+                <div className="text-xs space-y-1 pt-2 border-t border-border/50">
+                  <div className="font-medium">
+                    {backfillReport.dry_run ? "Aperçu" : `Appliqué — ${backfillReport.applied} ligne(s)`}
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
+                    <span>Lignes non liées :</span>
+                    <span className="text-foreground tabular-nums">{backfillReport.report.total_unlinked}</span>
+                    <span>✅ Liées (match sûr) :</span>
+                    <span className="text-foreground tabular-nums">{backfillReport.report.matched}</span>
+                    <span>↳ dont catégorie ajoutée :</span>
+                    <span className="text-foreground tabular-nums">{backfillReport.report.matched_with_category_set}</span>
+                    <span>⚠ Ambiguës (plusieurs) :</span>
+                    <span className="text-foreground tabular-nums">{backfillReport.report.ambiguous}</span>
+                    <span>❌ Sans correspondance :</span>
+                    <span className="text-foreground tabular-nums">{backfillReport.report.no_match}</span>
+                    {backfillReport.report.skipped_short > 0 && (
+                      <>
+                        <span>Titres trop courts ignorés :</span>
+                        <span className="text-foreground tabular-nums">{backfillReport.report.skipped_short}</span>
+                      </>
+                    )}
+                  </div>
+
+                  {backfillReport.report.samples.matched.length > 0 && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer">Exemples de correspondances</summary>
+                      <ul className="mt-1 space-y-0.5 pl-3">
+                        {backfillReport.report.samples.matched.map((m, i) => (
+                          <li key={i} className="text-muted-foreground">
+                            "{m.title}" → <span className="text-foreground">{m.product_name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                  {backfillReport.report.samples.no_match.length > 0 && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-amber-600">Sans correspondance (à vérifier)</summary>
+                      <ul className="mt-1 space-y-0.5 pl-3">
+                        {backfillReport.report.samples.no_match.map((t, i) => (
+                          <li key={i} className="text-muted-foreground">"{t}"</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              )}
+            </div>
           </>
         )}
       </CardContent>
