@@ -156,11 +156,13 @@ serve(async (req) => {
       case "calculate":
         return await handleCalculate(environment, creds, body.payload ?? {});
 
+      case "refresh_reference_data":
+        return await handleRefreshReferenceData(adminSupabase, companyId, environment, creds);
+
       case "submit_offer":
       case "get_status":
       case "get_contract_doc":
       case "upload_document":
-      case "refresh_reference_data":
         return jsonResponse({
           success: false,
           error: "not_implemented",
@@ -405,3 +407,92 @@ async function handleCalculate(
     input: body,
   }, response.status >= 500 ? 502 : response.status);
 }
+
+// =====================================================================
+// refresh_reference_data — GET /basic/v1/{legalforms,objecttypes,customslas}
+//
+// Pulls the 3 reference lists Grenke maintains per branch and caches them
+// per (company_id, environment, kind) in public.grenke_reference_data.
+// Idempotent. Safe to re-run any time.
+//
+// Why we cache: every offer payload references LegalFormId and
+// ObjectTypeId. We want the dropdown options without hitting Grenke for
+// every keystroke. A weekly refresh is enough; Grenke rarely adds rows.
+// =====================================================================
+
+type RefDataKind = "legalforms" | "objecttypes" | "customslas";
+
+const REF_DATA_ENDPOINTS: Record<RefDataKind, string> = {
+  legalforms: "/basic/v1/legalforms",
+  objecttypes: "/basic/v1/objecttypes",
+  customslas: "/basic/v1/customslas",
+};
+
+async function handleRefreshReferenceData(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+): Promise<Response> {
+  const results: Record<RefDataKind, { ok: boolean; count: number; error?: string }> = {
+    legalforms: { ok: false, count: 0 },
+    objecttypes: { ok: false, count: 0 },
+    customslas: { ok: false, count: 0 },
+  };
+
+  for (const kind of Object.keys(REF_DATA_ENDPOINTS) as RefDataKind[]) {
+    const path = REF_DATA_ENDPOINTS[kind];
+    try {
+      const response = await grenkeFetch(environment, path, { method: "GET" }, creds);
+      const text = await response.text();
+      let parsed: unknown;
+      try { parsed = JSON.parse(text); } catch { parsed = text; }
+
+      if (!response.ok) {
+        results[kind] = { ok: false, count: 0, error: `HTTP ${response.status}: ${text.slice(0, 200)}` };
+        continue;
+      }
+
+      // Normalize: legalforms + customslas return a bare array, objecttypes
+      // returns { Items: [...] }. We store the full original payload as-is
+      // (the UI can adapt) but compute the count from whichever shape.
+      const items = Array.isArray(parsed)
+        ? parsed
+        : (parsed as { Items?: unknown[] })?.Items ?? [];
+      const count = Array.isArray(items) ? items.length : 0;
+
+      // Upsert into grenke_reference_data
+      const { error: upsertErr } = await adminSupabase
+        .from("grenke_reference_data")
+        .upsert({
+          company_id: companyId,
+          environment,
+          kind,
+          payload: parsed,
+          fetched_at: new Date().toISOString(),
+        }, { onConflict: "company_id,environment,kind" });
+
+      if (upsertErr) {
+        results[kind] = { ok: false, count, error: `DB upsert failed: ${upsertErr.message}` };
+        continue;
+      }
+
+      results[kind] = { ok: true, count };
+    } catch (e) {
+      results[kind] = {
+        ok: false,
+        count: 0,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  }
+
+  const allOk = Object.values(results).every((r) => r.ok);
+  return jsonResponse({
+    success: allOk,
+    environment,
+    results,
+    refreshed_at: new Date().toISOString(),
+  }, allOk ? 200 : 207); // 207 multi-status if partial
+}
+

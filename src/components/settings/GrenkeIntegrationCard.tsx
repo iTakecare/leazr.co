@@ -82,6 +82,20 @@ export default function GrenkeIntegrationCard() {
       }
   >(null);
 
+  // Reference data refresh state (Phase 3a)
+  const [refSyncing, setRefSyncing] = useState(false);
+  const [refResult, setRefResult] = useState<
+    | null
+    | {
+        success: boolean;
+        legalforms: { ok: boolean; count: number; error?: string };
+        objecttypes: { ok: boolean; count: number; error?: string };
+        customslas: { ok: boolean; count: number; error?: string };
+        refreshed_at?: string;
+      }
+  >(null);
+  const [refLastFetched, setRefLastFetched] = useState<{ legalforms?: string; objecttypes?: string; customslas?: string }>({});
+
   useEffect(() => {
     fetchStatus();
   }, []);
@@ -115,10 +129,89 @@ export default function GrenkeIntegrationCard() {
       } else if (data) {
         setStatus(data as IntegrationStatus);
       }
+
+      // Load last-fetched timestamps for the 3 reference data kinds.
+      const { data: refRows } = await supabase
+        .from("grenke_reference_data")
+        .select("kind, fetched_at")
+        .eq("company_id", profile.company_id)
+        .eq("environment", "production");
+      if (refRows) {
+        const map: { legalforms?: string; objecttypes?: string; customslas?: string } = {};
+        for (const r of refRows as Array<{ kind: string; fetched_at: string }>) {
+          if (r.kind === "legalforms" || r.kind === "objecttypes" || r.kind === "customslas") {
+            map[r.kind] = r.fetched_at;
+          }
+        }
+        setRefLastFetched(map);
+      }
     } catch (e) {
       console.error("[Grenke] fetch error:", e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Phase 3a — Pull /legalforms /objecttypes /customslas from Grenke
+  // into the local grenke_reference_data cache. Read-only on Grenke side,
+  // safe to call any time.
+  const handleRefreshReferenceData = async () => {
+    try {
+      setRefSyncing(true);
+      setRefResult(null);
+
+      const { data, error } = await supabase.functions.invoke("grenke-api", {
+        body: { action: "refresh_reference_data", environment: "production" },
+      });
+
+      // Same context-reading trick as the other handlers for non-2xx bodies.
+      let result: Record<string, unknown> | null = data as never;
+      if (error) {
+        const ctx = (error as unknown as { context?: Response }).context;
+        if (ctx && typeof ctx.json === "function") {
+          try { result = await ctx.json(); } catch { /* fall through */ }
+        }
+      }
+
+      const r = result as {
+        success?: boolean;
+        results?: {
+          legalforms: { ok: boolean; count: number; error?: string };
+          objecttypes: { ok: boolean; count: number; error?: string };
+          customslas: { ok: boolean; count: number; error?: string };
+        };
+        refreshed_at?: string;
+        message?: string;
+        error?: string;
+      } | null;
+
+      if (!r?.results) {
+        toast.error(`Sync échouée : ${r?.message ?? r?.error ?? "réponse vide"}`);
+        return;
+      }
+
+      setRefResult({
+        success: !!r.success,
+        legalforms: r.results.legalforms,
+        objecttypes: r.results.objecttypes,
+        customslas: r.results.customslas,
+        refreshed_at: r.refreshed_at,
+      });
+
+      const total = r.results.legalforms.count + r.results.objecttypes.count + r.results.customslas.count;
+      if (r.success) {
+        toast.success(`Référentiels synchronisés (${total} entrées au total)`);
+      } else {
+        toast.warning("Synchronisation partielle — voir le détail dans la carte");
+      }
+
+      // Refresh timestamps from DB
+      await fetchStatus();
+    } catch (e) {
+      console.error("[Grenke] refresh reference data error:", e);
+      toast.error("Erreur inattendue pendant la sync");
+    } finally {
+      setRefSyncing(false);
     }
   };
 
@@ -653,6 +746,62 @@ export default function GrenkeIntegrationCard() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Phase 3a — Reference data sync */}
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+              <div className="flex items-start gap-2">
+                <RefreshCw className="h-4 w-4 mt-0.5 text-blue-600" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium">Données de référence Grenke</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Synchronise les listes Grenke (formes juridiques, types d'objets,
+                    SLA personnalisés) dans le cache local. À refaire ~1 fois par mois.
+                    100% read-only côté Grenke, zéro risque.
+                  </p>
+                </div>
+              </div>
+
+              {/* Per-kind status table */}
+              <div className="text-xs space-y-1">
+                {(["legalforms", "objecttypes", "customslas"] as const).map((kind) => {
+                  const lastFetched = refLastFetched[kind];
+                  const fresh = refResult?.[kind];
+                  return (
+                    <div key={kind} className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground capitalize">{kind === "legalforms" ? "Formes juridiques" : kind === "objecttypes" ? "Types d'objets" : "SLA personnalisés"} :</span>
+                      <span className="tabular-nums">
+                        {fresh ? (
+                          fresh.ok ? (
+                            <>✅ {fresh.count} entrée{fresh.count > 1 ? "s" : ""}</>
+                          ) : (
+                            <span className="text-destructive">❌ {fresh.error}</span>
+                          )
+                        ) : lastFetched ? (
+                          <span className="text-muted-foreground">Dernière sync : {formatDate(lastFetched)}</span>
+                        ) : (
+                          <span className="text-muted-foreground italic">Jamais synchronisé</span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full"
+                onClick={handleRefreshReferenceData}
+                disabled={refSyncing}
+              >
+                {refSyncing ? (
+                  <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                )}
+                Synchroniser les données de référence
+              </Button>
             </div>
           </>
         )}
