@@ -268,7 +268,11 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.grenke-api]
-verify_jwt = true
+# verify_jwt is false because the function does its own auth: user actions
+# validate the Bearer token via auth.getUser, and the cron poller authenticates
+# with the X-Cron-Secret header. This lets pg_cron call the poller without
+# embedding a service_role key in the DB.
+verify_jwt = false
 
 [functions.tulip-api]
 verify_jwt = true
