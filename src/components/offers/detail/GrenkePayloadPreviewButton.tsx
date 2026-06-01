@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, ClipboardCopy, Eye, RefreshCw, Send } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, RefreshCw, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -276,37 +276,24 @@ export default function GrenkePayloadPreviewButton({
     }
   };
 
-  const handleCopy = () => {
-    if (!result?.payload) return;
-    void navigator.clipboard.writeText(JSON.stringify(result.payload, null, 2));
-    toast.success("JSON copié dans le presse-papier");
-  };
 
   return (
     <>
       <Button
-        variant="outline"
         size="sm"
         onClick={handleOpen}
         className="gap-2"
       >
-        <Eye className="h-4 w-4" />
-        Voir le payload Grenke
+        <Send className="h-4 w-4" />
+        Soumettre à Grenke
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              Payload Grenke — Aperçu
-              <Badge variant="outline" className="text-xs">
-                Dry-run · aucune soumission
-              </Badge>
-            </DialogTitle>
+            <DialogTitle>Soumettre le dossier à Grenke</DialogTitle>
             <DialogDescription>
-              Ce JSON est exactement ce que <code className="text-xs">submit_offer</code> enverra
-              à <code className="text-xs">POST /basic/v1/requests</code>. Aucun appel n'est fait
-              ce stade — purement informatif.
+              Vérifiez le récapitulatif puis soumettez le dossier de financement.
             </DialogDescription>
           </DialogHeader>
 
@@ -464,11 +451,8 @@ export default function GrenkePayloadPreviewButton({
                   <CheckCircle2 className="h-4 w-4 text-green-700" />
                   <AlertTitle className="text-green-900">Dossier créé chez Grenke ✅</AlertTitle>
                   <AlertDescription className="text-xs text-green-800 space-y-0.5">
-                    <div>État Grenke : <strong>{submitResult.grenke_state ?? "RequestToGrenke"}</strong></div>
-                    {submitResult.grenke_financing_id && (
-                      <div>Financing ID : <code className="bg-green-200/50 px-1 rounded">{submitResult.grenke_financing_id}</code></div>
-                    )}
-                    <p className="pt-1">Vérifie l'apparition du dossier dans ton portail Grenke.</p>
+                    <div>Le dossier a été transmis à Grenke et est en cours de traitement.</div>
+                    <p className="pt-1 text-[11px]">Le suivi se met à jour automatiquement dans le workflow.</p>
                   </AlertDescription>
                 </Alert>
               )}
@@ -487,53 +471,42 @@ export default function GrenkePayloadPreviewButton({
                 </Alert>
               )}
 
-              {/* Sums sanity check. We always send Σ(lignes) as FinancingAmount,
-                  so a small rounding delta vs the declared offer amount is
-                  harmless — only flag a material gap (> 1 €). */}
-              {result.sums && (
-                <div className="rounded border bg-muted/30 p-3 text-xs space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">financed_amount de l'offre :</span>
-                    <span className="tabular-nums font-medium">
-                      {new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" })
-                        .format(result.sums.declared_financing_amount)}
-                    </span>
+              {/* Human-friendly recap (no JSON, no technical fields) */}
+              {result.payload != null && (() => {
+                const p = result.payload as {
+                  Lessee?: { CompanyName?: string; Email?: string };
+                  FinancingAmount?: number;
+                  Period?: number;
+                  FinancingObjects?: Array<{ Quantity: number; Name: string; Manufacturer: string }>;
+                };
+                const fmt = (n?: number) =>
+                  new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(n ?? 0);
+                return (
+                  <div className="rounded-lg border divide-y">
+                    <div className="p-3 grid grid-cols-2 gap-y-1.5 gap-x-4 text-sm">
+                      <span className="text-muted-foreground">Client</span>
+                      <span className="font-medium text-right">{p.Lessee?.CompanyName ?? "—"}</span>
+                      <span className="text-muted-foreground">Montant financé</span>
+                      <span className="font-medium text-right tabular-nums">{fmt(p.FinancingAmount)}</span>
+                      <span className="text-muted-foreground">Durée</span>
+                      <span className="font-medium text-right">{p.Period ?? 36} mois</span>
+                    </div>
+                    {p.FinancingObjects && p.FinancingObjects.length > 0 && (
+                      <div className="p-3">
+                        <div className="text-xs text-muted-foreground mb-1">Équipements</div>
+                        <ul className="space-y-0.5 text-sm">
+                          {p.FinancingObjects.map((o, i) => (
+                            <li key={i} className="flex justify-between gap-3">
+                              <span>{o.Quantity > 1 ? `${o.Quantity}× ` : ""}{o.Name}</span>
+                              <span className="text-muted-foreground text-xs whitespace-nowrap">{o.Manufacturer}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">FinancingAmount envoyé = Σ(lignes) :</span>
-                    <span className="tabular-nums font-medium">
-                      {new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" })
-                        .format(result.sums.computed_total)}
-                    </span>
-                  </div>
-                  {Math.abs(result.sums.computed_total - result.sums.declared_financing_amount) > 1 && (
-                    <p className="text-amber-600 text-[11px] mt-1">
-                      ⚠ Écart &gt; 1&nbsp;€ entre le montant de l'offre et la somme des lignes — vérifiez la pricing.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* JSON view */}
-              {result.payload != null && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium">JSON FinancingRequest</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleCopy}
-                      className="h-7 gap-1.5 text-xs"
-                    >
-                      <ClipboardCopy className="h-3.5 w-3.5" />
-                      Copier
-                    </Button>
-                  </div>
-                  <pre className="rounded border bg-muted/30 p-3 text-[11px] overflow-x-auto max-h-[400px] overflow-y-auto">
-                    {JSON.stringify(result.payload, null, 2)}
-                  </pre>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
         </DialogContent>

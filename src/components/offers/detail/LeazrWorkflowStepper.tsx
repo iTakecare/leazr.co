@@ -28,6 +28,7 @@ import type { OfferType } from "@/types/workflow";
 import EmailConfirmationModal from "../EmailConfirmationModal";
 import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
 import { getOfferById } from "@/services/offerService";
+import GrenkeWorkflowPanel from "./GrenkeWorkflowPanel";
 
 interface LeazrWorkflowStepperProps {
   currentStatus: string;
@@ -587,6 +588,13 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
             );
           })}
         </div>
+
+        {/* Grenke submission / status — inside the workflow card */}
+        <GrenkeWorkflowPanel
+          offerId={offerId}
+          leaserId={offer?.leaser_id}
+          onRefresh={onRefresh}
+        />
       </div>
 
       {/* Email Modal */}

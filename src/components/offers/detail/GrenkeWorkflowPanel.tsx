@@ -153,7 +153,7 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh }: Gr
     s ? new Date(s).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
   return (
-    <div className="rounded-lg border bg-muted/20 p-3 mb-4">
+    <div className="mt-2 pt-4 border-t border-border">
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Grenke</span>
