@@ -415,20 +415,21 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
           </div>
         )}
 
-        {/* Documents du client provenant d'autres demandes (lecture seule) */}
+        {/* Sous-carte "Documents existants" — documents déjà fournis par ce
+            client sur ses autres demandes / dossiers plus anciens (lecture seule). */}
         {clientDocs.length > 0 && (
-          <div className="mt-6 pt-4 border-t">
+          <div className="mt-6 rounded-xl border bg-muted/30 p-4">
             <div className="flex items-center gap-2 mb-1">
               <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Documents du client (autres demandes)</span>
+              <span className="text-sm font-semibold">Documents existants</span>
               <Badge variant="outline" className="text-xs">{clientDocs.length}</Badge>
             </div>
             <p className="text-xs text-muted-foreground mb-3">
-              Documents déjà fournis par ce client sur d'autres dossiers.
+              Documents déjà fournis par ce client sur d'autres demandes — réutilisables sans les redemander.
             </p>
             <div className="space-y-2">
               {clientDocs.map((doc) => (
-                <div key={doc.id} className="border rounded-lg p-3 flex items-start justify-between gap-3">
+                <div key={doc.id} className="border rounded-lg p-3 flex items-start justify-between gap-3 bg-background">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <FileText className="h-3.5 w-3.5 text-gray-400" />
