@@ -571,8 +571,9 @@ interface EquipmentDebug {
   equipment_id: string;
   title: string;
   product_id: string | null;
+  product_source: "linked" | "title_match" | "none";
   resolved_category_id: string | null;
-  category_source: "offer_equipment" | "product" | "none";
+  category_source: "offer_equipment" | "product" | "title_match" | "none";
   resolved_brand_id: string | null;
   brand_source: "override" | "mapping" | "products.brand_name" | "brands.translation" | "brands.name" | "none";
   resolved_manufacturer: string;
@@ -607,6 +608,50 @@ function normalizeBelgianPhone(input: string | null | undefined): string | null 
   else if (!s.startsWith("+")) s = "+32" + s;
   if (!/^\+\d{8,15}$/.test(s)) return null;
   return s;
+}
+
+interface MatchedProduct {
+  id: string;
+  name: string;
+  brand_id: string | null;
+  brand_name: string | null;
+  category_id: string | null;
+  brands: { id: string; name: string | null; translation: string | null } | null;
+}
+
+// Fallback resolution for equipment lines that aren't linked to a catalog
+// product (offer_equipment.product_id is null) — a very common legacy case.
+// We try to find a catalog product whose name CONTAINS the equipment title
+// (e.g. offer line "ProBook 460 G11" ↔ catalog "HP ProBook 460 G11"). If
+// exactly one or a clear best match is found, we borrow its brand + category.
+// Read-only: we never write product_id back here.
+async function findCatalogProductByTitle(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  title: string,
+): Promise<MatchedProduct | null> {
+  const clean = title.trim();
+  if (clean.length < 3) return null;
+  // Escape LIKE wildcards so a product name with % or _ can't broaden the match.
+  const escaped = clean.replace(/[\\%_]/g, (m) => "\\" + m);
+
+  const { data, error } = await adminSupabase
+    .from("products")
+    .select("id, name, brand_id, brand_name, category_id, brands:brand_id ( id, name, translation )")
+    .eq("company_id", companyId)
+    .ilike("name", `%${escaped}%`)
+    .limit(5);
+
+  if (error || !data || data.length === 0) return null;
+  const rows = data as unknown as MatchedProduct[];
+  if (rows.length === 1) return rows[0];
+  // Multiple hits (e.g. spec variants of the same model) — pick the name
+  // closest in length to the title. Variants share brand+category, so the
+  // exact pick doesn't matter for our purpose.
+  rows.sort(
+    (a, b) => Math.abs(a.name.length - clean.length) - Math.abs(b.name.length - clean.length),
+  );
+  return rows[0];
 }
 
 async function handleBuildOfferPayload(
@@ -824,17 +869,31 @@ async function handleBuildOfferPayload(
   for (const [idx, raw] of ((equipment ?? []) as unknown as EquipmentRow[]).entries()) {
     const eq = raw;
 
-    // Resolve category — prefer offer_equipment.category_id, fall back to
-    // the product's category (the catalog usually has it even when the
-    // offer-line was created without copying it).
+    // Resolve the effective catalog product. If the line is linked
+    // (product_id set), use the joined product. Otherwise try a title match
+    // against the catalog — covers the common case of a manually-named line
+    // ("ProBook 460 G11") that actually exists in the catalog under a fuller
+    // name ("HP ProBook 460 G11").
+    let effectiveProduct = eq.products;
+    let productSource: EquipmentDebug["product_source"] = eq.products ? "linked" : "none";
+    if (!effectiveProduct) {
+      const matched = await findCatalogProductByTitle(adminSupabase, companyId, eq.title);
+      if (matched) {
+        effectiveProduct = matched;
+        productSource = "title_match";
+      }
+    }
+
+    // Resolve category — offer_equipment.category_id, else the (possibly
+    // title-matched) product's category.
     let effectiveCategoryId: string | null = null;
     let categorySource: EquipmentDebug["category_source"] = "none";
     if (eq.category_id) {
       effectiveCategoryId = eq.category_id;
       categorySource = "offer_equipment";
-    } else if (eq.products?.category_id) {
-      effectiveCategoryId = eq.products.category_id;
-      categorySource = "product";
+    } else if (effectiveProduct?.category_id) {
+      effectiveCategoryId = effectiveProduct.category_id;
+      categorySource = productSource === "title_match" ? "title_match" : "product";
     }
 
     // ObjectTypeId from mapping
@@ -846,7 +905,7 @@ async function handleBuildOfferPayload(
     } else if (!effectiveCategoryId) {
       warnings.push({
         field: `FinancingObjects[${idx}].ObjectTypeId`,
-        message: `L'équipement "${eq.title}" n'a pas de catégorie (ni offer_equipment.category_id ni products.category_id).`,
+        message: `L'équipement "${eq.title}" n'a pas de catégorie (aucune ligne, produit ou correspondance catalogue).`,
         equipment_id: eq.id,
         fix_kind: "category",
       });
@@ -862,13 +921,13 @@ async function handleBuildOfferPayload(
     // Manufacturer resolution — highest priority first:
     //   1. grenke_manufacturer_override on the equipment line (set via modal)
     //   2. grenke_field_mappings (per-company brand override)
-    //   3. products.brand_name (denormalized cache)
-    //   4. brands.translation || brands.name (via brand_id join)
+    //   3. effectiveProduct.brand_name (denormalized cache)
+    //   4. effectiveProduct.brands.translation || .name (via brand_id join)
     //   5. fallback "Other" + warning
     let manufacturer = "Other";
     let manufacturerSource = "fallback";
-    const brandId = eq.products?.brand_id ?? null;
-    const brandRow = eq.products?.brands ?? null;
+    const brandId = effectiveProduct?.brand_id ?? null;
+    const brandRow = effectiveProduct?.brands ?? null;
 
     if (eq.grenke_manufacturer_override && eq.grenke_manufacturer_override.trim()) {
       manufacturer = eq.grenke_manufacturer_override.trim();
@@ -876,8 +935,8 @@ async function handleBuildOfferPayload(
     } else if (brandId && mappings.manufacturer[brandId]) {
       manufacturer = mappings.manufacturer[brandId];
       manufacturerSource = "mapping";
-    } else if (eq.products?.brand_name) {
-      manufacturer = eq.products.brand_name;
+    } else if (effectiveProduct?.brand_name) {
+      manufacturer = effectiveProduct.brand_name;
       manufacturerSource = "products.brand_name";
     } else if (brandRow?.translation) {
       manufacturer = brandRow.translation;
@@ -888,9 +947,9 @@ async function handleBuildOfferPayload(
     } else {
       warnings.push({
         field: `FinancingObjects[${idx}].Manufacturer`,
-        message: eq.product_id
-          ? `Aucune marque sur le produit catalogue lié à "${eq.title}". Ajoutez la marque dans le catalogue ou définissez une override.`
-          : `"${eq.title}" n'est lié à aucun produit catalogue (product_id null). Définissez une override de marque.`,
+        message: effectiveProduct
+          ? `Le produit catalogue lié à "${eq.title}" n'a pas de marque. Ajoutez-la dans le catalogue ou définissez une override.`
+          : `"${eq.title}" n'a aucune correspondance catalogue. Définissez une override de marque.`,
         equipment_id: eq.id,
         fix_kind: "manufacturer",
       });
@@ -930,6 +989,7 @@ async function handleBuildOfferPayload(
       equipment_id: eq.id,
       title: eq.title,
       product_id: eq.product_id,
+      product_source: productSource,
       resolved_category_id: effectiveCategoryId,
       category_source: categorySource,
       resolved_brand_id: brandId,
@@ -948,19 +1008,29 @@ async function handleBuildOfferPayload(
     });
   }
 
-  // Sanity check: Grenke requires FinancingAmount === Σ(Quantity * NetPricePerObject)
+  // Grenke validates FinancingAmount === Σ(Quantity × NetPricePerObject)
+  // EXACTLY. We therefore ALWAYS send the computed line-item sum, so the two
+  // can never disagree by a rounding cent. We compare against the offer's
+  // declared financed_amount only to decide whether to warn:
+  //   - small delta (≤ 1 EUR): pure rounding, send computedTotal silently.
+  //   - large delta (> 1 EUR): the offer pricing is genuinely out of sync,
+  //     keep a warning so the user investigates (but we still send the sum,
+  //     which is the only value Grenke will accept).
   computedTotal = Math.round(computedTotal * 100) / 100;
   const declaredAmount = Math.round((offer.financed_amount ?? 0) * 100) / 100;
-  if (computedTotal !== declaredAmount) {
+  const amountDelta = Math.round((computedTotal - declaredAmount) * 100) / 100;
+  const ROUNDING_TOLERANCE = 1.0;
+  if (Math.abs(amountDelta) > ROUNDING_TOLERANCE) {
     warnings.push({
       field: "FinancingAmount",
-      message: `Incohérence: FinancingAmount=${declaredAmount} mais Σ(quantity × purchase_price)=${computedTotal}. Grenke rejettera ce déséquilibre.`,
+      message: `Écart important: financed_amount=${declaredAmount} mais Σ(lignes)=${computedTotal} (Δ ${amountDelta}). On enverra ${computedTotal} à Grenke — vérifiez la pricing de l'offre.`,
     });
   }
+  const financingAmount = computedTotal;
 
   // --- Final payload ---
   const payload: GrenkeFinancingRequest = {
-    FinancingAmount: declaredAmount,
+    FinancingAmount: financingAmount,
     Period: offer.duration ?? 36,
     PaymentFrequency: "Quarterly",
     PaymentMethod: "Invoice",

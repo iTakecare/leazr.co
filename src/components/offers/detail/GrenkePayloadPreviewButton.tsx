@@ -41,8 +41,9 @@ interface EquipmentDebug {
   equipment_id: string;
   title: string;
   product_id: string | null;
+  product_source?: "linked" | "title_match" | "none";
   resolved_category_id: string | null;
-  category_source: "offer_equipment" | "product" | "none";
+  category_source: "offer_equipment" | "product" | "title_match" | "none";
   resolved_brand_id: string | null;
   brand_source: string;
   resolved_manufacturer: string;
@@ -357,26 +358,28 @@ export default function GrenkePayloadPreviewButton({
                 </Alert>
               )}
 
-              {/* Sums sanity check */}
+              {/* Sums sanity check. We always send Σ(lignes) as FinancingAmount,
+                  so a small rounding delta vs the declared offer amount is
+                  harmless — only flag a material gap (> 1 €). */}
               {result.sums && (
                 <div className="rounded border bg-muted/30 p-3 text-xs space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">FinancingAmount déclaré :</span>
+                    <span className="text-muted-foreground">financed_amount de l'offre :</span>
                     <span className="tabular-nums font-medium">
                       {new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" })
                         .format(result.sums.declared_financing_amount)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Σ (quantity × purchase_price) :</span>
+                    <span className="text-muted-foreground">FinancingAmount envoyé = Σ(lignes) :</span>
                     <span className="tabular-nums font-medium">
                       {new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" })
                         .format(result.sums.computed_total)}
                     </span>
                   </div>
-                  {Math.abs(result.sums.computed_total - result.sums.declared_financing_amount) > 0.01 && (
-                    <p className="text-destructive text-[11px] mt-1">
-                      ⚠ Grenke rejettera ce déséquilibre.
+                  {Math.abs(result.sums.computed_total - result.sums.declared_financing_amount) > 1 && (
+                    <p className="text-amber-600 text-[11px] mt-1">
+                      ⚠ Écart &gt; 1&nbsp;€ entre le montant de l'offre et la somme des lignes — vérifiez la pricing.
                     </p>
                   )}
                 </div>
