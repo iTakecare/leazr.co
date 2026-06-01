@@ -38,6 +38,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import GrenkeFieldMappings from "./GrenkeFieldMappings";
 
 type Environment = "uat" | "production";
 
@@ -803,6 +804,9 @@ export default function GrenkeIntegrationCard() {
                 Synchroniser les données de référence
               </Button>
             </div>
+
+            {/* Phase 3a.2a — Field mappings editor (legal forms / categories / brands) */}
+            {companyId && <GrenkeFieldMappings companyId={companyId} />}
           </>
         )}
       </CardContent>
