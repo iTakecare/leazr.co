@@ -33,7 +33,7 @@ import FinancialSection from "@/components/offers/detail/FinancialSection";
 import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
 import ExternalServicesSection from "@/components/offers/detail/ExternalServicesSection";
-import GrenkePayloadPreviewButton from "@/components/offers/detail/GrenkePayloadPreviewButton";
+import GrenkeWorkflowPanel from "@/components/offers/detail/GrenkeWorkflowPanel";
 import AddPromoProductsModal from "@/components/offers/detail/AddPromoProductsModal";
 import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
@@ -1112,9 +1112,6 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                       </span>
                     )}
                     
-                    {/* Phase 3a.2b — Preview the Grenke payload (only visible when leaser=Grenke) */}
-                    <GrenkePayloadPreviewButton offerId={offer.id} leaserId={offer.leaser_id} />
-
                     {/* Lien vers le contrat si existant */}
                     {offer.linkedContract && (
                       <Button
@@ -1147,6 +1144,12 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
               offer={offer}
             />
 
+            {/* Phase 3c — Grenke submission panel (badge + refresh + submit), only for Grenke offers */}
+            <GrenkeWorkflowPanel
+              offerId={offer.id}
+              leaserId={offer.leaser_id}
+              onRefresh={fetchOfferDetails}
+            />
 
             {/* Layout principal avec sidebar - structure flexible pour le scroll */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-0">
