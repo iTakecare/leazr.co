@@ -15,7 +15,11 @@
 | Production client certificate | ✅ Issued, in Vault + on VPS | Valid 2026-05-30 → 2028-05-29 |
 | `GET /echo` end-to-end | ✅ Confirmed | "Connexion Production OK" toast |
 | `POST /basic/v1/calculate` | ✅ Working (BE only) | Confirmed 2026-05-30 — requires `ProductType=Rent` + `PaymentFrequency=Quarterly` for iTakecare's BE contract |
-| `POST /basic/v1/requests` (submit) | ⏳ Not started | Phase 3 |
+| `build_offer_payload` (dry-run) | ✅ Working | Builds the full FinancingRequest JSON from a Leazr offer + warnings. Validated on a real offer (clean payload, no warnings). |
+| Leazr→Grenke field mappings | ✅ Live | `grenke_field_mappings` table + Settings editors (legal forms / categories / brands-override) |
+| Offer payload preview modal | ✅ Live | "Voir le payload Grenke" on admin offer detail + inline-fix for missing category/manufacturer |
+| product_id persistence | ✅ Fixed | CreateOffer.tsx was dropping it; fixed + `backfill_product_links` action repairs existing offers |
+| `POST /basic/v1/requests` (submit) | ⏳ Not started | **Phase 3b — creates REAL Grenke dossiers. Needs explicit go + guardrails.** |
 | UAT environment | ❌ Not set up | One Grenke API account = one env. To get UAT we have to ask Grenke to provision a **second**, separate API account (confirmed by Robin Quack 2026-05-26). |
 | Status polling cron | ⏳ Not started | Phase 3 |
 | Admin UI for offer submission | ⏳ Not started | Phase 3-4 |
