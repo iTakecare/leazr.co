@@ -624,11 +624,18 @@ async function handleBuildOfferPayload(
   }
 
   // ---------- 2. Load client ----------
+  // We pull BOTH the base address columns AND the billing_* variants. Empirically,
+  // billing_* is what the iTakecare admin UI displays as the authoritative
+  // address — the base columns sometimes contain legacy/corrupted data (e.g.
+  // an offer reference number stored in clients.city). Resolution order at
+  // payload build: billing_* first, base columns as fallback.
   const { data: client, error: clientErr } = await adminSupabase
     .from("clients")
-    .select(
-      "id, company, name, vat_number, entity_type, company_creation_date, email, phone, address, city, postal_code, country",
-    )
+    .select(`
+      id, company, name, vat_number, entity_type, company_creation_date, email, phone,
+      address, city, postal_code, country,
+      billing_address, billing_city, billing_postal_code, billing_country
+    `)
     .eq("id", offer.client_id)
     .maybeSingle();
 
@@ -640,13 +647,20 @@ async function handleBuildOfferPayload(
   }
 
   // ---------- 3. Load equipment + products + brands ----------
+  // selling_price = the price billed to the leaser (Grenke's NetPricePerObject).
+  // purchase_price = iTakecare's cost — NOT what Grenke wants in the
+  // FinancingAmount sum. We keep purchase_price too only as a last-resort
+  // fallback when selling_price is null.
+  // We also pull products.category_id as a fallback when offer_equipment
+  // doesn't have its own category set (common for items added via the catalog).
   const { data: equipment, error: equipErr } = await adminSupabase
     .from("offer_equipment")
     .select(`
-      id, title, quantity, purchase_price, category_id, serial_number, order_notes,
+      id, title, quantity, purchase_price, selling_price,
+      category_id, serial_number, order_notes,
       product_id,
       products:product_id (
-        id, brand_name, brand_id
+        id, brand_name, brand_id, category_id
       )
     `)
     .eq("offer_id", offerId)
@@ -716,11 +730,34 @@ async function handleBuildOfferPayload(
     });
   }
 
-  const addressLine1 = (client.address ?? "").trim();
+  // Pick the best address. iTakecare's admin UI shows billing_* as the
+  // authoritative address, and the base columns are sometimes corrupted
+  // (legacy data — e.g. clients.city contains an offer ref number on some
+  // ASBL records). Resolution: billing_* if non-empty, else base columns.
+  const pickAddr = (billing: string | null | undefined, base: string | null | undefined): string =>
+    ((billing ?? "").trim() || (base ?? "").trim());
+
+  const addressLine1 = pickAddr(client.billing_address, client.address);
+  const addressPostCode = pickAddr(client.billing_postal_code, client.postal_code);
+  const addressCity = pickAddr(client.billing_city, client.city);
+  const addressCountry = (pickAddr(client.billing_country, client.country) || "BE").toUpperCase();
+
   if (!addressLine1) {
     warnings.push({
       field: "Lessee.Addresses[0].Line1",
-      message: "L'adresse du client est vide.",
+      message: "L'adresse du client est vide (ni billing_address ni address).",
+    });
+  }
+  if (!addressCity) {
+    warnings.push({
+      field: "Lessee.Addresses[0].City",
+      message: "La ville du client est vide.",
+    });
+  }
+  if (!addressPostCode) {
+    warnings.push({
+      field: "Lessee.Addresses[0].PostCode",
+      message: "Le code postal du client est vide.",
     });
   }
 
@@ -733,9 +770,9 @@ async function handleBuildOfferPayload(
     Telephones: telephones,
     Addresses: [{
       Line1: addressLine1,
-      PostCode: (client.postal_code ?? "").trim(),
-      City: (client.city ?? "").trim(),
-      Country: (client.country ?? "BE").toUpperCase(),
+      PostCode: addressPostCode,
+      City: addressCity,
+      Country: addressCountry,
       Type: "Main",
     }],
   };
@@ -746,11 +783,17 @@ async function handleBuildOfferPayload(
     title: string;
     quantity: number;
     purchase_price: number;
+    selling_price: number | null;
     category_id: string | null;
     serial_number: string | null;
     order_notes: string | null;
     product_id: string | null;
-    products: { id: string; brand_name: string | null; brand_id: string | null } | null;
+    products: {
+      id: string;
+      brand_name: string | null;
+      brand_id: string | null;
+      category_id: string | null;
+    } | null;
   };
 
   const financingObjects: GrenkeFinancingObject[] = [];
@@ -758,16 +801,22 @@ async function handleBuildOfferPayload(
 
   for (const [idx, raw] of ((equipment ?? []) as unknown as EquipmentRow[]).entries()) {
     const eq = raw;
-    // ObjectTypeId
-    const objectTypeRaw = mappings.object_type[eq.category_id ?? ""];
+
+    // Resolve category — prefer offer_equipment.category_id, fall back to
+    // the product's category (the catalog usually has it even when the
+    // offer-line was created without copying it).
+    const effectiveCategoryId = eq.category_id ?? eq.products?.category_id ?? null;
+
+    // ObjectTypeId from mapping
+    const objectTypeRaw = effectiveCategoryId ? mappings.object_type[effectiveCategoryId] : undefined;
     let objectTypeId: number | undefined;
     if (objectTypeRaw) {
       const parsed = Number(objectTypeRaw);
       if (Number.isFinite(parsed)) objectTypeId = parsed;
-    } else if (!eq.category_id) {
+    } else if (!effectiveCategoryId) {
       warnings.push({
         field: `FinancingObjects[${idx}].ObjectTypeId`,
-        message: `L'équipement "${eq.title}" n'a pas de catégorie Leazr. Renseignez-la sur le produit ou directement sur la ligne d'équipement.`,
+        message: `L'équipement "${eq.title}" n'a pas de catégorie (ni offer_equipment.category_id ni products.category_id).`,
       });
     } else {
       warnings.push({
@@ -776,7 +825,7 @@ async function handleBuildOfferPayload(
       });
     }
 
-    // Manufacturer (pass-through unless override)
+    // Manufacturer (override → brand_name → fallback "Other")
     let manufacturer = "Other";
     const brandId = eq.products?.brand_id ?? null;
     if (brandId && mappings.manufacturer[brandId]) {
@@ -786,7 +835,20 @@ async function handleBuildOfferPayload(
     } else {
       warnings.push({
         field: `FinancingObjects[${idx}].Manufacturer`,
-        message: `Aucune marque trouvée pour "${eq.title}" — envoi de "Other" comme fallback.`,
+        message: `Aucune marque trouvée pour "${eq.title}" (offer_equipment.product_id manquant ou produit sans brand). Envoi de "Other" comme fallback.`,
+      });
+    }
+
+    // NetPricePerObject — the price billed to the leaser (NOT iTakecare's
+    // purchase cost). offer_equipment.selling_price is the canonical value.
+    // We fall back to purchase_price only if selling_price is null (which
+    // shouldn't happen on a properly priced offer).
+    let netPrice = eq.selling_price;
+    if (netPrice == null || netPrice <= 0) {
+      netPrice = eq.purchase_price;
+      warnings.push({
+        field: `FinancingObjects[${idx}].NetPricePerObject`,
+        message: `"${eq.title}" n'a pas de selling_price — fallback sur purchase_price (${eq.purchase_price}). Vérifiez la pricing de la ligne.`,
       });
     }
 
@@ -794,14 +856,14 @@ async function handleBuildOfferPayload(
       Quantity: eq.quantity,
       ObjectTypeId: objectTypeId,
       Manufacturer: manufacturer,
-      NetPricePerObject: eq.purchase_price,
+      NetPricePerObject: Math.round(netPrice * 100) / 100,
       Name: eq.title,
     };
     if (eq.serial_number) obj.SerialNumber = eq.serial_number;
     if (eq.order_notes) obj.Details = eq.order_notes;
 
     financingObjects.push(obj);
-    computedTotal += eq.quantity * eq.purchase_price;
+    computedTotal += eq.quantity * netPrice;
   }
 
   if (financingObjects.length === 0) {
