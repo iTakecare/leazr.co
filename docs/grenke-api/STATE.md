@@ -14,7 +14,7 @@
 | Settings UI card (cert paste + Test connection) | ✅ Live | `src/components/settings/GrenkeIntegrationCard.tsx` |
 | Production client certificate | ✅ Issued, in Vault + on VPS | Valid 2026-05-30 → 2028-05-29 |
 | `GET /echo` end-to-end | ✅ Confirmed | "Connexion Production OK" toast |
-| `POST /basic/v1/calculate` | 🟡 **Blocked at Grenke side** | Returns 500 "No condition list found" — Grenke business config pending |
+| `POST /basic/v1/calculate` | ✅ Working (BE only) | Confirmed 2026-05-30 — requires `ProductType=Rent` + `PaymentFrequency=Quarterly` for iTakecare's BE contract |
 | `POST /basic/v1/requests` (submit) | ⏳ Not started | Phase 3 |
 | UAT environment | ❌ Not set up | One Grenke API account = one env. To get UAT we have to ask Grenke to provision a **second**, separate API account (confirmed by Robin Quack 2026-05-26). |
 | Status polling cron | ⏳ Not started | Phase 3 |
@@ -230,29 +230,55 @@ ssh itcmdm-vps "docker restart deploy-traefik-1"
 
 ## 8. Outstanding blockers
 
-### 🟡 Grenke "condition list" not provisioned
+### ✅ Resolved 2026-05-30 — `/calculate` works for BE / Rent / Quarterly
 
-`POST /basic/v1/calculate` (and presumably `/requests`) returns:
+Initial calls returned 500 "No condition list found for the submitted
+parameters". After mailing Marius:
 
-```json
-{
-  "Message": "There is a problem with this User Account. Please contact your GRENKE representative.",
-  "StatusCode": 500,
-  "Details": "No condition list found for the submitted parameters",
-  "CorrelationId": "GRENKE-LeasingAPI-...+e36b5063-8ba7-412f-a197-2c0e65e3f664"
-}
-```
+- He confirmed iTakecare's BE account is provisioned for
+  `ProductType="Rent"` (NOT ClassicLease, which is what we initially
+  tried — based on the Swagger example).
+- The API explicitly rejects `PaymentFrequency="Monthly"` for Rent with
+  *"PaymentFrequency 'Monthly' is not available. Should be one of
+  [Quarterly]"* — billing must be quarterly. The instalment field is
+  still called `MonthlyTotalInstalment` (= monthly equivalent shown to
+  the lessee) but Grenke collects every 3 months.
 
-Tested all 5 product types × 2 frequencies × 2 methods = 20 combos. **Same
-error every time.** Conclusion: certificate / authentication is fine
-(otherwise we'd get 401), but Grenke hasn't yet set up the pricing /
-product / market grid for this account.
+Confirmed working values returned for `FinancingAmount=15000.0`:
 
-**Action**: mail to Marius (text drafted in chat 2026-05-30) requesting
-condition list setup for BE / FR / LU markets, ClassicLease.
+| Period | MonthlyTotalInstalment | Coefficient (monthly) |
+|--------|------------------------|-----------------------|
+| 18     | 936.00 €               | 6.24 %                |
+| 24     | 688.50 €               | 4.59 %                |
+| 36     | 472.50 €               | 3.15 %                |
+| 48     | 361.50 €               | 2.41 %                |
+| 60     | 295.50 €               | 1.97 %                |
 
-**Once unblocked**, edge function code is already in place — no work needed
-on our side beyond a smoke test.
+The 3.15 % at 36 months matches the coefficient iTakecare was already
+using locally — sanity check passes.
+
+Defaults in `handleCalculate` updated accordingly (commit pending).
+
+### 📌 Per-country certificate requirement
+
+Per Marius 2026-05-30: **each country (BE / FR / LU) requires its own
+client certificate**, because each is mapped to a different responsible
+Grenke salesperson. Today we have **BE only** — for FR or LU we'd need
+to:
+
+1. Identify the Grenke contact for that country.
+2. Get a new "Production" Developer Portal account (or a sub-account)
+   provisioned for that country.
+3. Generate a new CSR (different CN), upload via portal, retrieve cert.
+4. Store under a country-aware Vault name (e.g. `grenke_production_be_cert_<companyId>`,
+   `grenke_production_fr_cert_<companyId>`, …).
+5. Extend the nginx proxy to route by country (e.g. `/be/...`, `/fr/...`)
+   with a different `proxy_ssl_certificate` per location block, OR
+   spin up one proxy container per country.
+
+Today's edge function and UI are BE-only. Multi-country support is a
+future refactor — keep it in mind when wiring `calculate` into the
+offer flow so we can plug a country selector later.
 
 ### ⚠️ Vault extension on first DB push
 
@@ -287,3 +313,5 @@ error. Workaround: enable manually in Database → Extensions → `supabase_vaul
 | 2026-05-30 | Single proxy container, multi-tenant via vault names later | YAGNI — 1 tenant today (iTakecare), refactor when a 2nd shows up |
 | 2026-05-26 | Account `api@itakecare.be` upgraded from "Documentation" to "Production" | Robin Quack flipped the switch after our request mail. |
 | 2026-05-26 | UAT not provisioned by default; would require a separate account | Per Robin Quack — explicitly noted so we don't waste time looking for a UAT toggle on our existing account. |
+| 2026-05-30 | ProductType default = `Rent` (not ClassicLease) and PaymentFrequency = `Quarterly` (not Monthly) | Per Marius — iTakecare BE's account is only provisioned for this product/frequency combo. Other Grenke products on the menu (ClassicLease, AllIn, OfficeDirect…) would need separate contractual setup. |
+| 2026-05-30 | One certificate per country (BE / FR / LU) — multi-country = multi-cert architecture | Per Marius — each country has its own responsible Grenke salesperson and therefore its own API account + cert. |

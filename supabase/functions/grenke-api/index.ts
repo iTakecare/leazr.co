@@ -322,11 +322,21 @@ async function handleCalculate(
     }, 400);
   }
 
-  // Defaults that mirror iTakecare's standard offer — overridable via payload.
+  // Defaults that match iTakecare's Grenke BE contract — overridable via payload.
+  //   ProductType=Rent      → confirmed by Marius (Digital Sales Reseller Journey,
+  //                            grenke digital GmbH) on 2026-05-30. Other product
+  //                            types (ClassicLease, AllIn, etc.) are NOT enabled
+  //                            on this account.
+  //   PaymentFrequency=Quarterly → the API rejects 'Monthly' with
+  //                            'PaymentFrequency Monthly is not available.
+  //                             Should be one of [Quarterly]'. The instalment
+  //                            field is still called 'MonthlyTotalInstalment'
+  //                            (= monthly equivalent), but Grenke bills the
+  //                            lessee on a quarterly cadence.
   const body: CalculateInput = {
     Currency: "EUR",
-    ProductType: "ClassicLease",
-    PaymentFrequency: "Monthly",
+    ProductType: "Rent",
+    PaymentFrequency: "Quarterly",
     ...input,
   };
 
