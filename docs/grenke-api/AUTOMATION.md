@@ -127,6 +127,30 @@ status sync) can go `auto` early.
 - **A7** — Stage G: delivery-confirmation signature flow (net-new).
 - **A8** — Stage H: leasing invoice auto-generation + send to Grenke (toggle).
 
+## 6bis. Clarifications from the user (2026-06-01)
+
+- **IBAN**: for a Grenke contract the CLIENT enters their IBAN inside DocuSign,
+  NOT us. Whatever comes back is informational only. → no IBAN-collection UI to
+  build for the Grenke path.
+- **Signature order** (one DocuSign envelope): client signs the contract →
+  iTakecare signs as supplier (fournisseur) → client signs the delivery
+  confirmation (bon de livraison). Implemented: start_esignature sends
+  CustomerContractSignees + PartnerContractSignees + CustomerDeliveryConfirmationSignees
+  with UseDeliveryConfirmation=true.
+- **Delivery date**: ⚠️ the reference is the EFFECTIVE delivery date entered in
+  the Leazr contract, NOT the bon-de-livraison signature date (clients
+  sometimes sign the delivery confirmation before actually receiving the goods).
+  The invoice (step H) must use the contract's delivery_date.
+- **Notifications**: the team wants to be informed of EVERY signature/lifecycle
+  step. Implemented: the poller inserts an admin_notifications row on every
+  grenke_state change (RequestToGrenke / ReadyToSign / AwaitingCustomerSignature
+  / AwaitingPartnerSignature / AwaitingDeliveryConfirmation / Contracted / …).
+- **Invoice → Grenke**: by email via the existing send-leaser-documents
+  function.
+- **Auto-submit appetite**: 1-click "confirmer la soumission", then everything
+  else (signature send, status tracking, notifications, contract) chains
+  automatically.
+
 ## 7. Open questions for the user
 
 1. **Auto-submit (B)**: comfortable with the cron auto-submitting real dossiers

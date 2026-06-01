@@ -1280,6 +1280,25 @@ type OfferStatusRow = {
   workflow_status: string | null;
 };
 
+// Human-readable French label + notification copy for each Grenke state.
+// Used to notify the iTakecare team at every signature / lifecycle step.
+const GRENKE_STATE_NOTIFY: Record<string, { title: string; message: string }> = {
+  RequestToGrenke: { title: "Dossier soumis à Grenke", message: "Le dossier a été transmis à Grenke." },
+  MissingInfo: { title: "Grenke : infos manquantes", message: "Grenke demande des informations complémentaires." },
+  ApplicationReceived: { title: "Grenke : dossier en analyse", message: "Grenke a bien reçu et analyse le dossier." },
+  GuaranteeRequired: { title: "Grenke : garantie requise", message: "Grenke requiert une garantie pour ce dossier." },
+  ReadyToSign: { title: "Grenke : prêt à signer ✍️", message: "Le dossier est accepté — prêt à envoyer pour signature DocuSign." },
+  StartingESignature: { title: "Signature : démarrage", message: "L'e-signature DocuSign a démarré." },
+  AwaitingCustomerSignature: { title: "Signature : attente client", message: "En attente de la signature du contrat par le client." },
+  AwaitingPartnerSignature: { title: "Signature : attente fournisseur", message: "En attente de votre signature (fournisseur) sur le contrat." },
+  AwaitingSigningAppSignature: { title: "Signature : en cours", message: "Signature électronique en cours." },
+  AwaitingDeliveryConfirmation: { title: "Signature : bon de livraison", message: "En attente de la signature du bon de livraison par le client. ⚠️ La date de livraison de référence reste celle saisie dans le contrat Leazr." },
+  ContractPrinted: { title: "Contrat imprimé", message: "Le contrat a été imprimé côté Grenke." },
+  Contracted: { title: "Grenke : contrat actif ✅", message: "Grenke a contractualisé le dossier. Vous pouvez finaliser le contrat Leazr." },
+  Declined: { title: "Grenke : dossier refusé ❌", message: "Grenke a refusé le dossier." },
+  Cancelled: { title: "Grenke : dossier annulé", message: "Le dossier Grenke a été annulé." },
+};
+
 // Fetch one offer's status from Grenke and persist grenke_state. Maps
 // Declined/Cancelled → leaser_rejected. Returns the new state.
 async function fetchAndPersistStatus(
@@ -1317,9 +1336,28 @@ async function fetchAndPersistStatus(
     workflowChanged = true;
   }
   // NOTE: Contracted → contract creation is intentionally NOT done here yet.
-  // It's handled by handleContractedOffer (idempotent) in the next step.
+  // It's handled by the one-click finalize (UI) / future server port.
 
   await adminSupabase.from("offers").update(update).eq("id", offer.id);
+
+  // Notify the team on every state CHANGE (so each signature step is visible).
+  const stateChanged = state !== null && state !== offer.grenke_state;
+  if (stateChanged) {
+    const copy = GRENKE_STATE_NOTIFY[state] ?? { title: `Grenke : ${state}`, message: `Nouvel état Grenke : ${state}.` };
+    try {
+      await adminSupabase.from("admin_notifications").insert({
+        company_id: offer.company_id,
+        offer_id: offer.id,
+        type: "grenke_state",
+        title: copy.title,
+        message: copy.message,
+        metadata: { grenke_state: state, previous_state: offer.grenke_state },
+      });
+    } catch (e) {
+      console.warn("[grenke-api] admin_notification insert failed:", e instanceof Error ? e.message : String(e));
+    }
+  }
+
   return { state, workflowChanged };
 }
 
@@ -1543,7 +1581,10 @@ async function handleStartESignature(
     return jsonResponse({ success: false, error: "validation_error", message: "Signataire client incomplet (nom/prénom/email requis)." }, 400);
   }
   const partner = payload.partner as ESignSigner | undefined;
-  const useDeliveryConfirmation = (payload.use_delivery_confirmation as boolean) ?? false;
+  // Grenke's flow is: client signs the contract → iTakecare signs as supplier
+  // → client signs the delivery confirmation (bon de livraison). So delivery
+  // confirmation is ON by default.
+  const useDeliveryConfirmation = (payload.use_delivery_confirmation as boolean) ?? true;
 
   // --- 1. Generate the contract document (best-effort; 409 = already exists) ---
   try {
@@ -1567,8 +1608,14 @@ async function handleStartESignature(
     UseDeliveryConfirmation: useDeliveryConfirmation,
     CustomerContractSignees: [toGrenkeSignee(customer, 0)],
   };
+  // iTakecare signs as the supplier between the client's contract signature
+  // and the delivery confirmation.
   if (partner?.first_name && partner?.last_name && partner?.email) {
     esignBody.PartnerContractSignees = [toGrenkeSignee(partner, 0)];
+  }
+  // The client also signs the delivery confirmation (bon de livraison).
+  if (useDeliveryConfirmation) {
+    esignBody.CustomerDeliveryConfirmationSignees = [toGrenkeSignee(customer, 0)];
   }
 
   let response: Response;

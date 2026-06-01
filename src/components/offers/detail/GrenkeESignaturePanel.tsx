@@ -132,7 +132,9 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
     );
     if (!ok) return;
 
-    const needsPartner = (config?.config?.MinNumberOfPartnerSignees ?? 0) > 0;
+    // iTakecare always signs as the supplier (fournisseur) in Grenke's flow,
+    // so we always send the partner signee. The delivery confirmation (bon de
+    // livraison) is part of the same DocuSign envelope.
     try {
       setSending(true);
       const { data, error } = await supabase.functions.invoke("grenke-api", {
@@ -142,8 +144,8 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
           offer_id: offerId,
           payload: {
             customer: signer,
-            ...(needsPartner ? { partner } : {}),
-            use_delivery_confirmation: false,
+            partner,
+            use_delivery_confirmation: true,
           },
         },
       });
@@ -185,7 +187,6 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
 
   const pending = config?.documents_pending ?? [];
   const canSend = config?.can_send ?? false;
-  const needsPartner = (config?.config?.MinNumberOfPartnerSignees ?? 0) > 0;
 
   const field = (label: string, val: string, set: (v: string) => void, type = "text") => (
     <div className="space-y-0.5">
@@ -246,9 +247,9 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
         </div>
       )}
 
-      {/* Signer forms */}
-      {signerForm(signer, setSigner, "Signataire client")}
-      {needsPartner && signerForm(partner, setPartner, "Signataire partenaire (iTakecare)")}
+      {/* Signer forms — iTakecare (supplier) always signs in Grenke's flow. */}
+      {signerForm(signer, setSigner, "Signataire client (contrat + bon de livraison)")}
+      {signerForm(partner, setPartner, "Signataire fournisseur (iTakecare)")}
 
       <Button
         size="sm"
