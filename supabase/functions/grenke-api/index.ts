@@ -338,6 +338,30 @@ async function loadCredentials(
 // the actual cert+key are bind-mounted into the nginx container at
 // /opt/grenke-proxy/certs/ on itcmdm-vps. See docs/grenke-api/INTEGRATION.md.
 // =====================================================================
+// A thrown fetch error is a *pre-response* failure (TCP connect / DNS / TLS
+// handshake never completed) when the message looks like one of these. Such
+// failures provably never reached Grenke, so they are safe to retry even for a
+// non-idempotent POST (no risk of creating a duplicate financing dossier).
+function isConnectPhaseError(e: unknown): boolean {
+  const m = (e instanceof Error ? e.message : String(e)).toLowerCase();
+  return (
+    m.includes("tcp connect") ||
+    m.includes("(connect)") ||
+    m.includes("connection refused") ||
+    m.includes("connection timed out") ||
+    m.includes("connection reset") ||
+    m.includes("error trying to connect") ||
+    m.includes("dns error") ||
+    m.includes("os error 110")
+  );
+}
+
+// Per-attempt cap. Real Grenke responses are <6s in practice, so 25s is ample
+// headroom for a valid (even slow) call while keeping the worst case (3 dropped
+// attempts) comfortably under the edge-function wall-clock limit.
+const GRENKE_FETCH_TIMEOUT_MS = 25_000;
+const GRENKE_FETCH_MAX_ATTEMPTS = 3;
+
 async function grenkeFetch(
   environment: Environment,
   path: string,
@@ -354,13 +378,39 @@ async function grenkeFetch(
   }
 
   const url = GRENKE_PROXY_BASE + GRENKE_UPSTREAM_PATH[environment] + path;
-  console.log(`[grenke-api] grenkeFetch via proxy → ${init.method ?? "GET"} ${url}`);
+  const method = (init.method ?? "GET").toUpperCase();
+  const isIdempotent = method === "GET" || method === "HEAD";
 
   const headers = new Headers(init.headers);
   headers.set("X-Proxy-Secret", proxySecret);
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
 
-  return await fetch(url, { ...init, headers });
+  // Retry transient connection failures. The Supabase → VPS-proxy hop can drop
+  // the first SYN intermittently (Hostinger edge / rotating Supabase egress IPs
+  // being greylisted upstream). Retrying from the same isolate usually lands a
+  // moment later. We only ever return a real HTTP response (incl. 4xx/5xx) —
+  // those are never retried. For a POST we retry ONLY connect-phase throws, so
+  // we can never double-submit a financing request.
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= GRENKE_FETCH_MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), GRENKE_FETCH_TIMEOUT_MS);
+    try {
+      console.log(`[grenke-api] grenkeFetch via proxy → ${method} ${url} (attempt ${attempt}/${GRENKE_FETCH_MAX_ATTEMPTS})`);
+      const res = await fetch(url, { ...init, headers, signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (e) {
+      clearTimeout(timer);
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      const retryable = attempt < GRENKE_FETCH_MAX_ATTEMPTS && (isIdempotent || isConnectPhaseError(e));
+      console.warn(`[grenke-api] grenkeFetch attempt ${attempt} failed (${msg}); retryable=${retryable}`);
+      if (!retryable) break;
+      await new Promise((r) => setTimeout(r, 700 * attempt)); // 0.7s, 1.4s backoff
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 // =====================================================================
