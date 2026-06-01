@@ -109,6 +109,13 @@ jobs:
         run: |
           while IFS= read -r fn; do
             [ -z "$fn" ] && continue
+            # A function whose directory no longer exists was DELETED in this
+            # push — skip it (it can't be deployed, and delete is done out-of-band
+            # via `supabase functions delete`).
+            if [ ! -d "supabase/functions/$fn" ]; then
+              echo "Skipping deleted function: $fn"
+              continue
+            fi
             echo "::group::Deploying $fn"
             supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF"
             echo "::endgroup::"
