@@ -68,6 +68,10 @@ interface GrenkeRequest {
   payload?: Record<string, unknown>;
   financing_id?: string;
   offer_id?: string;
+  // Set by the grenke-automation orchestrator to drive a per-offer action
+  // server-to-server (X-Cron-Secret auth), deriving the company from the offer
+  // instead of a user token. Only a small allowlist of actions is permitted.
+  cron?: boolean;
 }
 
 interface Credentials {
@@ -109,6 +113,19 @@ serve(async (req) => {
         return jsonResponse({ success: false, error: "unauthorized_cron" }, 401);
       }
       return await handlePollGrenkeStatuses(adminSupabase);
+    }
+
+    // ---------- cron path: per-offer pipeline actions (no user auth) ----------
+    // The grenke-automation orchestrator drives submit / e-signature / status
+    // for one offer at a time, server-to-server. The company is derived from
+    // the offer row, and only this small allowlist of actions is reachable.
+    if (earlyBody.cron === true && CRON_OFFER_ACTIONS.has(earlyBody.action)) {
+      const cronSecret = Deno.env.get("GRENKE_CRON_SECRET");
+      const provided = req.headers.get("X-Cron-Secret");
+      if (!cronSecret || provided !== cronSecret) {
+        return jsonResponse({ success: false, error: "unauthorized_cron" }, 401);
+      }
+      return await handleCronOfferAction(adminSupabase, earlyBody);
     }
 
     // ---------- auth ----------
@@ -233,6 +250,62 @@ serve(async (req) => {
     }, 500);
   }
 });
+
+// Actions the grenke-automation orchestrator may drive per-offer via the
+// X-Cron-Secret (company derived from the offer, not a user token).
+const CRON_OFFER_ACTIONS = new Set<string>(["submit_offer", "start_esignature", "get_status"]);
+
+// =====================================================================
+// Cron-driven per-offer dispatch — resolves the company + environment from
+// the offer row, loads credentials, and calls the same battle-tested handler
+// the UI uses. Keeps all Grenke HTTP / proxy logic in this one function.
+// =====================================================================
+async function handleCronOfferAction(
+  adminSupabase: ReturnType<typeof createClient>,
+  body: GrenkeRequest,
+): Promise<Response> {
+  const offerId = body.offer_id;
+  if (!offerId) {
+    return jsonResponse({ success: false, error: "validation_error", message: "offer_id is required" }, 400);
+  }
+  const { data: offer, error } = await adminSupabase
+    .from("offers")
+    .select("company_id, grenke_environment")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (error) return jsonResponse({ success: false, error: "offer_lookup_failed", message: error.message }, 500);
+  if (!offer) return jsonResponse({ success: false, error: "offer_not_found" }, 404);
+
+  const companyId = (offer as { company_id: string }).company_id;
+  const environment: Environment =
+    ((offer as { grenke_environment?: string }).grenke_environment as Environment) ||
+    body.environment ||
+    "production";
+  if (!(environment in GRENKE_UPSTREAM_PATH)) {
+    return jsonResponse({ success: false, error: "invalid_environment" }, 400);
+  }
+
+  const creds = await loadCredentials(adminSupabase, companyId, environment);
+  if (!creds) {
+    return jsonResponse({ success: false, error: "credentials_missing", environment }, 412);
+  }
+
+  switch (body.action) {
+    case "submit_offer":
+      return await handleSubmitOffer(
+        adminSupabase, companyId, environment, creds, offerId,
+        (body.payload?.force as boolean) ?? false,
+      );
+    case "start_esignature":
+      return await handleStartESignature(
+        adminSupabase, companyId, environment, creds, offerId, body.payload ?? {},
+      );
+    case "get_status":
+      return await handleGetStatus(adminSupabase, companyId, environment, creds, offerId);
+    default:
+      return jsonResponse({ success: false, error: "unknown_cron_action", action: body.action }, 400);
+  }
+}
 
 // =====================================================================
 // Credentials — fetched server-side via SECURITY DEFINER RPC.

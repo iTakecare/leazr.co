@@ -980,48 +980,165 @@ export default function GrenkeIntegrationCard() {
   );
 }
 
-// Stage A — opt-in toggle for automatic ID-card collection on score A.
+// Opt-in toggles for the Grenke deal-lifecycle automation (Stages A → C).
+// Each stage is independent; B and C trigger real Grenke submissions / real
+// DocuSign envelopes, so they default OFF and carry a clear warning.
+interface AutomationSettingsRow {
+  auto_id_collection?: boolean;
+  auto_submit?: boolean;
+  auto_esignature?: boolean;
+  esign_partner_title?: string | null;
+  esign_partner_first_name?: string | null;
+  esign_partner_last_name?: string | null;
+  esign_partner_email?: string | null;
+  esign_partner_mobile?: string | null;
+}
+
+const PARTNER_TITLES = ["Mr", "Ms", "Miss", "Mrs", "Dr", "Prof"];
+
 function GrenkeAutomationToggle({ companyId }: { companyId: string }) {
-  const [enabled, setEnabled] = useState(false);
+  const [settings, setSettings] = useState<AutomationSettingsRow>({});
   const [saving, setSaving] = useState(false);
+  const [savingPartner, setSavingPartner] = useState(false);
 
   useEffect(() => {
     supabase
       .from("grenke_automation_settings")
-      .select("auto_id_collection")
+      .select("auto_id_collection, auto_submit, auto_esignature, esign_partner_title, esign_partner_first_name, esign_partner_last_name, esign_partner_email, esign_partner_mobile")
       .eq("company_id", companyId)
       .maybeSingle()
-      .then(({ data }) => setEnabled(!!(data as { auto_id_collection?: boolean } | null)?.auto_id_collection));
+      .then(({ data }) => setSettings((data as AutomationSettingsRow | null) ?? {}));
   }, [companyId]);
 
-  const toggle = async (value: boolean) => {
-    setEnabled(value);
+  const persist = async (patch: AutomationSettingsRow, okMsg: string) => {
+    const prev = settings;
+    setSettings((s) => ({ ...s, ...patch }));
     setSaving(true);
     const { error } = await supabase
       .from("grenke_automation_settings")
-      .upsert({ company_id: companyId, auto_id_collection: value, updated_at: new Date().toISOString() }, { onConflict: "company_id" });
+      .upsert({ company_id: companyId, ...patch, updated_at: new Date().toISOString() }, { onConflict: "company_id" });
     setSaving(false);
     if (error) {
-      setEnabled(!value);
+      setSettings(prev);
       toast.error("Erreur lors de l'enregistrement");
     } else {
-      toast.success(value ? "Collecte CI automatique activée" : "Collecte CI automatique désactivée");
+      toast.success(okMsg);
     }
   };
 
-  return (
-    <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <h4 className="text-sm font-medium">Automatisation</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Quand une offre Grenke atteint le score A, demander automatiquement la
-            carte d'identité au client (sauf client existant avec une CI valide déjà
-            au dossier).
-          </p>
-        </div>
-        <Switch checked={enabled} onCheckedChange={toggle} disabled={saving} />
+  const savePartner = async () => {
+    setSavingPartner(true);
+    const { error } = await supabase
+      .from("grenke_automation_settings")
+      .upsert({
+        company_id: companyId,
+        esign_partner_title: settings.esign_partner_title ?? "Mr",
+        esign_partner_first_name: settings.esign_partner_first_name ?? null,
+        esign_partner_last_name: settings.esign_partner_last_name ?? null,
+        esign_partner_email: settings.esign_partner_email ?? null,
+        esign_partner_mobile: settings.esign_partner_mobile ?? null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "company_id" });
+    setSavingPartner(false);
+    if (error) toast.error("Erreur lors de l'enregistrement du signataire");
+    else toast.success("Signataire fournisseur enregistré");
+  };
+
+  const row = (
+    title: string,
+    desc: React.ReactNode,
+    key: "auto_id_collection" | "auto_submit" | "auto_esignature",
+    okOn: string,
+    okOff: string,
+  ) => (
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex-1">
+        <h5 className="text-sm font-medium">{title}</h5>
+        <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
       </div>
+      <Switch
+        checked={!!settings[key]}
+        onCheckedChange={(v) => persist({ [key]: v }, v ? okOn : okOff)}
+        disabled={saving}
+      />
+    </div>
+  );
+
+  return (
+    <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+      <div>
+        <h4 className="text-sm font-medium">Automatisation du cycle Grenke</h4>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Une fois le client validé (score A), automatisez les étapes suivantes.
+          Chaque étape est indépendante et désactivée par défaut.
+        </p>
+      </div>
+
+      <Separator />
+
+      {row(
+        "1. Collecte de la carte d'identité",
+        "Quand une offre Grenke atteint le score A, demander automatiquement la carte d'identité au client (sauf client existant avec une CI valide déjà au dossier).",
+        "auto_id_collection",
+        "Collecte CI automatique activée",
+        "Collecte CI automatique désactivée",
+      )}
+
+      {row(
+        "2. Soumission automatique à Grenke",
+        <>Soumettre automatiquement le dossier score A à Grenke (équivaut à l'étape « Introduit leaser »). <span className="text-amber-600 font-medium">⚠️ Crée un vrai dossier de financement chez Grenke.</span></>,
+        "auto_submit",
+        "Soumission automatique activée",
+        "Soumission automatique désactivée",
+      )}
+
+      {row(
+        "3. Envoi automatique pour signature (DocuSign)",
+        <>Quand Grenke passe « Prêt à signer », lancer automatiquement la signature DocuSign (client + fournisseur + bon de livraison). <span className="text-amber-600 font-medium">⚠️ Envoie une vraie invitation DocuSign au client.</span></>,
+        "auto_esignature",
+        "E-signature automatique activée",
+        "E-signature automatique désactivée",
+      )}
+
+      {settings.auto_esignature && (
+        <div className="rounded-md border bg-background p-3 space-y-2">
+          <Label className="text-xs font-medium">Signataire fournisseur (iTakecare)</Label>
+          <p className="text-[11px] text-muted-foreground">
+            Utilisé comme signataire fournisseur dans la signature automatique. Si vide, un administrateur de la société est utilisé.
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="space-y-0.5">
+              <Label className="text-[10px] text-muted-foreground">Titre</Label>
+              <select
+                value={settings.esign_partner_title ?? "Mr"}
+                onChange={(e) => setSettings((s) => ({ ...s, esign_partner_title: e.target.value }))}
+                className="h-8 w-full text-xs rounded-md border border-input bg-background px-2"
+              >
+                {PARTNER_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="space-y-0.5">
+              <Label className="text-[10px] text-muted-foreground">Prénom</Label>
+              <Input className="h-8 text-xs" value={settings.esign_partner_first_name ?? ""} onChange={(e) => setSettings((s) => ({ ...s, esign_partner_first_name: e.target.value }))} />
+            </div>
+            <div className="space-y-0.5">
+              <Label className="text-[10px] text-muted-foreground">Nom</Label>
+              <Input className="h-8 text-xs" value={settings.esign_partner_last_name ?? ""} onChange={(e) => setSettings((s) => ({ ...s, esign_partner_last_name: e.target.value }))} />
+            </div>
+            <div className="space-y-0.5">
+              <Label className="text-[10px] text-muted-foreground">Mobile</Label>
+              <Input className="h-8 text-xs" value={settings.esign_partner_mobile ?? ""} onChange={(e) => setSettings((s) => ({ ...s, esign_partner_mobile: e.target.value }))} />
+            </div>
+          </div>
+          <div className="space-y-0.5">
+            <Label className="text-[10px] text-muted-foreground">Email</Label>
+            <Input type="email" className="h-8 text-xs" value={settings.esign_partner_email ?? ""} onChange={(e) => setSettings((s) => ({ ...s, esign_partner_email: e.target.value }))} />
+          </div>
+          <Button size="sm" variant="outline" onClick={savePartner} disabled={savingPartner} className="h-8">
+            {savingPartner ? "Enregistrement…" : "Enregistrer le signataire"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
