@@ -1159,18 +1159,25 @@ async function buildOfferPayloadCore(
       });
     }
 
+    // Round the per-object price to 2 decimals FIRST, then derive everything
+    // (the line we send AND our running total) from that same rounded value.
+    // Grenke recomputes Σ(Quantity × NetPricePerObject) from the rounded prices
+    // it receives, so accumulating from the unrounded price here would make our
+    // FinancingAmount disagree with Grenke's sum by a rounding cent (→ 400).
+    const netPriceRounded = Math.round(netPrice * 100) / 100;
+
     const obj: GrenkeFinancingObject = {
       Quantity: eq.quantity,
       ObjectTypeId: objectTypeId,
       Manufacturer: manufacturer,
-      NetPricePerObject: Math.round(netPrice * 100) / 100,
+      NetPricePerObject: netPriceRounded,
       Name: eq.title,
     };
     if (eq.serial_number) obj.SerialNumber = eq.serial_number;
     if (eq.order_notes) obj.Details = eq.order_notes;
 
     financingObjects.push(obj);
-    computedTotal += eq.quantity * netPrice;
+    computedTotal += eq.quantity * netPriceRounded;
 
     equipmentDebug.push({
       equipment_id: eq.id,
