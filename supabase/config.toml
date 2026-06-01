@@ -282,7 +282,3 @@ verify_jwt = true
 [functions.grenke-automation]
 # Cron-driven (X-Cron-Secret); does its own auth.
 verify_jwt = false
-
-[functions.egress-ip]
-# Public diagnostic: reports the edge function's outbound IP. No secrets.
-verify_jwt = false
