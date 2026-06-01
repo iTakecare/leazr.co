@@ -36,6 +36,7 @@ import {
   Calculator,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GrenkeFieldMappings from "./GrenkeFieldMappings";
@@ -878,6 +879,9 @@ export default function GrenkeIntegrationCard() {
             {/* Phase 3a.2a — Field mappings editor (legal forms / categories / brands) */}
             {companyId && <GrenkeFieldMappings companyId={companyId} />}
 
+            {/* Stage A automation toggle */}
+            {companyId && <GrenkeAutomationToggle companyId={companyId} />}
+
             {/* Phase 3a.2d — Backfill product links on existing offers */}
             <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <div className="flex items-start gap-2">
@@ -973,5 +977,51 @@ export default function GrenkeIntegrationCard() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// Stage A — opt-in toggle for automatic ID-card collection on score A.
+function GrenkeAutomationToggle({ companyId }: { companyId: string }) {
+  const [enabled, setEnabled] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from("grenke_automation_settings")
+      .select("auto_id_collection")
+      .eq("company_id", companyId)
+      .maybeSingle()
+      .then(({ data }) => setEnabled(!!(data as { auto_id_collection?: boolean } | null)?.auto_id_collection));
+  }, [companyId]);
+
+  const toggle = async (value: boolean) => {
+    setEnabled(value);
+    setSaving(true);
+    const { error } = await supabase
+      .from("grenke_automation_settings")
+      .upsert({ company_id: companyId, auto_id_collection: value, updated_at: new Date().toISOString() }, { onConflict: "company_id" });
+    setSaving(false);
+    if (error) {
+      setEnabled(!value);
+      toast.error("Erreur lors de l'enregistrement");
+    } else {
+      toast.success(value ? "Collecte CI automatique activée" : "Collecte CI automatique désactivée");
+    }
+  };
+
+  return (
+    <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <h4 className="text-sm font-medium">Automatisation</h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Quand une offre Grenke atteint le score A, demander automatiquement la
+            carte d'identité au client (sauf client existant avec une CI valide déjà
+            au dossier).
+          </p>
+        </div>
+        <Switch checked={enabled} onCheckedChange={toggle} disabled={saving} />
+      </div>
+    </div>
   );
 }

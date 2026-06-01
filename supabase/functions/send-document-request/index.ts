@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendDocumentRequestSchema, createValidationErrorResponse } from "../_shared/validationSchemas.ts";
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 import { requireElevatedAccess } from "../_shared/security.ts";
@@ -34,21 +35,34 @@ serve(async (req) => {
   }
 
   try {
-    const access = await requireElevatedAccess(req, corsHeaders, {
-      allowedRoles: ["admin", "super_admin", "broker"],
-      rateLimit: {
-        endpoint: "send-document-request",
-        maxRequests: 25,
-        windowSeconds: 60,
-        identifierPrefix: "send-document-request",
-      },
-    });
+    // Automation bypass: the Grenke automation cron calls this function
+    // server-side with the shared cron secret instead of a user token. We
+    // skip the role check and use the service-role client directly.
+    const cronSecret = Deno.env.get("GRENKE_CRON_SECRET");
+    const cronHeader = req.headers.get("X-Cron-Secret");
+    const isCron = !!cronSecret && cronHeader === cronSecret;
 
-    if (!access.ok) {
-      return access.response;
+    let supabase;
+    if (isCron) {
+      supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+    } else {
+      const access = await requireElevatedAccess(req, corsHeaders, {
+        allowedRoles: ["admin", "super_admin", "broker"],
+        rateLimit: {
+          endpoint: "send-document-request",
+          maxRequests: 25,
+          windowSeconds: 60,
+          identifierPrefix: "send-document-request",
+        },
+      });
+      if (!access.ok) {
+        return access.response;
+      }
+      supabase = access.context.supabaseAdmin;
     }
-
-    const supabase = access.context.supabaseAdmin;
 
     // Récupérer et valider le corps de la requête
     let requestData: RequestDocumentsData;
