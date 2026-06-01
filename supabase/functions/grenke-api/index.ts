@@ -60,7 +60,9 @@ interface GrenkeRequest {
     | "refresh_reference_data"
     | "build_offer_payload"
     | "backfill_product_links"
-    | "poll_grenke_statuses";
+    | "poll_grenke_statuses"
+    | "get_esignature_config"
+    | "start_esignature";
   environment?: Environment;
   // future fields (calculate, submit_offer, …) live under `payload`
   payload?: Record<string, unknown>;
@@ -193,6 +195,12 @@ serve(async (req) => {
 
       case "get_status":
         return await handleGetStatus(adminSupabase, companyId, environment, creds, body.offer_id);
+
+      case "get_esignature_config":
+        return await handleGetESignatureConfig(adminSupabase, companyId, environment, creds, body.offer_id);
+
+      case "start_esignature":
+        return await handleStartESignature(adminSupabase, companyId, environment, creds, body.offer_id, body.payload ?? {});
 
       case "submit_offer":
         return await handleSubmitOffer(
@@ -1394,6 +1402,205 @@ async function handlePollGrenkeStatuses(
     skipped,
     at: new Date().toISOString(),
   }, 200);
+}
+
+// =====================================================================
+// e-signature — get_esignature_config + start_esignature
+//
+// When Grenke returns ReadyToSign, iTakecare provides the signer details and
+// kicks off the DocuSign e-signature. Flow:
+//   1. GET /e-signature/configuration → how many customer/partner signees.
+//   2. POST /contractdocument → generate the contract PDF (409 if it already
+//      exists, which we treat as fine).
+//   3. POST /e-signature → start DocuSign with the signer(s).
+//
+// Server-side document gate: refuses if any offer_documents row is still
+// 'pending' or 'rejected' (i.e. a requested document isn't validated). This
+// mirrors the business rule — a dossier only reaches "ready" once every
+// requested document is approved; existing clients with nothing requested
+// pass automatically.
+// =====================================================================
+
+const GRENKE_TITLE_ENUM = new Set(["Mr", "Ms", "Miss", "Mrs", "Dr", "Prof"]);
+
+type ESignSigner = {
+  title?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  mobile?: string;
+};
+
+function toGrenkeSignee(s: ESignSigner, order: number) {
+  const title = s.title && GRENKE_TITLE_ENUM.has(s.title) ? s.title : "Mr";
+  return {
+    Title: title,
+    FirstName: (s.first_name ?? "").trim(),
+    LastName: (s.last_name ?? "").trim(),
+    Email: (s.email ?? "").trim(),
+    Culture: "fr-BE",
+    MobileNumber: normalizeBelgianPhone(s.mobile ?? "") ?? "",
+    SigningOrder: order,
+  };
+}
+
+async function loadOfferForESign(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  offerId: string | undefined,
+): Promise<{ ok: false; status: number; error: string; message: string } | { ok: true; offer: OfferStatusRow }> {
+  if (!offerId) return { ok: false, status: 400, error: "validation_error", message: "offer_id is required" };
+  const { data: offer, error } = await adminSupabase
+    .from("offers")
+    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (error) return { ok: false, status: 500, error: "offer_lookup_failed", message: error.message };
+  if (!offer) return { ok: false, status: 404, error: "offer_not_found", message: "Offre introuvable" };
+  const o = offer as OfferStatusRow;
+  if (o.company_id !== companyId) return { ok: false, status: 403, error: "forbidden", message: "Offre d'une autre société" };
+  if (!o.grenke_financing_id) return { ok: false, status: 400, error: "not_submitted", message: "Offre pas encore soumise à Grenke" };
+  return { ok: true, offer: o };
+}
+
+async function handleGetESignatureConfig(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  offerId: string | undefined,
+): Promise<Response> {
+  const loaded = await loadOfferForESign(adminSupabase, companyId, offerId);
+  if (!loaded.ok) return jsonResponse({ success: false, error: loaded.error, message: loaded.message }, loaded.status);
+  const env = (loaded.offer.grenke_environment as Environment) || environment;
+
+  // Document gate status (informational here; enforced in start_esignature)
+  const { data: docs } = await adminSupabase
+    .from("offer_documents")
+    .select("document_type, status")
+    .eq("offer_id", offerId);
+  const pendingDocs = ((docs ?? []) as Array<{ document_type: string; status: string }>)
+    .filter((d) => d.status === "pending" || d.status === "rejected");
+
+  let response: Response;
+  try {
+    response = await grenkeFetch(
+      env,
+      `/basic/v1/requests/${loaded.offer.grenke_financing_id}/e-signature/configuration`,
+      { method: "GET" },
+      creds,
+    );
+  } catch (e) {
+    return jsonResponse({ success: false, error: "network_or_tls_error", message: e instanceof Error ? e.message : String(e) }, 502);
+  }
+  const text = await response.text();
+  let parsed: unknown = text;
+  try { parsed = JSON.parse(text); } catch { /* */ }
+  if (!response.ok) {
+    return jsonResponse({ success: false, error: "grenke_error", status: response.status, grenke_response: parsed }, response.status >= 500 ? 502 : response.status);
+  }
+
+  const cfg = parsed as { DocuSign?: { MinNumberOfCustomerSignees?: number; MaxNumberOfCustomerSignees?: number; MinNumberOfPartnerSignees?: number; MaxNumberOfPartnerSignees?: number } };
+  return jsonResponse({
+    success: true,
+    config: cfg.DocuSign ?? null,
+    documents_pending: pendingDocs,
+    can_send: pendingDocs.length === 0,
+  }, 200);
+}
+
+async function handleStartESignature(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  offerId: string | undefined,
+  payload: Record<string, unknown>,
+): Promise<Response> {
+  const loaded = await loadOfferForESign(adminSupabase, companyId, offerId);
+  if (!loaded.ok) return jsonResponse({ success: false, error: loaded.error, message: loaded.message }, loaded.status);
+  const offer = loaded.offer;
+  const env = (offer.grenke_environment as Environment) || environment;
+
+  // --- Server-side document gate ---
+  const { data: docs } = await adminSupabase
+    .from("offer_documents")
+    .select("document_type, status")
+    .eq("offer_id", offerId);
+  const pendingDocs = ((docs ?? []) as Array<{ document_type: string; status: string }>)
+    .filter((d) => d.status === "pending" || d.status === "rejected");
+  if (pendingDocs.length > 0) {
+    return jsonResponse({
+      success: false,
+      error: "documents_pending",
+      message: "Des documents demandés ne sont pas encore validés.",
+      documents_pending: pendingDocs,
+    }, 422);
+  }
+
+  const customer = payload.customer as ESignSigner | undefined;
+  if (!customer?.first_name || !customer?.last_name || !customer?.email) {
+    return jsonResponse({ success: false, error: "validation_error", message: "Signataire client incomplet (nom/prénom/email requis)." }, 400);
+  }
+  const partner = payload.partner as ESignSigner | undefined;
+  const useDeliveryConfirmation = (payload.use_delivery_confirmation as boolean) ?? false;
+
+  // --- 1. Generate the contract document (best-effort; 409 = already exists) ---
+  try {
+    const docResp = await grenkeFetch(
+      env,
+      `/basic/v1/requests/${offer.grenke_financing_id}/contractdocument`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+      creds,
+    );
+    if (!docResp.ok && docResp.status !== 409) {
+      const t = await docResp.text();
+      console.warn(`[grenke-api] contractdocument non-OK (${docResp.status}): ${t.slice(0, 200)}`);
+    }
+  } catch (e) {
+    console.warn("[grenke-api] contractdocument call failed (continuing):", e instanceof Error ? e.message : String(e));
+  }
+
+  // --- 2. Start the e-signature ---
+  const esignBody: Record<string, unknown> = {
+    ESignatureType: "DocuSign",
+    UseDeliveryConfirmation: useDeliveryConfirmation,
+    CustomerContractSignees: [toGrenkeSignee(customer, 0)],
+  };
+  if (partner?.first_name && partner?.last_name && partner?.email) {
+    esignBody.PartnerContractSignees = [toGrenkeSignee(partner, 0)];
+  }
+
+  let response: Response;
+  try {
+    response = await grenkeFetch(
+      env,
+      `/basic/v1/requests/${offer.grenke_financing_id}/e-signature`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(esignBody) },
+      creds,
+    );
+  } catch (e) {
+    return jsonResponse({ success: false, error: "network_or_tls_error", message: e instanceof Error ? e.message : String(e) }, 502);
+  }
+  const text = await response.text();
+  let parsed: unknown = text;
+  try { parsed = JSON.parse(text); } catch { /* */ }
+
+  if (!response.ok) {
+    await adminSupabase.from("offers").update({
+      grenke_last_error: { stage: "esignature", status: response.status, body: parsed, at: new Date().toISOString() },
+    }).eq("id", offerId);
+    return jsonResponse({ success: false, error: "grenke_esign_rejected", status: response.status, grenke_response: parsed, sent: esignBody }, response.status >= 500 ? 502 : response.status);
+  }
+
+  // Refresh state immediately so the UI reflects StartingESignature / Awaiting…
+  const now = new Date().toISOString();
+  await adminSupabase.from("offers").update({
+    grenke_state_updated_at: now,
+    grenke_last_error: null,
+  }).eq("id", offerId);
+
+  return jsonResponse({ success: true, offer_id: offerId, grenke_response: parsed, sent: esignBody }, 200);
 }
 
 // =====================================================================
