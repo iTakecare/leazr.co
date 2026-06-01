@@ -30,16 +30,46 @@ interface GrenkePayloadPreviewButtonProps {
   leaserId: string | null | undefined;
 }
 
+interface PayloadWarning {
+  field: string;
+  message: string;
+  equipment_id?: string;
+  fix_kind?: "category" | "manufacturer" | "selling_price" | "client_address";
+}
+
+interface EquipmentDebug {
+  equipment_id: string;
+  title: string;
+  product_id: string | null;
+  resolved_category_id: string | null;
+  category_source: "offer_equipment" | "product" | "none";
+  resolved_brand_id: string | null;
+  brand_source: string;
+  resolved_manufacturer: string;
+  resolved_object_type_id: number | null;
+  resolved_net_price: number;
+  price_source: "selling_price" | "purchase_price";
+}
+
 interface PayloadResponse {
   success: boolean;
   environment?: string;
   offer_id?: string;
   payload?: unknown;
-  warnings?: Array<{ field: string; message: string }>;
+  warnings?: PayloadWarning[];
   sums?: { computed_total: number; declared_financing_amount: number };
+  equipment_debug?: EquipmentDebug[];
   error?: string;
   message?: string;
 }
+
+// Same set as in GrenkeFieldMappings — the hardcoded Leazr entity_type values.
+const ENTITY_TYPES_LABEL: Record<string, string> = {
+  societe: "Société",
+  independant: "Indépendant",
+  asbl: "ASBL",
+  autre: "Autre",
+};
 
 export default function GrenkePayloadPreviewButton({
   offerId,
@@ -49,11 +79,36 @@ export default function GrenkePayloadPreviewButton({
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PayloadResponse | null>(null);
 
+  // Inline-fix state
+  const [categories, setCategories] = useState<Array<{ id: string; label: string }>>([]);
+  const [pendingFixes, setPendingFixes] = useState<Record<string, { category_id?: string; manufacturer?: string }>>({});
+  const [savingFixes, setSavingFixes] = useState(false);
+
   // Don't render at all if the offer isn't targeting Grenke. Keeps the offer
   // detail page clean for non-Grenke leasers.
   if (!leaserId || leaserId !== GRENKE_LEASER_UUID) {
     return null;
   }
+
+  const loadCategories = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", session.user.id)
+      .single();
+    if (!profile?.company_id) return;
+    const { data: cats } = await supabase
+      .from("categories")
+      .select("id, name, translation")
+      .eq("company_id", profile.company_id)
+      .order("translation");
+    setCategories(((cats ?? []) as Array<{ id: string; name: string; translation: string }>).map((c) => ({
+      id: c.id,
+      label: c.translation || c.name,
+    })));
+  };
 
   const fetchPayload = async () => {
     try {
@@ -92,7 +147,44 @@ export default function GrenkePayloadPreviewButton({
 
   const handleOpen = async () => {
     setOpen(true);
-    await fetchPayload();
+    setPendingFixes({});
+    await Promise.all([fetchPayload(), loadCategories()]);
+  };
+
+  // Persist the pending fixes to offer_equipment then re-fetch the payload.
+  const saveFixes = async () => {
+    const entries = Object.entries(pendingFixes).filter(
+      ([, fix]) => (fix.category_id && fix.category_id.length > 0) || (fix.manufacturer && fix.manufacturer.trim()),
+    );
+    if (entries.length === 0) {
+      toast.error("Aucune modification à enregistrer");
+      return;
+    }
+    try {
+      setSavingFixes(true);
+      // Run updates sequentially so a failure mid-way is easier to recover from.
+      for (const [equipmentId, fix] of entries) {
+        const update: Record<string, string> = {};
+        if (fix.category_id) update.category_id = fix.category_id;
+        if (fix.manufacturer && fix.manufacturer.trim()) {
+          update.grenke_manufacturer_override = fix.manufacturer.trim();
+        }
+        if (Object.keys(update).length === 0) continue;
+        const { error } = await supabase
+          .from("offer_equipment")
+          .update(update)
+          .eq("id", equipmentId);
+        if (error) throw error;
+      }
+      toast.success(`${entries.length} ligne(s) mise(s) à jour — reconstruction du payload…`);
+      setPendingFixes({});
+      await fetchPayload();
+    } catch (e) {
+      console.error("[GrenkePayloadPreview] save fixes error:", e);
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setSavingFixes(false);
+    }
   };
 
   const handleCopy = () => {
@@ -143,6 +235,91 @@ export default function GrenkePayloadPreviewButton({
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>{result.error}</AlertTitle>
                   <AlertDescription>{result.message ?? "Erreur inconnue"}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Inline-fix panel — group fixable warnings by equipment_id and
+                  let the user pick category + manufacturer right here. */}
+              {result.warnings && result.warnings.some((w) => w.equipment_id && (w.fix_kind === "category" || w.fix_kind === "manufacturer")) && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Compléter les infos manquantes</AlertTitle>
+                  <AlertDescription>
+                    <p className="text-xs mb-2">
+                      Pour les lignes d'équipement saisies manuellement (sans
+                      lien catalogue), choisis ici la catégorie et la marque
+                      à envoyer à Grenke. Les changements sont sauvegardés sur
+                      la ligne d'offre.
+                    </p>
+                    <div className="space-y-2">
+                      {Array.from(
+                        new Map(
+                          result.warnings
+                            .filter((w) => w.equipment_id && (w.fix_kind === "category" || w.fix_kind === "manufacturer"))
+                            .map((w) => [w.equipment_id, w]),
+                        ).keys(),
+                      ).map((eqId) => {
+                        const dbg = result.equipment_debug?.find((d) => d.equipment_id === eqId);
+                        const fixesForThisRow = result.warnings?.filter((w) => w.equipment_id === eqId) ?? [];
+                        const needsCategory = fixesForThisRow.some((w) => w.fix_kind === "category");
+                        const needsManufacturer = fixesForThisRow.some((w) => w.fix_kind === "manufacturer");
+                        const pending = pendingFixes[eqId!] ?? {};
+                        return (
+                          <div key={eqId} className="rounded border bg-background p-2 space-y-2">
+                            <div className="text-xs font-medium">{dbg?.title ?? "(équipement)"}</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {needsCategory && (
+                                <div>
+                                  <label className="text-[10px] text-muted-foreground block mb-0.5">Catégorie Leazr</label>
+                                  <select
+                                    value={pending.category_id ?? ""}
+                                    onChange={(e) => setPendingFixes((p) => ({
+                                      ...p,
+                                      [eqId!]: { ...p[eqId!], category_id: e.target.value },
+                                    }))}
+                                    className="h-7 w-full text-xs rounded-md border border-input bg-background px-2"
+                                  >
+                                    <option value="">— choisir —</option>
+                                    {categories.map((c) => (
+                                      <option key={c.id} value={c.id}>{c.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                              {needsManufacturer && (
+                                <div>
+                                  <label className="text-[10px] text-muted-foreground block mb-0.5">Manufacturer (override)</label>
+                                  <input
+                                    type="text"
+                                    placeholder="ex: HP, Dell, Other…"
+                                    value={pending.manufacturer ?? ""}
+                                    onChange={(e) => setPendingFixes((p) => ({
+                                      ...p,
+                                      [eqId!]: { ...p[eqId!], manufacturer: e.target.value },
+                                    }))}
+                                    className="h-7 w-full text-xs rounded-md border border-input bg-background px-2"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={saveFixes}
+                      disabled={savingFixes || Object.keys(pendingFixes).length === 0}
+                      className="mt-2 h-7 text-xs"
+                    >
+                      {savingFixes ? (
+                        <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3 w-3 mr-1.5" />
+                      )}
+                      Sauver et reconstruire
+                    </Button>
+                  </AlertDescription>
                 </Alert>
               )}
 

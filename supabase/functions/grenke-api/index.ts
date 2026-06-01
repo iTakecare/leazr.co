@@ -561,6 +561,24 @@ interface GrenkeFinancingRequest {
 interface PayloadWarning {
   field: string;
   message: string;
+  // Optional context: when the warning is about a specific equipment row,
+  // we tag it so the UI can show an inline fix UI right next to that row.
+  equipment_id?: string;
+  fix_kind?: "category" | "manufacturer" | "selling_price" | "client_address";
+}
+
+interface EquipmentDebug {
+  equipment_id: string;
+  title: string;
+  product_id: string | null;
+  resolved_category_id: string | null;
+  category_source: "offer_equipment" | "product" | "none";
+  resolved_brand_id: string | null;
+  brand_source: "override" | "mapping" | "products.brand_name" | "brands.translation" | "brands.name" | "none";
+  resolved_manufacturer: string;
+  resolved_object_type_id: number | null;
+  resolved_net_price: number;
+  price_source: "selling_price" | "purchase_price";
 }
 
 // Strip "BE" / "FR" / "LU" prefixes + non-digits from a VAT number.
@@ -658,9 +676,10 @@ async function handleBuildOfferPayload(
     .select(`
       id, title, quantity, purchase_price, selling_price,
       category_id, serial_number, order_notes,
-      product_id,
+      product_id, grenke_manufacturer_override,
       products:product_id (
-        id, brand_name, brand_id, category_id
+        id, brand_name, brand_id, category_id,
+        brands:brand_id ( id, name, translation )
       )
     `)
     .eq("offer_id", offerId)
@@ -788,15 +807,18 @@ async function handleBuildOfferPayload(
     serial_number: string | null;
     order_notes: string | null;
     product_id: string | null;
+    grenke_manufacturer_override: string | null;
     products: {
       id: string;
       brand_name: string | null;
       brand_id: string | null;
       category_id: string | null;
+      brands: { id: string; name: string | null; translation: string | null } | null;
     } | null;
   };
 
   const financingObjects: GrenkeFinancingObject[] = [];
+  const equipmentDebug: EquipmentDebug[] = [];
   let computedTotal = 0;
 
   for (const [idx, raw] of ((equipment ?? []) as unknown as EquipmentRow[]).entries()) {
@@ -805,7 +827,15 @@ async function handleBuildOfferPayload(
     // Resolve category — prefer offer_equipment.category_id, fall back to
     // the product's category (the catalog usually has it even when the
     // offer-line was created without copying it).
-    const effectiveCategoryId = eq.category_id ?? eq.products?.category_id ?? null;
+    let effectiveCategoryId: string | null = null;
+    let categorySource: EquipmentDebug["category_source"] = "none";
+    if (eq.category_id) {
+      effectiveCategoryId = eq.category_id;
+      categorySource = "offer_equipment";
+    } else if (eq.products?.category_id) {
+      effectiveCategoryId = eq.products.category_id;
+      categorySource = "product";
+    }
 
     // ObjectTypeId from mapping
     const objectTypeRaw = effectiveCategoryId ? mappings.object_type[effectiveCategoryId] : undefined;
@@ -817,25 +847,52 @@ async function handleBuildOfferPayload(
       warnings.push({
         field: `FinancingObjects[${idx}].ObjectTypeId`,
         message: `L'équipement "${eq.title}" n'a pas de catégorie (ni offer_equipment.category_id ni products.category_id).`,
+        equipment_id: eq.id,
+        fix_kind: "category",
       });
     } else {
       warnings.push({
         field: `FinancingObjects[${idx}].ObjectTypeId`,
         message: `La catégorie de "${eq.title}" n'est pas mappée. Voir Settings → Intégrations → Grenke → Mappings.`,
+        equipment_id: eq.id,
+        fix_kind: "category",
       });
     }
 
-    // Manufacturer (override → brand_name → fallback "Other")
+    // Manufacturer resolution — highest priority first:
+    //   1. grenke_manufacturer_override on the equipment line (set via modal)
+    //   2. grenke_field_mappings (per-company brand override)
+    //   3. products.brand_name (denormalized cache)
+    //   4. brands.translation || brands.name (via brand_id join)
+    //   5. fallback "Other" + warning
     let manufacturer = "Other";
+    let manufacturerSource = "fallback";
     const brandId = eq.products?.brand_id ?? null;
-    if (brandId && mappings.manufacturer[brandId]) {
+    const brandRow = eq.products?.brands ?? null;
+
+    if (eq.grenke_manufacturer_override && eq.grenke_manufacturer_override.trim()) {
+      manufacturer = eq.grenke_manufacturer_override.trim();
+      manufacturerSource = "override";
+    } else if (brandId && mappings.manufacturer[brandId]) {
       manufacturer = mappings.manufacturer[brandId];
+      manufacturerSource = "mapping";
     } else if (eq.products?.brand_name) {
       manufacturer = eq.products.brand_name;
+      manufacturerSource = "products.brand_name";
+    } else if (brandRow?.translation) {
+      manufacturer = brandRow.translation;
+      manufacturerSource = "brands.translation";
+    } else if (brandRow?.name) {
+      manufacturer = brandRow.name;
+      manufacturerSource = "brands.name";
     } else {
       warnings.push({
         field: `FinancingObjects[${idx}].Manufacturer`,
-        message: `Aucune marque trouvée pour "${eq.title}" (offer_equipment.product_id manquant ou produit sans brand). Envoi de "Other" comme fallback.`,
+        message: eq.product_id
+          ? `Aucune marque sur le produit catalogue lié à "${eq.title}". Ajoutez la marque dans le catalogue ou définissez une override.`
+          : `"${eq.title}" n'est lié à aucun produit catalogue (product_id null). Définissez une override de marque.`,
+        equipment_id: eq.id,
+        fix_kind: "manufacturer",
       });
     }
 
@@ -844,11 +901,15 @@ async function handleBuildOfferPayload(
     // We fall back to purchase_price only if selling_price is null (which
     // shouldn't happen on a properly priced offer).
     let netPrice = eq.selling_price;
+    let priceSource: EquipmentDebug["price_source"] = "selling_price";
     if (netPrice == null || netPrice <= 0) {
       netPrice = eq.purchase_price;
+      priceSource = "purchase_price";
       warnings.push({
         field: `FinancingObjects[${idx}].NetPricePerObject`,
         message: `"${eq.title}" n'a pas de selling_price — fallback sur purchase_price (${eq.purchase_price}). Vérifiez la pricing de la ligne.`,
+        equipment_id: eq.id,
+        fix_kind: "selling_price",
       });
     }
 
@@ -864,6 +925,20 @@ async function handleBuildOfferPayload(
 
     financingObjects.push(obj);
     computedTotal += eq.quantity * netPrice;
+
+    equipmentDebug.push({
+      equipment_id: eq.id,
+      title: eq.title,
+      product_id: eq.product_id,
+      resolved_category_id: effectiveCategoryId,
+      category_source: categorySource,
+      resolved_brand_id: brandId,
+      brand_source: manufacturerSource as EquipmentDebug["brand_source"],
+      resolved_manufacturer: manufacturer,
+      resolved_object_type_id: objectTypeId ?? null,
+      resolved_net_price: Math.round(netPrice * 100) / 100,
+      price_source: priceSource,
+    });
   }
 
   if (financingObjects.length === 0) {
@@ -905,6 +980,9 @@ async function handleBuildOfferPayload(
       computed_total: computedTotal,
       declared_financing_amount: declaredAmount,
     },
+    // Debug — per-equipment resolution trace, useful in the modal to
+    // explain why a brand/category came back as "Other" / unmapped.
+    equipment_debug: equipmentDebug,
   }, 200);
 }
 
