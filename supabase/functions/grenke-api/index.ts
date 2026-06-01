@@ -36,7 +36,15 @@ const corsHeaders = {
 // it fine, so we relay through a tiny nginx mTLS proxy on iTakecare's VPS.
 // See docs/grenke-api/INTEGRATION.md and the deploy at /opt/grenke-proxy/ on
 // itcmdm-vps.
-const GRENKE_PROXY_BASE = "https://grenke-proxy.itakecare.be";
+//
+// We reach the proxy through a Tailscale Funnel hostname instead of the direct
+// grenke-proxy.itakecare.be (Hostinger's network edge was intermittently
+// blackholing Supabase's rotating egress IPs, so direct SYNs never reached the
+// VPS — proven by tcpdump). Funnel is an OUTBOUND connection from the VPS to
+// Tailscale's edge, so inbound filtering at Hostinger no longer matters. The
+// nginx proxy + mTLS to Grenke are unchanged; Funnel just fronts it. To revert
+// to the direct host, set GRENKE_PROXY_BASE back to https://grenke-proxy.itakecare.be.
+const GRENKE_PROXY_BASE = "https://grenke-proxy.tail334e63.ts.net";
 
 const GRENKE_UPSTREAM_PATH = {
   // The proxy is a single host; we encode the target environment in the
