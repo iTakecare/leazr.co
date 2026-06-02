@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GrenkePayloadPreviewButton from "./GrenkePayloadPreviewButton";
 import GrenkeESignaturePanel from "./GrenkeESignaturePanel";
+import GrenkeAttachDocuments from "./GrenkeAttachDocuments";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 
 const GRENKE_LEASER_UUID = "d60b86d7-a129-4a17-a877-e8e5caa66949";
@@ -183,10 +184,13 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
             />
           )}
           {submitted && (
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="gap-1.5">
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              Rafraîchir le statut
-            </Button>
+            <>
+              <GrenkeAttachDocuments offerId={offerId} />
+              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="gap-1.5">
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+                Rafraîchir le statut
+              </Button>
+            </>
           )}
           {grenkeState === "Contracted" && !state?.converted_to_contract && (
             <Button size="sm" onClick={handleFinalize} disabled={finalizing} className="gap-1.5 bg-green-600 hover:bg-green-700 text-white">

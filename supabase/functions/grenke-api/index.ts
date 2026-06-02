@@ -23,6 +23,7 @@
 // See: docs/grenke-api/INTEGRATION.md
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -237,8 +238,10 @@ serve(async (req) => {
           (body.payload?.force as boolean) ?? false,
         );
 
-      case "get_contract_doc":
       case "upload_document":
+        return await handleUploadDocuments(adminSupabase, companyId, environment, creds, body.offer_id, body.payload ?? {});
+
+      case "get_contract_doc":
         return jsonResponse({
           success: false,
           error: "not_implemented",
@@ -1903,6 +1906,102 @@ function titleTokens(norm: string): string[] {
 // Is every token of `small` present in `big`'s token set? (order-independent)
 function tokensSubset(small: string[], big: Set<string>): boolean {
   return small.length > 0 && small.every((t) => big.has(t));
+}
+
+// =====================================================================
+// upload_document — attach offer documents (ID card, financials, …) to the
+// Grenke financing as base64. Grenke endpoint:
+//   POST /basic/v1/calculationSets/{financingId}/documents/base64
+// Body: { DocumentName, DocumentContent (base64), DocumentCategory }.
+// Verified against the live API: a submitted request's financingId is accepted
+// here, and DocumentCategory 300 (generic supporting document) is the valid
+// value (other codes are rejected with a 400). Files come from the
+// 'offer-documents' storage bucket (offer_documents.file_path).
+// =====================================================================
+const GRENKE_DOCUMENT_CATEGORY = 300;
+
+async function handleUploadDocuments(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  offerId: string | undefined,
+  payload: Record<string, unknown>,
+): Promise<Response> {
+  if (!offerId) {
+    return jsonResponse({ success: false, error: "validation_error", message: "offer_id is required" }, 400);
+  }
+
+  const { data: offer, error: offerErr } = await adminSupabase
+    .from("offers")
+    .select("id, company_id, grenke_financing_id, grenke_environment")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (offerErr) return jsonResponse({ success: false, error: "offer_lookup_failed", message: offerErr.message }, 500);
+  if (!offer) return jsonResponse({ success: false, error: "offer_not_found" }, 404);
+  if ((offer as { company_id: string }).company_id !== companyId) {
+    return jsonResponse({ success: false, error: "forbidden" }, 403);
+  }
+  const financingId = (offer as { grenke_financing_id: string | null }).grenke_financing_id;
+  if (!financingId) {
+    return jsonResponse({ success: false, error: "not_submitted", message: "Cette offre n'a pas encore été soumise à Grenke." }, 400);
+  }
+  const env = ((offer as { grenke_environment?: string }).grenke_environment as Environment) || environment;
+
+  // Which documents to send? Optional explicit allowlist of ids; else all.
+  const docIds = Array.isArray(payload.document_ids) ? (payload.document_ids as string[]) : null;
+  let query = adminSupabase
+    .from("offer_documents")
+    .select("id, file_name, file_path, mime_type, document_type")
+    .eq("offer_id", offerId);
+  if (docIds && docIds.length > 0) query = query.in("id", docIds);
+  const { data: docs, error: docsErr } = await query;
+  if (docsErr) return jsonResponse({ success: false, error: "documents_lookup_failed", message: docsErr.message }, 500);
+  const documents = (docs ?? []) as Array<{ id: string; file_name: string; file_path: string; mime_type: string | null; document_type: string }>;
+  if (documents.length === 0) {
+    return jsonResponse({ success: false, error: "no_documents", message: "Aucun document à envoyer." }, 400);
+  }
+
+  const results: Array<{ id: string; name: string; ok: boolean; status?: number; error?: string }> = [];
+  for (const doc of documents) {
+    try {
+      const { data: blob, error: dlErr } = await adminSupabase.storage.from("offer-documents").download(doc.file_path);
+      if (dlErr || !blob) {
+        results.push({ id: doc.id, name: doc.file_name, ok: false, error: "download_failed" });
+        continue;
+      }
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const content = base64Encode(bytes);
+
+      let resp: Response;
+      try {
+        resp = await grenkeFetch(
+          env,
+          `/basic/v1/calculationSets/${financingId}/documents/base64`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              DocumentName: doc.file_name,
+              DocumentContent: content,
+              DocumentCategory: GRENKE_DOCUMENT_CATEGORY,
+            }),
+          },
+          creds,
+        );
+      } catch (e) {
+        results.push({ id: doc.id, name: doc.file_name, ok: false, error: e instanceof Error ? e.message : String(e) });
+        continue;
+      }
+      const text = await resp.text();
+      results.push({ id: doc.id, name: doc.file_name, ok: resp.ok, status: resp.status, error: resp.ok ? undefined : text.slice(0, 200) });
+    } catch (e) {
+      results.push({ id: doc.id, name: doc.file_name, ok: false, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  const sent = results.filter((r) => r.ok).length;
+  return jsonResponse({ success: sent > 0, offer_id: offerId, sent, total: documents.length, results }, sent > 0 ? 200 : 502);
 }
 
 async function handleBackfillProductLinks(
