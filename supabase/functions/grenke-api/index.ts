@@ -73,7 +73,8 @@ interface GrenkeRequest {
     | "get_esignature_config"
     | "start_esignature"
     | "reconcile_grenke_requests"
-    | "link_grenke_request";
+    | "link_grenke_request"
+    | "get_grenke_submissions";
   environment?: Environment;
   // future fields (calculate, submit_offer, …) live under `payload`
   payload?: Record<string, unknown>;
@@ -248,6 +249,9 @@ serve(async (req) => {
 
       case "link_grenke_request":
         return await handleLinkGrenkeRequest(adminSupabase, companyId, environment, body.payload ?? {});
+
+      case "get_grenke_submissions":
+        return await handleGetGrenkeSubmissions(adminSupabase, companyId, body.offer_id);
 
       case "get_contract_doc":
         return jsonResponse({
@@ -1449,18 +1453,15 @@ async function handleSubmitOffer(
     } catch { /* non-fatal — the poller will backfill it later */ }
   }
 
-  const update: Record<string, unknown> = {
-    grenke_financing_id: financingId,
-    grenke_request_id: requestId,
-    grenke_state: state,
-    grenke_environment: environment,
-    grenke_submitted_at: now,
-    grenke_state_updated_at: now,
-    grenke_last_error: null,
-  };
-  // Mirror Grenke's RequestId into the user-facing "Numéro de demande leaseur".
-  if (requestId) update.leaser_request_number = requestId;
-  await adminSupabase.from("offers").update(update).eq("id", offerId);
+  // Record as the offer's active submission (archives any previous one — this is
+  // the re-analysis case when `force` is used after a refusal) and mirror the
+  // active pointer onto the offer.
+  await recordGrenkeSubmission(adminSupabase, offerId, {
+    FinancingId: financingId ?? undefined,
+    RequestId: requestId ?? undefined,
+    State: state,
+    submitted_at: now,
+  }, environment, { advanceWorkflow: false });
 
   return jsonResponse({
     success: true,
@@ -1562,6 +1563,12 @@ async function fetchAndPersistStatus(
   // It's handled by the one-click finalize (UI) / future server port.
 
   await adminSupabase.from("offers").update(update).eq("id", offer.id);
+
+  // Mirror the state onto the active history row for this dossier.
+  await adminSupabase.from("grenke_submissions")
+    .update({ state, state_updated_at: now })
+    .eq("offer_id", offer.id)
+    .eq("financing_id", financingId);
 
   // Notify the team on every state CHANGE (so each signature step is visible).
   const stateChanged = state !== null && state !== offer.grenke_state;
@@ -2044,25 +2051,64 @@ type UnlinkedOffer = {
 };
 
 // Write the Grenke linkage onto a Leazr offer (shared by auto + manual link).
-async function linkOfferToGrenke(
+// Record a Grenke dossier as the offer's ACTIVE submission: archive any previous
+// submissions (kept in history), upsert this one as active, and mirror it onto
+// the offer's grenke_* columns (the "active pointer" used by the workflow/poller).
+async function recordGrenkeSubmission(
   adminSupabase: ReturnType<typeof createClient>,
   offerId: string,
-  item: GrenkeRequestItem,
+  item: GrenkeRequestItem & { submitted_at?: string },
   environment: Environment,
+  opts?: { advanceWorkflow?: boolean },
 ): Promise<void> {
   const now = new Date().toISOString();
+  const submittedAt = item.submitted_at ?? now;
+
+  const { data: off } = await adminSupabase.from("offers").select("company_id").eq("id", offerId).maybeSingle();
+  const companyId = (off as { company_id?: string } | null)?.company_id ?? null;
+
+  // Archive all existing submissions for this offer, then (re)activate this one.
+  await adminSupabase.from("grenke_submissions").update({ is_active: false }).eq("offer_id", offerId);
+  if (item.FinancingId) {
+    await adminSupabase.from("grenke_submissions").upsert({
+      offer_id: offerId, company_id: companyId, financing_id: item.FinancingId,
+      request_id: item.RequestId ?? null, state: item.State ?? null, environment,
+      submitted_at: submittedAt, state_updated_at: now, is_active: true,
+    }, { onConflict: "offer_id,financing_id" });
+  }
+
   const update: Record<string, unknown> = {
     grenke_financing_id: item.FinancingId ?? null,
     grenke_request_id: item.RequestId ?? null,
     grenke_state: item.State ?? null,
     grenke_environment: environment,
-    grenke_submitted_at: now,
+    grenke_submitted_at: submittedAt,
     grenke_state_updated_at: now,
+    grenke_last_error: null,
+    // A re-submission starts a fresh signature flow.
+    grenke_esign_started_at: null,
   };
   if (item.RequestId) update.leaser_request_number = item.RequestId;
-  // Reflect that the dossier is at the leaser; the poller refines the rest.
-  update.workflow_status = "leaser_introduced";
+  if (opts?.advanceWorkflow) update.workflow_status = "leaser_introduced";
   await adminSupabase.from("offers").update(update).eq("id", offerId);
+}
+
+// Read the Grenke submission history of one offer (newest first).
+async function handleGetGrenkeSubmissions(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  offerId: string | undefined,
+): Promise<Response> {
+  if (!offerId) return jsonResponse({ success: false, error: "validation_error", message: "offer_id is required" }, 400);
+  const { data: offer } = await adminSupabase.from("offers").select("company_id").eq("id", offerId).maybeSingle();
+  if (!offer) return jsonResponse({ success: false, error: "offer_not_found" }, 404);
+  if ((offer as { company_id: string }).company_id !== companyId) return jsonResponse({ success: false, error: "forbidden" }, 403);
+  const { data: subs } = await adminSupabase
+    .from("grenke_submissions")
+    .select("id, financing_id, request_id, state, environment, submitted_at, state_updated_at, is_active, created_at")
+    .eq("offer_id", offerId)
+    .order("submitted_at", { ascending: false, nullsFirst: false });
+  return jsonResponse({ success: true, offer_id: offerId, submissions: subs ?? [] }, 200);
 }
 
 async function handleReconcileGrenkeRequests(
@@ -2105,9 +2151,21 @@ async function handleReconcileGrenkeRequests(
   if (offerErr) return jsonResponse({ success: false, error: "offer_lookup_failed", message: offerErr.message }, 500);
 
   const allOffers = (offerRows ?? []) as unknown as Array<UnlinkedOffer & { grenke_financing_id: string | null }>;
-  const linkedFids = new Set(allOffers.filter((o) => o.grenke_financing_id).map((o) => o.grenke_financing_id as string));
-  // Mutable pool of candidates (so an offer can't be auto-linked twice).
-  const pool: UnlinkedOffer[] = allOffers.filter((o) => !o.grenke_financing_id);
+
+  // A Grenke dossier is "already linked" when its financingId is anywhere in the
+  // submission history (active OR archived) — so a refused dossier that's been
+  // recorded as part of an offer's history isn't proposed for re-linking.
+  const offerIds = allOffers.map((o) => o.id);
+  const { data: subRows } = await adminSupabase
+    .from("grenke_submissions")
+    .select("financing_id, offer_id")
+    .in("offer_id", offerIds.length ? offerIds : ["00000000-0000-0000-0000-000000000000"]);
+  const linkedFids = new Set(((subRows ?? []) as Array<{ financing_id: string | null }>).map((r) => r.financing_id).filter(Boolean) as string[]);
+
+  // Candidate pool = ALL Grenke offers. An offer that already has an active
+  // dossier can still receive a NEW one as a re-analysis (added to history) —
+  // but only via manual review, never auto-linked (see `confident` below).
+  const pool = allOffers;
 
   const expectedAmount = (o: UnlinkedOffer): number => {
     const coef = Number(o.coefficient) || 0;
@@ -2149,8 +2207,9 @@ async function handleReconcileGrenkeRequests(
       const amountClose = !!it.FinancingAmount && Math.abs(exp - it.FinancingAmount) <= Math.max(1, it.FinancingAmount * 0.01);
       const monthlyClose = !!it.MonthlyTotalInstalment && !!o.monthly_payment && Math.abs(Number(o.monthly_payment) - it.MonthlyTotalInstalment) <= Math.max(0.5, it.MonthlyTotalInstalment * 0.01);
       const score = 1 + (amountClose ? 2 : 0) + (monthlyClose ? 2 : 0);
-      return { offer: o, offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, score };
-    }).filter(Boolean) as Array<{ offer: UnlinkedOffer; offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; score: number }>;
+      const hasActive = !!(o as { grenke_financing_id?: string | null }).grenke_financing_id;
+      return { offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, has_active: hasActive, score };
+    }).filter(Boolean) as Array<{ offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; has_active: boolean; score: number }>;
     candidates.sort((a, b) => b.score - a.score);
 
     if (candidates.length === 0) {
@@ -2160,9 +2219,12 @@ async function handleReconcileGrenkeRequests(
     }
 
     const top = candidates[0];
-    const confident = candidates.length === 1 && (top.amount_close || top.monthly_close);
+    // Auto-link only a single, amount/monthly-agreeing match to an offer that has
+    // NO active dossier yet. A re-analysis (offer already has a dossier) is always
+    // left to manual review so the user knowingly adds it to the history.
+    const confident = candidates.length === 1 && (top.amount_close || top.monthly_close) && !top.has_active;
     if (confident && auto) {
-      await linkOfferToGrenke(adminSupabase, top.offer_id, it, environment);
+      await recordGrenkeSubmission(adminSupabase, top.offer_id, it, environment, { advanceWorkflow: true });
       // Remove from the pool so it can't be matched again.
       const idx = pool.findIndex((p) => p.id === top.offer_id);
       if (idx >= 0) pool.splice(idx, 1);
@@ -2206,20 +2268,23 @@ async function handleLinkGrenkeRequest(
   if (!offer) return jsonResponse({ success: false, error: "offer_not_found" }, 404);
   if ((offer as { company_id: string }).company_id !== companyId) return jsonResponse({ success: false, error: "forbidden" }, 403);
 
-  // Guard: don't steal a financingId already linked to another offer.
+  // Guard: don't attach a financingId that's already part of ANOTHER offer's
+  // history. (Re-attaching it to the SAME offer is fine — it just refreshes it.)
   const { data: clash } = await adminSupabase
-    .from("offers")
-    .select("id")
-    .eq("grenke_financing_id", financingId)
-    .neq("id", offerId)
+    .from("grenke_submissions")
+    .select("offer_id")
+    .eq("financing_id", financingId)
+    .neq("offer_id", offerId)
     .maybeSingle();
   if (clash) return jsonResponse({ success: false, error: "already_linked_elsewhere", message: "Ce dossier Grenke est déjà lié à une autre offre." }, 409);
 
-  await linkOfferToGrenke(adminSupabase, offerId, {
+  // Adds to this offer's history and makes it the active dossier (archives any
+  // previous one — that's exactly the re-analysis case).
+  await recordGrenkeSubmission(adminSupabase, offerId, {
     FinancingId: financingId,
     RequestId: payload.request_id as string | undefined,
     State: payload.state as string | undefined,
-  }, environment);
+  }, environment, { advanceWorkflow: true });
 
   return jsonResponse({ success: true, offer_id: offerId, financing_id: financingId }, 200);
 }

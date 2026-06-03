@@ -75,8 +75,22 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [submissions, setSubmissions] = useState<Array<{
+    id: string; financing_id: string | null; request_id: string | null;
+    state: string | null; submitted_at: string | null; is_active: boolean;
+  }>>([]);
 
   const isGrenke = leaserId === GRENKE_LEASER_UUID;
+
+  const loadSubmissions = async () => {
+    try {
+      const { data } = await supabase.functions.invoke("grenke-api", {
+        body: { action: "get_grenke_submissions", environment: "production", offer_id: offerId },
+      });
+      const body = (data ?? null) as { submissions?: typeof submissions } | null;
+      setSubmissions(body?.submissions ?? []);
+    } catch { /* non-fatal */ }
+  };
 
   const load = async () => {
     const { data } = await supabase
@@ -86,6 +100,7 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
       .maybeSingle();
     setState(data as never);
     setLoading(false);
+    void loadSubmissions();
   };
 
   // Phase 3c.2 — one-click finalize when Grenke has contracted. Reuses the
@@ -190,6 +205,16 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
                 <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
                 Rafraîchir le statut
               </Button>
+              {(grenkeState === "Declined" || grenkeState === "Cancelled") && (
+                // Re-analysis after a refusal — creates a new dossier, archives
+                // the refused one into the history.
+                <GrenkePayloadPreviewButton
+                  offerId={offerId}
+                  leaserId={leaserId}
+                  resubmit
+                  onSubmitted={async () => { await load(); await onSubmitted?.(); onRefresh?.(); }}
+                />
+              )}
             </>
           )}
           {grenkeState === "Contracted" && !state?.converted_to_contract && (
@@ -208,6 +233,24 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
           {state?.grenke_financing_id && (
             <span>ID&nbsp;<code className="bg-muted px-1 rounded">{state.grenke_financing_id.slice(0, 8)}…</code></span>
           )}
+        </div>
+      )}
+
+      {/* Grenke submission history (shown when there's more than one dossier — e.g.
+          a refused request then a re-analysis under a new number). */}
+      {submissions.length > 1 && (
+        <div className="mt-2 text-xs">
+          <div className="text-muted-foreground mb-1">Historique Grenke</div>
+          <ul className="space-y-0.5">
+            {submissions.map((s) => (
+              <li key={s.id} className="flex items-center gap-2">
+                <code className="bg-muted px-1 rounded">{s.request_id ?? s.financing_id?.slice(0, 8) ?? "—"}</code>
+                <span>{(s.state && STATE_META[s.state]?.label) || s.state || "—"}</span>
+                <span className="text-muted-foreground">{fmtDate(s.submitted_at)}</span>
+                {s.is_active && <Badge variant="outline" className="text-[10px] text-green-700 border-green-300">actif</Badge>}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

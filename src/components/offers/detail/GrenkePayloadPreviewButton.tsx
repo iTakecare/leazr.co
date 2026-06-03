@@ -32,6 +32,9 @@ interface GrenkePayloadPreviewButtonProps {
   // parent merge the workflow "introduce to leaser" transition into this single
   // action (submitting to Grenke == introducing the dossier to the leaser).
   onSubmitted?: () => void | Promise<void>;
+  // Re-analysis after a refusal: submits with force=true (creates a NEW Grenke
+  // dossier, archiving the previous one into the history).
+  resubmit?: boolean;
 }
 
 interface PayloadWarning {
@@ -92,6 +95,7 @@ export default function GrenkePayloadPreviewButton({
   offerId,
   leaserId,
   onSubmitted,
+  resubmit,
 }: GrenkePayloadPreviewButtonProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -220,7 +224,7 @@ export default function GrenkePayloadPreviewButton({
       setSubmitting(true);
       setSubmitResult(null);
       const { data, error } = await supabase.functions.invoke("grenke-api", {
-        body: { action: "submit_offer", environment: "production", offer_id: offerId },
+        body: { action: "submit_offer", environment: "production", offer_id: offerId, payload: { force: !!resubmit } },
       });
       type SubmitBody = {
         success?: boolean;
@@ -337,10 +341,11 @@ export default function GrenkePayloadPreviewButton({
       <Button
         size="sm"
         onClick={handleOpen}
+        variant={resubmit ? "outline" : "default"}
         className="gap-2"
       >
         <Send className="h-4 w-4" />
-        Soumettre à Grenke
+        {resubmit ? "Resoumettre (nouvelle analyse)" : "Soumettre à Grenke"}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
