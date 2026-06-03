@@ -2454,6 +2454,81 @@ type GrenkeContractItem = {
   Lessee?: { CompanyName?: string };
 };
 
+// Create a Leazr contract from an accepted Grenke contract when the matched
+// offer has none yet — server-side mirror of createContractFromOffer: inserts
+// the contract row (with the Grenke number + start/end dates + state) and copies
+// the offer's equipment (with attributes/specifications). Returns the new id.
+async function createLeazrContractFromOffer(
+  admin: ReturnType<typeof createClient>,
+  offerId: string,
+  c: GrenkeContractItem,
+  leaser: { name?: string | null; logo_url?: string | null } | null,
+): Promise<string | null> {
+  const { data: offer } = await admin
+    .from("offers")
+    .select("id, client_name, client_id, monthly_payment, equipment_description, user_id, company_id, leaser_id, converted_to_contract")
+    .eq("id", offerId).maybeSingle();
+  if (!offer) return null;
+  const o = offer as Record<string, unknown>;
+  // Already converted once — if no contract row exists now it was deleted on
+  // purpose; don't resurrect it. Just keep the offer financed.
+  if (o.converted_to_contract === true) {
+    await admin.from("offers").update({ workflow_status: "financed", grenke_state: c.State, grenke_state_updated_at: new Date().toISOString() }).eq("id", offerId).neq("workflow_status", "financed");
+    return null;
+  }
+  const nowTs = new Date().toISOString();
+  const { data: created, error } = await admin.from("contracts").insert({
+    offer_id: offerId,
+    client_name: o.client_name ?? null,
+    client_id: o.client_id ?? null,
+    monthly_payment: o.monthly_payment ?? null,
+    equipment_description: o.equipment_description ?? null,
+    leaser_id: o.leaser_id ?? GRENKE_LEASER_UUID,
+    leaser_name: leaser?.name ?? "Grenke Lease",
+    leaser_logo: leaser?.logo_url ?? null,
+    status: "contract_sent",
+    user_id: o.user_id ?? null,
+    company_id: o.company_id ?? null,
+    is_self_leasing: false,
+    contract_number: c.ContractId ?? null,
+    contract_start_date: c.StartDate ?? null,
+    contract_end_date: c.EndDate ?? null,
+    grenke_state: c.State ?? null,
+    grenke_state_updated_at: nowTs,
+  }).select("id").single();
+  if (error || !created) { console.error("[grenke] create contract failed:", error?.message); return null; }
+  const contractId = (created as { id: string }).id;
+
+  // Copy equipment + attributes + specifications from the offer.
+  const { data: eqRows } = await admin
+    .from("offer_equipment")
+    .select("id, title, purchase_price, quantity, margin, monthly_payment, serial_number, is_gifted, category_id, base_purchase_price, offer_equipment_attributes(key,value), offer_equipment_specifications(key,value)")
+    .eq("offer_id", offerId);
+  for (const eq of ((eqRows ?? []) as Array<Record<string, unknown>>)) {
+    const { data: ceq } = await admin.from("contract_equipment").insert({
+      contract_id: contractId,
+      title: eq.title ?? "Équipement",
+      purchase_price: eq.purchase_price ?? 0,
+      quantity: eq.quantity ?? 1,
+      margin: eq.margin ?? 0,
+      monthly_payment: eq.monthly_payment ?? null,
+      serial_number: eq.serial_number ?? null,
+      is_gifted: (eq.is_gifted as boolean) ?? false,
+      category_id: eq.category_id ?? null,
+      base_purchase_price: eq.base_purchase_price ?? eq.purchase_price ?? 0,
+    }).select("id").single();
+    if (!ceq) continue;
+    const ceqId = (ceq as { id: string }).id;
+    const attrs = ((eq.offer_equipment_attributes ?? []) as Array<{ key: string; value: string }>).map((a) => ({ equipment_id: ceqId, key: a.key, value: a.value }));
+    if (attrs.length) await admin.from("contract_equipment_attributes").insert(attrs);
+    const specs = ((eq.offer_equipment_specifications ?? []) as Array<{ key: string; value: string }>).map((sp) => ({ equipment_id: ceqId, key: sp.key, value: sp.value }));
+    if (specs.length) await admin.from("contract_equipment_specifications").insert(specs);
+  }
+
+  await admin.from("offers").update({ converted_to_contract: true, workflow_status: "financed", grenke_state: c.State, grenke_state_updated_at: nowTs }).eq("id", offerId);
+  return contractId;
+}
+
 // Reconcile Grenke CONTRACTS (accepted deals) with Leazr offers. A request that
 // was accepted disappears from /requests (shows as Cancelled) and becomes a
 // contract in /contracts — so without this, accepted offers look annulé/refusé.
@@ -2556,6 +2631,25 @@ async function handleReconcileGrenkeContracts(
     if (Object.keys(upd).length === 0) return;
     await adminSupabase.from("contracts").update(upd).eq("id", cc.id);
   };
+
+  // Grenke leaser identity (for newly-created contracts).
+  const { data: leaserRow } = await adminSupabase.from("leasers").select("name, logo_url").eq("id", GRENKE_LEASER_UUID).maybeSingle();
+  let createdContracts = 0;
+  // Ensure the matched offer has a Leazr contract: stamp the existing one, or
+  // CREATE it from the offer when the deal is accepted at Grenke but was never
+  // finalised into a contract in Leazr.
+  const ensureContract = async (offerId: string, c: GrenkeContractItem): Promise<void> => {
+    const ex = contractByOffer.get(offerId);
+    if (ex) { await stampLeazrContract(ex, c); return; }
+    const newId = await createLeazrContractFromOffer(adminSupabase, offerId, c, leaserRow as { name?: string | null; logo_url?: string | null } | null);
+    if (newId) {
+      const cc: LeazrContract = { id: newId, offer_id: offerId, contract_number: c.ContractId ?? null, client_name: null, monthly_payment: null, status: "contract_sent", grenke_state: c.State ?? null };
+      contractByOffer.set(offerId, cc);
+      existingContracts.push(cc);
+      if (c.ContractId) contractByNumber.set(String(c.ContractId), cc);
+      createdContracts++;
+    }
+  };
   const findExistingContract = (cid: string, companyName: string | null, monthly: number | null): LeazrContract | undefined => {
     const direct = cid ? contractByNumber.get(cid) : undefined;
     if (direct) return direct;
@@ -2653,7 +2747,7 @@ async function handleReconcileGrenkeContracts(
       if (GRENKE_ACCEPTED_STATES.has(c.State ?? "")) offerUpdate.workflow_status = "financed";
       await adminSupabase.from("offers").update(offerUpdate).eq("id", top.offer_id);
       await adminSupabase.from("grenke_submissions").update({ state: c.State, state_updated_at: nowTs }).eq("offer_id", top.offer_id).eq("is_active", true);
-      await stampLeazrContract(contractByOffer.get(top.offer_id), c);
+      if (GRENKE_ACCEPTED_STATES.has(c.State ?? "")) await ensureContract(top.offer_id, c); else await stampLeazrContract(contractByOffer.get(top.offer_id), c);
       results.push({ ...info, status: "already_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
       alreadyLinked++;
       continue;
@@ -2670,7 +2764,7 @@ async function handleReconcileGrenkeContracts(
       (top.amount_close && top.monthly_close && uniqueBest);
     if (confident && auto) {
       await recordGrenkeSubmission(adminSupabase, top.offer_id, { FinancingId: cid, RequestId: cid, State: c.State, submitted_at: new Date().toISOString() }, environment, { advanceWorkflow: true });
-      await stampLeazrContract(contractByOffer.get(top.offer_id), c);
+      await ensureContract(top.offer_id, c);
       results.push({ ...info, status: "auto_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
       autoLinked++;
     } else {
@@ -2703,7 +2797,7 @@ async function handleReconcileGrenkeContracts(
 
   return jsonResponse({
     success: true,
-    summary: { total: contracts.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch, financed_from_contracts: financedFromContracts },
+    summary: { total: contracts.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch, financed_from_contracts: financedFromContracts, created_contracts: createdContracts },
     results,
   }, 200);
 }
