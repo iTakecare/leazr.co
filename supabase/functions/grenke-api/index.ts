@@ -2349,10 +2349,38 @@ async function handleReconcileGrenkeRequests(
     return Math.round((o.financed_amount ?? 0) * 100) / 100;
   };
 
+  // Best offer for a request, by name (company OR person) + BOTH amount AND
+  // monthly agreeing (high confidence). Used to push the Grenke request number
+  // onto every matching offer, whatever the request state — since we already
+  // walk all /requests, every demande number can be propagated to its offer.
+  const bestOfferForRequest = (it: GrenkeRequestItem): UnlinkedOffer | null => {
+    const gName = normalizeTitle(it.Lessee?.CompanyName ?? "");
+    if (!gName) return null;
+    const gTokens = titleTokens(gName);
+    const nameOk = (cand: string) => !!cand && (cand === gName || tokensSubset(gTokens, new Set(titleTokens(cand))) || tokensSubset(titleTokens(cand), new Set(gTokens)));
+    let best: UnlinkedOffer | null = null, bestScore = -1;
+    for (const o of allOffers) {
+      const company = normalizeTitle(o.clients?.company || o.client_name || "");
+      const person = normalizeTitle(o.client_name || o.clients?.name || "");
+      if (!nameOk(company) && !nameOk(person)) continue;
+      const exp = expectedAmount(o);
+      const amountClose = !!it.FinancingAmount && Math.abs(exp - it.FinancingAmount) <= Math.max(1, it.FinancingAmount * 0.02);
+      const monthlyClose = !!it.MonthlyTotalInstalment && !!o.monthly_payment && Math.abs(Number(o.monthly_payment) - it.MonthlyTotalInstalment) <= Math.max(0.5, it.MonthlyTotalInstalment * 0.02);
+      if (!(amountClose && monthlyClose)) continue;
+      const score = (company === gName || person === gName) ? 2 : 1;
+      if (score > bestScore) { bestScore = score; best = o; }
+    }
+    return best;
+  };
+
   const results: Array<Record<string, unknown>> = [];
   let autoLinked = 0, needsReview = 0, noMatch = 0, alreadyLinked = 0;
 
   for (const it of items) {
+    // Propagate the demande number to its offer first, for EVERY request —
+    // independent of the link/cancel branches below.
+    if (it.RequestId) { const mo = bestOfferForRequest(it); if (mo) await backfillReqNumber(mo.id, it.RequestId); }
+
     const fid = it.FinancingId ?? "";
     const info = {
       financing_id: fid,
