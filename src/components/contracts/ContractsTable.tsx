@@ -220,7 +220,26 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, grenkeState?: string | null) => {
+    // Grenke sub-state takes priority when the payment is settled but the
+    // contract hasn't started yet (it starts the quarter after delivery):
+    // "ApplicationSettled" = demande réglée. "RunningContract" → contrat actif.
+    if (grenkeState === "ApplicationSettled") {
+      return (
+        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+          <Clock className="mr-1 h-3 w-3" />
+          Demande réglée
+        </Badge>
+      );
+    }
+    if (grenkeState === "RunningContract") {
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <CheckCheck className="mr-1 h-3 w-3" />
+          Actif
+        </Badge>
+      );
+    }
     switch (status) {
       case contractStatuses.CONTRACT_SENT:
         return (
@@ -529,7 +548,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {getStatusBadge(contract.status)}
+                    {getStatusBadge(contract.status, contract.offer_grenke_state)}
                     {contract.welcome_followup_sent_at && (
                       <TooltipProvider>
                         <Tooltip>

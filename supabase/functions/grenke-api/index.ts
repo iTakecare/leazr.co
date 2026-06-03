@@ -2229,22 +2229,35 @@ async function handleReconcileGrenkeRequests(
   // 2. Load this company's Grenke offers.
   const { data: offerRows, error: offerErr } = await adminSupabase
     .from("offers")
-    .select("id, client_name, dossier_number, monthly_payment, coefficient, financed_amount, grenke_financing_id, grenke_state, workflow_status, clients:client_id ( company, name )")
+    .select("id, client_name, dossier_number, monthly_payment, coefficient, financed_amount, grenke_financing_id, grenke_request_id, leaser_request_number, grenke_state, workflow_status, clients:client_id ( company, name )")
     .eq("company_id", companyId)
     .eq("leaser_id", GRENKE_LEASER_UUID);
   if (offerErr) return jsonResponse({ success: false, error: "offer_lookup_failed", message: offerErr.message }, 500);
 
-  const allOffers = (offerRows ?? []) as unknown as Array<UnlinkedOffer & { grenke_financing_id: string | null; grenke_state: string | null }>;
+  const allOffers = (offerRows ?? []) as unknown as Array<UnlinkedOffer & { grenke_financing_id: string | null; grenke_request_id: string | null; leaser_request_number: string | null; grenke_state: string | null }>;
 
-  // A Grenke dossier is "already linked" when its financingId is anywhere in the
-  // submission history (active OR archived) — so a refused dossier that's been
-  // recorded as part of an offer's history isn't proposed for re-linking.
+  // A Grenke dossier is "already linked" when ANY of its identifiers (financing
+  // GUID OR human request number 180-XXXXX) is already attached to an offer —
+  // either in the submission history (active OR archived) OR directly on the
+  // offer row (grenke_financing_id / grenke_request_id / leaser_request_number).
+  // Matching only on financing_id missed offers linked by request number
+  // (e.g. dossiers consolidated by hand, or requests that became contracts),
+  // so they kept reappearing in "à valider".
   const offerIds = allOffers.map((o) => o.id);
   const { data: subRows } = await adminSupabase
     .from("grenke_submissions")
-    .select("financing_id, offer_id")
+    .select("financing_id, request_id, offer_id")
     .in("offer_id", offerIds.length ? offerIds : ["00000000-0000-0000-0000-000000000000"]);
-  const linkedFids = new Set(((subRows ?? []) as Array<{ financing_id: string | null }>).map((r) => r.financing_id).filter(Boolean) as string[]);
+  const linkedIds = new Set<string>();
+  ((subRows ?? []) as Array<{ financing_id: string | null; request_id: string | null }>).forEach((r) => {
+    if (r.financing_id) linkedIds.add(String(r.financing_id));
+    if (r.request_id) linkedIds.add(String(r.request_id));
+  });
+  for (const o of allOffers) {
+    if (o.grenke_financing_id) linkedIds.add(String(o.grenke_financing_id));
+    if (o.grenke_request_id) linkedIds.add(String(o.grenke_request_id));
+    if (o.leaser_request_number) linkedIds.add(String(o.leaser_request_number));
+  }
 
   // Candidate pool = ALL Grenke offers. An offer that already has an active
   // dossier can still receive a NEW one as a re-analysis (added to history) —
@@ -2270,7 +2283,7 @@ async function handleReconcileGrenkeRequests(
       amount: it.FinancingAmount ?? null,
       monthly: it.MonthlyTotalInstalment ?? null,
     };
-    if (fid && linkedFids.has(fid)) {
+    if ((fid && linkedIds.has(fid)) || (it.RequestId && linkedIds.has(String(it.RequestId)))) {
       results.push({ ...info, status: "already_linked" });
       alreadyLinked++;
       continue;
@@ -2390,19 +2403,31 @@ async function handleReconcileGrenkeContracts(
   // 2. Load this company's Grenke offers.
   const { data: offerRows, error: offerErr } = await adminSupabase
     .from("offers")
-    .select("id, client_name, dossier_number, monthly_payment, coefficient, financed_amount, grenke_financing_id, grenke_request_id, workflow_status, clients:client_id ( company, name )")
+    .select("id, client_name, dossier_number, monthly_payment, coefficient, financed_amount, grenke_financing_id, grenke_request_id, leaser_request_number, grenke_state, workflow_status, clients:client_id ( company, name )")
     .eq("company_id", companyId)
     .eq("leaser_id", GRENKE_LEASER_UUID);
   if (offerErr) return jsonResponse({ success: false, error: "offer_lookup_failed", message: offerErr.message }, 500);
-  const allOffers = (offerRows ?? []) as unknown as Array<UnlinkedOffer & { grenke_request_id: string | null }>;
+  const allOffers = (offerRows ?? []) as unknown as Array<UnlinkedOffer & { grenke_financing_id: string | null; grenke_request_id: string | null; leaser_request_number: string | null; grenke_state: string | null }>;
 
-  // Contracts already recorded in some offer's history (by their ContractId).
+  // A contract is "already linked" when its ContractId is anywhere in the
+  // submission history OR on an offer row. We index every known identifier
+  // (contract id, financing GUID, request number) so a contract isn't
+  // re-proposed just because the offer was linked by its request number.
   const offerIds = allOffers.map((o) => o.id);
   const { data: subRows } = await adminSupabase
     .from("grenke_submissions")
-    .select("request_id, offer_id")
+    .select("financing_id, request_id, offer_id")
     .in("offer_id", offerIds.length ? offerIds : ["00000000-0000-0000-0000-000000000000"]);
-  const linkedContractIds = new Set(((subRows ?? []) as Array<{ request_id: string | null }>).map((r) => r.request_id).filter(Boolean) as string[]);
+  const linkedContractIds = new Set<string>();
+  ((subRows ?? []) as Array<{ financing_id: string | null; request_id: string | null }>).forEach((r) => {
+    if (r.financing_id) linkedContractIds.add(String(r.financing_id));
+    if (r.request_id) linkedContractIds.add(String(r.request_id));
+  });
+  for (const o of allOffers) {
+    if (o.grenke_financing_id) linkedContractIds.add(String(o.grenke_financing_id));
+    if (o.grenke_request_id) linkedContractIds.add(String(o.grenke_request_id));
+    if (o.leaser_request_number) linkedContractIds.add(String(o.leaser_request_number));
+  }
 
   const expectedAmount = (o: UnlinkedOffer): number => {
     const coef = Number(o.coefficient) || 0;
@@ -2435,13 +2460,30 @@ async function handleReconcileGrenkeContracts(
       const exp = expectedAmount(o);
       const amountClose = !!c.NetAcquisitionValue && Math.abs(exp - c.NetAcquisitionValue) <= Math.max(1, c.NetAcquisitionValue * 0.02);
       const monthlyClose = !!c.TotalInstalment && !!o.monthly_payment && Math.abs(Number(o.monthly_payment) - c.TotalInstalment) <= Math.max(0.5, c.TotalInstalment * 0.02);
-      const alreadyThis = (o as { grenke_request_id?: string | null }).grenke_request_id === cid;
-      return { offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, already_this: alreadyThis, score: 1 + (amountClose ? 2 : 0) + (monthlyClose ? 2 : 0) };
-    }).filter(Boolean) as Array<{ offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; already_this: boolean; score: number }>;
+      const oo = o as { grenke_request_id?: string | null; grenke_financing_id?: string | null };
+      // The matched offer is already tied to a Grenke dossier (its request
+      // became this contract) when it carries any dossier identifier.
+      const offerLinked = !!(oo.grenke_request_id || oo.grenke_financing_id);
+      return { offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, offer_linked: offerLinked, score: 1 + (amountClose ? 2 : 0) + (monthlyClose ? 2 : 0) };
+    }).filter(Boolean) as Array<{ offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; offer_linked: boolean; score: number }>;
     candidates.sort((a, b) => b.score - a.score);
 
     if (candidates.length === 0) { results.push({ ...info, status: "no_match" }); noMatch++; continue; }
     const top = candidates[0];
+
+    // If the best match is an offer ALREADY linked to a Grenke dossier, this
+    // contract is that offer's accepted outcome (request → contract), not a new
+    // dossier to link. Just refresh the offer's sub-state (ApplicationSettled
+    // "demande réglée" → RunningContract "actif") and don't propose re-linking.
+    if (top.offer_linked && (top.amount_close || top.monthly_close)) {
+      const nowTs = new Date().toISOString();
+      await adminSupabase.from("offers").update({ grenke_state: c.State, grenke_state_updated_at: nowTs }).eq("id", top.offer_id);
+      await adminSupabase.from("grenke_submissions").update({ state: c.State, state_updated_at: nowTs }).eq("offer_id", top.offer_id).eq("is_active", true);
+      results.push({ ...info, status: "already_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
+      alreadyLinked++;
+      continue;
+    }
+
     const confident = candidates.length === 1 && (top.amount_close || top.monthly_close);
     if (confident && auto) {
       await recordGrenkeSubmission(adminSupabase, top.offer_id, { FinancingId: cid, RequestId: cid, State: c.State, submitted_at: new Date().toISOString() }, environment, { advanceWorkflow: true });

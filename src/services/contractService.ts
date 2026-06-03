@@ -18,6 +18,10 @@ export interface Contract {
   offer_id: string;
   offer_dossier_number?: string;
   offer_leaser_request_number?: string;
+  // Grenke contract sub-state surfaced from the linked offer:
+  // "ApplicationSettled" = demande réglée (paiement fait, contrat démarre le
+  // trimestre suivant), "RunningContract" = actif, etc.
+  offer_grenke_state?: string | null;
   client_name: string;
   client_id?: string;
   client_email?: string;
@@ -151,7 +155,7 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       .select(`
         *, 
         clients(name, email, company, phone, address, city, postal_code, vat_number, billing_address, billing_city, billing_postal_code),
-        offers!contracts_offer_id_fkey(dossier_number, leaser_request_number, down_payment, coefficient, financed_amount),
+        offers!contracts_offer_id_fkey(dossier_number, leaser_request_number, down_payment, coefficient, financed_amount, grenke_state),
         contract_equipment(id, monthly_payment, quantity)
       `)
       .eq('id', contractId)
@@ -559,7 +563,7 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
       .select(`
         *, 
         clients(name, email, company),
-        offers!contracts_offer_id_fkey(dossier_number, leaser_request_number, down_payment, coefficient, financed_amount),
+        offers!contracts_offer_id_fkey(dossier_number, leaser_request_number, down_payment, coefficient, financed_amount, grenke_state),
         contract_equipment(id, title, monthly_payment, quantity),
         leasers(logo_url)
       `)
@@ -611,6 +615,7 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
         equipment_description: equipmentDescription,
         offer_dossier_number: contract.offers?.dossier_number,
         offer_leaser_request_number: contract.offers?.leaser_request_number,
+        offer_grenke_state: contract.offers?.grenke_state ?? null,
         down_payment: downPayment,
         coefficient: coefficient,
         financed_amount: financedAmount,
