@@ -1,6 +1,7 @@
 // Reconcile Grenke dossiers created directly in the portal (not via the API)
 // with existing Leazr offers. Calls grenke-api 'reconcile_grenke_requests'
 // (auto-links confident matches), then lets the user manually link the rest.
+// (Shipped via the retrying CI deploy.)
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
