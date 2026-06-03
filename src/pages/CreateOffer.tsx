@@ -14,7 +14,7 @@ import { createOffer, getOfferById, updateOffer } from "@/services/offerService"
 import { getLeasers } from "@/services/leaserService";
 import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
-import { Calculator as CalcIcon, Loader2, ArrowLeft, Package, AlertCircle } from "lucide-react";
+import { Calculator as CalcIcon, Loader2, ArrowLeft, Package, AlertCircle, Sparkles } from "lucide-react";
 import WaveLoader from "@/components/ui/WaveLoader";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -39,6 +39,8 @@ import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
 import OfferConfiguration from "@/components/offer/OfferConfiguration";
 import DownPaymentCard from "@/components/offer/DownPaymentCard";
+import UsageConfiguratorDialog from "@/components/offer/UsageConfiguratorDialog";
+import type { EquipmentSuggestion } from "@/services/offers/suggestEquipmentFromUsage";
 import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
 import { useAbsorbingCategories } from "@/hooks/useAbsorbingCategories";
 import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
@@ -79,6 +81,7 @@ const CreateOffer = () => {
   const [isSelfLeasing, setIsSelfLeasing] = useState(false);
   const [selectedAmbassador, setSelectedAmbassador] = useState<AmbassadorSelectorAmbassador | null>(null);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const [isUsageConfiguratorOpen, setIsUsageConfiguratorOpen] = useState(false);
   const [isClientSelectorOpen, setIsClientSelectorOpen] = useState(false);
   const [isLeaserSelectorOpen, setIsLeaserSelectorOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -616,6 +619,44 @@ const CreateOffer = () => {
       setTargetMonthlyPayment(monthlyPrice);
     }
     setIsCatalogOpen(false);
+  };
+
+  // Injection des suggestions du configurateur IA comme lignes d'équipement standard.
+  // Même structure que handlePackSelect : on ajoute toutes les lignes d'un coup.
+  const handleUsageSuggestions = (suggestions: EquipmentSuggestion[]) => {
+    if (!selectedLeaser) {
+      toast.error("Sélectionnez d'abord un bailleur (leaser).");
+      return;
+    }
+    const defaultMargin = 20;
+    const newEquipments = suggestions.map((s) => {
+      const purchasePrice = s.price || 0;
+      // Mensualité de ligne = total (unitaire × quantité), comme la convention du calculateur.
+      // Si le produit n'a pas de monthly_price catalogue, on la calcule depuis le PV + marge.
+      let lineMonthly = s.monthly_price > 0 ? s.monthly_price * s.quantity : 0;
+      if (lineMonthly === 0 && purchasePrice > 0) {
+        const financed = purchasePrice * s.quantity * (1 + defaultMargin / 100);
+        const coef = findCoefficient(financed);
+        lineMonthly = Math.round(((financed * coef) / 100 + Number.EPSILON) * 100) / 100;
+      }
+      return {
+        id: crypto.randomUUID(),
+        title: s.name,
+        purchasePrice,
+        quantity: s.quantity,
+        margin: defaultMargin,
+        monthlyPayment: lineMonthly,
+        productId: s.product_id,
+        attributes: {},
+        specifications: {
+          category: s.category || "",
+        },
+      };
+    });
+    setEquipmentList((prev) => [...prev, ...newEquipments]);
+    toast.success(
+      `${newEquipments.length} produit(s) ajouté(s) à l'offre depuis l'assistant`,
+    );
   };
 
   const handleStockItemSelect = (item: StockItem) => {
@@ -1383,8 +1424,18 @@ const CreateOffer = () => {
                           </div>
                         )}
 
-                        {!isPurchase && (
-                          <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsUsageConfiguratorOpen(true)}
+                            disabled={!selectedLeaser}
+                            title={!selectedLeaser ? "Sélectionnez d'abord un bailleur" : "Suggérer l'équipement à partir de l'usage (IA)"}
+                          >
+                            <Sparkles className="h-4 w-4 mr-1.5" />
+                            Assistant (Wizard)
+                          </Button>
+                          {!isPurchase && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -1394,8 +1445,8 @@ const CreateOffer = () => {
                             >
                               Rachat contrat
                             </Button>
-                          </div>
-                        )}
+                          )}
+                        </div>
 
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                           <div className="xl:col-span-1">
@@ -1655,6 +1706,13 @@ const CreateOffer = () => {
         </div>
 
         {/* Modals */}
+        <UsageConfiguratorDialog
+          open={isUsageConfiguratorOpen}
+          onOpenChange={setIsUsageConfiguratorOpen}
+          companyId={companyId || undefined}
+          onConfirm={handleUsageSuggestions}
+        />
+
         <ProductSelector
           isOpen={isCatalogOpen}
           onClose={() => setIsCatalogOpen(false)}

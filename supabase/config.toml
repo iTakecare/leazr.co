@@ -3,6 +3,9 @@ project_id = "cifbetjefyfocafanlhv"
 [db]
 major_version = 15
 
+[functions.suggest-equipment-from-usage]
+verify_jwt = true
+
 [functions.render-offer-pdf]
 verify_jwt = true
 
