@@ -2559,12 +2559,14 @@ async function handleReconcileGrenkeContracts(
   const findExistingContract = (cid: string, companyName: string | null, monthly: number | null): LeazrContract | undefined => {
     const direct = cid ? contractByNumber.get(cid) : undefined;
     if (direct) return direct;
-    // Fallback: same company name + monthly within 2%.
+    // Fallback: same client (company OR person name) + monthly within 2%.
     const gName = normalizeTitle(companyName ?? "");
     if (!gName || monthly == null) return undefined;
     return existingContracts.find((cc) => {
-      const cName = normalizeTitle(cc.clients?.company || cc.client_name || "");
-      if (!cName || cName !== gName) return false;
+      const cCompany = normalizeTitle(cc.clients?.company || "");
+      const cPerson = normalizeTitle(cc.client_name || "");
+      const nameOk = (cCompany && cCompany === gName) || (cPerson && cPerson === gName);
+      if (!nameOk) return false;
       const m = Number(cc.monthly_payment) || 0;
       return m > 0 && Math.abs(m - monthly) <= Math.max(0.5, monthly * 0.02);
     });
@@ -2614,9 +2616,17 @@ async function handleReconcileGrenkeContracts(
     const grenkeName = normalizeTitle(c.Lessee?.CompanyName ?? "");
     const grenkeTokens = titleTokens(grenkeName);
     const candidates = allOffers.map((o) => {
-      const offerName = normalizeTitle(o.clients?.company || o.client_name || "");
-      const offerTokens = titleTokens(offerName);
-      const nameMatch = !!offerName && !!grenkeName && (offerName === grenkeName || tokensSubset(grenkeTokens, new Set(offerTokens)) || tokensSubset(offerTokens, new Set(grenkeTokens)));
+      // Match on company name OR contact/person name (Grenke registers many
+      // individual contracts under the person while the Leazr offer's client is
+      // the SRL) — same logic as the requests pass, so request↔contract align.
+      const offerCompany = normalizeTitle(o.clients?.company || o.client_name || "");
+      const offerPerson = normalizeTitle(o.client_name || o.clients?.name || "");
+      const nameMatches = (cand: string): boolean => {
+        if (!cand || !grenkeName) return false;
+        const candTokens = titleTokens(cand);
+        return cand === grenkeName || tokensSubset(grenkeTokens, new Set(candTokens)) || tokensSubset(candTokens, new Set(grenkeTokens));
+      };
+      const nameMatch = nameMatches(offerCompany) || nameMatches(offerPerson);
       if (!nameMatch) return null;
       const exp = expectedAmount(o);
       const amountClose = !!c.NetAcquisitionValue && Math.abs(exp - c.NetAcquisitionValue) <= Math.max(1, c.NetAcquisitionValue * 0.02);
