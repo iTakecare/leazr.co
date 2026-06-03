@@ -2259,6 +2259,30 @@ async function handleReconcileGrenkeRequests(
     if (o.leaser_request_number) linkedIds.add(String(o.leaser_request_number));
   }
 
+  // Map every dossier identifier → the offer it belongs to, so a terminal
+  // (Declined/Cancelled) dossier can be traced back to its offer/contract.
+  type OfferRow = typeof allOffers[number] & { workflow_status?: string | null };
+  const offerById = new Map<string, OfferRow>(allOffers.map((o) => [o.id, o as OfferRow]));
+  const offerByDossier = new Map<string, OfferRow>();
+  for (const o of allOffers) {
+    [o.grenke_financing_id, o.grenke_request_id, o.leaser_request_number].forEach((v) => { if (v) offerByDossier.set(String(v), o as OfferRow); });
+  }
+  ((subRows ?? []) as Array<{ financing_id: string | null; request_id: string | null; offer_id: string | null }>).forEach((r) => {
+    const o = r.offer_id ? offerById.get(r.offer_id) : undefined;
+    if (!o) return;
+    if (r.financing_id) offerByDossier.set(String(r.financing_id), o);
+    if (r.request_id) offerByDossier.set(String(r.request_id), o);
+  });
+
+  // Leazr contracts (by offer) so a cancelled/refused dossier moves its contract
+  // to the "Annulés" tab.
+  const { data: ctrRows } = await adminSupabase
+    .from("contracts")
+    .select("id, offer_id, status")
+    .eq("company_id", companyId);
+  const contractByOffer = new Map<string, { id: string; status: string | null }>();
+  ((ctrRows ?? []) as Array<{ id: string; offer_id: string | null; status: string | null }>).forEach((c) => { if (c.offer_id) contractByOffer.set(c.offer_id, { id: c.id, status: c.status }); });
+
   // Candidate pool = ALL Grenke offers. An offer that already has an active
   // dossier can still receive a NEW one as a re-analysis (added to history) —
   // but only via manual review, never auto-linked (see `confident` below).
@@ -2283,6 +2307,35 @@ async function handleReconcileGrenkeRequests(
       amount: it.FinancingAmount ?? null,
       monthly: it.MonthlyTotalInstalment ?? null,
     };
+    const linkedOffer = offerByDossier.get(fid) || (it.RequestId ? offerByDossier.get(String(it.RequestId)) : undefined);
+    const isTerminalNeg = it.State === "Declined" || it.State === "Cancelled";
+
+    // Terminal-negative dossier (Declined/refused, or genuinely Cancelled) tied
+    // to a known offer → reject the offer and move its contract to "Annulés".
+    // Guarded: never touch a financed offer or one whose current Grenke state is
+    // an accepted one (the contracts pass, which runs first, protects accepted
+    // deals whose request merely *shows* as Cancelled).
+    if (isTerminalNeg && linkedOffer) {
+      const wf = linkedOffer.workflow_status ?? null;
+      const accepted = wf === "financed" || GRENKE_ACCEPTED_STATES.has(linkedOffer.grenke_state ?? "");
+      if (!accepted) {
+        const nowTs = new Date().toISOString();
+        await adminSupabase.from("offers")
+          .update({ workflow_status: "leaser_rejected", grenke_state: it.State, grenke_state_updated_at: nowTs })
+          .eq("id", linkedOffer.id).neq("workflow_status", "financed");
+        const ct = contractByOffer.get(linkedOffer.id);
+        if (ct && ct.status !== "cancelled" && ct.status !== "completed") {
+          // status only — keep this independent of the (maybe-unmigrated)
+          // grenke_state column so the move to "Annulés" always lands.
+          await adminSupabase.from("contracts").update({ status: "cancelled" }).eq("id", ct.id);
+          await adminSupabase.from("contracts").update({ grenke_state: it.State, grenke_state_updated_at: new Date().toISOString() }).eq("id", ct.id);
+        }
+        results.push({ ...info, status: "already_linked", offer_id: linkedOffer.id });
+        alreadyLinked++;
+        continue;
+      }
+    }
+
     if ((fid && linkedIds.has(fid)) || (it.RequestId && linkedIds.has(String(it.RequestId)))) {
       results.push({ ...info, status: "already_linked" });
       alreadyLinked++;
@@ -2292,13 +2345,17 @@ async function handleReconcileGrenkeRequests(
     const grenkeName = normalizeTitle(it.Lessee?.CompanyName ?? "");
     const grenkeTokens = titleTokens(grenkeName);
     const candidates = pool.map((o) => {
+      // Match on the company name OR the contact/person name — Grenke often
+      // registers an individual dossier under the person ("DANNEELS, ARNAUD")
+      // while the Leazr offer's client.company is the SRL.
       const offerName = normalizeTitle(o.clients?.company || o.client_name || "");
-      const offerTokens = titleTokens(offerName);
-      const nameMatch = !!offerName && !!grenkeName && (
-        offerName === grenkeName ||
-        tokensSubset(grenkeTokens, new Set(offerTokens)) ||
-        tokensSubset(offerTokens, new Set(grenkeTokens))
-      );
+      const personName = normalizeTitle(o.client_name || o.clients?.name || "");
+      const nameMatches = (cand: string): boolean => {
+        if (!cand || !grenkeName) return false;
+        const candTokens = titleTokens(cand);
+        return cand === grenkeName || tokensSubset(grenkeTokens, new Set(candTokens)) || tokensSubset(candTokens, new Set(grenkeTokens));
+      };
+      const nameMatch = nameMatches(offerName) || nameMatches(personName);
       if (!nameMatch) return null;
       const exp = expectedAmount(o);
       const amountClose = !!it.FinancingAmount && Math.abs(exp - it.FinancingAmount) <= Math.max(1, it.FinancingAmount * 0.01);

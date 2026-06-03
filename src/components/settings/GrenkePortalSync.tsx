@@ -61,13 +61,14 @@ export default function GrenkePortalSync() {
         if (r.error) { const ctx = (r.error as { context?: Response }).context; if (ctx?.json) { try { b = await ctx.json(); } catch { /* */ } } }
         return b;
       };
-      // Reconcile BOTH the requests (in-progress / refused) and the contracts
-      // (accepted deals — a request that's accepted leaves /requests and becomes
-      // a contract, otherwise the offer would wrongly look annulée).
-      const [reqRes, conRes] = await Promise.all([
-        supabase.functions.invoke("grenke-api", { body: { action: "reconcile_grenke_requests", environment: "production", payload: { auto: true } } }),
-        supabase.functions.invoke("grenke-api", { body: { action: "reconcile_grenke_contracts", environment: "production", payload: { auto: true } } }),
-      ]);
+      // Reconcile the contracts FIRST (accepted deals → offers financed), THEN
+      // the requests (in-progress / refused / cancelled). Sequential on purpose:
+      // an accepted deal must be marked financed before the requests pass can
+      // consider a Cancelled/Declined dossier for cancellation — otherwise an
+      // accepted deal (whose request shows as Cancelled) could be wrongly
+      // cancelled.
+      const conRes = await supabase.functions.invoke("grenke-api", { body: { action: "reconcile_grenke_contracts", environment: "production", payload: { auto: true } } });
+      const reqRes = await supabase.functions.invoke("grenke-api", { body: { action: "reconcile_grenke_requests", environment: "production", payload: { auto: true } } });
       const reqBody = await parse(reqRes);
       const conBody = await parse(conRes);
       const sum = (k: keyof NonNullable<ReconcileResponse["summary"]>) => (reqBody?.summary?.[k] ?? 0) + (conBody?.summary?.[k] ?? 0);
