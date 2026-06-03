@@ -70,6 +70,7 @@ interface GrenkeRequest {
     | "build_offer_payload"
     | "backfill_product_links"
     | "poll_grenke_statuses"
+    | "poll_grenke_contracts"
     | "get_esignature_config"
     | "start_esignature"
     | "reconcile_grenke_requests"
@@ -126,6 +127,17 @@ serve(async (req) => {
         return jsonResponse({ success: false, error: "unauthorized_cron" }, 401);
       }
       return await handlePollGrenkeStatuses(adminSupabase);
+    }
+
+    // Cron: refresh contract states + auto-link newly-accepted contracts across
+    // all Grenke companies (the accepted-deal half of the 15-minute auto-sync).
+    if (earlyBody.action === "poll_grenke_contracts") {
+      const cronSecret = Deno.env.get("GRENKE_CRON_SECRET");
+      const provided = req.headers.get("X-Cron-Secret");
+      if (!cronSecret || provided !== cronSecret) {
+        return jsonResponse({ success: false, error: "unauthorized_cron" }, 401);
+      }
+      return await handlePollGrenkeContracts(adminSupabase);
     }
 
     // ---------- cron path: per-offer pipeline actions (no user auth) ----------
@@ -1678,6 +1690,34 @@ async function handlePollGrenkeStatuses(
   }, 200);
 }
 
+// Cron: for every company that has Grenke offers, run the contracts reconcile
+// (auto-link newly-accepted contracts + refresh existing contract states). This
+// is what flips ApplicationSettled → RunningContract and surfaces freshly
+// accepted deals as "financées" without anyone clicking Synchroniser.
+async function handlePollGrenkeContracts(
+  adminSupabase: ReturnType<typeof createClient>,
+): Promise<Response> {
+  const { data: companyRows } = await adminSupabase
+    .from("offers")
+    .select("company_id")
+    .eq("leaser_id", GRENKE_LEASER_UUID);
+  const companyIds = [...new Set(((companyRows ?? []) as Array<{ company_id: string }>).map((r) => r.company_id))];
+
+  let processed = 0, skipped = 0, errors = 0;
+  for (const companyId of companyIds) {
+    const creds = await loadCredentials(adminSupabase, companyId, "production");
+    if (!creds) { skipped++; continue; }
+    try {
+      await handleReconcileGrenkeContracts(adminSupabase, companyId, "production", creds, { auto: true });
+      processed++;
+    } catch (e) {
+      console.error("[grenke-api] poll_grenke_contracts error for company", companyId, e instanceof Error ? e.message : String(e));
+      errors++;
+    }
+  }
+  return jsonResponse({ success: true, companies: companyIds.length, processed, skipped, errors, at: new Date().toISOString() }, 200);
+}
+
 // =====================================================================
 // e-signature — get_esignature_config + start_esignature
 //
@@ -2129,7 +2169,8 @@ async function recordGrenkeSubmission(
   // contracts sync / manual review.
   if (opts?.advanceWorkflow) {
     if (active.state === "Declined") update.workflow_status = "leaser_rejected";
-    else if (GRENKE_ACCEPTED_STATES.has(active.state ?? "")) update.workflow_status = "leaser_approved";
+    // An accepted deal (a contract exists) is the FINAL "financed" status.
+    else if (GRENKE_ACCEPTED_STATES.has(active.state ?? "")) update.workflow_status = "financed";
     else if (active.state !== "Cancelled") update.workflow_status = "leaser_introduced";
   }
   await adminSupabase.from("offers").update(update).eq("id", offerId);
@@ -2375,7 +2416,14 @@ async function handleReconcileGrenkeContracts(
   for (const c of contracts) {
     const cid = c.ContractId ?? "";
     const info = { financing_id: cid, request_id: cid, state: c.State ?? null, company: c.Lessee?.CompanyName ?? null, amount: c.NetAcquisitionValue ?? null, monthly: c.TotalInstalment ?? null };
-    if (cid && linkedContractIds.has(cid)) { results.push({ ...info, status: "already_linked" }); alreadyLinked++; continue; }
+    if (cid && linkedContractIds.has(cid)) {
+      // Keep the contract sub-state fresh: ApplicationSettled ("demande réglée")
+      // → RunningContract ("actif") once the next quarter starts.
+      const nowTs = new Date().toISOString();
+      await adminSupabase.from("grenke_submissions").update({ state: c.State, state_updated_at: nowTs }).eq("request_id", cid);
+      await adminSupabase.from("offers").update({ grenke_state: c.State, grenke_state_updated_at: nowTs }).eq("grenke_request_id", cid);
+      results.push({ ...info, status: "already_linked" }); alreadyLinked++; continue;
+    }
 
     const grenkeName = normalizeTitle(c.Lessee?.CompanyName ?? "");
     const grenkeTokens = titleTokens(grenkeName);
