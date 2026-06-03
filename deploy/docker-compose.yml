@@ -2,6 +2,11 @@ name: leazrapp
 
 services:
   frontend:
+    # The image is built in GitHub Actions (fast runners) and `docker load`-ed
+    # onto the VPS — `docker compose up -d` then uses it WITHOUT building here
+    # (no CPU-heavy build on the small shared VPS). The `build:` block is kept
+    # only as a manual fallback (`docker compose build`).
+    image: leazrapp-frontend:latest
     build:
       context: ..
       dockerfile: Dockerfile

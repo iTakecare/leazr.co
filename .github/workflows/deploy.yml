@@ -35,7 +35,29 @@ jobs:
           fi
           echo "Frontend changed: $(tail -1 "$GITHUB_OUTPUT")"
 
-      - name: Deploy via SSH
+      # Build the frontend image HERE (fast GitHub runner), not on the VPS.
+      # The small shared VPS can't reliably finish a Vite build, which twice
+      # took the app down. We build, ship the image as a tarball, and the VPS
+      # only `docker load`s it + restarts the container — zero build on the VPS.
+      - name: Build frontend image (in CI)
+        if: steps.changes.outputs.frontend == 'true'
+        run: |
+          docker compose -f deploy/docker-compose.yml build
+          docker save leazrapp-frontend:latest | gzip > /tmp/leazr-frontend.tar.gz
+          ls -lh /tmp/leazr-frontend.tar.gz
+
+      - name: Copy image to VPS
+        if: steps.changes.outputs.frontend == 'true'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: /tmp/leazr-frontend.tar.gz
+          target: /tmp/
+
+      - name: Load image + restart on VPS
         if: steps.changes.outputs.frontend == 'true'
         uses: appleboy/ssh-action@v1.2.2
         with:
@@ -43,9 +65,15 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          command_timeout: 20m
+          command_timeout: 5m
           script: |
-            cd /opt/LeazrApp && git pull origin main && bash deploy/deploy.sh
+            set -e
+            cd /opt/LeazrApp
+            git pull origin main
+            gunzip -c /tmp/leazr-frontend.tar.gz | docker load
+            docker compose -f deploy/docker-compose.yml up -d --force-recreate --remove-orphans
+            rm -f /tmp/leazr-frontend.tar.gz
+            docker image prune -f
 
   deploy-supabase-functions:
     runs-on: ubuntu-latest
