@@ -1555,11 +1555,10 @@ async function fetchAndPersistStatus(
   }
 
   let workflowChanged = false;
+  // Only Declined is a reliable refusal. A Grenke "Cancelled" request is often a
+  // request that became a contract (accepted), so we never auto-close it here.
   if (state === "Declined" && offer.workflow_status !== "leaser_rejected") {
     update.workflow_status = "leaser_rejected"; // Refusé
-    workflowChanged = true;
-  } else if (state === "Cancelled" && offer.workflow_status !== "without_follow_up") {
-    update.workflow_status = "without_follow_up"; // Sans suite
     workflowChanged = true;
   }
   // NOTE: Contracted → contract creation is intentionally NOT done here yet.
@@ -2112,14 +2111,15 @@ async function recordGrenkeSubmission(
   if (active.request_id) update.leaser_request_number = active.request_id;
   // If the active dossier changed, the signature flow restarts from scratch.
   if (active.financing_id !== prevActiveFid) update.grenke_esign_started_at = null;
-  // Workflow status reflects the active dossier's Grenke state:
-  //   Declined  → leaser_rejected  (Refusé)
-  //   Cancelled → without_follow_up (Sans suite)
-  //   live      → leaser_introduced
+  // Workflow status reflects the active dossier's Grenke state.
+  //   Declined → leaser_rejected (a genuine refusal — reliable).
+  // NB: a Grenke "Cancelled" request is AMBIGUOUS — it often means the request
+  // was converted into a contract (i.e. ACCEPTED), not abandoned. So we do NOT
+  // auto-classify Cancelled here; it stays in progress and is resolved by the
+  // contracts sync / manual review.
   if (opts?.advanceWorkflow) {
     if (active.state === "Declined") update.workflow_status = "leaser_rejected";
-    else if (active.state === "Cancelled") update.workflow_status = "without_follow_up";
-    else update.workflow_status = "leaser_introduced";
+    else if (active.state !== "Cancelled") update.workflow_status = "leaser_introduced";
   }
   await adminSupabase.from("offers").update(update).eq("id", offerId);
 }
