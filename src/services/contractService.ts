@@ -18,9 +18,13 @@ export interface Contract {
   offer_id: string;
   offer_dossier_number?: string;
   offer_leaser_request_number?: string;
-  // Grenke contract sub-state surfaced from the linked offer:
-  // "ApplicationSettled" = demande réglée (paiement fait, contrat démarre le
-  // trimestre suivant), "RunningContract" = actif, etc.
+  // Grenke contract sub-state: "ApplicationSettled" = demande réglée (paiement
+  // fait, le contrat démarre le trimestre suivant), "RunningContract" = actif.
+  // `grenke_state` lives on the contract row (set by the 15-min sync, incl. for
+  // directly-imported contracts); `offer_grenke_state` is the fallback joined
+  // from the linked offer.
+  grenke_state?: string | null;
+  grenke_state_updated_at?: string | null;
   offer_grenke_state?: string | null;
   client_name: string;
   client_id?: string;

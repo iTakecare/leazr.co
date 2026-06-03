@@ -548,7 +548,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {getStatusBadge(contract.status, contract.offer_grenke_state)}
+                    {getStatusBadge(contract.status, contract.grenke_state ?? contract.offer_grenke_state)}
                     {contract.welcome_followup_sent_at && (
                       <TooltipProvider>
                         <Tooltip>

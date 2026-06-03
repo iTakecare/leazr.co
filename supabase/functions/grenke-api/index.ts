@@ -2429,6 +2429,35 @@ async function handleReconcileGrenkeContracts(
     if (o.leaser_request_number) linkedContractIds.add(String(o.leaser_request_number));
   }
 
+  // Many Grenke contracts already exist as Leazr CONTRACT rows (imported with
+  // contract_number = the Grenke contract id 180-XXXXX) without going through an
+  // offer. Index them so they're recognised as "already there" instead of being
+  // reported as "sans correspondance". Keyed by contract_number and by a
+  // company+amount fingerprint as a fallback.
+  const { data: contractRows } = await adminSupabase
+    .from("contracts")
+    .select("id, contract_number, client_name, monthly_payment, grenke_state, clients:client_id ( company )")
+    .eq("company_id", companyId);
+  type LeazrContract = { id: string; contract_number: string | null; client_name: string | null; monthly_payment: number | null; grenke_state: string | null; clients?: { company?: string | null } | null };
+  const existingContracts = (contractRows ?? []) as unknown as LeazrContract[];
+  const contractByNumber = new Map<string, LeazrContract>();
+  for (const cc of existingContracts) {
+    if (cc.contract_number) contractByNumber.set(String(cc.contract_number), cc);
+  }
+  const findExistingContract = (cid: string, companyName: string | null, monthly: number | null): LeazrContract | undefined => {
+    const direct = cid ? contractByNumber.get(cid) : undefined;
+    if (direct) return direct;
+    // Fallback: same company name + monthly within 2%.
+    const gName = normalizeTitle(companyName ?? "");
+    if (!gName || monthly == null) return undefined;
+    return existingContracts.find((cc) => {
+      const cName = normalizeTitle(cc.clients?.company || cc.client_name || "");
+      if (!cName || cName !== gName) return false;
+      const m = Number(cc.monthly_payment) || 0;
+      return m > 0 && Math.abs(m - monthly) <= Math.max(0.5, monthly * 0.02);
+    });
+  };
+
   const expectedAmount = (o: UnlinkedOffer): number => {
     const coef = Number(o.coefficient) || 0;
     if (coef > 0 && Number(o.monthly_payment) > 0) return Math.round((Number(o.monthly_payment) * 100 / coef) * 100) / 100;
@@ -2448,6 +2477,19 @@ async function handleReconcileGrenkeContracts(
       await adminSupabase.from("grenke_submissions").update({ state: c.State, state_updated_at: nowTs }).eq("request_id", cid);
       await adminSupabase.from("offers").update({ grenke_state: c.State, grenke_state_updated_at: nowTs }).eq("grenke_request_id", cid);
       results.push({ ...info, status: "already_linked" }); alreadyLinked++; continue;
+    }
+
+    // Already present as a Leazr contract row (imported, no offer link). Refresh
+    // its Grenke sub-state on the contract itself and don't propose it.
+    const existing = findExistingContract(cid, c.Lessee?.CompanyName ?? null, c.TotalInstalment ?? null);
+    if (existing) {
+      if (existing.grenke_state !== c.State) {
+        // Best-effort: the grenke_state column may not exist yet (pre-migration).
+        await adminSupabase.from("contracts").update({ grenke_state: c.State, grenke_state_updated_at: new Date().toISOString() }).eq("id", existing.id);
+      }
+      results.push({ ...info, status: "already_linked", dossier_number: existing.contract_number ?? null, client_name: existing.client_name ?? null });
+      alreadyLinked++;
+      continue;
     }
 
     const grenkeName = normalizeTitle(c.Lessee?.CompanyName ?? "");
