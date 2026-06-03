@@ -71,7 +71,9 @@ interface GrenkeRequest {
     | "backfill_product_links"
     | "poll_grenke_statuses"
     | "get_esignature_config"
-    | "start_esignature";
+    | "start_esignature"
+    | "reconcile_grenke_requests"
+    | "link_grenke_request";
   environment?: Environment;
   // future fields (calculate, submit_offer, …) live under `payload`
   payload?: Record<string, unknown>;
@@ -240,6 +242,12 @@ serve(async (req) => {
 
       case "upload_document":
         return await handleUploadDocuments(adminSupabase, companyId, environment, creds, body.offer_id, body.payload ?? {});
+
+      case "reconcile_grenke_requests":
+        return await handleReconcileGrenkeRequests(adminSupabase, companyId, environment, creds, body.payload ?? {});
+
+      case "link_grenke_request":
+        return await handleLinkGrenkeRequest(adminSupabase, companyId, environment, body.payload ?? {});
 
       case "get_contract_doc":
         return jsonResponse({
@@ -2002,6 +2010,218 @@ async function handleUploadDocuments(
 
   const sent = results.filter((r) => r.ok).length;
   return jsonResponse({ success: sent > 0, offer_id: offerId, sent, total: documents.length, results }, sent > 0 ? 200 : 502);
+}
+
+// =====================================================================
+// reconcile_grenke_requests / link_grenke_request — match Grenke dossiers
+// created directly in the portal (no API submission) to existing Leazr offers,
+// by company name + amount + monthly. Confident, unambiguous matches are
+// auto-linked when payload.auto === true; the rest are returned for manual
+// review. Linking writes the Grenke identifiers/state onto the offer so the
+// status poller then tracks it like any API-submitted dossier.
+// =====================================================================
+const GRENKE_LEASER_UUID = "d60b86d7-a129-4a17-a877-e8e5caa66949";
+
+type GrenkeRequestItem = {
+  FinancingId?: string;
+  RequestId?: string;
+  State?: string;
+  FinancingAmount?: number;
+  MonthlyTotalInstalment?: number;
+  Period?: number;
+  Lessee?: { CompanyName?: string };
+};
+
+type UnlinkedOffer = {
+  id: string;
+  client_name: string | null;
+  dossier_number: string | null;
+  monthly_payment: number | null;
+  coefficient: number | null;
+  financed_amount: number | null;
+  workflow_status: string | null;
+  clients: { company: string | null; name: string | null } | null;
+};
+
+// Write the Grenke linkage onto a Leazr offer (shared by auto + manual link).
+async function linkOfferToGrenke(
+  adminSupabase: ReturnType<typeof createClient>,
+  offerId: string,
+  item: GrenkeRequestItem,
+  environment: Environment,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const update: Record<string, unknown> = {
+    grenke_financing_id: item.FinancingId ?? null,
+    grenke_request_id: item.RequestId ?? null,
+    grenke_state: item.State ?? null,
+    grenke_environment: environment,
+    grenke_submitted_at: now,
+    grenke_state_updated_at: now,
+  };
+  if (item.RequestId) update.leaser_request_number = item.RequestId;
+  // Reflect that the dossier is at the leaser; the poller refines the rest.
+  update.workflow_status = "leaser_introduced";
+  await adminSupabase.from("offers").update(update).eq("id", offerId);
+}
+
+async function handleReconcileGrenkeRequests(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  payload: Record<string, unknown>,
+): Promise<Response> {
+  const auto = payload.auto === true;
+
+  // 1. Fetch ALL Grenke requests (paginated).
+  const items: GrenkeRequestItem[] = [];
+  let page = 1;
+  for (let guard = 0; guard < 50; guard++) {
+    let resp: Response;
+    try {
+      resp = await grenkeFetch(environment, `/basic/v1/requests?requestListParameter.page=${page}&requestListParameter.pageSize=100`, { method: "GET" }, creds);
+    } catch (e) {
+      return jsonResponse({ success: false, error: "network_or_tls_error", message: e instanceof Error ? e.message : String(e) }, 502);
+    }
+    if (!resp.ok) {
+      const t = await resp.text();
+      return jsonResponse({ success: false, error: "grenke_error", status: resp.status, message: t.slice(0, 200) }, resp.status >= 500 ? 502 : resp.status);
+    }
+    const body = (await resp.json().catch(() => null)) as { Items?: GrenkeRequestItem[]; PageCount?: number } | null;
+    const pageItems = body?.Items ?? [];
+    items.push(...pageItems);
+    const pageCount = body?.PageCount ?? 1;
+    if (page >= pageCount || pageItems.length === 0) break;
+    page++;
+  }
+
+  // 2. Load this company's Grenke offers.
+  const { data: offerRows, error: offerErr } = await adminSupabase
+    .from("offers")
+    .select("id, client_name, dossier_number, monthly_payment, coefficient, financed_amount, grenke_financing_id, workflow_status, clients:client_id ( company, name )")
+    .eq("company_id", companyId)
+    .eq("leaser_id", GRENKE_LEASER_UUID);
+  if (offerErr) return jsonResponse({ success: false, error: "offer_lookup_failed", message: offerErr.message }, 500);
+
+  const allOffers = (offerRows ?? []) as unknown as Array<UnlinkedOffer & { grenke_financing_id: string | null }>;
+  const linkedFids = new Set(allOffers.filter((o) => o.grenke_financing_id).map((o) => o.grenke_financing_id as string));
+  // Mutable pool of candidates (so an offer can't be auto-linked twice).
+  const pool: UnlinkedOffer[] = allOffers.filter((o) => !o.grenke_financing_id);
+
+  const expectedAmount = (o: UnlinkedOffer): number => {
+    const coef = Number(o.coefficient) || 0;
+    if (coef > 0 && Number(o.monthly_payment) > 0) return Math.round((Number(o.monthly_payment) * 100 / coef) * 100) / 100;
+    return Math.round((o.financed_amount ?? 0) * 100) / 100;
+  };
+
+  const results: Array<Record<string, unknown>> = [];
+  let autoLinked = 0, needsReview = 0, noMatch = 0, alreadyLinked = 0;
+
+  for (const it of items) {
+    const fid = it.FinancingId ?? "";
+    const info = {
+      financing_id: fid,
+      request_id: it.RequestId ?? null,
+      state: it.State ?? null,
+      company: it.Lessee?.CompanyName ?? null,
+      amount: it.FinancingAmount ?? null,
+      monthly: it.MonthlyTotalInstalment ?? null,
+    };
+    if (fid && linkedFids.has(fid)) {
+      results.push({ ...info, status: "already_linked" });
+      alreadyLinked++;
+      continue;
+    }
+
+    const grenkeName = normalizeTitle(it.Lessee?.CompanyName ?? "");
+    const grenkeTokens = titleTokens(grenkeName);
+    const candidates = pool.map((o) => {
+      const offerName = normalizeTitle(o.clients?.company || o.client_name || "");
+      const offerTokens = titleTokens(offerName);
+      const nameMatch = !!offerName && !!grenkeName && (
+        offerName === grenkeName ||
+        tokensSubset(grenkeTokens, new Set(offerTokens)) ||
+        tokensSubset(offerTokens, new Set(grenkeTokens))
+      );
+      if (!nameMatch) return null;
+      const exp = expectedAmount(o);
+      const amountClose = !!it.FinancingAmount && Math.abs(exp - it.FinancingAmount) <= Math.max(1, it.FinancingAmount * 0.01);
+      const monthlyClose = !!it.MonthlyTotalInstalment && !!o.monthly_payment && Math.abs(Number(o.monthly_payment) - it.MonthlyTotalInstalment) <= Math.max(0.5, it.MonthlyTotalInstalment * 0.01);
+      const score = 1 + (amountClose ? 2 : 0) + (monthlyClose ? 2 : 0);
+      return { offer: o, offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, score };
+    }).filter(Boolean) as Array<{ offer: UnlinkedOffer; offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; score: number }>;
+    candidates.sort((a, b) => b.score - a.score);
+
+    if (candidates.length === 0) {
+      results.push({ ...info, status: "no_match" });
+      noMatch++;
+      continue;
+    }
+
+    const top = candidates[0];
+    const confident = candidates.length === 1 && (top.amount_close || top.monthly_close);
+    if (confident && auto) {
+      await linkOfferToGrenke(adminSupabase, top.offer_id, it, environment);
+      // Remove from the pool so it can't be matched again.
+      const idx = pool.findIndex((p) => p.id === top.offer_id);
+      if (idx >= 0) pool.splice(idx, 1);
+      results.push({ ...info, status: "auto_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
+      autoLinked++;
+    } else {
+      results.push({
+        ...info,
+        status: "needs_review",
+        candidates: candidates.slice(0, 5).map((c) => ({ offer_id: c.offer_id, dossier_number: c.dossier_number, client_name: c.client_name, company: c.company, amount_close: c.amount_close, monthly_close: c.monthly_close })),
+      });
+      needsReview++;
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    summary: { total: items.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch },
+    results,
+  }, 200);
+}
+
+async function handleLinkGrenkeRequest(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  payload: Record<string, unknown>,
+): Promise<Response> {
+  const offerId = payload.offer_id as string | undefined;
+  const financingId = payload.financing_id as string | undefined;
+  if (!offerId || !financingId) {
+    return jsonResponse({ success: false, error: "validation_error", message: "offer_id et financing_id requis" }, 400);
+  }
+  // Verify the offer belongs to the company and isn't already linked elsewhere.
+  const { data: offer, error } = await adminSupabase
+    .from("offers")
+    .select("id, company_id, grenke_financing_id")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (error) return jsonResponse({ success: false, error: "offer_lookup_failed", message: error.message }, 500);
+  if (!offer) return jsonResponse({ success: false, error: "offer_not_found" }, 404);
+  if ((offer as { company_id: string }).company_id !== companyId) return jsonResponse({ success: false, error: "forbidden" }, 403);
+
+  // Guard: don't steal a financingId already linked to another offer.
+  const { data: clash } = await adminSupabase
+    .from("offers")
+    .select("id")
+    .eq("grenke_financing_id", financingId)
+    .neq("id", offerId)
+    .maybeSingle();
+  if (clash) return jsonResponse({ success: false, error: "already_linked_elsewhere", message: "Ce dossier Grenke est déjà lié à une autre offre." }, 409);
+
+  await linkOfferToGrenke(adminSupabase, offerId, {
+    FinancingId: financingId,
+    RequestId: payload.request_id as string | undefined,
+    State: payload.state as string | undefined,
+  }, environment);
+
+  return jsonResponse({ success: true, offer_id: offerId, financing_id: financingId }, 200);
 }
 
 async function handleBackfillProductLinks(

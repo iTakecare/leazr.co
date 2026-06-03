@@ -40,6 +40,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GrenkeFieldMappings from "./GrenkeFieldMappings";
+import GrenkePortalSync from "./GrenkePortalSync";
 
 type Environment = "uat" | "production";
 
@@ -881,6 +882,9 @@ export default function GrenkeIntegrationCard() {
 
             {/* Stage A automation toggle */}
             {companyId && <GrenkeAutomationToggle companyId={companyId} />}
+
+            {/* Reconcile portal-created dossiers with Leazr offers */}
+            {companyId && <GrenkePortalSync />}
 
             {/* Phase 3a.2d — Backfill product links on existing offers */}
             <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
