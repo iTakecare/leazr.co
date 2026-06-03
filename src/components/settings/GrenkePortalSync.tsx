@@ -36,7 +36,7 @@ interface Row {
 }
 interface ReconcileResponse {
   success: boolean;
-  summary?: { total: number; already_linked: number; auto_linked: number; needs_review: number; no_match: number; created_contracts?: number; financed_from_contracts?: number };
+  summary?: { total: number; already_linked: number; auto_linked: number; needs_review: number; no_match: number; created_contracts?: number; financed_from_contracts?: number; backfilled_numbers?: number };
   results?: Row[];
   message?: string;
   error?: string;
@@ -74,7 +74,7 @@ export default function GrenkePortalSync() {
       const sum = (k: keyof NonNullable<ReconcileResponse["summary"]>) => (reqBody?.summary?.[k] ?? 0) + (conBody?.summary?.[k] ?? 0);
       const merged: ReconcileResponse = {
         success: !!(reqBody?.success || conBody?.success),
-        summary: { total: sum("total"), already_linked: sum("already_linked"), auto_linked: sum("auto_linked"), needs_review: sum("needs_review"), no_match: sum("no_match"), created_contracts: sum("created_contracts"), financed_from_contracts: sum("financed_from_contracts") },
+        summary: { total: sum("total"), already_linked: sum("already_linked"), auto_linked: sum("auto_linked"), needs_review: sum("needs_review"), no_match: sum("no_match"), created_contracts: sum("created_contracts"), financed_from_contracts: sum("financed_from_contracts"), backfilled_numbers: sum("backfilled_numbers") },
         results: [...(reqBody?.results ?? []), ...(conBody?.results ?? [])],
         message: reqBody?.message ?? conBody?.message,
         error: reqBody?.error ?? conBody?.error,
@@ -85,6 +85,7 @@ export default function GrenkePortalSync() {
         const extra = [
           (s?.created_contracts ?? 0) > 0 ? `${s?.created_contracts} contrat(s) créé(s)` : null,
           (s?.financed_from_contracts ?? 0) > 0 ? `${s?.financed_from_contracts} financée(s)` : null,
+          (s?.backfilled_numbers ?? 0) > 0 ? `${s?.backfilled_numbers} n° demande(s)` : null,
         ].filter(Boolean).join(" · ");
         toast.success(`${s?.auto_linked ?? 0} lié(s) auto · ${s?.needs_review ?? 0} à valider · ${s?.no_match ?? 0} sans correspondance${extra ? " · " + extra : ""}`);
         const defaults: Record<string, string> = {};

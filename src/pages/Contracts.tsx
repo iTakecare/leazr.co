@@ -18,6 +18,7 @@ import { MobileContractsPage } from "@/components/mobile/pages";
 const STATUS_FILTERS = [
   { value: "all",                          label: "Tous" },
   { value: "in_progress",                  label: "En cours" },
+  { value: "awaiting_delivery",            label: "Attente livraison" },
   { value: contractStatuses.ACTIVE,        label: "Actifs" },
   { value: "expiring_soon",                label: "Expiration proche" },
   { value: contractStatuses.CONTRACT_SIGNED, label: "Signés" },

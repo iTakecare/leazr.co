@@ -2108,6 +2108,16 @@ const GRENKE_ACCEPTED_STATES = new Set([
   "ProlongedContract", "ExpiringSoon", "Expired",
 ]);
 
+// Post-acceptance REQUEST states: the deal is approved/financed and on its way
+// (signature → delivery), but the definitive contract number isn't issued yet
+// (that comes once "réglée"/ApplicationSettled). On these we create the Leazr
+// contract WITHOUT a number and track the lifecycle.
+const GRENKE_REQUEST_ACCEPTED = new Set([
+  "ReadyToSign", "ContractPrinted", "ContractPrintedBeforeStatement",
+  "AwaitingCustomerSignature", "AwaitingPartnerSignature", "AwaitingSigningAppSignature",
+  "AwaitingDeliveryConfirmation", "StartingESignature", "Contracted",
+]);
+
 async function recordGrenkeSubmission(
   adminSupabase: ReturnType<typeof createClient>,
   offerId: string,
@@ -2283,6 +2293,44 @@ async function handleReconcileGrenkeRequests(
   const contractByOffer = new Map<string, { id: string; status: string | null; contract_number: string | null }>();
   ((ctrRows ?? []) as Array<{ id: string; offer_id: string | null; status: string | null; contract_number: string | null }>).forEach((c) => { if (c.offer_id) contractByOffer.set(c.offer_id, { id: c.id, status: c.status, contract_number: c.contract_number }); });
 
+  const { data: leaserRowReq } = await adminSupabase.from("leasers").select("name, logo_url").eq("id", GRENKE_LEASER_UUID).maybeSingle();
+  let createdContractsReq = 0;
+  let backfilledNumbers = 0;
+
+  // Backfill the Grenke request number (180-XXXXX) onto the offer when missing —
+  // this is what fills the "N° Demande" column for Grenke contracts.
+  const backfillReqNumber = async (offerId: string, requestId: string | null) => {
+    if (!requestId) return;
+    const o = offerById.get(offerId);
+    if (o && !o.leaser_request_number) {
+      await adminSupabase.from("offers").update({ leaser_request_number: requestId }).eq("id", offerId);
+      (o as { leaser_request_number?: string | null }).leaser_request_number = requestId;
+      backfilledNumbers++;
+    }
+  };
+
+  // When a request is accepted/financed (post-acceptance, pre-contract-number),
+  // resolve the offer: backfill its request number, mark it financed, record the
+  // request sub-state, and ensure a Leazr contract exists (created WITHOUT a
+  // definitive number — that arrives once "réglée"). Tracks the lifecycle so the
+  // contract shows up under "Attente livraison" etc.
+  const resolveAcceptedRequest = async (offerId: string, it: GrenkeRequestItem) => {
+    await backfillReqNumber(offerId, it.RequestId ?? null);
+    const nowTs = new Date().toISOString();
+    await adminSupabase.from("offers")
+      .update({ workflow_status: "financed", grenke_state: it.State, grenke_state_updated_at: nowTs })
+      .eq("id", offerId).neq("workflow_status", "financed");
+    // Always refresh the sub-state even if already financed.
+    await adminSupabase.from("offers").update({ grenke_state: it.State, grenke_state_updated_at: nowTs }).eq("id", offerId);
+    const ex = contractByOffer.get(offerId);
+    if (ex) {
+      await adminSupabase.from("contracts").update({ grenke_state: it.State, grenke_state_updated_at: nowTs }).eq("id", ex.id);
+      return;
+    }
+    const newId = await createLeazrContractFromOffer(adminSupabase, offerId, { State: it.State }, leaserRowReq as { name?: string | null; logo_url?: string | null } | null);
+    if (newId) { contractByOffer.set(offerId, { id: newId, status: "contract_sent", contract_number: null }); createdContractsReq++; }
+  };
+
   // Candidate pool = ALL Grenke offers. An offer that already has an active
   // dossier can still receive a NEW one as a re-analysis (added to history) —
   // but only via manual review, never auto-linked (see `confident` below).
@@ -2341,7 +2389,14 @@ async function handleReconcileGrenkeRequests(
     }
 
     if ((fid && linkedIds.has(fid)) || (it.RequestId && linkedIds.has(String(it.RequestId)))) {
-      results.push({ ...info, status: "already_linked" });
+      // Accepted/financed request → keep the offer financed, track the sub-state,
+      // create the contract if it doesn't exist yet (no number until "réglée").
+      if (linkedOffer && GRENKE_REQUEST_ACCEPTED.has(it.State ?? "")) {
+        await resolveAcceptedRequest(linkedOffer.id, it);
+      } else if (linkedOffer) {
+        await backfillReqNumber(linkedOffer.id, it.RequestId ?? null);
+      }
+      results.push({ ...info, status: "already_linked", offer_id: linkedOffer?.id });
       alreadyLinked++;
       continue;
     }
@@ -2415,6 +2470,10 @@ async function handleReconcileGrenkeRequests(
     const confident = candidates.length === 1 && (top.amount_close || top.monthly_close) && top.active_terminal && newLive;
     if (confident && auto) {
       await recordGrenkeSubmission(adminSupabase, top.offer_id, it, environment, { advanceWorkflow: true });
+      await backfillReqNumber(top.offer_id, it.RequestId ?? null);
+      // Accepted/financed request → ensure the Leazr contract exists (no number
+      // yet) and track the sub-state.
+      if (GRENKE_REQUEST_ACCEPTED.has(it.State ?? "")) await resolveAcceptedRequest(top.offer_id, it);
       // Remove from the pool so it can't be matched again.
       const idx = pool.findIndex((p) => p.id === top.offer_id);
       if (idx >= 0) pool.splice(idx, 1);
@@ -2432,7 +2491,7 @@ async function handleReconcileGrenkeRequests(
 
   return jsonResponse({
     success: true,
-    summary: { total: items.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch },
+    summary: { total: items.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch, created_contracts: createdContractsReq, backfilled_numbers: backfilledNumbers },
     results,
   }, 200);
 }

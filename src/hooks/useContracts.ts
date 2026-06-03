@@ -60,15 +60,34 @@ export const useContracts = () => {
   const filterContracts = () => {
     let filtered = [...contracts];
     
+    // Grenke sub-states (authoritative when present).
+    const gs = (c: any) => c.grenke_state as string | null | undefined;
+    const grenkeCancelled = (c: any) => ["Cancelled", "Declined", "Rescinded"].includes(gs(c) ?? "");
+    const grenkeActive = (c: any) => ["RunningContract", "Paid"].includes(gs(c) ?? "");
+    const grenkeAwaitingDelivery = (c: any) => gs(c) === "AwaitingDeliveryConfirmation";
+
     // Filtre par statut/onglet
     if (activeStatusFilter === contractStatuses.CANCELLED) {
-      // Onglet Annulés : uniquement les contrats annulés
-      filtered = filtered.filter(contract => contract.status === contractStatuses.CANCELLED);
+      // Onglet Annulés : contrats annulés (statut Leazr OU état Grenke négatif)
+      filtered = filtered.filter(contract => contract.status === contractStatuses.CANCELLED || grenkeCancelled(contract));
+    } else if (activeStatusFilter === "awaiting_delivery") {
+      // Attente livraison : la demande est financée et en attente de confirmation
+      // de livraison chez Grenke.
+      filtered = filtered.filter(contract => grenkeAwaitingDelivery(contract) && !grenkeCancelled(contract));
     } else if (activeStatusFilter === "in_progress") {
-      // En cours : contract_sent, equipment_ordered, delivered (exclure annulés)
-      filtered = filtered.filter(contract => 
+      // En cours : contract_sent, equipment_ordered, delivered — mais on en sort
+      // ceux en attente de livraison (onglet dédié) et les annulés.
+      filtered = filtered.filter(contract =>
         [contractStatuses.CONTRACT_SENT, contractStatuses.EQUIPMENT_ORDERED, contractStatuses.DELIVERED].includes(contract.status as any) &&
-        contract.status !== contractStatuses.CANCELLED
+        contract.status !== contractStatuses.CANCELLED &&
+        !grenkeCancelled(contract) &&
+        !grenkeAwaitingDelivery(contract)
+      );
+    } else if (activeStatusFilter === contractStatuses.ACTIVE) {
+      // Actifs : statut Leazr actif OU état Grenke RunningContract/Paid.
+      filtered = filtered.filter(contract =>
+        (contract.status === contractStatuses.ACTIVE || grenkeActive(contract)) &&
+        !grenkeCancelled(contract)
       );
     } else if (activeStatusFilter === "self_leasing") {
       // Self-Leasing : uniquement les contrats self-leasing (exclure annulés)
@@ -89,8 +108,8 @@ export const useContracts = () => {
         new Date(contract.contract_end_date) >= new Date()
       );
     } else if (activeStatusFilter === "all") {
-      // Tous : exclure les contrats annulés
-      filtered = filtered.filter(contract => contract.status !== contractStatuses.CANCELLED);
+      // Tous : exclure les contrats annulés (statut Leazr ou état Grenke négatif)
+      filtered = filtered.filter(contract => contract.status !== contractStatuses.CANCELLED && !grenkeCancelled(contract));
     } else {
       // Filtres simples par statut (signed, active, completed)
       filtered = filtered.filter(contract => 
