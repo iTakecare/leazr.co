@@ -291,6 +291,35 @@ const EquipmentOrders: React.FC = () => {
     }
   };
 
+  // Bulk: mark every (non-cancelled, not-yet-received) equipment in a year group
+  // as received — avoids flipping each line by hand when a whole batch is sold.
+  const handleMarkYearReceived = async (year: string, yearItems: EquipmentOrderItem[]) => {
+    const now = new Date().toISOString();
+    const ops: Promise<unknown>[] = [];
+    for (const item of yearItems) {
+      if (item.units && item.units.length > 0) {
+        for (const u of item.units) {
+          if (u.order_status !== 'received' && u.order_status !== 'cancelled') {
+            ops.push(updateEquipmentUnit(u.id, { order_status: 'received', reception_date: u.reception_date || now } as any));
+          }
+        }
+      } else if (item.order_status !== 'received' && item.order_status !== 'cancelled') {
+        const update = { order_status: 'received' as OrderStatus, reception_date: item.reception_date || now };
+        ops.push(item.source_type === 'offer' ? updateOfferEquipmentOrder(item.id, update) : updateContractEquipmentOrder(item.id, update));
+      }
+    }
+    if (ops.length === 0) { toast.info("Rien à marquer (déjà reçu/annulé)."); return; }
+    if (!window.confirm(`Marquer ${ops.length} équipement(s) de ${year} comme reçus ?`)) return;
+    try {
+      await Promise.all(ops);
+      toast.success(`${ops.length} équipement(s) marqués comme reçus`);
+      fetchData();
+    } catch (e) {
+      console.error('Error bulk-receiving:', e);
+      toast.error("Erreur lors de la mise à jour groupée");
+    }
+  };
+
   const handleAddToStock = async (item: EquipmentOrderItem, unitId?: string) => {
     if (!companyId || !user?.id) return;
     const id = unitId || item.id;
@@ -395,6 +424,15 @@ const EquipmentOrders: React.FC = () => {
   const totalToOrderTVAC = calcTVAC(items.filter(i => i.order_status === 'to_order'));
   const totalOrderedTVAC = calcTVAC(items.filter(i => i.order_status === 'ordered'));
   const totalReceivedTVAC = calcTVAC(items.filter(i => i.order_status === 'received'));
+
+  // Amount shown for a line: for unit-managed equipment it's what's LEFT to order
+  // (units still 'to_order'); otherwise the full line total (price × quantity).
+  const lineHT = (i: EquipmentOrderItem): number => {
+    const hasUnits = i.units && i.units.length > 0;
+    return hasUnits
+      ? i.units!.filter((u) => (u.order_status ?? 'to_order') === 'to_order').reduce((s, u) => s + (u.supplier_price ?? i.purchase_price ?? 0), 0)
+      : (i.supplier_price || i.purchase_price) * i.quantity;
+  };
 
   const groupedByYear = useMemo(() => {
     const groups: Record<string, EquipmentOrderItem[]> = {};
@@ -879,16 +917,35 @@ const EquipmentOrders: React.FC = () => {
       ) : (
         <Accordion type="single" collapsible defaultValue={defaultOpenYear}>
           {groupedByYear.map(([year, yearItems]) => {
-            const yearTotal = yearItems.reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
+            // Same amount as displayed per row: remaining-to-order for unit-managed
+            // lines, full line total otherwise — so the header matches the table.
+            const yearTotal = yearItems.reduce((s, i) => s + lineHT(i), 0);
+            const receivable = yearItems.some(i =>
+              (i.units && i.units.length > 0)
+                ? i.units.some(u => u.order_status !== 'received' && u.order_status !== 'cancelled')
+                : (i.order_status !== 'received' && i.order_status !== 'cancelled')
+            );
             return (
               <AccordionItem key={year} value={year}>
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-semibold">{year}</span>
-                    <Badge variant="secondary">{yearItems.length} équipement(s)</Badge>
-                    <span className="text-sm text-muted-foreground">{formatCurrency(yearTotal)}</span>
-                  </div>
-                </AccordionTrigger>
+                <div className="flex items-center justify-between gap-2 pr-2">
+                  <AccordionTrigger className="hover:no-underline flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-semibold">{year}</span>
+                      <Badge variant="secondary">{yearItems.length} équipement(s)</Badge>
+                      <span className="text-sm text-muted-foreground">{formatCurrency(yearTotal)}</span>
+                    </div>
+                  </AccordionTrigger>
+                  {receivable && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs gap-1.5 shrink-0 text-green-700 border-green-300 hover:bg-green-50"
+                      onClick={(e) => { e.stopPropagation(); handleMarkYearReceived(year, yearItems); }}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Tout marquer reçu
+                    </Button>
+                  )}
+                </div>
                 <AccordionContent>
                   {renderTable(yearItems)}
                 </AccordionContent>
