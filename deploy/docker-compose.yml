@@ -2,11 +2,11 @@ name: leazrapp
 
 services:
   frontend:
-    # The image is built in GitHub Actions (fast runners) and `docker load`-ed
-    # onto the VPS — `docker compose up -d` then uses it WITHOUT building here
-    # (no CPU-heavy build on the small shared VPS). The `build:` block is kept
-    # only as a manual fallback (`docker compose build`).
-    image: leazrapp-frontend:latest
+    # Built + pushed to GitHub Container Registry by CI; the VPS PULLS it (an
+    # outbound connection, which works — Hostinger blocks inbound from cloud IPs
+    # like the GitHub runners). A small cron on the VPS runs `compose pull` +
+    # `up -d`. The `build:` block stays as a manual fallback only.
+    image: ghcr.io/itakecare/leazr-frontend:latest
     build:
       context: ..
       dockerfile: Dockerfile

@@ -8,6 +8,9 @@ on:
 jobs:
   deploy-frontend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,52 +42,23 @@ jobs:
       # The small shared VPS can't reliably finish a Vite build, which twice
       # took the app down. We build, ship the image as a tarball, and the VPS
       # only `docker load`s it + restarts the container — zero build on the VPS.
-      - name: Build frontend image (in CI)
+      # Build the image and PUSH it to GitHub Container Registry. The VPS then
+      # pulls it outbound (a small cron runs `compose pull` + `up -d`), which
+      # works even though Hostinger blocks inbound connections from cloud
+      # (GitHub) IPs. No connection from the runner to the VPS at all.
+      - name: Log in to GitHub Container Registry
+        if: steps.changes.outputs.frontend == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image to ghcr.io
         if: steps.changes.outputs.frontend == 'true'
         run: |
           docker compose -f deploy/docker-compose.yml build
-          # Write into the workspace so the scp-action (which only mounts the
-          # workspace, not the runner's /tmp) can see the file.
-          docker save leazrapp-frontend:latest | gzip > leazr-frontend.tar.gz
-          ls -lh leazr-frontend.tar.gz
-
-      # Ship + load with RETRIES. The VPS (CPU-throttled) intermittently drops
-      # inbound connections from the runner, so a single scp/ssh often times
-      # out — retrying lands it. Native scp/ssh with generous connect timeouts.
-      - name: Ship image to VPS + restart (with retries)
-        if: steps.changes.outputs.frontend == 'true'
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-          VPS_PORT: ${{ secrets.VPS_PORT }}
-          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          SSHOPTS="-i $HOME/.ssh/id_deploy -p $VPS_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=90 -o ServerAliveInterval=15 -o ServerAliveCountMax=8"
-
-          echo "::group::Copy image (retries)"
-          copied=false
-          for i in 1 2 3 4 5 6; do
-            echo "scp attempt $i…"
-            if scp $SSHOPTS leazr-frontend.tar.gz "$VPS_USER@$VPS_HOST:/tmp/leazr-frontend.tar.gz"; then copied=true; break; fi
-            sleep 25
-          done
-          echo "::endgroup::"
-          $copied || { echo "::error::scp failed after retries"; exit 1; }
-
-          echo "::group::Load + restart (retries)"
-          deployed=false
-          for i in 1 2 3 4; do
-            echo "ssh deploy attempt $i…"
-            if ssh $SSHOPTS "$VPS_USER@$VPS_HOST" 'set -e; cd /opt/LeazrApp && git pull origin main && gunzip -c /tmp/leazr-frontend.tar.gz | docker load && docker compose -f deploy/docker-compose.yml up -d --force-recreate --remove-orphans && rm -f /tmp/leazr-frontend.tar.gz && docker image prune -f'; then deployed=true; break; fi
-            sleep 25
-          done
-          echo "::endgroup::"
-          $deployed || { echo "::error::deploy failed after retries"; exit 1; }
-          rm -f ~/.ssh/id_deploy
+          docker push ghcr.io/itakecare/leazr-frontend:latest
 
   deploy-supabase-functions:
     runs-on: ubuntu-latest
