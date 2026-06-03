@@ -510,8 +510,11 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                     // request number (180-XXXXX), never the internal iTakecare
                     // dossier number — so don't fall back to offer_dossier_number.
                     const isGrenke = contract.leaser_id === "d60b86d7-a129-4a17-a877-e8e5caa66949" || /grenke/i.test(contract.leaser_name || "");
+                    const looksGrenke = /^\d{2,4}-\d+/.test(contract.offer_leaser_request_number || "");
                     const demande = isGrenke
-                      ? contract.offer_leaser_request_number
+                      // Only show a real Grenke number (180-XXXXX), never an
+                      // internal ITC dossier number that slipped into the field.
+                      ? (looksGrenke ? contract.offer_leaser_request_number : null)
                       : (contract.offer_leaser_request_number || contract.offer_dossier_number);
                     return demande ? (
                       <button

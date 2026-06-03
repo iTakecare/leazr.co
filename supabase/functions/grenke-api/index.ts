@@ -2297,14 +2297,18 @@ async function handleReconcileGrenkeRequests(
   let createdContractsReq = 0;
   let backfilledNumbers = 0;
 
-  // Backfill the Grenke request number (180-XXXXX) onto the offer when missing —
-  // this is what fills the "N° Demande" column for Grenke contracts.
+  // Backfill the Grenke request number (180-XXXXX) onto the offer — this is what
+  // fills the "N° Demande" column for Grenke contracts. Overwrites when the field
+  // is empty OR holds a non-Grenke value (e.g. the internal iTakecare dossier
+  // number "ITC-…" that was wrongly stored there). Only ever writes a real Grenke
+  // number (180-XXXXX) and never clobbers an existing Grenke number.
+  const isGrenkeNumber = (v: string | null | undefined) => /^\d{2,4}-\d+/.test(v ?? "");
   const backfillReqNumber = async (offerId: string, requestId: string | null) => {
-    if (!requestId) return;
-    const o = offerById.get(offerId);
-    if (o && !o.leaser_request_number) {
+    if (!requestId || !isGrenkeNumber(requestId)) return;
+    const o = offerById.get(offerId) as { leaser_request_number?: string | null } | undefined;
+    if (o && !isGrenkeNumber(o.leaser_request_number)) {
       await adminSupabase.from("offers").update({ leaser_request_number: requestId }).eq("id", offerId);
-      (o as { leaser_request_number?: string | null }).leaser_request_number = requestId;
+      o.leaser_request_number = requestId;
       backfilledNumbers++;
     }
   };
@@ -2452,6 +2456,10 @@ async function handleReconcileGrenkeRequests(
     //     (e.g. GIURIATO's 180-29454 whose amount doesn't match any offer).
     if (isTerminalNeg) {
       if ((top.has_active || top.resolved) && (top.amount_close || top.monthly_close)) {
+        // This Cancelled request is the accepted deal's original demande →
+        // backfill its number onto the offer (fills the "N° Demande" column,
+        // replacing any internal ITC number).
+        await backfillReqNumber(top.offer_id, it.RequestId ?? null);
         if (auto) { try { await recordGrenkeSubmission(adminSupabase, top.offer_id, it, environment, {}); } catch { /* archive is best-effort */ } }
         results.push({ ...info, status: "already_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
         alreadyLinked++;
