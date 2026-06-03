@@ -157,7 +157,7 @@ const [notesLoading, setNotesLoading] = useState(false);
       try {
         const { data: contractData } = await supabase
           .from('contracts')
-          .select('id, contract_number, status, is_self_leasing')
+          .select('id, contract_number, status, is_self_leasing, grenke_state, contract_start_date')
           .eq('offer_id', id)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -1123,6 +1123,27 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                         Contrat {offer.linkedContract.contract_number || offer.linkedContract.id?.slice(0, 8)}
                       </Button>
                     )}
+
+                    {/* État du contrat Grenke (Demande réglée / Actif / Annulé) */}
+                    {offer.linkedContract && offer.leaser_id === "d60b86d7-a129-4a17-a877-e8e5caa66949" && (() => {
+                      const gs = offer.linkedContract.grenke_state ?? offer.grenke_state ?? null;
+                      const start = offer.linkedContract.contract_start_date;
+                      const started = !!start && new Date(start).getTime() <= Date.now();
+                      let label: string | null = null;
+                      let cls = "";
+                      if (offer.linkedContract.status === "cancelled" || gs === "Declined" || gs === "Cancelled") {
+                        label = "Annulé"; cls = "bg-red-50 text-red-700 border-red-200";
+                      } else if (gs === "ApplicationSettled" && !started) {
+                        label = "Demande réglée"; cls = "bg-indigo-50 text-indigo-700 border-indigo-200";
+                      } else if (gs === "RunningContract" || (gs === "ApplicationSettled" && started)) {
+                        label = "Actif"; cls = "bg-green-50 text-green-700 border-green-200";
+                      } else if (gs) {
+                        label = gs; cls = "bg-amber-50 text-amber-700 border-amber-200";
+                      }
+                      return label ? (
+                        <span className={`inline-flex items-center h-6 px-2 rounded-md border text-xs font-medium ${cls}`}>{label}</span>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
               </div>

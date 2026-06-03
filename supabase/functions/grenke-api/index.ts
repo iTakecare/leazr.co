@@ -2506,9 +2506,9 @@ async function handleReconcileGrenkeContracts(
   // company+amount fingerprint as a fallback.
   const { data: contractRows } = await adminSupabase
     .from("contracts")
-    .select("id, offer_id, contract_number, client_name, monthly_payment, grenke_state, clients:client_id ( company )")
+    .select("id, offer_id, contract_number, client_name, monthly_payment, status, grenke_state, clients:client_id ( company )")
     .eq("company_id", companyId);
-  type LeazrContract = { id: string; offer_id: string | null; contract_number: string | null; client_name: string | null; monthly_payment: number | null; grenke_state: string | null; clients?: { company?: string | null } | null };
+  type LeazrContract = { id: string; offer_id: string | null; contract_number: string | null; client_name: string | null; monthly_payment: number | null; status: string | null; grenke_state: string | null; clients?: { company?: string | null } | null };
   const existingContracts = (contractRows ?? []) as unknown as LeazrContract[];
   const contractByNumber = new Map<string, LeazrContract>();
   for (const cc of existingContracts) {
@@ -2627,9 +2627,27 @@ async function handleReconcileGrenkeContracts(
     }
   }
 
+  // GLOBAL SAFETY NET — the presence of a live (non-cancelled) Leazr contract
+  // linked to a Grenke offer is itself proof the deal was financed. Set those
+  // offers to "financée" regardless of whether their Grenke contract number
+  // matched above (number formatting, missing /contracts entry, portal-created
+  // dossier never submitted via the API, etc.). createContractFromOffer leaves
+  // the offer at workflow_status='accepted', which is what got them stuck.
+  let financedFromContracts = 0;
+  const offerByIdC = new Map(allOffers.map((o) => [o.id, o as UnlinkedOffer & { workflow_status?: string | null }]));
+  for (const cc of existingContracts) {
+    if (!cc.offer_id) continue;
+    const o = offerByIdC.get(cc.offer_id);
+    if (!o) continue; // not a Grenke offer (filtered by leaser above)
+    if (cc.status === "cancelled" || cc.status === "completed") continue;
+    if ((o.workflow_status ?? null) === "financed") continue;
+    await adminSupabase.from("offers").update({ workflow_status: "financed" }).eq("id", cc.offer_id).neq("workflow_status", "financed");
+    financedFromContracts++;
+  }
+
   return jsonResponse({
     success: true,
-    summary: { total: contracts.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch },
+    summary: { total: contracts.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch, financed_from_contracts: financedFromContracts },
     results,
   }, 200);
 }

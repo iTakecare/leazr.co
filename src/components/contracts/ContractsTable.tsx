@@ -220,11 +220,14 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     }
   };
 
-  const getStatusBadge = (status: string, grenkeState?: string | null) => {
+  const getStatusBadge = (status: string, grenkeState?: string | null, startDate?: string | null) => {
     // Grenke sub-state takes priority when the payment is settled but the
     // contract hasn't started yet (it starts the quarter after delivery):
     // "ApplicationSettled" = demande réglée. "RunningContract" → contrat actif.
-    if (grenkeState === "ApplicationSettled") {
+    // Once the start date has passed, a settled application is effectively
+    // active even if Grenke hasn't flipped the state yet.
+    const started = !!startDate && new Date(startDate).getTime() <= Date.now();
+    if (grenkeState === "ApplicationSettled" && !started) {
       return (
         <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
           <Clock className="mr-1 h-3 w-3" />
@@ -232,7 +235,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         </Badge>
       );
     }
-    if (grenkeState === "RunningContract") {
+    if (grenkeState === "RunningContract" || (grenkeState === "ApplicationSettled" && started)) {
       return (
         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
           <CheckCheck className="mr-1 h-3 w-3" />
@@ -548,7 +551,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {getStatusBadge(contract.status, contract.grenke_state ?? contract.offer_grenke_state)}
+                    {getStatusBadge(contract.status, contract.grenke_state ?? contract.offer_grenke_state, contract.contract_start_date)}
                     {contract.welcome_followup_sent_at && (
                       <TooltipProvider>
                         <Tooltip>
