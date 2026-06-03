@@ -2547,6 +2547,12 @@ async function handleReconcileGrenkeContracts(
     if (!cc.contract_number && c.ContractId) { upd.contract_number = c.ContractId; cc.contract_number = c.ContractId; }
     if (c.StartDate) upd.contract_start_date = c.StartDate;
     if (c.EndDate) upd.contract_end_date = c.EndDate;
+    // Keep the Statut column EXACTLY in sync with the Grenke contract state.
+    if (c.State && cc.grenke_state !== c.State) {
+      upd.grenke_state = c.State;
+      upd.grenke_state_updated_at = new Date().toISOString();
+      cc.grenke_state = c.State;
+    }
     if (Object.keys(upd).length === 0) return;
     await adminSupabase.from("contracts").update(upd).eq("id", cc.id);
   };
@@ -2594,10 +2600,6 @@ async function handleReconcileGrenkeContracts(
     if (existing) {
       const nowTs = new Date().toISOString();
       await stampLeazrContract(existing, c);
-      if (existing.grenke_state !== c.State) {
-        // Best-effort: the grenke_state column may not exist yet (pre-migration).
-        await adminSupabase.from("contracts").update({ grenke_state: c.State, grenke_state_updated_at: nowTs }).eq("id", existing.id);
-      }
       if (existing.offer_id && GRENKE_ACCEPTED_STATES.has(c.State ?? "")) {
         await adminSupabase.from("offers")
           .update({ workflow_status: "financed", grenke_state: c.State, grenke_state_updated_at: nowTs })

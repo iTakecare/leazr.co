@@ -220,26 +220,41 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     }
   };
 
-  const getStatusBadge = (status: string, grenkeState?: string | null, startDate?: string | null) => {
-    // Grenke sub-state takes priority when the payment is settled but the
-    // contract hasn't started yet (it starts the quarter after delivery):
-    // "ApplicationSettled" = demande réglée. "RunningContract" → contrat actif.
-    // Once the start date has passed, a settled application is effectively
-    // active even if Grenke hasn't flipped the state yet.
-    const started = !!startDate && new Date(startDate).getTime() <= Date.now();
-    if (grenkeState === "ApplicationSettled" && !started) {
+  const getStatusBadge = (status: string, grenkeState?: string | null) => {
+    // When the leaser is Grenke, the Statut column reflects EXACTLY the Grenke
+    // contract state (refreshed every 15 min by the sync). Each Grenke state has
+    // its own badge; an unknown/new state falls back to showing its raw value so
+    // nothing is ever hidden.
+    if (grenkeState) {
+      const map: Record<string, { label: string; cls: string; Icon: typeof Clock }> = {
+        ApplicationSettled: { label: "Demande réglée", cls: "bg-indigo-50 text-indigo-700 border-indigo-200", Icon: Clock },
+        Paid:               { label: "Payé",           cls: "bg-teal-50 text-teal-700 border-teal-200",       Icon: CheckCheck },
+        RunningContract:    { label: "Actif",          cls: "bg-green-50 text-green-700 border-green-200",     Icon: CheckCheck },
+        ProlongedContract:  { label: "Prolongé",       cls: "bg-amber-50 text-amber-700 border-amber-200",     Icon: Clock },
+        ExpiringSoon:       { label: "Expire bientôt", cls: "bg-amber-50 text-amber-700 border-amber-200",     Icon: AlertTriangle },
+        Expired:            { label: "Expiré",         cls: "bg-gray-100 text-gray-600 border-gray-200",       Icon: Clock },
+        Rescinded:          { label: "Résilié",        cls: "bg-red-50 text-red-700 border-red-200",           Icon: AlertTriangle },
+        Cancelled:          { label: "Annulé",         cls: "bg-red-50 text-red-700 border-red-200",           Icon: AlertTriangle },
+        Declined:           { label: "Refusé",         cls: "bg-red-50 text-red-700 border-red-200",           Icon: AlertTriangle },
+        Unknown:            { label: "Inconnu",        cls: "bg-gray-100 text-gray-600 border-gray-200",       Icon: Clock },
+        // Request-phase states (rows whose deal isn't contracted yet).
+        RequestToGrenke:            { label: "Soumis à Grenke",        cls: "bg-blue-50 text-blue-700 border-blue-200",   Icon: Send },
+        ApplicationReceived:        { label: "En analyse",             cls: "bg-amber-50 text-amber-700 border-amber-200", Icon: Clock },
+        MissingInfo:                { label: "Infos manquantes",       cls: "bg-amber-50 text-amber-700 border-amber-200", Icon: AlertTriangle },
+        GuaranteeRequired:          { label: "Garantie requise",       cls: "bg-amber-50 text-amber-700 border-amber-200", Icon: AlertTriangle },
+        ReadyToSign:                { label: "Prêt à signer",          cls: "bg-green-50 text-green-700 border-green-200", Icon: FileText },
+        ContractPrinted:            { label: "Contrat imprimé",        cls: "bg-green-50 text-green-700 border-green-200", Icon: FileText },
+        AwaitingCustomerSignature:  { label: "Attente signature",      cls: "bg-amber-50 text-amber-700 border-amber-200", Icon: Clock },
+        AwaitingPartnerSignature:   { label: "Attente signature",      cls: "bg-amber-50 text-amber-700 border-amber-200", Icon: Clock },
+        AwaitingSigningAppSignature:{ label: "Attente e-signature",    cls: "bg-amber-50 text-amber-700 border-amber-200", Icon: Clock },
+        AwaitingDeliveryConfirmation:{ label: "Attente livraison",     cls: "bg-amber-50 text-amber-700 border-amber-200", Icon: Truck },
+      };
+      const m = map[grenkeState];
+      const Icon = m?.Icon ?? Clock;
       return (
-        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
-          <Clock className="mr-1 h-3 w-3" />
-          Demande réglée
-        </Badge>
-      );
-    }
-    if (grenkeState === "RunningContract" || (grenkeState === "ApplicationSettled" && started)) {
-      return (
-        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-          <CheckCheck className="mr-1 h-3 w-3" />
-          Actif
+        <Badge variant="outline" className={m?.cls ?? "bg-slate-50 text-slate-700 border-slate-200"}>
+          <Icon className="mr-1 h-3 w-3" />
+          {m?.label ?? grenkeState}
         </Badge>
       );
     }
@@ -551,7 +566,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {getStatusBadge(contract.status, contract.grenke_state ?? contract.offer_grenke_state, contract.contract_start_date)}
+                    {getStatusBadge(contract.status, contract.grenke_state ?? contract.offer_grenke_state)}
                     {contract.welcome_followup_sent_at && (
                       <TooltipProvider>
                         <Tooltip>
