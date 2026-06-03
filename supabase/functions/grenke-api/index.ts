@@ -2054,6 +2054,8 @@ type UnlinkedOffer = {
 // Record a Grenke dossier as the offer's ACTIVE submission: archive any previous
 // submissions (kept in history), upsert this one as active, and mirror it onto
 // the offer's grenke_* columns (the "active pointer" used by the workflow/poller).
+const GRENKE_TERMINAL_NEGATIVE = new Set(["Declined", "Cancelled"]);
+
 async function recordGrenkeSubmission(
   adminSupabase: ReturnType<typeof createClient>,
   offerId: string,
@@ -2064,32 +2066,50 @@ async function recordGrenkeSubmission(
   const now = new Date().toISOString();
   const submittedAt = item.submitted_at ?? now;
 
-  const { data: off } = await adminSupabase.from("offers").select("company_id").eq("id", offerId).maybeSingle();
+  const { data: off } = await adminSupabase
+    .from("offers").select("company_id, grenke_financing_id").eq("id", offerId).maybeSingle();
   const companyId = (off as { company_id?: string } | null)?.company_id ?? null;
+  const prevActiveFid = (off as { grenke_financing_id?: string | null } | null)?.grenke_financing_id ?? null;
 
-  // Archive all existing submissions for this offer, then (re)activate this one.
-  await adminSupabase.from("grenke_submissions").update({ is_active: false }).eq("offer_id", offerId);
+  // Upsert this dossier into the history (active flag decided below).
   if (item.FinancingId) {
     await adminSupabase.from("grenke_submissions").upsert({
       offer_id: offerId, company_id: companyId, financing_id: item.FinancingId,
       request_id: item.RequestId ?? null, state: item.State ?? null, environment,
-      submitted_at: submittedAt, state_updated_at: now, is_active: true,
+      submitted_at: submittedAt, state_updated_at: now,
     }, { onConflict: "offer_id,financing_id" });
   }
 
+  // The ACTIVE dossier is the live one (not Declined/Cancelled), most recent;
+  // if all are terminal, the most recent. So linking an old refused dossier
+  // never displaces a newer live one, and a re-submission becomes active.
+  const { data: subRows } = await adminSupabase
+    .from("grenke_submissions")
+    .select("id, financing_id, request_id, state, environment, submitted_at")
+    .eq("offer_id", offerId);
+  const rows = (subRows ?? []) as Array<{ id: string; financing_id: string | null; request_id: string | null; state: string | null; environment: string | null; submitted_at: string | null }>;
+  if (rows.length === 0) return;
+  const live = rows.filter((r) => !GRENKE_TERMINAL_NEGATIVE.has(r.state ?? ""));
+  const pickFrom = (live.length ? live : rows).slice().sort((a, b) => (b.submitted_at ?? "").localeCompare(a.submitted_at ?? ""));
+  const active = pickFrom[0];
+
+  for (const r of rows) {
+    await adminSupabase.from("grenke_submissions").update({ is_active: r.id === active.id }).eq("id", r.id);
+  }
+
   const update: Record<string, unknown> = {
-    grenke_financing_id: item.FinancingId ?? null,
-    grenke_request_id: item.RequestId ?? null,
-    grenke_state: item.State ?? null,
-    grenke_environment: environment,
-    grenke_submitted_at: submittedAt,
+    grenke_financing_id: active.financing_id,
+    grenke_request_id: active.request_id,
+    grenke_state: active.state,
+    grenke_environment: active.environment ?? environment,
+    grenke_submitted_at: active.submitted_at,
     grenke_state_updated_at: now,
     grenke_last_error: null,
-    // A re-submission starts a fresh signature flow.
-    grenke_esign_started_at: null,
   };
-  if (item.RequestId) update.leaser_request_number = item.RequestId;
-  if (opts?.advanceWorkflow) update.workflow_status = "leaser_introduced";
+  if (active.request_id) update.leaser_request_number = active.request_id;
+  // If the active dossier changed, the signature flow restarts from scratch.
+  if (active.financing_id !== prevActiveFid) update.grenke_esign_started_at = null;
+  if (opts?.advanceWorkflow && !GRENKE_TERMINAL_NEGATIVE.has(active.state ?? "")) update.workflow_status = "leaser_introduced";
   await adminSupabase.from("offers").update(update).eq("id", offerId);
 }
 
