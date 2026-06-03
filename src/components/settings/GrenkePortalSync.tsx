@@ -51,6 +51,27 @@ export default function GrenkePortalSync() {
   const [resp, setResp] = useState<ReconcileResponse | null>(null);
   const [picked, setPicked] = useState<Record<string, string>>({}); // financing_id -> offer_id
   const [linking, setLinking] = useState<string | null>(null);
+  const [dbgQuery, setDbgQuery] = useState("");
+  const [dbgLoading, setDbgLoading] = useState(false);
+  const [dbgResult, setDbgResult] = useState<unknown>(null);
+
+  const runDebug = async () => {
+    if (!dbgQuery.trim()) return;
+    setDbgLoading(true);
+    setDbgResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("grenke-api", {
+        body: { action: "debug_grenke_lookup", environment: "production", payload: { query: dbgQuery.trim() } },
+      });
+      let body: unknown = data ?? null;
+      if (error) { const ctx = (error as unknown as { context?: Response }).context; if (ctx?.json) { try { body = await ctx.json(); } catch { /* */ } } }
+      setDbgResult(body);
+    } catch (e) {
+      setDbgResult({ error: String(e) });
+    } finally {
+      setDbgLoading(false);
+    }
+  };
 
   const run = async () => {
     setLoading(true);
@@ -145,6 +166,28 @@ export default function GrenkePortalSync() {
         <Button size="sm" variant="outline" onClick={handleOpen} className="gap-1.5">
           <RefreshCw className="h-3.5 w-3.5" /> Synchroniser
         </Button>
+      </div>
+
+      {/* Diagnostic : voir les données brutes Grenke pour un client / numéro */}
+      <div className="rounded-md border bg-background p-3 space-y-2">
+        <div className="text-xs font-medium">Diagnostic Grenke (données brutes)</div>
+        <div className="flex gap-2">
+          <input
+            value={dbgQuery}
+            onChange={(e) => setDbgQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void runDebug(); }}
+            placeholder="Nom client ou n° (ex. KJ Consult, 180-14069)"
+            className="h-8 flex-1 text-xs rounded-md border border-input bg-background px-2"
+          />
+          <Button size="sm" variant="outline" onClick={runDebug} disabled={dbgLoading || !dbgQuery.trim()} className="gap-1.5">
+            {dbgLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <HelpCircle className="h-3.5 w-3.5" />} Chercher
+          </Button>
+        </div>
+        {dbgResult != null && (
+          <pre className="max-h-72 overflow-auto rounded bg-muted p-2 text-[11px] leading-tight">
+            {JSON.stringify(dbgResult, null, 2)}
+          </pre>
+        )}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>

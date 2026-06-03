@@ -266,6 +266,9 @@ serve(async (req) => {
       case "reconcile_grenke_contracts":
         return await handleReconcileGrenkeContracts(adminSupabase, companyId, environment, creds, body.payload ?? {});
 
+      case "debug_grenke_lookup":
+        return await handleDebugGrenkeLookup(environment, creds, String((body.payload as { query?: string })?.query ?? ""));
+
       case "get_grenke_submissions":
         return await handleGetGrenkeSubmissions(adminSupabase, companyId, body.offer_id);
 
@@ -2520,6 +2523,41 @@ type GrenkeContractItem = {
   EndDate?: string;
   Lessee?: { CompanyName?: string };
 };
+
+// Diagnostic: return the RAW Grenke contracts + requests matching a query
+// (company name contains, or ContractId/RequestId equals). Lets us see the
+// authoritative StartDate/EndDate/Period straight from Grenke for any deal.
+async function handleDebugGrenkeLookup(environment: Environment, creds: Credentials, query: string): Promise<Response> {
+  const q = query.trim().toLowerCase();
+  const contracts: Array<Record<string, unknown>> = [];
+  const requests: Array<Record<string, unknown>> = [];
+  const match = (name: string | undefined, id: string | undefined) =>
+    !!q && ((name ?? "").toLowerCase().includes(q) || String(id ?? "").toLowerCase().includes(q));
+
+  for (const st of GRENKE_CONTRACT_FETCH_STATES) {
+    let page = 1;
+    for (let g = 0; g < 30; g++) {
+      let resp: Response;
+      try { resp = await grenkeFetch(environment, `/basic/v1/contracts?contractListParameter.page=${page}&contractListParameter.pageSize=100&contractListParameter.state=${st}`, { method: "GET" }, creds); } catch { break; }
+      if (!resp.ok) break;
+      const body = (await resp.json().catch(() => null)) as { Items?: GrenkeContractItem[]; PageCount?: number } | null;
+      const items = body?.Items ?? [];
+      for (const c of items) if (match(c.Lessee?.CompanyName, c.ContractId)) contracts.push({ ContractId: c.ContractId, State: c.State, StartDate: c.StartDate, EndDate: c.EndDate, Period: c.Period, NetAcquisitionValue: c.NetAcquisitionValue, TotalInstalment: c.TotalInstalment, Company: c.Lessee?.CompanyName });
+      const pc = body?.PageCount ?? 1; if (page >= pc || items.length === 0) break; page++;
+    }
+  }
+  let page = 1;
+  for (let g = 0; g < 30; g++) {
+    let resp: Response;
+    try { resp = await grenkeFetch(environment, `/basic/v1/requests?requestListParameter.page=${page}&requestListParameter.pageSize=100`, { method: "GET" }, creds); } catch { break; }
+    if (!resp.ok) break;
+    const body = (await resp.json().catch(() => null)) as { Items?: GrenkeRequestItem[]; PageCount?: number } | null;
+    const items = body?.Items ?? [];
+    for (const r of items) if (match(r.Lessee?.CompanyName, r.RequestId)) requests.push({ RequestId: r.RequestId, FinancingId: r.FinancingId, State: r.State, FinancingAmount: r.FinancingAmount, MonthlyTotalInstalment: r.MonthlyTotalInstalment, Company: r.Lessee?.CompanyName });
+    const pc = body?.PageCount ?? 1; if (page >= pc || items.length === 0) break; page++;
+  }
+  return jsonResponse({ success: true, query, contracts, requests }, 200);
+}
 
 // Create a Leazr contract from an accepted Grenke contract when the matched
 // offer has none yet — server-side mirror of createContractFromOffer: inserts
