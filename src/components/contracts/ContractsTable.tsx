@@ -521,9 +521,11 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                     const isGrenke = contract.leaser_id === "d60b86d7-a129-4a17-a877-e8e5caa66949" || /grenke/i.test(contract.leaser_name || "");
                     const looksGrenke = /^\d{2,4}-\d+/.test(contract.offer_leaser_request_number || "");
                     const demande = isGrenke
-                      // Only show a real Grenke number (180-XXXXX), never an
-                      // internal ITC dossier number that slipped into the field.
-                      ? (looksGrenke ? contract.offer_leaser_request_number : null)
+                      // Prefer the real Grenke request number (180-XXXXX). If it
+                      // isn't known yet, fall back to the internal reference so
+                      // the cell is never empty (a sync fills the Grenke number
+                      // when a matching demande exists at Grenke).
+                      ? (looksGrenke ? contract.offer_leaser_request_number : (contract.offer_dossier_number || contract.offer_leaser_request_number))
                       : (contract.offer_leaser_request_number || contract.offer_dossier_number);
                     return demande ? (
                       <button
