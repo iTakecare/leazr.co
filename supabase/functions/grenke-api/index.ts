@@ -2165,12 +2165,12 @@ async function handleReconcileGrenkeRequests(
   // 2. Load this company's Grenke offers.
   const { data: offerRows, error: offerErr } = await adminSupabase
     .from("offers")
-    .select("id, client_name, dossier_number, monthly_payment, coefficient, financed_amount, grenke_financing_id, workflow_status, clients:client_id ( company, name )")
+    .select("id, client_name, dossier_number, monthly_payment, coefficient, financed_amount, grenke_financing_id, grenke_state, workflow_status, clients:client_id ( company, name )")
     .eq("company_id", companyId)
     .eq("leaser_id", GRENKE_LEASER_UUID);
   if (offerErr) return jsonResponse({ success: false, error: "offer_lookup_failed", message: offerErr.message }, 500);
 
-  const allOffers = (offerRows ?? []) as unknown as Array<UnlinkedOffer & { grenke_financing_id: string | null }>;
+  const allOffers = (offerRows ?? []) as unknown as Array<UnlinkedOffer & { grenke_financing_id: string | null; grenke_state: string | null }>;
 
   // A Grenke dossier is "already linked" when its financingId is anywhere in the
   // submission history (active OR archived) — so a refused dossier that's been
@@ -2227,9 +2227,13 @@ async function handleReconcileGrenkeRequests(
       const amountClose = !!it.FinancingAmount && Math.abs(exp - it.FinancingAmount) <= Math.max(1, it.FinancingAmount * 0.01);
       const monthlyClose = !!it.MonthlyTotalInstalment && !!o.monthly_payment && Math.abs(Number(o.monthly_payment) - it.MonthlyTotalInstalment) <= Math.max(0.5, it.MonthlyTotalInstalment * 0.01);
       const score = 1 + (amountClose ? 2 : 0) + (monthlyClose ? 2 : 0);
-      const hasActive = !!(o as { grenke_financing_id?: string | null }).grenke_financing_id;
-      return { offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, has_active: hasActive, score };
-    }).filter(Boolean) as Array<{ offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; has_active: boolean; score: number }>;
+      const oo = o as { grenke_financing_id?: string | null; grenke_state?: string | null };
+      const hasActive = !!oo.grenke_financing_id;
+      // An offer whose active dossier is refused/cancelled can be auto-relinked
+      // to a fresh live dossier (the re-analysis case).
+      const activeTerminal = !hasActive || oo.grenke_state === "Declined" || oo.grenke_state === "Cancelled";
+      return { offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, has_active: hasActive, active_terminal: activeTerminal, score };
+    }).filter(Boolean) as Array<{ offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; has_active: boolean; active_terminal: boolean; score: number }>;
     candidates.sort((a, b) => b.score - a.score);
 
     if (candidates.length === 0) {
@@ -2239,10 +2243,12 @@ async function handleReconcileGrenkeRequests(
     }
 
     const top = candidates[0];
-    // Auto-link only a single, amount/monthly-agreeing match to an offer that has
-    // NO active dossier yet. A re-analysis (offer already has a dossier) is always
-    // left to manual review so the user knowingly adds it to the history.
-    const confident = candidates.length === 1 && (top.amount_close || top.monthly_close) && !top.has_active;
+    // Auto-link a single, amount/monthly-agreeing match when the candidate offer
+    // has no active dossier OR its active dossier is refused/cancelled (the new
+    // live dossier is clearly the re-analysis). An offer with a still-LIVE dossier
+    // is left to manual review so the user knowingly adds it to the history.
+    const newLive = it.State !== "Declined" && it.State !== "Cancelled";
+    const confident = candidates.length === 1 && (top.amount_close || top.monthly_close) && top.active_terminal && newLive;
     if (confident && auto) {
       await recordGrenkeSubmission(adminSupabase, top.offer_id, it, environment, { advanceWorkflow: true });
       // Remove from the pool so it can't be matched again.
