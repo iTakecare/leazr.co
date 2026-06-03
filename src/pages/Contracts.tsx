@@ -12,6 +12,7 @@ import { contractStatuses } from "@/services/contractService";
 import ContractsAdvancedFilters from "@/components/contracts/ContractsAdvancedFilters";
 import ContractsTable from "@/components/contracts/ContractsTable";
 import ContractsEmptyState from "@/components/contracts/ContractsEmptyState";
+import ContractTransferMatcher from "@/components/contracts/ContractTransferMatcher";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileContractsPage } from "@/components/mobile/pages";
 
@@ -153,6 +154,8 @@ const Contracts = () => {
           </span>
         </div>
         <div className="flex items-center gap-3">
+          {/* Détection des transferts d'entité (PP → société) */}
+          <ContractTransferMatcher />
           {/* Inclure terminés */}
           <div className="flex items-center gap-2">
             <Switch
