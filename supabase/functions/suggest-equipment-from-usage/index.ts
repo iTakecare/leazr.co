@@ -98,7 +98,8 @@ async function loadCatalog(
     .select(`
       id,
       name,
-      brand,
+      brand_name,
+      category_name,
       price,
       monthly_price,
       short_description,
@@ -118,8 +119,8 @@ async function loadCatalog(
   const all = (data || []).map((p: any): CatalogProduct => ({
     id: p.id,
     name: p.name,
-    brand: p.brands?.name || p.brand || "",
-    category: p.categories?.name || "",
+    brand: p.brands?.name || p.brand_name || "",
+    category: p.categories?.name || p.category_name || "",
     short_description: p.short_description || null,
     specs: summarizeSpecs(p.specifications),
     price: Number(p.price) || 0,
