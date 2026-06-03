@@ -12,6 +12,7 @@ import ContractPurchaseTracking from "@/components/contracts/ContractPurchaseTra
 import ContractStockManager from "@/components/stock/ContractStockManager";
 
 import ContractDatesManager from "@/components/contracts/ContractDatesManager";
+import ContractMetaCard from "@/components/contracts/ContractMetaCard";
 import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
 import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
 import ContractTerminationToggle from "@/components/contracts/ContractTerminationToggle";
@@ -135,8 +136,19 @@ const ContractDetail = () => {
                 onUpdate={refetch}
               />
 
+              {/* Continuité (reprise PP → société) & motif (faillite, litige…) */}
+              <ContractMetaCard
+                contractId={contract.id}
+                companyId={companyId}
+                previousContractId={(contract as any).previous_contract_id}
+                linkReason={(contract as any).link_reason}
+                issueType={(contract as any).issue_type}
+                issueNote={(contract as any).issue_note}
+                onUpdate={refetch}
+              />
+
               {/* Dispositions particulières - self-leasing only */}
-              <ContractSpecialProvisionsCard 
+              <ContractSpecialProvisionsCard
                 contractId={contract.id}
                 isSelfLeasing={contract.is_self_leasing || false}
                 initialContent={contract.special_provisions}

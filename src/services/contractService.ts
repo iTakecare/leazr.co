@@ -26,6 +26,11 @@ export interface Contract {
   grenke_state?: string | null;
   grenke_state_updated_at?: string | null;
   offer_grenke_state?: string | null;
+  // Succession link (reprise PP → société) + manual issue reason.
+  previous_contract_id?: string | null;
+  link_reason?: string | null;
+  issue_type?: string | null;
+  issue_note?: string | null;
   client_name: string;
   client_id?: string;
   client_email?: string;

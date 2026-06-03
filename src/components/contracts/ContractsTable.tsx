@@ -59,12 +59,21 @@ import {
   AlertTriangle,
   RefreshCw,
   ExternalLink,
+  Link2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
 
 type SortColumn = 'date' | 'contract_number' | 'offer_number' | 'company' | 'client' | 'leaser' | 'monthly_payment' | 'financed_amount' | 'start_date' | 'end_date' | 'status';
 type SortDirection = 'asc' | 'desc';
+
+const ISSUE_LABELS: Record<string, string> = {
+  faillite: "Faillite",
+  resiliation: "Résiliation",
+  defaut_paiement: "Défaut de paiement",
+  litige: "Litige",
+  autre: "Autre",
+};
 
 interface ContractsTableProps {
   contracts: Contract[];
@@ -572,11 +581,21 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   {formatCurrency((contract as any).financed_amount || 0)}
                 </TableCell>
                 <TableCell className="px-2 py-1.5 whitespace-nowrap">
-                  {contract.contract_start_date ? (
-                    formatDate(contract.contract_start_date)
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
+                  <span className="flex items-center gap-1">
+                    {contract.contract_start_date ? formatDate(contract.contract_start_date) : <span className="text-muted-foreground">-</span>}
+                    {(contract.previous_contract_id || contract.link_reason) && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link2 className="h-3 w-3 shrink-0 text-blue-600" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Reprise de contrat{contract.link_reason ? ` — ${contract.link_reason}` : ""} (explique la durée courte)
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </span>
                 </TableCell>
                 <TableCell className="px-2 py-1.5 whitespace-nowrap">
                   {contract.contract_end_date ? (
@@ -599,6 +618,19 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 <TableCell>
                   <div className="flex items-center gap-2">
                     {getStatusBadge(contract.status, contract.grenke_state ?? contract.offer_grenke_state)}
+                    {contract.issue_type && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              {ISSUE_LABELS[contract.issue_type] ?? contract.issue_type}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>{contract.issue_note || (ISSUE_LABELS[contract.issue_type] ?? contract.issue_type)}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     {contract.welcome_followup_sent_at && (
                       <TooltipProvider>
                         <Tooltip>
