@@ -2127,7 +2127,8 @@ async function handleGetGrenkeSubmissions(
     .from("grenke_submissions")
     .select("id, financing_id, request_id, state, environment, submitted_at, state_updated_at, is_active, created_at")
     .eq("offer_id", offerId)
-    .order("submitted_at", { ascending: false, nullsFirst: false });
+    // Newest dossier first (Grenke request numbers are sequential), oldest last.
+    .order("request_id", { ascending: false, nullsFirst: false });
   return jsonResponse({ success: true, offer_id: offerId, submissions: subs ?? [] }, 200);
 }
 
