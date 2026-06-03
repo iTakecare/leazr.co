@@ -16,6 +16,7 @@ import { toast } from "sonner";
 interface CRow {
   id: string;
   contract_number: string | null;
+  client_id: string | null;
   client_name: string | null;
   contract_start_date: string | null;
   contract_end_date: string | null;
@@ -43,6 +44,23 @@ const monthsBetween = (a?: string | null, b?: string | null): number | null => {
 };
 const fmtDate = (s?: string | null) => (s ? new Date(s).toLocaleDateString("fr-FR", { month: "2-digit", year: "numeric" }) : "—");
 const entityOf = (r: CRow) => getCl(r)?.company || r.client_name || "—";
+const dayDiff = (a?: string | null, b?: string | null) => (a && b ? Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86_400_000 : Infinity);
+// A takeover: `later` starts during `earlier`'s term and they END together
+// (the successor inherited the remaining term) — duration-agnostic, so it catches
+// 12-month takeovers just as well, without flagging legit standalone short leases.
+const isTakeover = (earlier: CRow, later: CRow) => {
+  if (!earlier.contract_start_date || !earlier.contract_end_date || !later.contract_start_date || !later.contract_end_date) return false;
+  const es = new Date(earlier.contract_start_date).getTime(), ee = new Date(earlier.contract_end_date).getTime();
+  const ls = new Date(later.contract_start_date).getTime();
+  return ls > es && ls < ee && dayDiff(earlier.contract_end_date, later.contract_end_date) <= 60;
+};
+const sameMonthly = (a: CRow, b: CRow) => {
+  const m1 = Number(a.monthly_payment) || 0, m2 = Number(b.monthly_payment) || 0;
+  return m1 > 0 && m2 > 0 && Math.abs(m1 - m2) <= Math.max(0.5, m2 * 0.01);
+};
+const differentEntity = (a: CRow, b: CRow) =>
+  (a.client_id && b.client_id ? a.client_id !== b.client_id : true) &&
+  normCompany(getCl(a)?.company || a.client_name) !== normCompany(getCl(b)?.company || b.client_name);
 
 export default function ContractTransferMatcher() {
   const [open, setOpen] = useState(false);
@@ -58,7 +76,7 @@ export default function ContractTransferMatcher() {
     try {
       const { data, error } = await supabase
         .from("contracts")
-        .select("id, contract_number, client_name, contract_start_date, contract_end_date, monthly_payment, previous_contract_id, clients(name, email, company)")
+        .select("id, contract_number, client_id, client_name, contract_start_date, contract_end_date, monthly_payment, previous_contract_id, clients(name, email, company)")
         .neq("status", "cancelled");
       if (error) throw error;
       const rows = (data ?? []) as unknown as CRow[];
@@ -76,31 +94,53 @@ export default function ContractTransferMatcher() {
 
       const found: Pair[] = [];
       const pairedLaterIds = new Set<string>();
+      const addPair = (earlier: CRow, later: CRow, label: string) => {
+        if (later.previous_contract_id || pairedLaterIds.has(later.id) || later.id === earlier.id) return;
+        found.push({
+          earlier, later, personLabel: label,
+          laterMonths: monthsBetween(later.contract_start_date, later.contract_end_date),
+          diffEntity: differentEntity(earlier, later),
+        });
+        pairedLaterIds.add(later.id);
+      };
+
+      // Method 1 — same person (email/name): pair consecutive contracts when it's
+      // a takeover (co-terminous) OR the entities differ.
       for (const [key, list] of groups) {
         if (list.length < 2) continue;
         const sorted = [...list].sort((a, b) =>
           new Date(a.contract_start_date || 0).getTime() - new Date(b.contract_start_date || 0).getTime());
         for (let i = 1; i < sorted.length; i++) {
           const later = sorted[i], earlier = sorted[i - 1];
-          if (later.previous_contract_id) continue;
-          const laterMonths = monthsBetween(later.contract_start_date, later.contract_end_date);
-          const diffEntity = normCompany(getCl(later)?.company) !== normCompany(getCl(earlier)?.company);
-          const isShort = laterMonths != null && laterMonths > 0 && laterMonths < SHORT_MONTHS;
-          // A transfer if entities differ, or the successor is abnormally short.
-          if (!diffEntity && !isShort) continue;
-          found.push({ earlier, later, personLabel: getCl(later)?.name || later.client_name || key, laterMonths, diffEntity });
-          pairedLaterIds.add(later.id);
+          if (isTakeover(earlier, later) || differentEntity(earlier, later)) {
+            addPair(earlier, later, getCl(later)?.name || later.client_name || key);
+          }
         }
       }
-      // Short contracts with no predecessor found in Leazr — surfaced so the user
-      // knows why the duration is short and can act (the predecessor may live only
-      // at Grenke).
+
+      // Method 2 — equipment/lease continuity across DIFFERENT entities even when
+      // the person name differs: same monthly + co-terminous handoff. This is the
+      // strongest "same lease taken over" signal (the material moves PP → société).
+      for (let i = 0; i < rows.length; i++) {
+        for (let j = 0; j < rows.length; j++) {
+          if (i === j) continue;
+          const earlier = rows[i], later = rows[j];
+          if (pairedLaterIds.has(later.id) || later.previous_contract_id) continue;
+          if (!differentEntity(earlier, later)) continue;
+          if (sameMonthly(earlier, later) && isTakeover(earlier, later)) {
+            addPair(earlier, later, getCl(later)?.name || later.client_name || "Reprise de bail");
+          }
+        }
+      }
+
+      // Short contracts not paired — surfaced for manual review (the predecessor
+      // may live only at Grenke). Legit standalone short leases will appear here
+      // too, so it's labelled "à vérifier", not "problème".
       const lonely = rows.filter((r) => {
         if (r.previous_contract_id || pairedLaterIds.has(r.id)) return false;
         const m = monthsBetween(r.contract_start_date, r.contract_end_date);
         return m != null && m > 0 && m < SHORT_MONTHS;
       });
-
       found.sort((a, b) => (a.laterMonths ?? 99) - (b.laterMonths ?? 99));
       setPairs(found);
       setUnmatched(lonely);
