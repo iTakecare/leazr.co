@@ -2278,10 +2278,10 @@ async function handleReconcileGrenkeRequests(
   // to the "Annulés" tab.
   const { data: ctrRows } = await adminSupabase
     .from("contracts")
-    .select("id, offer_id, status")
+    .select("id, offer_id, status, contract_number")
     .eq("company_id", companyId);
-  const contractByOffer = new Map<string, { id: string; status: string | null }>();
-  ((ctrRows ?? []) as Array<{ id: string; offer_id: string | null; status: string | null }>).forEach((c) => { if (c.offer_id) contractByOffer.set(c.offer_id, { id: c.id, status: c.status }); });
+  const contractByOffer = new Map<string, { id: string; status: string | null; contract_number: string | null }>();
+  ((ctrRows ?? []) as Array<{ id: string; offer_id: string | null; status: string | null; contract_number: string | null }>).forEach((c) => { if (c.offer_id) contractByOffer.set(c.offer_id, { id: c.id, status: c.status, contract_number: c.contract_number }); });
 
   // Candidate pool = ALL Grenke offers. An offer that already has an active
   // dossier can still receive a NEW one as a re-analysis (added to history) —
@@ -2317,7 +2317,11 @@ async function handleReconcileGrenkeRequests(
     // deals whose request merely *shows* as Cancelled).
     if (isTerminalNeg && linkedOffer) {
       const wf = linkedOffer.workflow_status ?? null;
-      const accepted = wf === "financed" || GRENKE_ACCEPTED_STATES.has(linkedOffer.grenke_state ?? "");
+      const ctNow = contractByOffer.get(linkedOffer.id);
+      // A linked contract carrying a real Grenke contract number is an accepted
+      // deal (its request merely shows as Cancelled) — never cancel it.
+      const hasRealContract = !!(ctNow?.contract_number && ctNow.status !== "cancelled");
+      const accepted = wf === "financed" || GRENKE_ACCEPTED_STATES.has(linkedOffer.grenke_state ?? "") || hasRealContract;
       if (!accepted) {
         const nowTs = new Date().toISOString();
         await adminSupabase.from("offers")
@@ -2432,6 +2436,8 @@ type GrenkeContractItem = {
   TotalInstalment?: number;
   NetAcquisitionValue?: number;
   Period?: number;
+  StartDate?: string;
+  EndDate?: string;
   Lessee?: { CompanyName?: string };
 };
 
@@ -2511,9 +2517,26 @@ async function handleReconcileGrenkeContracts(
   type LeazrContract = { id: string; offer_id: string | null; contract_number: string | null; client_name: string | null; monthly_payment: number | null; status: string | null; grenke_state: string | null; clients?: { company?: string | null } | null };
   const existingContracts = (contractRows ?? []) as unknown as LeazrContract[];
   const contractByNumber = new Map<string, LeazrContract>();
+  const contractByOffer = new Map<string, LeazrContract>();
   for (const cc of existingContracts) {
     if (cc.contract_number) contractByNumber.set(String(cc.contract_number), cc);
+    if (cc.offer_id) contractByOffer.set(cc.offer_id, cc);
   }
+
+  // Apply the authoritative Grenke contract data (number + start/end dates) onto
+  // a Leazr contract row so everything stays in sync. Number is only filled when
+  // empty (never clobbers a self-leasing LOC-ITC-… number); dates are refreshed
+  // from Grenke when present. Also mutates the in-memory row so the financed
+  // safety-net below sees the freshly-stamped number/state.
+  const stampLeazrContract = async (cc: LeazrContract | undefined, c: GrenkeContractItem) => {
+    if (!cc) return;
+    const upd: Record<string, unknown> = {};
+    if (!cc.contract_number && c.ContractId) { upd.contract_number = c.ContractId; cc.contract_number = c.ContractId; }
+    if (c.StartDate) upd.contract_start_date = c.StartDate;
+    if (c.EndDate) upd.contract_end_date = c.EndDate;
+    if (Object.keys(upd).length === 0) return;
+    await adminSupabase.from("contracts").update(upd).eq("id", cc.id);
+  };
   const findExistingContract = (cid: string, companyName: string | null, monthly: number | null): LeazrContract | undefined => {
     const direct = cid ? contractByNumber.get(cid) : undefined;
     if (direct) return direct;
@@ -2546,6 +2569,7 @@ async function handleReconcileGrenkeContracts(
       const nowTs = new Date().toISOString();
       await adminSupabase.from("grenke_submissions").update({ state: c.State, state_updated_at: nowTs }).eq("request_id", cid);
       await adminSupabase.from("offers").update({ grenke_state: c.State, grenke_state_updated_at: nowTs }).eq("grenke_request_id", cid);
+      await stampLeazrContract(contractByNumber.get(cid), c);
       results.push({ ...info, status: "already_linked" }); alreadyLinked++; continue;
     }
 
@@ -2556,6 +2580,7 @@ async function handleReconcileGrenkeContracts(
     const existing = findExistingContract(cid, c.Lessee?.CompanyName ?? null, c.TotalInstalment ?? null);
     if (existing) {
       const nowTs = new Date().toISOString();
+      await stampLeazrContract(existing, c);
       if (existing.grenke_state !== c.State) {
         // Best-effort: the grenke_state column may not exist yet (pre-migration).
         await adminSupabase.from("contracts").update({ grenke_state: c.State, grenke_state_updated_at: nowTs }).eq("id", existing.id);
@@ -2603,6 +2628,7 @@ async function handleReconcileGrenkeContracts(
       if (GRENKE_ACCEPTED_STATES.has(c.State ?? "")) offerUpdate.workflow_status = "financed";
       await adminSupabase.from("offers").update(offerUpdate).eq("id", top.offer_id);
       await adminSupabase.from("grenke_submissions").update({ state: c.State, state_updated_at: nowTs }).eq("offer_id", top.offer_id).eq("is_active", true);
+      await stampLeazrContract(contractByOffer.get(top.offer_id), c);
       results.push({ ...info, status: "already_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
       alreadyLinked++;
       continue;
@@ -2619,6 +2645,7 @@ async function handleReconcileGrenkeContracts(
       (top.amount_close && top.monthly_close && uniqueBest);
     if (confident && auto) {
       await recordGrenkeSubmission(adminSupabase, top.offer_id, { FinancingId: cid, RequestId: cid, State: c.State, submitted_at: new Date().toISOString() }, environment, { advanceWorkflow: true });
+      await stampLeazrContract(contractByOffer.get(top.offer_id), c);
       results.push({ ...info, status: "auto_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
       autoLinked++;
     } else {
@@ -2627,20 +2654,24 @@ async function handleReconcileGrenkeContracts(
     }
   }
 
-  // GLOBAL SAFETY NET — the presence of a live (non-cancelled) Leazr contract
-  // linked to a Grenke offer is itself proof the deal was financed. Set those
-  // offers to "financée" regardless of whether their Grenke contract number
-  // matched above (number formatting, missing /contracts entry, portal-created
-  // dossier never submitted via the API, etc.). createContractFromOffer leaves
-  // the offer at workflow_status='accepted', which is what got them stuck.
+  // GLOBAL SAFETY NET — a Grenke offer whose linked Leazr contract is backed by
+  // a REAL Grenke contract (it has a Grenke contract number, or the offer/contract
+  // carries an accepted Grenke state) is financed, regardless of whether the
+  // number matched the /contracts feed above (formatting, missing entry, etc.).
+  // createContractFromOffer leaves such offers at workflow_status='accepted'.
+  // IMPORTANT: we do NOT finance on the mere existence of a contract row — some
+  // contracts were created prematurely while the Grenke dossier was ultimately
+  // refused (e.g. Helene), and those must stay eligible for cancellation.
   let financedFromContracts = 0;
-  const offerByIdC = new Map(allOffers.map((o) => [o.id, o as UnlinkedOffer & { workflow_status?: string | null }]));
+  const offerByIdC = new Map(allOffers.map((o) => [o.id, o as UnlinkedOffer & { workflow_status?: string | null; grenke_state?: string | null }]));
   for (const cc of existingContracts) {
     if (!cc.offer_id) continue;
     const o = offerByIdC.get(cc.offer_id);
     if (!o) continue; // not a Grenke offer (filtered by leaser above)
     if (cc.status === "cancelled" || cc.status === "completed") continue;
     if ((o.workflow_status ?? null) === "financed") continue;
+    const backed = !!cc.contract_number || GRENKE_ACCEPTED_STATES.has(cc.grenke_state ?? "") || GRENKE_ACCEPTED_STATES.has(o.grenke_state ?? "");
+    if (!backed) continue;
     await adminSupabase.from("offers").update({ workflow_status: "financed" }).eq("id", cc.offer_id).neq("workflow_status", "financed");
     financedFromContracts++;
   }
