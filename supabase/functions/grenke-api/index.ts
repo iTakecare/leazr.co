@@ -2436,9 +2436,9 @@ async function handleReconcileGrenkeContracts(
   // company+amount fingerprint as a fallback.
   const { data: contractRows } = await adminSupabase
     .from("contracts")
-    .select("id, contract_number, client_name, monthly_payment, grenke_state, clients:client_id ( company )")
+    .select("id, offer_id, contract_number, client_name, monthly_payment, grenke_state, clients:client_id ( company )")
     .eq("company_id", companyId);
-  type LeazrContract = { id: string; contract_number: string | null; client_name: string | null; monthly_payment: number | null; grenke_state: string | null; clients?: { company?: string | null } | null };
+  type LeazrContract = { id: string; offer_id: string | null; contract_number: string | null; client_name: string | null; monthly_payment: number | null; grenke_state: string | null; clients?: { company?: string | null } | null };
   const existingContracts = (contractRows ?? []) as unknown as LeazrContract[];
   const contractByNumber = new Map<string, LeazrContract>();
   for (const cc of existingContracts) {
@@ -2479,15 +2479,24 @@ async function handleReconcileGrenkeContracts(
       results.push({ ...info, status: "already_linked" }); alreadyLinked++; continue;
     }
 
-    // Already present as a Leazr contract row (imported, no offer link). Refresh
-    // its Grenke sub-state on the contract itself and don't propose it.
+    // Already present as a Leazr contract row. Refresh its Grenke sub-state on
+    // the contract itself, AND — crucially — finance the linked offer: an
+    // accepted Grenke contract exists, so the offer must be "financée" even if
+    // it was never submitted through the API (portal-created dossier).
     const existing = findExistingContract(cid, c.Lessee?.CompanyName ?? null, c.TotalInstalment ?? null);
     if (existing) {
+      const nowTs = new Date().toISOString();
       if (existing.grenke_state !== c.State) {
         // Best-effort: the grenke_state column may not exist yet (pre-migration).
-        await adminSupabase.from("contracts").update({ grenke_state: c.State, grenke_state_updated_at: new Date().toISOString() }).eq("id", existing.id);
+        await adminSupabase.from("contracts").update({ grenke_state: c.State, grenke_state_updated_at: nowTs }).eq("id", existing.id);
       }
-      results.push({ ...info, status: "already_linked", dossier_number: existing.contract_number ?? null, client_name: existing.client_name ?? null });
+      if (existing.offer_id && GRENKE_ACCEPTED_STATES.has(c.State ?? "")) {
+        await adminSupabase.from("offers")
+          .update({ workflow_status: "financed", grenke_state: c.State, grenke_state_updated_at: nowTs })
+          .eq("id", existing.offer_id)
+          .neq("workflow_status", "financed");
+      }
+      results.push({ ...info, status: "already_linked", offer_id: existing.offer_id ?? undefined, dossier_number: existing.contract_number ?? null, client_name: existing.client_name ?? null });
       alreadyLinked++;
       continue;
     }
@@ -2519,14 +2528,25 @@ async function handleReconcileGrenkeContracts(
     // "demande réglée" → RunningContract "actif") and don't propose re-linking.
     if (top.offer_linked && (top.amount_close || top.monthly_close)) {
       const nowTs = new Date().toISOString();
-      await adminSupabase.from("offers").update({ grenke_state: c.State, grenke_state_updated_at: nowTs }).eq("id", top.offer_id);
+      // Accepted contract → offer must be "financée"; otherwise just refresh state.
+      const offerUpdate: Record<string, unknown> = { grenke_state: c.State, grenke_state_updated_at: nowTs };
+      if (GRENKE_ACCEPTED_STATES.has(c.State ?? "")) offerUpdate.workflow_status = "financed";
+      await adminSupabase.from("offers").update(offerUpdate).eq("id", top.offer_id);
       await adminSupabase.from("grenke_submissions").update({ state: c.State, state_updated_at: nowTs }).eq("offer_id", top.offer_id).eq("is_active", true);
       results.push({ ...info, status: "already_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
       alreadyLinked++;
       continue;
     }
 
-    const confident = candidates.length === 1 && (top.amount_close || top.monthly_close);
+    // Auto-link (and finance) when we're confident: either a single name match
+    // that agrees on amount OR monthly, OR — when several offers share the
+    // company name — the top candidate agrees on BOTH amount AND monthly and is
+    // strictly the best (no tie). "À partir du moment où tout correspond."
+    const second = candidates[1];
+    const uniqueBest = !second || second.score < top.score;
+    const confident =
+      (candidates.length === 1 && (top.amount_close || top.monthly_close)) ||
+      (top.amount_close && top.monthly_close && uniqueBest);
     if (confident && auto) {
       await recordGrenkeSubmission(adminSupabase, top.offer_id, { FinancingId: cid, RequestId: cid, State: c.State, submitted_at: new Date().toISOString() }, environment, { advanceWorkflow: true });
       results.push({ ...info, status: "auto_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
