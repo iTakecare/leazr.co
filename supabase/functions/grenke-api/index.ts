@@ -2377,6 +2377,19 @@ async function handleReconcileGrenkeRequests(
     }
 
     const top = candidates[0];
+
+    // An OLD terminal dossier (Declined/Cancelled) whose best match is an offer
+    // that already has a current dossier is historical — archive it into that
+    // offer's history instead of surfacing it again as "à valider"
+    // (e.g. KJ CONSULT's refused 180-32415, GIURIATO's cancelled 180-29454,
+    // while the offer already carries a newer live/accepted dossier).
+    if (isTerminalNeg && top.has_active && (top.amount_close || top.monthly_close)) {
+      if (auto) { try { await recordGrenkeSubmission(adminSupabase, top.offer_id, it, environment, {}); } catch { /* archive is best-effort */ } }
+      results.push({ ...info, status: "already_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
+      alreadyLinked++;
+      continue;
+    }
+
     // Auto-link a single, amount/monthly-agreeing match when the candidate offer
     // has no active dossier OR its active dossier is refused/cancelled (the new
     // live dossier is clearly the re-analysis). An offer with a still-LIVE dossier
