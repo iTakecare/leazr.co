@@ -56,21 +56,37 @@ export default function GrenkePortalSync() {
     setLoading(true);
     setResp(null);
     try {
-      const { data, error } = await supabase.functions.invoke("grenke-api", {
-        body: { action: "reconcile_grenke_requests", environment: "production", payload: { auto: true } },
-      });
-      let body = (data ?? null) as ReconcileResponse | null;
-      if (error) { const ctx = (error as unknown as { context?: Response }).context; if (ctx?.json) { try { body = await ctx.json(); } catch { /* */ } } }
-      setResp(body);
-      if (body?.success) {
-        const s = body.summary;
+      const parse = async (r: { data?: unknown; error?: unknown }): Promise<ReconcileResponse | null> => {
+        let b = (r.data ?? null) as ReconcileResponse | null;
+        if (r.error) { const ctx = (r.error as { context?: Response }).context; if (ctx?.json) { try { b = await ctx.json(); } catch { /* */ } } }
+        return b;
+      };
+      // Reconcile BOTH the requests (in-progress / refused) and the contracts
+      // (accepted deals — a request that's accepted leaves /requests and becomes
+      // a contract, otherwise the offer would wrongly look annulée).
+      const [reqRes, conRes] = await Promise.all([
+        supabase.functions.invoke("grenke-api", { body: { action: "reconcile_grenke_requests", environment: "production", payload: { auto: true } } }),
+        supabase.functions.invoke("grenke-api", { body: { action: "reconcile_grenke_contracts", environment: "production", payload: { auto: true } } }),
+      ]);
+      const reqBody = await parse(reqRes);
+      const conBody = await parse(conRes);
+      const sum = (k: keyof NonNullable<ReconcileResponse["summary"]>) => (reqBody?.summary?.[k] ?? 0) + (conBody?.summary?.[k] ?? 0);
+      const merged: ReconcileResponse = {
+        success: !!(reqBody?.success || conBody?.success),
+        summary: { total: sum("total"), already_linked: sum("already_linked"), auto_linked: sum("auto_linked"), needs_review: sum("needs_review"), no_match: sum("no_match") },
+        results: [...(reqBody?.results ?? []), ...(conBody?.results ?? [])],
+        message: reqBody?.message ?? conBody?.message,
+        error: reqBody?.error ?? conBody?.error,
+      };
+      setResp(merged);
+      if (merged.success) {
+        const s = merged.summary;
         toast.success(`${s?.auto_linked ?? 0} lié(s) auto · ${s?.needs_review ?? 0} à valider · ${s?.no_match ?? 0} sans correspondance`);
-        // Default-pick the first candidate for each needs_review row.
         const defaults: Record<string, string> = {};
-        (body.results ?? []).forEach((r) => { if (r.status === "needs_review" && r.candidates?.[0]) defaults[r.financing_id] = r.candidates[0].offer_id; });
+        (merged.results ?? []).forEach((r) => { if (r.status === "needs_review" && r.candidates?.[0]) defaults[r.financing_id] = r.candidates[0].offer_id; });
         setPicked(defaults);
       } else {
-        toast.error(`Échec : ${body?.message ?? body?.error ?? "erreur"}`);
+        toast.error(`Échec : ${merged.message ?? merged.error ?? "erreur"}`);
       }
     } catch (e) {
       console.error("[GrenkePortalSync] error:", e);

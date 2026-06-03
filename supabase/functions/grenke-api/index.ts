@@ -74,6 +74,7 @@ interface GrenkeRequest {
     | "start_esignature"
     | "reconcile_grenke_requests"
     | "link_grenke_request"
+    | "reconcile_grenke_contracts"
     | "get_grenke_submissions";
   environment?: Environment;
   // future fields (calculate, submit_offer, …) live under `payload`
@@ -249,6 +250,9 @@ serve(async (req) => {
 
       case "link_grenke_request":
         return await handleLinkGrenkeRequest(adminSupabase, companyId, environment, body.payload ?? {});
+
+      case "reconcile_grenke_contracts":
+        return await handleReconcileGrenkeContracts(adminSupabase, companyId, environment, creds, body.payload ?? {});
 
       case "get_grenke_submissions":
         return await handleGetGrenkeSubmissions(adminSupabase, companyId, body.offer_id);
@@ -2057,6 +2061,12 @@ type UnlinkedOffer = {
 // submissions (kept in history), upsert this one as active, and mirror it onto
 // the offer's grenke_* columns (the "active pointer" used by the workflow/poller).
 const GRENKE_TERMINAL_NEGATIVE = new Set(["Declined", "Cancelled"]);
+// States that mean the deal was ACCEPTED (a contract exists/existed). Used to set
+// the offer to "leaser_approved" (Acceptée). Covers request- and contract-side names.
+const GRENKE_ACCEPTED_STATES = new Set([
+  "Contracted", "ApplicationSettled", "Paid", "RunningContract",
+  "ProlongedContract", "ExpiringSoon", "Expired",
+]);
 
 async function recordGrenkeSubmission(
   adminSupabase: ReturnType<typeof createClient>,
@@ -2119,6 +2129,7 @@ async function recordGrenkeSubmission(
   // contracts sync / manual review.
   if (opts?.advanceWorkflow) {
     if (active.state === "Declined") update.workflow_status = "leaser_rejected";
+    else if (GRENKE_ACCEPTED_STATES.has(active.state ?? "")) update.workflow_status = "leaser_approved";
     else if (active.state !== "Cancelled") update.workflow_status = "leaser_introduced";
   }
   await adminSupabase.from("offers").update(update).eq("id", offerId);
@@ -2281,6 +2292,122 @@ async function handleReconcileGrenkeRequests(
   return jsonResponse({
     success: true,
     summary: { total: items.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch },
+    results,
+  }, 200);
+}
+
+// Accepted-deal contract states to pull from Grenke /contracts (a deal that was
+// approved → a contract exists/existed). Rescinded/Cancelled are excluded.
+const GRENKE_CONTRACT_FETCH_STATES = [
+  "ApplicationSettled", "Paid", "RunningContract", "ProlongedContract", "ExpiringSoon", "Expired",
+];
+
+type GrenkeContractItem = {
+  ContractId?: string;
+  State?: string;
+  TotalInstalment?: number;
+  NetAcquisitionValue?: number;
+  Period?: number;
+  Lessee?: { CompanyName?: string };
+};
+
+// Reconcile Grenke CONTRACTS (accepted deals) with Leazr offers. A request that
+// was accepted disappears from /requests (shows as Cancelled) and becomes a
+// contract in /contracts — so without this, accepted offers look annulé/refusé.
+// Matching: company name + NetAcquisitionValue (≈ financed) + TotalInstalment
+// (≈ monthly). Confident single matches are marked Accepté (leaser_approved).
+async function handleReconcileGrenkeContracts(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  payload: Record<string, unknown>,
+): Promise<Response> {
+  const auto = payload.auto === true;
+
+  // 1. Fetch contracts across every accepted state (paginated).
+  const contracts: GrenkeContractItem[] = [];
+  for (const st of GRENKE_CONTRACT_FETCH_STATES) {
+    let page = 1;
+    for (let guard = 0; guard < 50; guard++) {
+      let resp: Response;
+      try {
+        resp = await grenkeFetch(environment, `/basic/v1/contracts?contractListParameter.page=${page}&contractListParameter.pageSize=100&contractListParameter.state=${st}`, { method: "GET" }, creds);
+      } catch (e) {
+        return jsonResponse({ success: false, error: "network_or_tls_error", message: e instanceof Error ? e.message : String(e) }, 502);
+      }
+      if (!resp.ok) break;
+      const body = (await resp.json().catch(() => null)) as { Items?: GrenkeContractItem[]; PageCount?: number } | null;
+      const items = body?.Items ?? [];
+      contracts.push(...items);
+      const pc = body?.PageCount ?? 1;
+      if (page >= pc || items.length === 0) break;
+      page++;
+    }
+  }
+
+  // 2. Load this company's Grenke offers.
+  const { data: offerRows, error: offerErr } = await adminSupabase
+    .from("offers")
+    .select("id, client_name, dossier_number, monthly_payment, coefficient, financed_amount, grenke_financing_id, grenke_request_id, workflow_status, clients:client_id ( company, name )")
+    .eq("company_id", companyId)
+    .eq("leaser_id", GRENKE_LEASER_UUID);
+  if (offerErr) return jsonResponse({ success: false, error: "offer_lookup_failed", message: offerErr.message }, 500);
+  const allOffers = (offerRows ?? []) as unknown as Array<UnlinkedOffer & { grenke_request_id: string | null }>;
+
+  // Contracts already recorded in some offer's history (by their ContractId).
+  const offerIds = allOffers.map((o) => o.id);
+  const { data: subRows } = await adminSupabase
+    .from("grenke_submissions")
+    .select("request_id, offer_id")
+    .in("offer_id", offerIds.length ? offerIds : ["00000000-0000-0000-0000-000000000000"]);
+  const linkedContractIds = new Set(((subRows ?? []) as Array<{ request_id: string | null }>).map((r) => r.request_id).filter(Boolean) as string[]);
+
+  const expectedAmount = (o: UnlinkedOffer): number => {
+    const coef = Number(o.coefficient) || 0;
+    if (coef > 0 && Number(o.monthly_payment) > 0) return Math.round((Number(o.monthly_payment) * 100 / coef) * 100) / 100;
+    return Math.round((o.financed_amount ?? 0) * 100) / 100;
+  };
+
+  const results: Array<Record<string, unknown>> = [];
+  let autoLinked = 0, needsReview = 0, noMatch = 0, alreadyLinked = 0;
+
+  for (const c of contracts) {
+    const cid = c.ContractId ?? "";
+    const info = { financing_id: cid, request_id: cid, state: c.State ?? null, company: c.Lessee?.CompanyName ?? null, amount: c.NetAcquisitionValue ?? null, monthly: c.TotalInstalment ?? null };
+    if (cid && linkedContractIds.has(cid)) { results.push({ ...info, status: "already_linked" }); alreadyLinked++; continue; }
+
+    const grenkeName = normalizeTitle(c.Lessee?.CompanyName ?? "");
+    const grenkeTokens = titleTokens(grenkeName);
+    const candidates = allOffers.map((o) => {
+      const offerName = normalizeTitle(o.clients?.company || o.client_name || "");
+      const offerTokens = titleTokens(offerName);
+      const nameMatch = !!offerName && !!grenkeName && (offerName === grenkeName || tokensSubset(grenkeTokens, new Set(offerTokens)) || tokensSubset(offerTokens, new Set(grenkeTokens)));
+      if (!nameMatch) return null;
+      const exp = expectedAmount(o);
+      const amountClose = !!c.NetAcquisitionValue && Math.abs(exp - c.NetAcquisitionValue) <= Math.max(1, c.NetAcquisitionValue * 0.02);
+      const monthlyClose = !!c.TotalInstalment && !!o.monthly_payment && Math.abs(Number(o.monthly_payment) - c.TotalInstalment) <= Math.max(0.5, c.TotalInstalment * 0.02);
+      const alreadyThis = (o as { grenke_request_id?: string | null }).grenke_request_id === cid;
+      return { offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, already_this: alreadyThis, score: 1 + (amountClose ? 2 : 0) + (monthlyClose ? 2 : 0) };
+    }).filter(Boolean) as Array<{ offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; already_this: boolean; score: number }>;
+    candidates.sort((a, b) => b.score - a.score);
+
+    if (candidates.length === 0) { results.push({ ...info, status: "no_match" }); noMatch++; continue; }
+    const top = candidates[0];
+    const confident = candidates.length === 1 && (top.amount_close || top.monthly_close);
+    if (confident && auto) {
+      await recordGrenkeSubmission(adminSupabase, top.offer_id, { FinancingId: cid, RequestId: cid, State: c.State, submitted_at: new Date().toISOString() }, environment, { advanceWorkflow: true });
+      results.push({ ...info, status: "auto_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
+      autoLinked++;
+    } else {
+      results.push({ ...info, status: "needs_review", candidates: candidates.slice(0, 5).map((c2) => ({ offer_id: c2.offer_id, dossier_number: c2.dossier_number, client_name: c2.client_name, company: c2.company, amount_close: c2.amount_close, monthly_close: c2.monthly_close })) });
+      needsReview++;
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    summary: { total: contracts.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch },
     results,
   }, 200);
 }
