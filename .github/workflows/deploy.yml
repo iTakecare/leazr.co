@@ -58,6 +58,10 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           source: leazr-frontend.tar.gz
           target: /tmp/
+          # Generous connect timeout: the VPS sshd can be slow to accept new
+          # connections while CPU-throttled, which tripped the 30s default.
+          timeout: 300s
+          command_timeout: 10m
 
       - name: Load image + restart on VPS
         if: steps.changes.outputs.frontend == 'true'

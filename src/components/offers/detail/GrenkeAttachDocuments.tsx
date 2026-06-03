@@ -2,7 +2,7 @@
 // Shown in the Grenke workflow panel once the offer has been submitted. Lets
 // the user pick which documents to push, then calls grenke-api 'upload_document'
 // (which base64-encodes each file and POSTs it to Grenke's documents endpoint).
-// (First deploy via the CI-built-image pipeline.)
+// (Deployed via the CI-built-image pipeline.)
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
