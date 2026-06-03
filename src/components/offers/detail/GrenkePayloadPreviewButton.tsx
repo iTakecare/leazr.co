@@ -68,6 +68,18 @@ interface PayloadResponse {
   message?: string;
 }
 
+// Friendly labels for document types (same set as GrenkeAttachDocuments).
+const DOC_LABELS: Record<string, string> = {
+  balance_sheet: "Bilan financier",
+  tax_notice: "Avertissement extrait de rôle",
+  id_card_front: "Carte d'identité (recto)",
+  id_card_back: "Carte d'identité (verso)",
+  id_card: "Carte d'identité",
+  company_register: "Extrait de registre d'entreprise",
+  vat_certificate: "Attestation TVA",
+  bank_statement: "Relevé bancaire",
+};
+
 // Same set as in GrenkeFieldMappings — the hardcoded Leazr entity_type values.
 const ENTITY_TYPES_LABEL: Record<string, string> = {
   societe: "Société",
@@ -91,6 +103,11 @@ export default function GrenkePayloadPreviewButton({
   const [savingFixes, setSavingFixes] = useState(false);
   const [fixModalOpen, setFixModalOpen] = useState(false);
   const [monthlyPayment, setMonthlyPayment] = useState<number | null>(null);
+
+  // Documents to attach to Grenke right after submission (financingId only
+  // exists once the request is created, so we submit first, then upload).
+  const [offerDocs, setOfferDocs] = useState<Array<{ id: string; file_name: string; document_type: string; status: string }>>([]);
+  const [selectedDocs, setSelectedDocs] = useState<Record<string, boolean>>({});
 
   // Submit state (Phase 3b)
   const [submitting, setSubmitting] = useState(false);
@@ -167,6 +184,13 @@ export default function GrenkePayloadPreviewButton({
     // Fetch the offer's monthly payment for the recap (Grenke doesn't echo it).
     supabase.from("offers").select("monthly_payment").eq("id", offerId).maybeSingle()
       .then(({ data }) => setMonthlyPayment((data as { monthly_payment?: number } | null)?.monthly_payment ?? null));
+    // Load the offer's documents so the user can choose which to attach.
+    supabase.from("offer_documents").select("id, file_name, document_type, status").eq("offer_id", offerId).order("uploaded_at", { ascending: false })
+      .then(({ data }) => {
+        const rows = (data ?? []) as Array<{ id: string; file_name: string; document_type: string; status: string }>;
+        setOfferDocs(rows);
+        setSelectedDocs(Object.fromEntries(rows.filter((d) => d.status !== "rejected").map((d) => [d.id, true])));
+      });
     await Promise.all([fetchPayload(), loadCategories()]);
   };
 
@@ -227,6 +251,24 @@ export default function GrenkePayloadPreviewButton({
           </div>,
           { duration: 10000 },
         );
+
+        // Attach the selected documents now that the dossier (financingId) exists.
+        const docIds = offerDocs.filter((d) => selectedDocs[d.id]).map((d) => d.id);
+        if (docIds.length > 0) {
+          try {
+            const { data: upData, error: upErr } = await supabase.functions.invoke("grenke-api", {
+              body: { action: "upload_document", environment: "production", offer_id: offerId, payload: { document_ids: docIds } },
+            });
+            let up = (upData ?? null) as { success?: boolean; sent?: number; total?: number; message?: string } | null;
+            if (upErr) { const ctx = (upErr as unknown as { context?: Response }).context; if (ctx?.json) { try { up = await ctx.json(); } catch { /* */ } } }
+            if (up?.success) toast.success(`${up.sent}/${up.total} document(s) joint(s) au dossier Grenke 📎`);
+            else toast.warning(`Dossier soumis, mais l'envoi des documents a échoué : ${up?.message ?? "erreur"}. Tu peux réessayer via « Joindre des documents ».`, { duration: 12000 });
+          } catch (upe) {
+            console.error("[GrenkePayloadPreview] document upload error:", upe);
+            toast.warning("Dossier soumis, mais l'envoi des documents a échoué. Tu peux réessayer via « Joindre des documents ».", { duration: 12000 });
+          }
+        }
+
         // Merge with the workflow: submitting to Grenke IS "introduce to leaser".
         try { await onSubmitted?.(); } catch (cbErr) { console.error("[GrenkePayloadPreview] onSubmitted callback error:", cbErr); }
       } else {
@@ -465,6 +507,36 @@ export default function GrenkePayloadPreviewButton({
                   </div>
                 );
               })()}
+
+              {/* Documents to attach to the Grenke dossier (sent right after submit). */}
+              {result.payload != null && !submitResult?.success && offerDocs.length > 0 && (
+                <div className="rounded-lg border p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium">Documents à joindre</span>
+                    <Badge variant="outline" className="text-xs">
+                      {offerDocs.filter((d) => selectedDocs[d.id]).length}/{offerDocs.length}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Ces pièces seront transmises au dossier Grenke juste après la soumission.
+                  </p>
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                    {offerDocs.map((d) => (
+                      <label key={d.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!selectedDocs[d.id]}
+                          onChange={(e) => setSelectedDocs((s) => ({ ...s, [d.id]: e.target.checked }))}
+                          className="h-4 w-4"
+                        />
+                        <span className="flex-1 truncate">{DOC_LABELS[d.document_type] ?? d.document_type}</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[40%]">{d.file_name}</span>
+                        {d.status === "rejected" && <span className="text-[10px] text-red-600">rejeté</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
