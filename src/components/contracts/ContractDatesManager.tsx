@@ -28,8 +28,10 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
   leaserId,
   onUpdate
 }) => {
+  // No effective delivery date yet → fall back to the contract start date so the
+  // field isn't empty (the start date is the best available proxy for Grenke).
   const [selectedDeliveryDate, setSelectedDeliveryDate] = useState<Date | undefined>(
-    deliveryDate ? new Date(deliveryDate) : undefined
+    deliveryDate ? new Date(deliveryDate) : (contractStartDate ? new Date(contractStartDate) : undefined)
   );
   const [selectedStartDate, setSelectedStartDate] = useState<Date | undefined>(
     contractStartDate ? new Date(contractStartDate) : undefined
@@ -133,6 +135,13 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
       setSelectedStartDate(new Date(contractStartDate));
     }
   }, [contractStartDate]);
+
+  // Garder la date de livraison affichée alignée : valeur réelle si présente,
+  // sinon la date de début de contrat (fallback).
+  useEffect(() => {
+    if (deliveryDate) setSelectedDeliveryDate(new Date(deliveryDate));
+    else if (contractStartDate) setSelectedDeliveryDate(new Date(contractStartDate));
+  }, [deliveryDate, contractStartDate]);
 
   // Fonction pour calculer la date de début selon la règle du leaser
   const calculateStartDateFromRule = (deliveryDate: Date, rule: string): Date | null => {

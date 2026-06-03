@@ -308,12 +308,32 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             Terminé
           </Badge>
         );
-      default:
+      case "defaulted":
         return (
-          <Badge variant="outline">
-            {status}
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+            <AlertTriangle className="mr-1 h-3 w-3" />
+            Défaut de paiement
           </Badge>
         );
+      case contractStatuses.CANCELLED:
+        return (
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+            <AlertTriangle className="mr-1 h-3 w-3" />
+            Annulé
+          </Badge>
+        );
+      default: {
+        // Never show a raw English status — map a few known ones, else Titlecase.
+        const fr: Record<string, string> = {
+          draft: "Brouillon", pending: "En attente", invoiced: "Facturé",
+          terminated: "Résilié", paused: "Suspendu",
+        };
+        return (
+          <Badge variant="outline">
+            {fr[status] ?? status}
+          </Badge>
+        );
+      }
     }
   };
 
@@ -485,24 +505,33 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   {contract.contract_number || "-"}
                 </TableCell>
                 <TableCell className="px-2 py-1.5 whitespace-nowrap">
-                  {(contract.offer_leaser_request_number || contract.offer_dossier_number) ? (
-                    <button
-                      className="text-primary hover:underline cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (contract.offer_id) {
-                          const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
-                          if (companySlug) {
-                            navigate(`/${companySlug}/admin/offers/${contract.offer_id}`);
-                          } else {
-                            navigate(`/offers/${contract.offer_id}`);
+                  {(() => {
+                    // For Grenke contracts the "N° Demande" must be the Grenke
+                    // request number (180-XXXXX), never the internal iTakecare
+                    // dossier number — so don't fall back to offer_dossier_number.
+                    const isGrenke = contract.leaser_id === "d60b86d7-a129-4a17-a877-e8e5caa66949" || /grenke/i.test(contract.leaser_name || "");
+                    const demande = isGrenke
+                      ? contract.offer_leaser_request_number
+                      : (contract.offer_leaser_request_number || contract.offer_dossier_number);
+                    return demande ? (
+                      <button
+                        className="text-primary hover:underline cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (contract.offer_id) {
+                            const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
+                            if (companySlug) {
+                              navigate(`/${companySlug}/admin/offers/${contract.offer_id}`);
+                            } else {
+                              navigate(`/offers/${contract.offer_id}`);
+                            }
                           }
-                        }
-                      }}
-                    >
-                      {contract.offer_leaser_request_number || contract.offer_dossier_number}
-                    </button>
-                  ) : "-"}
+                        }}
+                      >
+                        {demande}
+                      </button>
+                    ) : "-";
+                  })()}
                 </TableCell>
                 <TableCell className="px-2 py-1.5">
                   {contract.client_id ? (
