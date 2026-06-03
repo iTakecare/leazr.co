@@ -197,18 +197,39 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     throw contractError;
   }
 
-  // Fetch units for contracts only
+  // Direct-purchase offers (is_purchase) that have passed internal validation
+  // need ordering too — they never become contracts (they go to invoicing), so
+  // they'd otherwise be invisible here. Pull their equipment once validated
+  // (and until invoiced) so the team can order the hardware.
+  const { data: offerEquipment, error: offerError } = await supabase
+    .from('offer_equipment')
+    .select(`
+      id, title, quantity, purchase_price, supplier_price,
+      order_status, supplier_id, order_date, order_reference, reception_date, order_notes,
+      serial_number, monthly_payment,
+      offers!inner(id, dossier_number, client_name, company_id, created_at, is_purchase, workflow_status),
+      offer_equipment_attributes(key, value),
+      offer_equipment_specifications(key, value)
+    `)
+    .eq('offers.company_id', companyId)
+    .eq('offers.is_purchase', true)
+    .in('offers.workflow_status', ['internal_approved', 'invoicing']);
+
+  if (offerError) {
+    console.error('[EquipmentOrders] offer_equipment fetch error:', offerError);
+  }
+
+  // Fetch units for BOTH contracts and offers.
   const { data: allUnits, error: unitsError } = await supabase
     .from('equipment_order_units' as any)
     .select('*')
-    .eq('source_type', 'contract')
     .order('unit_index');
 
   if (unitsError) throw unitsError;
 
   const unitsByKey = new Map<string, EquipmentOrderUnit[]>();
   ((allUnits || []) as EquipmentOrderUnit[]).forEach(u => {
-    const key = `contract-${u.source_equipment_id}`;
+    const key = `${u.source_type}-${u.source_equipment_id}`;
     if (!unitsByKey.has(key)) unitsByKey.set(key, []);
     unitsByKey.get(key)!.push(u);
   });
@@ -256,5 +277,32 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     monthly_payment: eq.monthly_payment,
   }));
 
-  return items;
+  const offerItems: EquipmentOrderItem[] = (offerEquipment || []).map((eq: any) => ({
+    id: eq.id,
+    title: eq.title,
+    quantity: eq.quantity,
+    purchase_price: eq.purchase_price,
+    order_status: (eq.order_status || 'to_order') as OrderStatus,
+    supplier_id: eq.supplier_id,
+    supplier_price: eq.supplier_price ?? null,
+    order_date: eq.order_date,
+    order_reference: eq.order_reference,
+    reception_date: eq.reception_date,
+    order_notes: eq.order_notes,
+    product_id: null,
+    source_type: 'offer' as const,
+    source_id: eq.offers?.id,
+    client_name: eq.offers?.client_name,
+    source_reference: eq.offers?.dossier_number || 'N/A',
+    source_date: eq.offers?.created_at,
+    units: unitsByKey.get(`offer-${eq.id}`) || undefined,
+    attributes: flatten(eq.offer_equipment_attributes),
+    specifications: flatten(eq.offer_equipment_specifications),
+    serial_number: eq.serial_number,
+    individual_serial_number: null,
+    purchase_notes: null,
+    monthly_payment: eq.monthly_payment,
+  }));
+
+  return [...items, ...offerItems];
 };

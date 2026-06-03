@@ -531,7 +531,13 @@ const EquipmentOrders: React.FC = () => {
               const itemKey = `${item.source_type}-${item.id}`;
               const isExpanded = expandedItems.has(itemKey);
               const statusConfig = ORDER_STATUS_CONFIG[item.order_status];
-              const priceHT = (item.supplier_price || item.purchase_price) * item.quantity;
+              // For per-unit items the amount shown is what's LEFT to order
+              // (sum of the units still 'to_order'), not the full line total.
+              const priceHT = hasUnits
+                ? item.units!
+                    .filter((u) => (u.order_status ?? 'to_order') === 'to_order')
+                    .reduce((sum, u) => sum + (u.supplier_price ?? item.purchase_price ?? 0), 0)
+                : (item.supplier_price || item.purchase_price) * item.quantity;
               const supplierType = getSupplierType(item.supplier_id);
               const tvaAmount = supplierType === 'belgian' ? priceHT * 0.21 : 0;
               const priceTVAC = priceHT + tvaAmount;
