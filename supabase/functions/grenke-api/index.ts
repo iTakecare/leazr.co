@@ -2365,13 +2365,18 @@ async function handleReconcileGrenkeRequests(
       const amountClose = !!it.FinancingAmount && Math.abs(exp - it.FinancingAmount) <= Math.max(1, it.FinancingAmount * 0.01);
       const monthlyClose = !!it.MonthlyTotalInstalment && !!o.monthly_payment && Math.abs(Number(o.monthly_payment) - it.MonthlyTotalInstalment) <= Math.max(0.5, it.MonthlyTotalInstalment * 0.01);
       const score = 1 + (amountClose ? 2 : 0) + (monthlyClose ? 2 : 0);
-      const oo = o as { grenke_financing_id?: string | null; grenke_state?: string | null };
+      const oo = o as { grenke_financing_id?: string | null; grenke_state?: string | null; workflow_status?: string | null };
       const hasActive = !!oo.grenke_financing_id;
       // An offer whose active dossier is refused/cancelled can be auto-relinked
       // to a fresh live dossier (the re-analysis case).
       const activeTerminal = !hasActive || oo.grenke_state === "Declined" || oo.grenke_state === "Cancelled";
-      return { offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, has_active: hasActive, active_terminal: activeTerminal, score };
-    }).filter(Boolean) as Array<{ offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; has_active: boolean; active_terminal: boolean; score: number }>;
+      // "Resolved" = the deal is already settled in Leazr: the offer is financed
+      // or carries a real Grenke contract. A terminal dossier matching a resolved
+      // offer is just an old/duplicate dossier (portal deals never submitted via
+      // the API have no grenke_financing_id, so has_active alone missed them).
+      const resolved = oo.workflow_status === "financed" || !!(contractByOffer.get(o.id)?.contract_number);
+      return { offer_id: o.id, dossier_number: o.dossier_number, client_name: o.client_name || o.clients?.name || null, company: o.clients?.company || null, amount_close: amountClose, monthly_close: monthlyClose, has_active: hasActive, active_terminal: activeTerminal, resolved, score };
+    }).filter(Boolean) as Array<{ offer_id: string; dossier_number: string | null; client_name: string | null; company: string | null; amount_close: boolean; monthly_close: boolean; has_active: boolean; active_terminal: boolean; resolved: boolean; score: number }>;
     candidates.sort((a, b) => b.score - a.score);
 
     if (candidates.length === 0) {
@@ -2382,15 +2387,23 @@ async function handleReconcileGrenkeRequests(
 
     const top = candidates[0];
 
-    // An OLD terminal dossier (Declined/Cancelled) whose best match is an offer
-    // that already has a current dossier is historical — archive it into that
-    // offer's history instead of surfacing it again as "à valider"
-    // (e.g. KJ CONSULT's refused 180-32415, GIURIATO's cancelled 180-29454,
-    // while the offer already carries a newer live/accepted dossier).
-    if (isTerminalNeg && top.has_active && (top.amount_close || top.monthly_close)) {
-      if (auto) { try { await recordGrenkeSubmission(adminSupabase, top.offer_id, it, environment, {}); } catch { /* archive is best-effort */ } }
-      results.push({ ...info, status: "already_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
-      alreadyLinked++;
+    // A terminal dossier (Declined/Cancelled) is NEVER something to "link"
+    // manually — linking a refused dossier achieves nothing. So it must never
+    // land in "à valider". Two outcomes:
+    //   - matches an already-resolved/active offer (amount or monthly agree) →
+    //     archive into that offer's history (e.g. DANNEELS' cancelled 180-32688
+    //     while the offer is already financed with a contract);
+    //   - otherwise → informational "sans correspondance", not a to-do
+    //     (e.g. GIURIATO's 180-29454 whose amount doesn't match any offer).
+    if (isTerminalNeg) {
+      if ((top.has_active || top.resolved) && (top.amount_close || top.monthly_close)) {
+        if (auto) { try { await recordGrenkeSubmission(adminSupabase, top.offer_id, it, environment, {}); } catch { /* archive is best-effort */ } }
+        results.push({ ...info, status: "already_linked", offer_id: top.offer_id, dossier_number: top.dossier_number, client_name: top.client_name });
+        alreadyLinked++;
+      } else {
+        results.push({ ...info, status: "no_match" });
+        noMatch++;
+      }
       continue;
     }
 
