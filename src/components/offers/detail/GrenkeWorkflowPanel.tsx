@@ -24,6 +24,10 @@ interface GrenkeWorkflowPanelProps {
   // Called after a successful Grenke submission so the workflow can advance to
   // the "Introduit leaser" step in the same click (merging the two actions).
   onSubmitted?: () => void | Promise<void>;
+  // Called after the DocuSign e-signature has been sent, so the workflow can
+  // mark the leaser result as Score A and open the validation modal that
+  // creates the Leazr contract (step "attente signature") in the same flow.
+  onEsignatureSent?: () => void | Promise<void>;
 }
 
 // Map a Grenke state to a French label + visual style.
@@ -62,7 +66,7 @@ function ToneIcon({ tone }: { tone: "pending" | "progress" | "ok" | "ko" }) {
   return <Send className="h-3.5 w-3.5" />;
 }
 
-export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSubmitted }: GrenkeWorkflowPanelProps) {
+export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSubmitted, onEsignatureSent }: GrenkeWorkflowPanelProps) {
   const [state, setState] = useState<{
     grenke_state: string | null;
     grenke_financing_id: string | null;
@@ -265,7 +269,7 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
       {grenkeState === "ReadyToSign" && (
         <GrenkeESignaturePanel
           offerId={offerId}
-          onSent={async () => { await load(); onRefresh?.(); }}
+          onSent={async () => { await load(); onRefresh?.(); await onEsignatureSent?.(); }}
         />
       )}
     </div>

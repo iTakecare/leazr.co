@@ -25,6 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import { useWorkflowSteps } from "@/hooks/workflows/useWorkflowSteps";
 import type { OfferType } from "@/types/workflow";
+import { workflowService } from "@/services/workflows/workflowService";
 import EmailConfirmationModal from "../EmailConfirmationModal";
 import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
 import { getOfferById } from "@/services/offerService";
@@ -400,7 +401,39 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
       onRefresh?.();
     }
   };
-  const workflowName = workflowTemplateId && templateSteps.length > 0 
+  // Phase 4 — once the contract has been sent for DocuSign signature, couple the
+  // Grenke e-signature send with the Leazr workflow in one flow:
+  //   1) mark the leaser result as Score A (advances the "Résultat leaser" step),
+  //   2) open the "Félicitations" validation modal — confirming it runs the
+  //      existing offer_validation → createContractFromOffer path, which creates
+  //      the contract at status CONTRACT_SENT ("attente signature").
+  const handleEsignatureSent = async () => {
+    try {
+      // Resolve the approval target from the workflow template (falls back to the
+      // standard 'leaser_approved', which also sets leaser_score = 'A').
+      let nextStatus = 'leaser_approved';
+      if (companyId) {
+        const transitions = await workflowService.findScoringStep(companyId, offerType, 'leaser', isPurchase);
+        nextStatus = transitions?.next_step_on_approval || 'leaser_approved';
+      }
+      const success = await updateOfferStatus(
+        offerId,
+        nextStatus,
+        currentStatus,
+        "Score A — contrat envoyé pour signature DocuSign",
+      );
+      if (success) {
+        onStatusChange?.(nextStatus);
+      }
+    } catch (e) {
+      console.error("Erreur lors du passage en Score A après envoi DocuSign:", e);
+    }
+    // Open the validation modal — confirming it creates the contract.
+    setEmailModalReason("Validation de l'offre — contrat envoyé pour signature DocuSign");
+    setShowEmailModal(true);
+  };
+
+  const workflowName = workflowTemplateId && templateSteps.length > 0
     ? templateSteps[0]?.template_name || "Workflow personnalisé"
     : "Standard";
 
@@ -641,6 +674,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
           leaserId={offer?.leaser_id}
           onRefresh={onRefresh}
           onSubmitted={advanceAfterGrenkeSubmit}
+          onEsignatureSent={handleEsignatureSent}
         />
       </div>
 
