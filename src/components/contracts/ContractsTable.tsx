@@ -150,7 +150,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   
   // État de tri
   const [sortColumn, setSortColumn] = useState<SortColumn>('date');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  // Default view: by delivery date, oldest → newest, with not-yet-delivered
+  // contracts (e.g. awaiting signature) bubbling to the top.
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -167,10 +169,18 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
       let comparison = 0;
       
       switch (sortColumn) {
-        case 'date':
-          comparison = new Date(a.contract_start_date || a.created_at).getTime() - 
-                       new Date(b.contract_start_date || b.created_at).getTime();
+        case 'date': {
+          // Tri par date de livraison. Les contrats sans date de livraison
+          // (ex: en attente de signature) remontent en premier.
+          const aD = a.delivery_date ? new Date(a.delivery_date).getTime() : null;
+          const bD = b.delivery_date ? new Date(b.delivery_date).getTime() : null;
+          if (aD === null || bD === null) {
+            comparison = aD === bD ? 0 : aD === null ? -1 : 1;
+          } else {
+            comparison = aD - bD;
+          }
           break;
+        }
         case 'contract_number':
           comparison = (a.contract_number || '').localeCompare(b.contract_number || '', 'fr');
           break;
@@ -420,7 +430,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             <TableRow>
               <SortableTableHead
                 column="date"
-                label="Date"
+                label="Livraison"
                 currentSort={sortColumn}
                 direction={sortDirection}
                 onSort={handleSort}
@@ -507,7 +517,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 <TableCell className="px-2 py-1.5 font-medium whitespace-nowrap">
                   <div className="flex items-center">
                     <Calendar className="mr-1 h-3 w-3 text-muted-foreground" />
-                    {formatDate(contract.contract_start_date || contract.created_at)}
+                    {contract.delivery_date
+                      ? formatDate(contract.delivery_date)
+                      : <span className="text-muted-foreground">-</span>}
                   </div>
                 </TableCell>
                 <TableCell className="px-2 py-1.5 whitespace-nowrap">
