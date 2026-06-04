@@ -456,13 +456,15 @@ export const createContractFromOffer = async (
       await createContractEquipmentFromOffer(contractId, offerId);
     }
 
-    // Marquer l'offre comme convertie en contrat avec le statut "accepted"
+    // Marquer l'offre comme convertie en contrat. Le workflow_status passe à
+    // "financed" (demande financée) — c'est l'étape finale du workflow une fois
+    // le contrat créé. Le champ legacy "status" reste "accepted" (won flag).
     const { error: updateError } = await supabase
       .from('offers')
-      .update({ 
+      .update({
         converted_to_contract: true,
         status: 'accepted',
-        workflow_status: 'accepted'
+        workflow_status: 'financed'
       })
       .eq('id', offerId);
 
