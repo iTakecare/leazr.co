@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GrenkePayloadPreviewButton from "./GrenkePayloadPreviewButton";
 import GrenkeESignaturePanel from "./GrenkeESignaturePanel";
+import GrenkePartnerSignatureCard from "./GrenkePartnerSignatureCard";
 import GrenkeAttachDocuments from "./GrenkeAttachDocuments";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 
@@ -278,6 +279,11 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
           offerId={offerId}
           onSent={async () => { await load(); onRefresh?.(); await onEsignatureSent?.(); }}
         />
+      )}
+
+      {/* Partner (iTakecare) counter-signature step — client has signed, now it's our turn. */}
+      {grenkeState === "AwaitingPartnerSignature" && (
+        <GrenkePartnerSignatureCard onRefresh={handleRefresh} refreshing={refreshing} />
       )}
     </div>
   );
