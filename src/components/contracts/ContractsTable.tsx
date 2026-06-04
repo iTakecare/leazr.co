@@ -150,9 +150,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   
   // État de tri
   const [sortColumn, setSortColumn] = useState<SortColumn>('date');
-  // Default view: by delivery date, oldest → newest, with not-yet-delivered
-  // contracts (e.g. awaiting signature) bubbling to the top.
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  // Default view: by arrival (contract creation date), most recent first — so
+  // every iTakecare contract is listed chronologically with the newest on top.
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -169,18 +169,10 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
       let comparison = 0;
       
       switch (sortColumn) {
-        case 'date': {
-          // Tri par date de livraison. Les contrats sans date de livraison
-          // (ex: en attente de signature) remontent en premier.
-          const aD = a.delivery_date ? new Date(a.delivery_date).getTime() : null;
-          const bD = b.delivery_date ? new Date(b.delivery_date).getTime() : null;
-          if (aD === null || bD === null) {
-            comparison = aD === bD ? 0 : aD === null ? -1 : 1;
-          } else {
-            comparison = aD - bD;
-          }
+        case 'date':
+          // Ordre d'arrivée du contrat (created_at) — timestamp toujours présent.
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
-        }
         case 'contract_number':
           comparison = (a.contract_number || '').localeCompare(b.contract_number || '', 'fr');
           break;
@@ -430,7 +422,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             <TableRow>
               <SortableTableHead
                 column="date"
-                label="Livraison"
+                label="Date"
                 currentSort={sortColumn}
                 direction={sortDirection}
                 onSort={handleSort}
@@ -517,9 +509,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 <TableCell className="px-2 py-1.5 font-medium whitespace-nowrap">
                   <div className="flex items-center">
                     <Calendar className="mr-1 h-3 w-3 text-muted-foreground" />
-                    {contract.delivery_date
-                      ? formatDate(contract.delivery_date)
-                      : <span className="text-muted-foreground">-</span>}
+                    {formatDate(contract.created_at)}
                   </div>
                 </TableCell>
                 <TableCell className="px-2 py-1.5 whitespace-nowrap">

@@ -1658,6 +1658,9 @@ async function handlePollGrenkeStatuses(
     .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, workflow_status, grenke_request_id, leaser_request_number")
     .not("grenke_financing_id", "is", null)
     .not("grenke_state", "in", "(Contracted,Declined,Cancelled)")
+    // Offers already converted to a contract are finished — the contract poll
+    // owns them now. Don't re-poll a stale dossier and flip them to Cancelled.
+    .eq("converted_to_contract", false)
     .limit(200);
   if (error) {
     return jsonResponse({ success: false, error: "poll_lookup_failed", message: error.message }, 500);

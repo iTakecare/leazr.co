@@ -170,7 +170,14 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
   };
 
   const submitted = !!state?.grenke_financing_id;
-  const grenkeState = state?.grenke_state ?? null;
+  // Once an offer has been converted into a (financed) contract, a stale
+  // Cancelled/Declined Grenke state on an old dossier must not surface as
+  // "Annulé" — the deal is done. Show it as the active running contract.
+  const rawGrenkeState = state?.grenke_state ?? null;
+  const grenkeState =
+    state?.converted_to_contract && (rawGrenkeState === "Cancelled" || rawGrenkeState === "Declined")
+      ? "Contracted"
+      : rawGrenkeState;
   const meta = grenkeState ? (STATE_META[grenkeState] ?? { label: grenkeState, tone: "progress" as const }) : null;
   const fmtDate = (s?: string | null) =>
     s ? new Date(s).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
