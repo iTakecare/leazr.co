@@ -69,24 +69,49 @@ const ContractWorkflowPanel: React.FC<ContractWorkflowPanelProps> = ({ contract,
     }
   ];
 
-  const getCurrentStepIndex = () => {
-    // D'abord chercher l'index basé sur le statut réel du contrat
-    const statusIndex = workflowSteps.findIndex(step => step.id === contract.status);
-    
-    // Si le statut est trouvé et est un statut avancé (pas juste draft/pending), l'utiliser
-    if (statusIndex >= 0) {
-      return statusIndex;
+  // Map a Grenke dossier state to the minimum contract workflow step it implies,
+  // so the stepper advances automatically with the e-signature lifecycle:
+  //   - signature in progress (ReadyToSign … AwaitingPartnerSignature) → "Envoyé"
+  //   - both parties signed (AwaitingDeliveryConfirmation, Contracted, running) → "Signé"
+  // Operational steps (Commandé, Livré, Actif…) stay manual after that.
+  const GRENKE_SENT_STATES = new Set([
+    "ReadyToSign", "ContractPrinted", "ContractPrintedBeforeStatement", "StartingESignature",
+    "AwaitingCustomerSignature", "AwaitingPartnerSignature", "AwaitingSigningAppSignature",
+  ]);
+  const GRENKE_SIGNED_STATES = new Set([
+    "AwaitingDeliveryConfirmation", "Contracted", "RunningContract", "ApplicationSettled",
+    "Paid", "ProlongedContract",
+  ]);
+
+  const grenkeMinStepIndex = (): number => {
+    const gState = contract.grenke_state || contract.offer_grenke_state || null;
+    if (!gState) return -1;
+    if (GRENKE_SIGNED_STATES.has(gState)) {
+      return workflowSteps.findIndex(step => step.id === contractStatuses.CONTRACT_SIGNED);
     }
-    
-    // Fallback : vérifier signature_status pour les contrats sans status standard
+    if (GRENKE_SENT_STATES.has(gState)) {
+      return workflowSteps.findIndex(step => step.id === contractStatuses.CONTRACT_SENT);
+    }
+    return -1;
+  };
+
+  const getCurrentStepIndex = () => {
+    // Base : le statut réel du contrat (jamais reculer en deçà).
+    const statusIndex = workflowSteps.findIndex(step => step.id === contract.status);
+    let index = statusIndex >= 0 ? statusIndex : 0;
+
+    // signature_status legacy.
     const contractAny = contract as any;
     if (contractAny.signature_status === 'signed') {
       const signedIndex = workflowSteps.findIndex(step => step.id === contractStatuses.CONTRACT_SIGNED);
-      if (signedIndex >= 0) return signedIndex;
+      if (signedIndex > index) index = signedIndex;
     }
-    
-    // Par défaut retourner 0 (première étape)
-    return 0;
+
+    // Avancement automatique selon l'état de signature Grenke.
+    const grenkeIndex = grenkeMinStepIndex();
+    if (grenkeIndex > index) index = grenkeIndex;
+
+    return index;
   };
 
   const getStepStatus = (stepIndex: number) => {

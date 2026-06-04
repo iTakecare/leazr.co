@@ -203,6 +203,10 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       ...data,
       offer_dossier_number: data.offers?.dossier_number,
       offer_leaser_request_number: data.offers?.leaser_request_number,
+      // Fallback Grenke state from the linked offer — during the e-signature
+      // window the dossier state lives on the offer (the contract row only gets
+      // its own grenke_state once Grenke exposes it as an accepted contract).
+      offer_grenke_state: data.offers?.grenke_state ?? null,
       down_payment: downPayment,
       coefficient: coefficient,
       financed_amount: financedAmount,
