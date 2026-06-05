@@ -180,6 +180,23 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
       ? "Contracted"
       : rawGrenkeState;
   const meta = grenkeState ? (STATE_META[grenkeState] ?? { label: grenkeState, tone: "progress" as const }) : null;
+
+  // Re-introduction (forced re-submit → archives the current dossier, creates a
+  // fresh one). Offered when the dossier was refused/cancelled, when a Grenke
+  // error is recorded, or while it's still in an early pre-signature state
+  // (e.g. stuck in RequestToGrenke after a 502 processing error). Never once the
+  // offer has been converted into a Leazr contract.
+  const RESUBMITTABLE_EARLY_STATES = new Set([
+    "RequestToGrenke", "MissingInfo", "ApplicationReceived", "GuaranteeRequired",
+  ]);
+  const canResubmit =
+    submitted &&
+    !state?.converted_to_contract &&
+    (grenkeState === "Declined" ||
+      grenkeState === "Cancelled" ||
+      state?.grenke_last_error != null ||
+      (grenkeState != null && RESUBMITTABLE_EARLY_STATES.has(grenkeState)));
+
   const fmtDate = (s?: string | null) =>
     s ? new Date(s).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
@@ -217,9 +234,10 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
                 <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
                 Rafraîchir le statut
               </Button>
-              {(grenkeState === "Declined" || grenkeState === "Cancelled") && (
-                // Re-analysis after a refusal — creates a new dossier, archives
-                // the refused one into the history.
+              {canResubmit && (
+                // Re-introduction — creates a new dossier and archives the
+                // current one into the history. Used both after a refusal and to
+                // recover a dossier stuck on a Grenke processing error (502).
                 <GrenkePayloadPreviewButton
                   offerId={offerId}
                   leaserId={leaserId}
