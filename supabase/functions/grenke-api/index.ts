@@ -1246,9 +1246,17 @@ async function buildOfferPayloadCore(
       .filter((p) => p?.key && String(p.value ?? "").trim())
       .map((p) => `${p.key}: ${p.value}`);
     const specText = specPairs.join(" · ");
-    const details = [eq.title, specText, eq.order_notes]
+    const detailsRaw = [eq.title, specText, eq.order_notes]
       .filter((s) => s && String(s).trim())
       .join(" — ");
+    // Grenke hard-limits Details to 50 characters (HTTP 400 otherwise:
+    // "'Details' must be between 0 and 50 characters"). Truncate with an
+    // ellipsis so the product title + start of the specs still come through.
+    const GRENKE_DETAILS_MAX = 50;
+    const details =
+      detailsRaw.length > GRENKE_DETAILS_MAX
+        ? detailsRaw.slice(0, GRENKE_DETAILS_MAX - 1).trimEnd() + "…"
+        : detailsRaw;
     if (details) obj.Details = details;
 
     financingObjects.push(obj);
