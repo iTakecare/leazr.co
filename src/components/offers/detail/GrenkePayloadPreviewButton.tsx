@@ -117,7 +117,7 @@ export default function GrenkePayloadPreviewButton({
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<
     | null
-    | { success: boolean; grenke_financing_id?: string | null; grenke_state?: string; error?: string; message?: string; grenke_response?: unknown }
+    | { success: boolean; grenke_financing_id?: string | null; grenke_state?: string; error?: string; message?: string; grenke_response?: unknown; status?: number }
   >(null);
 
   // Don't render at all if the offer isn't targeting Grenke. Keeps the offer
@@ -234,6 +234,7 @@ export default function GrenkePayloadPreviewButton({
         message?: string;
         warnings?: Array<{ field: string; message: string }>;
         grenke_response?: unknown;
+        status?: number;
       };
       let body: SubmitBody | null = (data ?? null) as SubmitBody | null;
       if (error) {
@@ -281,6 +282,7 @@ export default function GrenkePayloadPreviewButton({
           error: r?.error,
           message: r?.message,
           grenke_response: r?.grenke_response,
+          status: r?.status,
         });
         toast.error(
           <div>
@@ -453,20 +455,41 @@ export default function GrenkePayloadPreviewButton({
                   </AlertDescription>
                 </Alert>
               )}
-              {submitResult && !submitResult.success && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Soumission échouée — {submitResult.error}</AlertTitle>
-                  <AlertDescription className="text-xs space-y-1">
-                    <p>{submitResult.message}</p>
-                    {submitResult.grenke_response != null && (
-                      <pre className="rounded border bg-background/60 p-2 overflow-x-auto max-h-40">
-                        {JSON.stringify(submitResult.grenke_response, null, 2)}
-                      </pre>
-                    )}
-                  </AlertDescription>
-                </Alert>
-              )}
+              {submitResult && !submitResult.success && (() => {
+                // A 5xx (typically 502) means the request never reached Grenke's
+                // business layer — the mTLS proxy/gateway was unreachable. This is
+                // an infrastructure outage, NOT a rejection of the dossier, so we
+                // tell the user to simply retry rather than chase the payload.
+                const isGateway = (submitResult.status ?? 0) >= 500;
+                const hasBody =
+                  submitResult.grenke_response != null &&
+                  !(typeof submitResult.grenke_response === "string" && submitResult.grenke_response.trim() === "");
+                return (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>
+                      Soumission échouée — {submitResult.error}
+                      {submitResult.status != null && ` (HTTP ${submitResult.status})`}
+                    </AlertTitle>
+                    <AlertDescription className="text-xs space-y-1">
+                      {isGateway ? (
+                        <p>
+                          La passerelle Grenke est momentanément injoignable (HTTP {submitResult.status}).
+                          Le dossier n'a pas été transmis. Réessayez dans quelques instants — si l'erreur
+                          persiste, le proxy mTLS est probablement à redémarrer.
+                        </p>
+                      ) : (
+                        <p>{submitResult.message ?? "Grenke a refusé la demande."}</p>
+                      )}
+                      {hasBody && (
+                        <pre className="rounded border bg-background/60 p-2 overflow-x-auto max-h-40">
+                          {JSON.stringify(submitResult.grenke_response, null, 2)}
+                        </pre>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                );
+              })()}
 
               {/* Human-friendly recap (no JSON, no technical fields) */}
               {result.payload != null && (() => {
