@@ -1618,9 +1618,14 @@ async function fetchAndPersistStatus(
 
   await adminSupabase.from("offers").update(update).eq("id", offer.id);
 
-  // Mirror the state onto the active history row for this dossier.
+  // Mirror the state onto the active history row for this dossier, and backfill
+  // its Grenke request number once Grenke has assigned it (the POST that created
+  // the dossier often returns an empty RequestId — the human number "180-…" is
+  // attributed a moment later, so we capture it on the next status fetch).
+  const subUpdate: Record<string, unknown> = { state, state_updated_at: now };
+  if (requestId) subUpdate.request_id = requestId;
   await adminSupabase.from("grenke_submissions")
-    .update({ state, state_updated_at: now })
+    .update(subUpdate)
     .eq("offer_id", offer.id)
     .eq("financing_id", financingId);
 
@@ -2207,7 +2212,13 @@ async function recordGrenkeSubmission(
     grenke_state_updated_at: now,
     grenke_last_error: null,
   };
+  // The user-facing leaser reference follows the ACTIVE dossier. On a
+  // re-submission the active dossier changes: adopt its request number, or — if
+  // Grenke hasn't assigned it yet (empty at POST time) — clear the stale number
+  // from the previous dossier so the status poller backfills the new one instead
+  // of leaving the old "180-…" showing in the header.
   if (active.request_id) update.leaser_request_number = active.request_id;
+  else if (active.financing_id !== prevActiveFid) update.leaser_request_number = null;
   // If the active dossier changed, the signature flow restarts from scratch.
   if (active.financing_id !== prevActiveFid) update.grenke_esign_started_at = null;
   // Workflow status reflects the active dossier's Grenke state.
