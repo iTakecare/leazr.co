@@ -880,6 +880,44 @@ type BuildResult =
       equipment_debug: EquipmentDebug[];
     };
 
+// Build Grenke's "Details" free-text label for a financing object. Grenke
+// hard-limits it to 50 characters (HTTP 400 otherwise). Rather than blindly
+// truncating, we compact: drop the spec key labels, abbreviate common CPU
+// names (Ultra 5 → U5, Core i7 → i7, Ryzen 5 → R5) and join values with "/".
+// e.g. title "ProBook 460 G11" + {CPU: Ultra 5, Mémoire: 16Go, Capacité: 512Go}
+//      → "ProBook 460 G11 - U5/16Go/512Go". Ellipsis truncation is a last resort.
+const GRENKE_DETAILS_MAX = 50;
+function abbreviateSpecValue(value: string): string {
+  return value
+    .replace(/\b(Intel|AMD|Processeur|Processor)\b/gi, "")
+    .replace(/\bCore\s+Ultra\s+(\d+)/gi, "U$1")
+    .replace(/\bUltra\s+(\d+)/gi, "U$1")
+    .replace(/\bCore\s+(i\d+)/gi, "$1")
+    .replace(/\bRyzen\s+(\d+)/gi, "R$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function buildGrenkeDetails(
+  title: string | null | undefined,
+  specPairs: Array<{ key?: string; value?: string }>,
+  orderNotes: string | null | undefined,
+): string {
+  const values = specPairs
+    .map((p) => abbreviateSpecValue(String(p?.value ?? "").trim()))
+    .filter(Boolean);
+  const specText = values.join("/");
+  let details = [String(title ?? "").trim(), specText].filter((s) => s).join(" - ");
+  // Append order notes only if they still fit within the 50-char budget.
+  const notes = String(orderNotes ?? "").trim();
+  if (notes && (details + " — " + notes).length <= GRENKE_DETAILS_MAX) {
+    details = details + " — " + notes;
+  }
+  if (details.length > GRENKE_DETAILS_MAX) {
+    details = details.slice(0, GRENKE_DETAILS_MAX - 1).trimEnd() + "…";
+  }
+  return details;
+}
+
 // Core builder — pure data in, structured result out. No Response. Reused by
 // handleBuildOfferPayload (dry-run preview) and handleSubmitOffer (real POST).
 async function buildOfferPayloadCore(
@@ -1242,21 +1280,8 @@ async function buildOfferPayloadCore(
     const specPairs = [
       ...((eq.attributes ?? []) as Array<{ key: string; value: string }>),
       ...((eq.specifications ?? []) as Array<{ key: string; value: string }>),
-    ]
-      .filter((p) => p?.key && String(p.value ?? "").trim())
-      .map((p) => `${p.key}: ${p.value}`);
-    const specText = specPairs.join(" · ");
-    const detailsRaw = [eq.title, specText, eq.order_notes]
-      .filter((s) => s && String(s).trim())
-      .join(" — ");
-    // Grenke hard-limits Details to 50 characters (HTTP 400 otherwise:
-    // "'Details' must be between 0 and 50 characters"). Truncate with an
-    // ellipsis so the product title + start of the specs still come through.
-    const GRENKE_DETAILS_MAX = 50;
-    const details =
-      detailsRaw.length > GRENKE_DETAILS_MAX
-        ? detailsRaw.slice(0, GRENKE_DETAILS_MAX - 1).trimEnd() + "…"
-        : detailsRaw;
+    ].filter((p) => p?.key && String(p.value ?? "").trim());
+    const details = buildGrenkeDetails(eq.title, specPairs, eq.order_notes);
     if (details) obj.Details = details;
 
     financingObjects.push(obj);
