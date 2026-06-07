@@ -204,7 +204,7 @@ function createTestResponse(success: boolean, message: string, results: any) {
   });
 }
 
-async function handleSendExistingInvoice(invoiceId: string) {
+async function handleSendExistingInvoice(invoiceId: string, callerCompanyId: string) {
   console.log("📤 Envoi facture existante vers Billit:", invoiceId);
   
   try {
@@ -232,6 +232,12 @@ async function handleSendExistingInvoice(invoiceId: string) {
 
     if (invoiceError || !invoice) {
       throw new Error(`Facture non trouvée: ${invoiceError?.message || 'ID invalide'}`);
+    }
+
+    // SECURITY (multi-tenant): the invoice is fetched by id with the service
+    // role, so verify it belongs to the caller's company before sending it.
+    if (invoice.company_id !== callerCompanyId) {
+      throw new Error("Accès refusé : cette facture n'appartient pas à votre entreprise");
     }
 
     // Vérifier l'intégration Billit
@@ -441,17 +447,50 @@ serve(async (req) => {
     const requestData: any = await req.json();
     console.log("🔄 Début requête Billit:", JSON.stringify(requestData, null, 2));
 
+    // SECURITY (multi-tenant): authenticate the caller and derive their company
+    // from their profile. The handler previously trusted `companyId` from the
+    // request body, letting an authenticated user generate/send invoices through
+    // ANOTHER tenant's Billit account. Every operation is now forced to the
+    // caller's own company.
+    const authUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const billitAuthHeader = req.headers.get("Authorization") || "";
+    const billitToken = billitAuthHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!billitToken) {
+      return new Response(JSON.stringify({ success: false, error: "Non authentifié" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const billitAuthClient = createClient(authUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${billitToken}` } },
+    });
+    const { data: { user: billitUser } } = await billitAuthClient.auth.getUser(billitToken);
+    if (!billitUser) {
+      return new Response(JSON.stringify({ success: false, error: "Non authentifié" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: billitProfile } = await billitAuthClient
+      .from("profiles").select("company_id").eq("id", billitUser.id).maybeSingle();
+    const callerCompanyId: string | undefined = billitProfile?.company_id;
+    if (!callerCompanyId) {
+      return new Response(JSON.stringify({ success: false, error: "Accès refusé" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Mode test de l'intégration
     if (requestData.testMode) {
-      return await handleBillitTest(requestData.companyId);
+      return await handleBillitTest(callerCompanyId);
     }
 
     // Action d'envoi d'une facture existante
     if (requestData.action === 'send' && requestData.invoiceId) {
-      return await handleSendExistingInvoice(requestData.invoiceId);
+      return await handleSendExistingInvoice(requestData.invoiceId, callerCompanyId);
     }
 
-    const { contractId, companyId } = requestData;
+    const { contractId } = requestData;
+    const companyId = callerCompanyId;
     console.log("📋 Génération facture Billit pour contrat:", contractId);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -562,6 +601,7 @@ serve(async (req) => {
         )
       `)
       .eq('id', contractId)
+      .eq('company_id', companyId)
       .single();
 
     console.log("📄 Données contrat:", { contract, error: contractError });

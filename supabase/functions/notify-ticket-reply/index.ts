@@ -27,8 +27,27 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Get ticket with client info
-    const { data: ticket, error: ticketError } = await supabaseAdmin
+    // SECURITY (multi-tenant): this endpoint is verify_jwt=false and is called
+    // by an authenticated support agent. Read the ticket through a client scoped
+    // to the CALLER's JWT so RLS guarantees the agent can only notify on tickets
+    // belonging to their own tenant — otherwise any caller could email another
+    // company's client just by guessing a ticketId.
+    const authHeader = req.headers.get('Authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: 'Non authentifié' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const callerClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+
+    // Get ticket with client info (RLS-scoped to the caller's tenant)
+    const { data: ticket, error: ticketError } = await callerClient
       .from('support_tickets')
       .select('subject, clients(name, email), companies(name)')
       .eq('id', ticketId)

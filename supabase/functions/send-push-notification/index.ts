@@ -262,12 +262,59 @@ serve(async (req) => {
       );
     }
 
+    // SECURITY (multi-tenant): this endpoint is verify_jwt=false and targets
+    // push subscriptions by user_id/company_id taken from the body. Internal
+    // callers (other edge functions) authenticate with the real service-role
+    // key and may target freely. Any OTHER caller is an end user: we verify
+    // their JWT and force the company scope to THEIR own company, so a user from
+    // tenant A can never push notifications into tenant B.
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const isInternal = token === serviceRoleKey;
+
+    let scopedCompanyId: string | null = company_id ?? null;
+    if (!isInternal) {
+      const authClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+      const { data: { user } } = await authClient.auth.getUser(token);
+      if (!user) {
+        return new Response(
+          JSON.stringify({ error: "Non authentifié" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: me } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!me?.company_id) {
+        return new Response(
+          JSON.stringify({ error: "Accès refusé" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      scopedCompanyId = me.company_id;
+    }
+
     // Build subscription query
     let query = supabase.from("push_subscriptions").select("id, endpoint, subscription");
-    if (user_id) {
-      query = query.eq("user_id", user_id);
-    } else if (company_id) {
-      query = query.eq("company_id", company_id);
+    if (isInternal) {
+      if (user_id) {
+        query = query.eq("user_id", user_id);
+      } else if (company_id) {
+        query = query.eq("company_id", company_id);
+      }
+    } else {
+      // End users are always constrained to their own company.
+      query = query.eq("company_id", scopedCompanyId);
+      if (user_id) {
+        query = query.eq("user_id", user_id);
+      }
     }
 
     const { data: subs, error: fetchErr } = await query;

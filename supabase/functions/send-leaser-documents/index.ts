@@ -96,7 +96,11 @@ serve(async (req) => {
     const attachments: Array<{ filename: string; content: string }> = [];
 
     if (document_ids.length > 0) {
-      const { data: docs, error: docsErr } = await admin
+      // SECURITY (multi-tenant): read documents through the caller-scoped client
+      // so RLS guarantees they belong to the caller's tenant. The service-role
+      // `admin` client is used only for the storage download below (paths come
+      // from rows already validated here).
+      const { data: docs, error: docsErr } = await userClient
         .from("offer_documents")
         .select("id, file_name, file_path, document_type")
         .in("id", document_ids);
@@ -295,7 +299,9 @@ table.info td{padding:9px 14px;font-size:13px}
 
     // ── Persist sent_at in billing_data ──
     if (invoice_id) {
-      const { data: inv } = await admin
+      // SECURITY (multi-tenant): read+update the invoice through the
+      // caller-scoped client so RLS blocks cross-tenant writes.
+      const { data: inv } = await userClient
         .from("invoices")
         .select("billing_data")
         .eq("id", invoice_id)
@@ -303,7 +309,7 @@ table.info td{padding:9px 14px;font-size:13px}
 
       if (inv) {
         const existing = inv.billing_data ?? {};
-        await admin
+        await userClient
           .from("invoices")
           .update({
             billing_data: {

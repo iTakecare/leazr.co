@@ -189,7 +189,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
         ...data,
         imageUrl: uploadedImages[0] || "",
         image_url: uploadedImages[0] || "",
-        company_id: "c1ce66bb-3ad2-474d-b477-583baa7ff1c0", // Get from context in real app
+        // company_id is derived server-side from the authenticated user's tenant
+        // (see createProduct in catalogService) — never hardcode it here.
       };
 
       if (isEditMode && productToEdit) {

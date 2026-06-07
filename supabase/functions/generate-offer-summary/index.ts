@@ -49,8 +49,22 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // ── 1. Fetch offer details ─────────────────────────────────────────────
-    const { data: offer, error: offerError } = await supabase
+    // SECURITY (multi-tenant): validate the offer through a client scoped to the
+    // caller's JWT so RLS enforces tenant ownership. Without this, any
+    // authenticated user could pass another company's offer_id and receive an
+    // AI summary of that company's client/KYC/financials (data exfiltration).
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Non authentifié" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // ── 1. Fetch offer details (RLS-scoped to the caller's tenant) ──────────
+    const { data: offer, error: offerError } = await callerClient
       .from("offers")
       .select(
         "dossier_number, client_name, client_id, workflow_status, monthly_payment, amount, duration, internal_score, leaser_score, created_at, type, is_purchase, rejection_category, previous_offer_id"
