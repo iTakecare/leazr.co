@@ -28,10 +28,14 @@ export interface Plan {
   popular?: boolean;
 }
 
+// Grille tarifaire dérivée de la source de vérité unique (src/config/saasPlans.ts).
+// L'export `PLANS` est conservé pour compatibilité avec les imports existants.
+import { SAAS_PLANS } from "@/config/saasPlans";
+
 export const PLANS = {
-  starter: { name: "Starter", price: 29, description: "Pour débuter", features: ["5 utilisateurs", "Support basique"], popular: false },
-  pro: { name: "Pro", price: 79, description: "Pour grandir", features: ["25 utilisateurs", "Support prioritaire"], popular: true },
-  business: { name: "Business", price: 149, description: "Pour l'entreprise", features: ["Utilisateurs illimités", "Support dédié"], popular: false }
+  starter: { name: SAAS_PLANS.starter.name, price: SAAS_PLANS.starter.price, description: SAAS_PLANS.starter.description, features: SAAS_PLANS.starter.features, popular: SAAS_PLANS.starter.popular },
+  pro: { name: SAAS_PLANS.pro.name, price: SAAS_PLANS.pro.price, description: SAAS_PLANS.pro.description, features: SAAS_PLANS.pro.features, popular: SAAS_PLANS.pro.popular },
+  business: { name: SAAS_PLANS.business.name, price: SAAS_PLANS.business.price, description: SAAS_PLANS.business.description, features: SAAS_PLANS.business.features, popular: SAAS_PLANS.business.popular },
 };
 
 export const getCompanyByOfferId = async (offerId: string): Promise<CompanyInfo | null> => {

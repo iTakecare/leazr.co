@@ -29,13 +29,15 @@ import { motion } from "framer-motion";
 import { useCompanyDetails } from "@/hooks/useCompanyDetails";
 import { updateCompanyPlan } from "@/services/companyModulesService";
 import CompanyModulesManager from "@/components/saas/CompanyModulesManager";
+import { SAAS_PLANS_LIST } from "@/config/saasPlans";
 
-const available_plans = [
-  { id: 'starter', name: 'Starter', price: 49, features: ['5 utilisateurs', 'CRM de base'] },
-  { id: 'pro', name: 'Pro', price: 149, features: ['20 utilisateurs', 'CRM avancé', 'Analytics'] },
-  { id: 'business', name: 'Business', price: 299, features: ['50 utilisateurs', 'Toutes fonctionnalités'] },
-  { id: 'enterprise', name: 'Enterprise', price: 599, features: ['Utilisateurs illimités', 'Support dédié'] }
-];
+// Grille tarifaire unique (cf. src/config/saasPlans.ts)
+const available_plans = SAAS_PLANS_LIST.map((p) => ({
+  id: p.id,
+  name: p.name,
+  price: p.price,
+  features: p.features,
+}));
 
 
 const CompanySubscriptionPage = () => {

@@ -92,6 +92,7 @@ import LeazrSaasClients from "@/pages/LeazrSaasClients";
 import LeazrSaaSUsers from "@/pages/LeazrSaaSUsers";
 import CompanyDetailsPage from "@/pages/CompanyDetailsPage";
 import CompanySubscriptionPage from "@/pages/CompanySubscriptionPage";
+import SubscriptionSettings from "@/pages/SubscriptionSettings";
 import CompanyActionsPage from "@/pages/CompanyActionsPage";
 import LeazrSaaSAnalytics from "@/pages/LeazrSaaSAnalytics";
 import LeazrSaaSBilling from "@/pages/LeazrSaaSBilling";
@@ -316,6 +317,7 @@ const AppRoutes = () => {
       <Route path="panier" element={<Layout><CartPage /></Layout>} />
       
       {/* Settings sub-routes */}
+      <Route path="settings/subscription" element={<Layout><SubscriptionSettings /></Layout>} />
       <Route path="settings/company-values" element={<Layout><CompanyValuesSettings /></Layout>} />
       <Route path="settings/company-metrics" element={<Layout><CompanyMetricsSettings /></Layout>} />
       <Route path="settings/partner-logos" element={<Layout><PartnerLogosSettings /></Layout>} />

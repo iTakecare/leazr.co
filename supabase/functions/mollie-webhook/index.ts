@@ -68,6 +68,41 @@ serve(async (req) => {
     const contractId = metadata.contract_id;
     const companyId = metadata.company_id;
 
+    // ── SaaS subscription payments (facturation A : Leazr → entreprise) ──
+    // These carry kind=saas_subscription + company_id (no contract_id). A
+    // successful recurring payment keeps the tenant active and extends the
+    // paid-through date by one month.
+    if (metadata.kind === "saas_subscription" && companyId) {
+      await supabase.from("mollie_payment_events").insert({
+        payment_id: paymentId,
+        company_id: companyId,
+        status: payment.status,
+        amount: parseFloat(payment.amount?.value || "0"),
+        currency: payment.amount?.currency || "EUR",
+        metadata: payment,
+        created_at: new Date().toISOString(),
+      });
+
+      if (payment.status === "paid") {
+        const paidThrough = new Date();
+        paidThrough.setMonth(paidThrough.getMonth() + 1);
+        await supabase
+          .from("companies")
+          .update({
+            account_status: "active",
+            subscription_ends_at: paidThrough.toISOString(),
+            ...(metadata.plan ? { plan: String(metadata.plan).toLowerCase() } : {}),
+          })
+          .eq("id", companyId);
+        console.log(`[Mollie Webhook] SaaS subscription paid for company ${companyId}`);
+      } else {
+        // failed / expired / canceled : on log seulement (pas de coupure dure
+        // sur un échec ponctuel ; la relance Mollie + le suivi admin gèrent).
+        console.log(`[Mollie Webhook] SaaS subscription ${payment.status} for company ${companyId}`);
+      }
+      return new Response("OK", { status: 200 });
+    }
+
     if (!contractId) {
       console.log("[Mollie Webhook] No contract_id in metadata, skipping");
       return new Response("OK", { status: 200 });
