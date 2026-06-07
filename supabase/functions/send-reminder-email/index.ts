@@ -61,13 +61,22 @@ serve(async (req) => {
 
     console.log("Request data:", { offerId, reminderType, reminderLevel, hasPdf: !!pdfBase64, signerId });
 
+    // SECURITY (multi-tenant): fetch the offer through a client scoped to the
+    // caller's JWT so RLS guarantees they can only send reminders for offers in
+    // their own tenant. The service-role client above bypasses RLS, which would
+    // otherwise let any authenticated user read another company's client email
+    // and trigger an email to that client just by passing its offerId.
+    const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") as string, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
     // Get offer with client and company info
-    const { data: offer, error: offerError } = await supabase
+    const { data: offer, error: offerError } = await callerClient
       .from('offers')
       .select(`
-        id, 
-        client_name, 
-        client_email, 
+        id,
+        client_name,
+        client_email,
         client_id,
         amount,
         financed_amount,

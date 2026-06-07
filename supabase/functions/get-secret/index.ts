@@ -82,7 +82,7 @@ serve(async (req) => {
     }
 
     const { key } = await req.json();
-    
+
     if (!key) {
       return new Response(
         JSON.stringify({
@@ -91,15 +91,41 @@ serve(async (req) => {
         }),
         {
           status: 400,
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
-            ...corsHeaders 
+            ...corsHeaders
           },
         }
       );
     }
 
-    // Récupérer la valeur du secret (de façon sécurisée)
+    // SECURITY: never allow this endpoint to dump arbitrary environment
+    // variables (it previously returned `Deno.env.get(key)` for ANY key, which
+    // would expose SUPABASE_SERVICE_ROLE_KEY, provider API keys, the JWT secret,
+    // etc. to a compromised SaaS-admin session). Only an explicit allow-list of
+    // non-critical / publishable values may ever be returned.
+    const ALLOWED_SECRET_KEYS = new Set<string>([
+      "STRIPE_PUBLISHABLE_KEY",
+    ]);
+
+    if (!ALLOWED_SECRET_KEYS.has(key)) {
+      console.warn(`[get-secret] Denied request for non-whitelisted key "${key}" by user ${user.id}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Clé non autorisée",
+        }),
+        {
+          status: 403,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    console.log(`[get-secret] Allowed key "${key}" served to SaaS admin ${user.id}`);
     const value = Deno.env.get(key);
     
     // Pour des raisons de sécurité, ne pas retourner le message d'erreur précis
