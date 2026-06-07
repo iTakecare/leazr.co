@@ -15,77 +15,17 @@ import {
   Zap
 } from "lucide-react";
 import { useModules, useSaaSData } from "@/hooks/useSaaSData";
+import { SAAS_PLANS_LIST, type SaasPlan } from "@/config/saasPlans";
 
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  features: string[];
-  maxUsers: number;
-  maxModules: number;
-  popular: boolean;
-}
+type Plan = SaasPlan;
 
 const SaaSPlansManager = () => {
   const [activeTab, setActiveTab] = useState<'plans' | 'modules'>('plans');
   const { modules, loading: modulesLoading } = useModules();
   const { companies } = useSaaSData();
 
-  // Plans basés sur les vraies données Supabase
-  const plans: Plan[] = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: 49,
-      description: 'Parfait pour débuter avec Leazr',
-      features: [
-        'Modules principaux inclus',
-        '1 utilisateur',
-        'Support email',
-        '1 GB de stockage',
-        'Rapports de base'
-      ],
-      maxUsers: 1,
-      maxModules: 1,
-      popular: false
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: 149,
-      description: 'Pour les équipes qui grandissent',
-      features: [
-        'Jusqu\'à 3 modules',
-        '5 utilisateurs',
-        'Support prioritaire',
-        '10 GB de stockage',
-        'Intégrations avancées',
-        'Rapports détaillés'
-      ],
-      maxUsers: 5,
-      maxModules: 3,
-      popular: true
-    },
-    {
-      id: 'business',
-      name: 'Business',
-      price: 299,
-      description: 'Pour les grandes organisations',
-      features: [
-        'Tous les modules',
-        '10 utilisateurs',
-        'Support dédié',
-        '50 GB de stockage',
-        'Personnalisation avancée',
-        'White-label',
-        'API complète'
-      ],
-      maxUsers: 10,
-      maxModules: -1,
-      popular: false
-    }
-  ];
+  // Grille tarifaire unique (cf. src/config/saasPlans.ts)
+  const plans: Plan[] = SAAS_PLANS_LIST;
 
   // Calculer les statistiques d'utilisation des plans
   const planStats = plans.map(plan => {

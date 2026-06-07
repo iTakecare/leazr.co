@@ -285,3 +285,7 @@ verify_jwt = true
 [functions.grenke-automation]
 # Cron-driven (X-Cron-Secret); does its own auth.
 verify_jwt = false
+
+[functions.mollie-saas-subscribe]
+# Authenticated SaaS subscription (admin). Does its own auth + company scoping.
+verify_jwt = true
