@@ -1,4 +1,4 @@
-
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,30 +16,30 @@ import { PrivateRoute } from "@/components/PrivateRoute";
 import ErrorBoundaryWrapper from "@/components/layout/ErrorBoundaryWrapper";
 
 // Auth pages
-import Login from "@/pages/Login";
+const Login = lazy(() => import("@/pages/Login"));
 import { getTenantSlug } from "@/utils/tenantDetection";
-import ForgotPassword from "@/pages/ForgotPassword";
-import Signup from "@/pages/Signup";
-import UpdatePassword from "@/pages/UpdatePassword";
-import AuthCallback from "@/pages/AuthCallback";
-import ResetPassword from "@/pages/auth/ResetPassword";
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const Signup = lazy(() => import("@/pages/Signup"));
+const UpdatePassword = lazy(() => import("@/pages/UpdatePassword"));
+const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
+const ResetPassword = lazy(() => import("@/pages/auth/ResetPassword"));
 
 // Public pages
-import HomePage from "@/pages/HomePage";
+const HomePage = lazy(() => import("@/pages/HomePage"));
 import PublicCatalogList from "@/components/public/PublicCatalogList";
-import DebugSlugs from "@/pages/DebugSlugs";
+const DebugSlugs = lazy(() => import("@/pages/DebugSlugs"));
 
 // Public information pages
-import SolutionsPage from "@/pages/SolutionsPage";
-import ServicesPage from "@/pages/ServicesPage";
-import ResourcesPage from "@/pages/ResourcesPage";
-import AboutPage from "@/pages/AboutPage";
-import ContactPage from "@/pages/ContactPage";
-import EnterprisesSolutionsPage from "@/pages/EnterprisesSolutionsPage";
-import ProfessionalsSolutionsPage from "@/pages/ProfessionalsSolutionsPage";
-import CRMFeaturePage from "@/pages/CRMFeaturePage";
-import CalculatorPage from "@/pages/CalculatorPage";
-import PricingPage from "@/pages/PricingPage";
+const SolutionsPage = lazy(() => import("@/pages/SolutionsPage"));
+const ServicesPage = lazy(() => import("@/pages/ServicesPage"));
+const ResourcesPage = lazy(() => import("@/pages/ResourcesPage"));
+const AboutPage = lazy(() => import("@/pages/AboutPage"));
+const ContactPage = lazy(() => import("@/pages/ContactPage"));
+const EnterprisesSolutionsPage = lazy(() => import("@/pages/EnterprisesSolutionsPage"));
+const ProfessionalsSolutionsPage = lazy(() => import("@/pages/ProfessionalsSolutionsPage"));
+const CRMFeaturePage = lazy(() => import("@/pages/CRMFeaturePage"));
+const CalculatorPage = lazy(() => import("@/pages/CalculatorPage"));
+const PricingPage = lazy(() => import("@/pages/PricingPage"));
 
 // Public slug-based pages
 import PublicSlugCatalog from "@/components/public/PublicSlugCatalog";
@@ -47,7 +47,7 @@ import PublicSlugProductDetails from "@/components/public/PublicSlugProductDetai
 import PublicSlugProductBySlug from "@/components/public/PublicSlugProductBySlug";
 import PublicSlugCart from "@/components/public/PublicSlugCart";
 import PublicSlugRequestSteps from "@/components/public/PublicSlugRequestSteps";
-import PackDetailPage from "@/pages/PackDetailPage";
+const PackDetailPage = lazy(() => import("@/pages/PackDetailPage"));
 
 // Routing guards
 import CompanySlugGuard from "@/components/routing/CompanySlugGuard";
@@ -56,49 +56,49 @@ import CompanySlugGuard from "@/components/routing/CompanySlugGuard";
 import { useUtmCapture } from "@/hooks/useUtmCapture";
 
 // Admin pages
-import Dashboard from "@/pages/Dashboard";
-import AdminChatPage from "@/pages/AdminChatPage";
-import Clients from "@/pages/Clients";
-import KycQueue from "@/pages/KycQueue";
-import ClientDetail from "@/pages/ClientDetail";
-import ClientEditPage from "@/pages/ClientEditPage";
-import Offers from "@/pages/Offers";
-import AdminOfferDetail from "@/pages/AdminOfferDetail";
-import Contracts from "@/pages/Contracts";
-import Settings from "@/pages/Settings";
-import CatalogManagement from "@/pages/CatalogManagement";
-import CatalogImportPage from "@/pages/AdminPages/CatalogImportPage";
-import InvoicingPage from "@/pages/InvoicingPage";
-import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
-import InvoiceEditPage from "@/pages/InvoiceEditPage";
-import CompanyDocuments from "@/pages/CompanyDocuments";
-import ClientDocumentsPage from "@/pages/ClientDocumentsPage";
-import SourcingOptimizerPage from "@/pages/SourcingOptimizerPage";
-import ClientDuplicates from "@/pages/admin/ClientDuplicates";
-import ImportHistoricalData from "@/pages/admin/ImportHistoricalData";
-import EquipmentOrders from "@/pages/admin/EquipmentOrders";
-import StockManagement from "@/pages/admin/StockManagement";
-import Tasks from "@/pages/admin/Tasks";
-import SupportPage from "@/pages/admin/SupportPage";
-import CRMPage from "@/pages/CRMPage";
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const AdminChatPage = lazy(() => import("@/pages/AdminChatPage"));
+const Clients = lazy(() => import("@/pages/Clients"));
+const KycQueue = lazy(() => import("@/pages/KycQueue"));
+const ClientDetail = lazy(() => import("@/pages/ClientDetail"));
+const ClientEditPage = lazy(() => import("@/pages/ClientEditPage"));
+const Offers = lazy(() => import("@/pages/Offers"));
+const AdminOfferDetail = lazy(() => import("@/pages/AdminOfferDetail"));
+const Contracts = lazy(() => import("@/pages/Contracts"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const CatalogManagement = lazy(() => import("@/pages/CatalogManagement"));
+const CatalogImportPage = lazy(() => import("@/pages/AdminPages/CatalogImportPage"));
+const InvoicingPage = lazy(() => import("@/pages/InvoicingPage"));
+const InvoiceDetailPage = lazy(() => import("@/pages/InvoiceDetailPage"));
+const InvoiceEditPage = lazy(() => import("@/pages/InvoiceEditPage"));
+const CompanyDocuments = lazy(() => import("@/pages/CompanyDocuments"));
+const ClientDocumentsPage = lazy(() => import("@/pages/ClientDocumentsPage"));
+const SourcingOptimizerPage = lazy(() => import("@/pages/SourcingOptimizerPage"));
+const ClientDuplicates = lazy(() => import("@/pages/admin/ClientDuplicates"));
+const ImportHistoricalData = lazy(() => import("@/pages/admin/ImportHistoricalData"));
+const EquipmentOrders = lazy(() => import("@/pages/admin/EquipmentOrders"));
+const StockManagement = lazy(() => import("@/pages/admin/StockManagement"));
+const Tasks = lazy(() => import("@/pages/admin/Tasks"));
+const SupportPage = lazy(() => import("@/pages/admin/SupportPage"));
+const CRMPage = lazy(() => import("@/pages/CRMPage"));
 
 // Admin settings pages
-import CompanyValuesSettings from "@/pages/admin/settings/CompanyValuesSettings";
-import CompanyMetricsSettings from "@/pages/admin/settings/CompanyMetricsSettings";
-import PartnerLogosSettings from "@/pages/admin/settings/PartnerLogosSettings";
+const CompanyValuesSettings = lazy(() => import("@/pages/admin/settings/CompanyValuesSettings"));
+const CompanyMetricsSettings = lazy(() => import("@/pages/admin/settings/CompanyMetricsSettings"));
+const PartnerLogosSettings = lazy(() => import("@/pages/admin/settings/PartnerLogosSettings"));
 
-import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
-import LeazrSaasClients from "@/pages/LeazrSaasClients";
-import LeazrSaaSUsers from "@/pages/LeazrSaaSUsers";
-import CompanyDetailsPage from "@/pages/CompanyDetailsPage";
-import CompanySubscriptionPage from "@/pages/CompanySubscriptionPage";
-import CompanyActionsPage from "@/pages/CompanyActionsPage";
-import LeazrSaaSAnalytics from "@/pages/LeazrSaaSAnalytics";
-import LeazrSaaSBilling from "@/pages/LeazrSaaSBilling";
-import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
-import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
-import LeazrSaaSPlans from "@/pages/LeazrSaaSPlans";
-import LeazrSaaSSubscriptions from "@/pages/LeazrSaaSSubscriptions";
+const LeazrSaaSDashboard = lazy(() => import("@/pages/LeazrSaaSDashboard"));
+const LeazrSaasClients = lazy(() => import("@/pages/LeazrSaasClients"));
+const LeazrSaaSUsers = lazy(() => import("@/pages/LeazrSaaSUsers"));
+const CompanyDetailsPage = lazy(() => import("@/pages/CompanyDetailsPage"));
+const CompanySubscriptionPage = lazy(() => import("@/pages/CompanySubscriptionPage"));
+const CompanyActionsPage = lazy(() => import("@/pages/CompanyActionsPage"));
+const LeazrSaaSAnalytics = lazy(() => import("@/pages/LeazrSaaSAnalytics"));
+const LeazrSaaSBilling = lazy(() => import("@/pages/LeazrSaaSBilling"));
+const LeazrSaaSSettings = lazy(() => import("@/pages/LeazrSaaSSettings"));
+const LeazrSaaSSupport = lazy(() => import("@/pages/LeazrSaaSSupport"));
+const LeazrSaaSPlans = lazy(() => import("@/pages/LeazrSaaSPlans"));
+const LeazrSaaSSubscriptions = lazy(() => import("@/pages/LeazrSaaSSubscriptions"));
 
 // Route guards
 import AdminPrivateRoute from "@/components/routing/AdminPrivateRoute";
@@ -107,49 +107,49 @@ import BrokerPrivateRoute from "@/components/routing/BrokerPrivateRoute";
 
 // Broker components
 import BrokerLayout from "@/components/layout/BrokerLayout";
-import BrokerDashboard from "@/pages/broker/BrokerDashboard";
-import BrokerClients from "@/pages/broker/BrokerClients";
-import BrokerOffers from "@/pages/broker/BrokerOffers";
-import BrokerContracts from "@/pages/broker/BrokerContracts";
-import BrokerAnalytics from "@/pages/broker/BrokerAnalytics";
-import BrokerCreateOffer from "@/pages/broker/BrokerCreateOffer";
-import BrokerSettings from "@/pages/broker/BrokerSettings";
+const BrokerDashboard = lazy(() => import("@/pages/broker/BrokerDashboard"));
+const BrokerClients = lazy(() => import("@/pages/broker/BrokerClients"));
+const BrokerOffers = lazy(() => import("@/pages/broker/BrokerOffers"));
+const BrokerContracts = lazy(() => import("@/pages/broker/BrokerContracts"));
+const BrokerAnalytics = lazy(() => import("@/pages/broker/BrokerAnalytics"));
+const BrokerCreateOffer = lazy(() => import("@/pages/broker/BrokerCreateOffer"));
+const BrokerSettings = lazy(() => import("@/pages/broker/BrokerSettings"));
 
 
 // Ambassador management pages
-import AmbassadorsList from "@/pages/AmbassadorsList";
-import AmbassadorDetail from "@/pages/AmbassadorDetail";
-import AmbassadorEditPage from "@/pages/AmbassadorEditPage";
-import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
+const AmbassadorsList = lazy(() => import("@/pages/AmbassadorsList"));
+const AmbassadorDetail = lazy(() => import("@/pages/AmbassadorDetail"));
+const AmbassadorEditPage = lazy(() => import("@/pages/AmbassadorEditPage"));
+const AmbassadorCreatePage = lazy(() => import("@/pages/AmbassadorCreatePage"));
 
 // Ambassador components
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
 import AmbassadorPrivateRoute from "@/components/routing/AmbassadorPrivateRoute";
-import AmbassadorDashboardPage from "@/pages/AmbassadorPages/AmbassadorDashboardPage";
-import AmbassadorCatalogPage from "@/pages/AmbassadorPages/AmbassadorCatalogPage";
-import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
-import CustomOfferGeneratorPage from "@/pages/CustomOfferGeneratorPage";
-import AmbassadorClientsPage from "@/pages/AmbassadorPages/AmbassadorClientsPage";
-import AmbassadorOffersPage from "@/pages/AmbassadorPages/AmbassadorOffersPage";
-import AmbassadorClientCreatePage from "@/pages/AmbassadorPages/AmbassadorClientCreatePage";
-import AmbassadorOfferDetail from "@/pages/AmbassadorPages/AmbassadorOfferDetail";
-import AmbassadorProductDetailPage from "@/pages/AmbassadorPages/AmbassadorProductDetailPage";
-import CreateOffer from "@/pages/CreateOffer";
+const AmbassadorDashboardPage = lazy(() => import("@/pages/AmbassadorPages/AmbassadorDashboardPage"));
+const AmbassadorCatalogPage = lazy(() => import("@/pages/AmbassadorPages/AmbassadorCatalogPage"));
+const AmbassadorCreateOffer = lazy(() => import("@/pages/AmbassadorCreateOffer"));
+const CustomOfferGeneratorPage = lazy(() => import("@/pages/CustomOfferGeneratorPage"));
+const AmbassadorClientsPage = lazy(() => import("@/pages/AmbassadorPages/AmbassadorClientsPage"));
+const AmbassadorOffersPage = lazy(() => import("@/pages/AmbassadorPages/AmbassadorOffersPage"));
+const AmbassadorClientCreatePage = lazy(() => import("@/pages/AmbassadorPages/AmbassadorClientCreatePage"));
+const AmbassadorOfferDetail = lazy(() => import("@/pages/AmbassadorPages/AmbassadorOfferDetail"));
+const AmbassadorProductDetailPage = lazy(() => import("@/pages/AmbassadorPages/AmbassadorProductDetailPage"));
+const CreateOffer = lazy(() => import("@/pages/CreateOffer"));
 import AdminCreateOfferSwitch from "@/components/routing/AdminCreateOfferSwitch";
-import OfferPrintView from "@/pages/offers/OfferPrintView";
+const OfferPrintView = lazy(() => import("@/pages/offers/OfferPrintView"));
 
 // Client offer signing
-import SignOffer from "@/pages/client/SignOffer";
-import PublicContractSignature from "@/pages/client/PublicContractSignature";
-import PublicSignedContractDownload from "@/pages/client/PublicSignedContractDownload";
+const SignOffer = lazy(() => import("@/pages/client/SignOffer"));
+const PublicContractSignature = lazy(() => import("@/pages/client/PublicContractSignature"));
+const PublicSignedContractDownload = lazy(() => import("@/pages/client/PublicSignedContractDownload"));
 import PublicContractErrorBoundary from "@/components/contracts/PublicContractErrorBoundary";
-import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
+const OfferDocumentUpload = lazy(() => import("@/pages/OfferDocumentUpload"));
 import RedirectToUpload from "@/components/RedirectToUpload";
 
-import ProductFormPage from "@/pages/ProductFormPage";
-import ContractDetail from "@/pages/ContractDetail";
+const ProductFormPage = lazy(() => import("@/pages/ProductFormPage"));
+const ContractDetail = lazy(() => import("@/pages/ContractDetail"));
 import Layout from "@/components/layout/Layout";
-import CartPage from "@/pages/CartPage";
+const CartPage = lazy(() => import("@/pages/CartPage"));
 import ClientRoutes from "@/components/layout/ClientRoutes";
 import RedirectLegacyToSlug from "@/components/routing/RedirectLegacyToSlug";
 
@@ -167,6 +167,13 @@ const queryClient = new QueryClient({
   },
 });
 
+
+const RouteFallback = () => (
+  <div className="flex h-screen w-full items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+  </div>
+);
+
 // Main App Routes component
 const AppRoutes = () => {
   // Capture UTM / fbclid params on landing for Meta Ads attribution (AdiOS).
@@ -174,7 +181,8 @@ const AppRoutes = () => {
   useUtmCapture();
 
   return (
-  <Routes>
+  <Suspense fallback={<RouteFallback />}>
+    <Routes>
     {/* AUTHENTICATION ROUTES - HIGHEST PRIORITY */}
     <Route path="/login" element={<Login />} />
     <Route path="/signup" element={<Signup />} />
@@ -387,6 +395,7 @@ const AppRoutes = () => {
     {/* Catch-all company slug route - fallback for company pages */}
     <Route path="/:companySlug" element={<CompanySlugGuard />} />
   </Routes>
+  </Suspense>
   );
 };
 
