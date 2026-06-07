@@ -92,7 +92,20 @@ serve(async (req) => {
     // ── Body ──
     const { plan, iban, accountHolder, bic } = await req.json();
     const planId = String(plan || "").toLowerCase();
-    const priceCents = PLAN_PRICE_CENTS[planId];
+
+    // Prix depuis la table éditable saas_plans (source de vérité, modifiable
+    // par le super_admin). Repli sur la constante si la ligne est absente.
+    let priceCents: number | undefined;
+    const { data: planRow } = await admin
+      .from("saas_plans")
+      .select("price_cents, is_active")
+      .eq("plan_id", planId)
+      .maybeSingle();
+    if (planRow && planRow.is_active !== false) {
+      priceCents = planRow.price_cents as number;
+    } else {
+      priceCents = PLAN_PRICE_CENTS[planId];
+    }
     if (!priceCents) return json(400, { error: "Plan invalide" });
     if (!iban || !accountHolder) {
       return json(400, { error: "iban et accountHolder sont requis" });

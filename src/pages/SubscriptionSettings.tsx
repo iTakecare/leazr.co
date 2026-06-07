@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Check, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
-import { SAAS_PLANS_LIST, type SaasPlanId } from "@/config/saasPlans";
+import { type SaasPlanId } from "@/config/saasPlans";
+import { useSaasPlans } from "@/hooks/useSaasPlans";
 import { subscribeToPlan } from "@/services/saasSubscriptionService";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 
@@ -17,6 +18,7 @@ import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
  */
 const SubscriptionSettings: React.FC = () => {
   const { status, plan: currentPlan } = useSubscriptionStatus();
+  const { plans } = useSaasPlans();
   const [selected, setSelected] = useState<SaasPlanId>("pro");
   const [accountHolder, setAccountHolder] = useState("");
   const [iban, setIban] = useState("");
@@ -65,7 +67,7 @@ const SubscriptionSettings: React.FC = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          {SAAS_PLANS_LIST.map((p) => {
+          {plans.map((p) => {
             const isSelected = selected === p.id;
             return (
               <Card
@@ -107,7 +109,7 @@ const SubscriptionSettings: React.FC = () => {
           <CardHeader>
             <CardTitle>Mandat de prélèvement SEPA</CardTitle>
             <CardDescription>
-              Le montant du plan {SAAS_PLANS_LIST.find((p) => p.id === selected)?.name} sera prélevé
+              Le montant du plan {plans.find((p) => p.id === selected)?.name} sera prélevé
               chaque mois via Mollie.
             </CardDescription>
           </CardHeader>
@@ -138,7 +140,7 @@ const SubscriptionSettings: React.FC = () => {
             </div>
             <Button onClick={handleSubscribe} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              S'abonner au plan {SAAS_PLANS_LIST.find((p) => p.id === selected)?.name}
+              S'abonner au plan {plans.find((p) => p.id === selected)?.name}
             </Button>
           </CardContent>
         </Card>

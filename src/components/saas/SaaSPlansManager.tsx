@@ -15,7 +15,9 @@ import {
   Zap
 } from "lucide-react";
 import { useModules, useSaaSData } from "@/hooks/useSaaSData";
-import { SAAS_PLANS_LIST, type SaasPlan } from "@/config/saasPlans";
+import { type SaasPlan } from "@/config/saasPlans";
+import { useSaasPlans } from "@/hooks/useSaasPlans";
+import SaasPlanEditDialog from "./SaasPlanEditDialog";
 
 type Plan = SaasPlan;
 
@@ -24,8 +26,9 @@ const SaaSPlansManager = () => {
   const { modules, loading: modulesLoading } = useModules();
   const { companies } = useSaaSData();
 
-  // Grille tarifaire unique (cf. src/config/saasPlans.ts)
-  const plans: Plan[] = SAAS_PLANS_LIST;
+  // Grille tarifaire éditable depuis la DB (cf. table saas_plans + useSaasPlans)
+  const { plans, reload: reloadPlans } = useSaasPlans({ includeInactive: true });
+  const [editingPlan, setEditingPlan] = useState<SaasPlan | null>(null);
 
   // Calculer les statistiques d'utilisation des plans
   const planStats = plans.map(plan => {
@@ -149,7 +152,7 @@ const SaaSPlansManager = () => {
                   </div>
 
                   <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingPlan(plan)}>
                       <Edit className="h-3 w-3 mr-1" />
                       Modifier
                     </Button>
@@ -268,6 +271,17 @@ const SaaSPlansManager = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {editingPlan && (
+        <SaasPlanEditDialog
+          plan={editingPlan}
+          onClose={() => setEditingPlan(null)}
+          onSaved={() => {
+            setEditingPlan(null);
+            reloadPlans();
+          }}
+        />
       )}
     </div>
   );
