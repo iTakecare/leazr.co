@@ -14,6 +14,13 @@ interface CommercialOfferProps {
   clientAddress?: string;
   companyLogo?: string | null;
   companyName?: string;
+  // Coordonnées de l'entreprise émettrice (white-label, par tenant)
+  companyAddress?: string;
+  companyCity?: string;
+  companyPostalCode?: string;
+  companyEmail?: string;
+  companyPhone?: string;
+  companyVatNumber?: string;
   validityDays?: number;
   
   // Équipements
@@ -218,7 +225,13 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   clientCompany,
   clientAddress,
   companyLogo,
-  companyName = 'iTakecare',
+  companyName = '',
+  companyAddress = '',
+  companyCity = '',
+  companyPostalCode = '',
+  companyEmail = '',
+  companyPhone = '',
+  companyVatNumber = '',
   validityDays = 10,
   equipment = [],
   externalServices = [],
@@ -307,9 +320,13 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                 )}
               </div>
               <div className="company-info">
-                <p>Avenue Général Michel 1E, 6000 Charleroi</p>
-                <p>hello@itakecare.be | +32 71 49 16 85</p>
-                <p>TVA : BE0795.642.894</p>
+                {(companyAddress || companyPostalCode || companyCity) && (
+                  <p>{[companyAddress, [companyPostalCode, companyCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')}</p>
+                )}
+                {(companyEmail || companyPhone) && (
+                  <p>{[companyEmail, companyPhone].filter(Boolean).join(' | ')}</p>
+                )}
+                {companyVatNumber && <p>TVA : {companyVatNumber}</p>}
               </div>
             </div>
             
@@ -1557,7 +1574,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               </svg>
             </div>
             <h3 className="contact-title">Email</h3>
-            <a href="mailto:hello@itakecare.be" className="contact-link">hello@itakecare.be</a>
+            <a href={`mailto:${companyEmail}`} className="contact-link">{companyEmail}</a>
           </div>
 
           <div className="contact-card">
@@ -1567,7 +1584,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               </svg>
             </div>
             <h3 className="contact-title">Téléphone</h3>
-            <a href="tel:+3271491685" className="contact-link">+32 71 49 16 85</a>
+            <a href={`tel:${companyPhone.replace(/\s+/g, '')}`} className="contact-link">{companyPhone}</a>
           </div>
         </div>
 
@@ -1580,14 +1597,17 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
             </div>
-            <span className="signature-text">L'équipe iTakecare</span>
+            <span className="signature-text">L'équipe {companyName}</span>
           </div>
           <p className="signature-date">{new Date().toLocaleDateString('fr-FR')}</p>
         </div>
 
         {/* Footer */}
         <div className="page-footer">
-          <p>Avenue Général Michel 1E, 6000 Charleroi • TVA : BE0795.642.894</p>
+          <p>{[
+            [companyAddress, [companyPostalCode, companyCity].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+            companyVatNumber ? `TVA : ${companyVatNumber}` : '',
+          ].filter(Boolean).join(' • ')}</p>
         </div>
       </div>
     </div>
