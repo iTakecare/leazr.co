@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,21 +9,57 @@ import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import { type SaasPlanId } from "@/config/saasPlans";
 import { useSaasPlans } from "@/hooks/useSaasPlans";
-import { subscribeToPlan } from "@/services/saasSubscriptionService";
+import { useModulesCatalog } from "@/hooks/useModulesCatalog";
+import { computeMonthlyPrice } from "@/services/saasModulesService";
+import {
+  subscribeToPlan,
+  fetchCompanyModulesEnabled,
+} from "@/services/saasSubscriptionService";
+import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 
 /**
  * Page d'abonnement côté ENTREPRISE cliente : choix du plan + mandat SEPA (IBAN)
  * → souscription Mollie récurrente. Réactive le compte en fin d'essai.
+ * Affiche le détail tarifaire hybride : base du plan + add-ons modules.
  */
 const SubscriptionSettings: React.FC = () => {
   const { status, plan: currentPlan } = useSubscriptionStatus();
   const { plans } = useSaasPlans();
+  const { catalog, planModules } = useModulesCatalog();
+  const [enabledModules, setEnabledModules] = useState<string[]>([]);
   const [selected, setSelected] = useState<SaasPlanId>("pro");
   const [accountHolder, setAccountHolder] = useState("");
   const [iban, setIban] = useState("");
   const [bic, setBic] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const companyId = await getCurrentUserCompanyId();
+      if (!companyId || cancelled) return;
+      const mods = await fetchCompanyModulesEnabled(companyId);
+      if (!cancelled) setEnabledModules(mods);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedPlan = plans.find((p) => p.id === selected);
+
+  // Détail tarifaire hybride pour le plan sélectionné.
+  const pricing = useMemo(() => {
+    if (!selectedPlan) return { total: 0, addOns: [] as { slug: string; name: string; price: number }[] };
+    return computeMonthlyPrice({
+      planId: selected,
+      planBasePrice: selectedPlan.price,
+      includedSlugs: planModules[selected] ?? [],
+      enabledSlugs: enabledModules,
+      catalog,
+    });
+  }, [selectedPlan, selected, planModules, enabledModules, catalog]);
 
   const handleSubscribe = async () => {
     if (!accountHolder.trim() || !iban.trim()) {
@@ -138,9 +174,28 @@ const SubscriptionSettings: React.FC = () => {
                 placeholder="BE00 0000 0000 0000"
               />
             </div>
+
+            {/* Détail tarifaire hybride : base du plan + add-ons modules */}
+            <div className="rounded-md border p-3 text-sm space-y-1.5 bg-muted/40">
+              <div className="flex justify-between">
+                <span>Plan {selectedPlan?.name}</span>
+                <span>{selectedPlan?.price ?? 0} €</span>
+              </div>
+              {pricing.addOns.map((a) => (
+                <div key={a.slug} className="flex justify-between text-muted-foreground">
+                  <span>+ {a.name} (add-on)</span>
+                  <span>{a.price} €</span>
+                </div>
+              ))}
+              <div className="flex justify-between font-semibold border-t pt-1.5 mt-1.5">
+                <span>Total mensuel</span>
+                <span>{pricing.total} € / mois</span>
+              </div>
+            </div>
+
             <Button onClick={handleSubscribe} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              S'abonner au plan {plans.find((p) => p.id === selected)?.name}
+              S'abonner — {pricing.total} € / mois
             </Button>
           </CardContent>
         </Card>
