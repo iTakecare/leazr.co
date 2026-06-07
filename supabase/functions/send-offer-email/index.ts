@@ -74,6 +74,24 @@ serve(async (req) => {
       throw new Error('Missing required fields');
     }
 
+    // SECURITY (multi-tenant): ensure the authenticated caller actually owns
+    // this offer before sending mail on its behalf. We check visibility through
+    // an RLS-scoped client so a user from one tenant cannot send an offer email
+    // attributed to another tenant's offer.
+    const callerClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: ownedOffer } = await callerClient
+      .from('offers')
+      .select('id')
+      .eq('id', offerId)
+      .maybeSingle();
+    if (!ownedOffer) {
+      throw new Error('Forbidden - offer not in your tenant');
+    }
+
     if (!RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY is not configured');
     }

@@ -158,15 +158,23 @@ serve(async (req) => {
       if (mandateId) {
         console.log(`[Mollie Webhook] Mandate ${mandateId} created for contract ${contractId}`);
         
-        // Store mandate info on contract
-        await supabase
+        // Store mandate info on contract. Scope by company_id (when present in
+        // the Mollie-authenticated metadata) as a defense-in-depth guard so a
+        // contract can never be updated across tenant boundaries.
+        let contractUpdate = supabase
           .from("contracts")
-          .update({ 
+          .update({
             mollie_customer_id: payment.customerId,
             mollie_mandate_id: mandateId,
             mollie_mandate_status: "valid",
           })
           .eq("id", contractId);
+
+        if (companyId) {
+          contractUpdate = contractUpdate.eq("company_id", companyId);
+        }
+
+        await contractUpdate;
       }
     }
 

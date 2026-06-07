@@ -17,13 +17,66 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, clientId, companyId } = await req.json();
+    const { messages, clientId: reqClientId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // SECURITY (multi-tenant): this endpoint streams a client's full financial
+    // history (contracts, offers, invoices) into the AI context. It is
+    // verify_jwt=false, so we MUST authenticate the caller ourselves and prove
+    // they own the requested client. Never trust clientId/companyId from the
+    // body — derive the company from the verified client row instead.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Non authentifié" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: { user } } = await authClient.auth.getUser(token);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Non authentifié" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!reqClientId) {
+      return new Response(JSON.stringify({ error: "clientId requis" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: clientRow } = await supabase
+      .from("clients")
+      .select("id, company_id, user_id")
+      .eq("id", reqClientId)
+      .maybeSingle();
+
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const isOwner = clientRow?.user_id === user.id;
+    const isSameCompanyStaff = !!me?.company_id && clientRow?.company_id === me.company_id;
+    if (!clientRow || (!isOwner && !isSameCompanyStaff)) {
+      return new Response(JSON.stringify({ error: "Accès refusé" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Authoritative, tamper-proof identifiers derived from the verified client.
+    const clientId = clientRow.id;
+    const companyId = clientRow.company_id;
 
     // Fetch knowledge base articles
     let knowledgeContext = "";

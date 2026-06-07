@@ -63,12 +63,22 @@ const handler = async (req: Request): Promise<Response> => {
     // Use service role for DB operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get contract company info for sender name
-    const { data: contract } = await supabase
+    // SECURITY (multi-tenant): read the contract through the caller-scoped
+    // client (supabaseAuth) so RLS enforces tenant ownership, and reject if the
+    // caller cannot see it — otherwise any authenticated user could trigger a
+    // follow-up email tied to another tenant's contract by guessing its id.
+    const { data: contract } = await supabaseAuth
       .from('contracts')
       .select('company_id, contract_number')
       .eq('id', contractId)
       .single();
+
+    if (!contract) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Contrat introuvable ou accès refusé' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     let senderName = "iTakecare";
     if (contract?.company_id) {
