@@ -12,19 +12,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { SaasPlan } from "@/config/saasPlans";
 import { updateSaasPlan } from "@/services/saasPlansService";
+import { setPlanModules, moduleTierPrice, type SaasModule } from "@/services/saasModulesService";
 
 interface Props {
   plan: SaasPlan;
+  catalog: SaasModule[];
+  includedSlugs: string[];
   onClose: () => void;
   onSaved: () => void;
 }
 
 /** Édition d'un plan tarifaire SaaS (réservé au super_admin via RLS). */
-const SaasPlanEditDialog: React.FC<Props> = ({ plan, onClose, onSaved }) => {
+const SaasPlanEditDialog: React.FC<Props> = ({ plan, catalog, includedSlugs, onClose, onSaved }) => {
   const [name, setName] = useState(plan.name);
   const [price, setPrice] = useState(String(plan.price)); // euros, saisie admin
   const [description, setDescription] = useState(plan.description);
@@ -32,7 +36,12 @@ const SaasPlanEditDialog: React.FC<Props> = ({ plan, onClose, onSaved }) => {
   const [maxUsers, setMaxUsers] = useState(String(plan.maxUsers));
   const [maxModules, setMaxModules] = useState(String(plan.maxModules));
   const [popular, setPopular] = useState(plan.popular);
+  // Modules inclus dans ce plan (les "core" sont toujours inclus implicitement).
+  const [included, setIncluded] = useState<string[]>(includedSlugs);
   const [saving, setSaving] = useState(false);
+
+  const toggleIncluded = (slug: string) =>
+    setIncluded((prev) => (prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]));
 
   const handleSave = async () => {
     const priceEuros = Number(price.replace(",", "."));
@@ -52,12 +61,18 @@ const SaasPlanEditDialog: React.FC<Props> = ({ plan, onClose, onSaved }) => {
         popular,
         isActive: true,
       });
-      if (res.success) {
-        toast.success(`Plan ${name} mis à jour.`);
-        onSaved();
-      } else {
+      if (!res.success) {
         toast.error(res.error || "Échec de la mise à jour.");
+        return;
       }
+      // Persister le socle de modules inclus dans le plan.
+      const modRes = await setPlanModules(plan.id, included);
+      if (!modRes.success) {
+        toast.error(modRes.error || "Plan enregistré, mais modules inclus non sauvegardés.");
+        return;
+      }
+      toast.success(`Plan ${name} mis à jour.`);
+      onSaved();
     } finally {
       setSaving(false);
     }
@@ -105,6 +120,32 @@ const SaasPlanEditDialog: React.FC<Props> = ({ plan, onClose, onSaved }) => {
           <div className="space-y-1.5">
             <Label htmlFor="plan-features">Fonctionnalités (une par ligne)</Label>
             <Textarea id="plan-features" rows={4} value={features} onChange={(e) => setFeatures(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Modules inclus dans ce plan</Label>
+            <p className="text-xs text-muted-foreground">
+              Les modules « core » sont inclus partout. Les modules non cochés restent
+              disponibles en add-on payant (prix du tier indiqué).
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto rounded-md border p-2">
+              {catalog.map((m) => {
+                const addOn = moduleTierPrice(m, plan.id);
+                return (
+                  <label key={m.slug} className="flex items-center gap-2 text-sm py-0.5">
+                    <Checkbox
+                      checked={m.isCore || included.includes(m.slug)}
+                      disabled={m.isCore}
+                      onCheckedChange={() => toggleIncluded(m.slug)}
+                    />
+                    <span className={m.isCore ? "text-muted-foreground" : ""}>
+                      {m.name}
+                      {m.isCore ? " (core)" : addOn > 0 ? ` · add-on ${addOn} €` : ""}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

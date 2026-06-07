@@ -114,10 +114,40 @@ serve(async (req) => {
     // ── Company actuelle ──
     const { data: company } = await admin
       .from("companies")
-      .select("id, name, mollie_customer_id")
+      .select("id, name, mollie_customer_id, modules_enabled")
       .eq("id", companyId)
       .single();
     if (!company) return json(404, { error: "Entreprise introuvable" });
+
+    // ── Tarification HYBRIDE : base du plan + add-ons modules ──
+    // Add-on = module activé par le tenant, NI core NI inclus dans le plan,
+    // facturé au tarif du tier (modules.price_starter/pro/business).
+    const tierColumn =
+      planId === "pro" ? "price_pro" : planId === "business" ? "price_business" : "price_starter";
+
+    const enabled: string[] = Array.isArray(company.modules_enabled) ? company.modules_enabled : [];
+
+    const { data: included } = await admin
+      .from("plan_modules")
+      .select("module_slug")
+      .eq("plan_id", planId);
+    const includedSet = new Set((included ?? []).map((r: any) => r.module_slug));
+
+    let addOnCents = 0;
+    if (enabled.length > 0) {
+      const { data: mods } = await admin
+        .from("modules")
+        .select(`slug, is_core, ${tierColumn}`)
+        .in("slug", enabled);
+      for (const m of mods ?? []) {
+        if ((m as any).is_core) continue;
+        if (includedSet.has((m as any).slug)) continue;
+        const euros = Number((m as any)[tierColumn] ?? 0);
+        if (euros > 0) addOnCents += Math.round(euros * 100);
+      }
+    }
+
+    const totalCents = priceCents + addOnCents;
 
     const email = user.email ?? `billing+${companyId}@leazr.co`;
 
@@ -140,8 +170,8 @@ serve(async (req) => {
       ...(bic ? { consumerBic: bic } : {}),
     });
 
-    // 3) Subscription mensuelle au tarif du plan
-    const value = (priceCents / 100).toFixed(2);
+    // 3) Subscription mensuelle = base du plan + add-ons modules
+    const value = (totalCents / 100).toFixed(2);
     const webhookUrl = `${supabaseUrl}/functions/v1/mollie-webhook`;
     const subscription = await mollie(`/customers/${customerId}/subscriptions`, apiKey, "POST", {
       amount: { currency: "EUR", value },

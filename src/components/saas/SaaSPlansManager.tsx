@@ -17,7 +17,10 @@ import {
 import { useModules, useSaaSData } from "@/hooks/useSaaSData";
 import { type SaasPlan } from "@/config/saasPlans";
 import { useSaasPlans } from "@/hooks/useSaasPlans";
+import { useModulesCatalog } from "@/hooks/useModulesCatalog";
+import type { SaasModule } from "@/services/saasModulesService";
 import SaasPlanEditDialog from "./SaasPlanEditDialog";
+import ModuleEditDialog from "./ModuleEditDialog";
 
 type Plan = SaasPlan;
 
@@ -28,7 +31,10 @@ const SaaSPlansManager = () => {
 
   // Grille tarifaire éditable depuis la DB (cf. table saas_plans + useSaasPlans)
   const { plans, reload: reloadPlans } = useSaasPlans({ includeInactive: true });
+  // Catalogue des modules + socle inclus par plan (modèle hybride)
+  const { catalog, planModules, reload: reloadCatalog } = useModulesCatalog();
   const [editingPlan, setEditingPlan] = useState<SaasPlan | null>(null);
+  const [editingModule, setEditingModule] = useState<SaasModule | null>(null);
 
   // Calculer les statistiques d'utilisation des plans
   const planStats = plans.map(plan => {
@@ -247,7 +253,14 @@ const SaaSPlansManager = () => {
                           {module.is_core ? 'Dans tous les plans' : 'Module additionnel'}
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const m = catalog.find((c) => c.slug === module.slug);
+                          if (m) setEditingModule(m);
+                        }}
+                      >
                         <Edit className="h-3 w-3 mr-1" />
                         Modifier
                       </Button>
@@ -276,10 +289,24 @@ const SaaSPlansManager = () => {
       {editingPlan && (
         <SaasPlanEditDialog
           plan={editingPlan}
+          catalog={catalog}
+          includedSlugs={planModules[editingPlan.id] ?? []}
           onClose={() => setEditingPlan(null)}
           onSaved={() => {
             setEditingPlan(null);
             reloadPlans();
+            reloadCatalog();
+          }}
+        />
+      )}
+
+      {editingModule && (
+        <ModuleEditDialog
+          module={editingModule}
+          onClose={() => setEditingModule(null)}
+          onSaved={() => {
+            setEditingModule(null);
+            reloadCatalog();
           }}
         />
       )}
