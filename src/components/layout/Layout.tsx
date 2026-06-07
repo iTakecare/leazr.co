@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import Sidebar from "./Sidebar";
 import LeazrSaaSSidebar from "./LeazrSaaSSidebar";
 import MobileLayout from "@/components/mobile/MobileLayout";
+import SubscriptionBanner from "@/components/subscription/SubscriptionBanner";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -39,6 +40,8 @@ const Layout = ({ children }: LayoutProps) => {
       )}
       
       <main className="flex-1 overflow-y-auto">
+        {/* Bandeau de fin d'essai (blocage doux) — masqué pour l'admin SaaS plateforme */}
+        {!shouldUseLeazrSaaSSidebar && <SubscriptionBanner />}
         {children}
       </main>
     </div>

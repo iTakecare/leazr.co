@@ -34,17 +34,27 @@ const handler = async (req: Request): Promise<Response> => {
     // Initialiser le client Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Récupérer les données de l'offre
-    const { data: offer, error: offerError } = await supabase
+    // SECURITY (multi-tenant): fetch the offer through a client scoped to the
+    // CALLER's JWT so Row-Level Security applies. This guarantees the caller
+    // can only act on offers belonging to their own tenant — without it, the
+    // service-role client below would let any authenticated user trigger a
+    // "file closure" email on another company's offer/client.
+    const authHeader = req.headers.get('Authorization') || '';
+    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: offer, error: offerError } = await callerClient
       .from('offers')
       .select('*')
       .eq('id', offerId)
       .single();
 
     if (offerError || !offer) {
-      console.error('❌ Erreur lors de la récupération de l\'offre:', offerError);
+      console.error('❌ Offre introuvable ou accès refusé (tenant):', offerError);
       throw new Error('Offre introuvable');
     }
 

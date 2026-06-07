@@ -358,9 +358,19 @@ export const deleteCategory = async (categoryId: string) => {
 };
 
 export const createProduct = async (productData: any) => {
+  // Always derive the tenant from the authenticated user — never trust a
+  // company_id supplied by the caller. This prevents products from being
+  // mis-assigned (or maliciously assigned) to another tenant.
+  const companyId = await getCurrentUserCompanyId();
+  if (!companyId) {
+    throw new Error("Impossible de déterminer l'entreprise de l'utilisateur courant.");
+  }
+
+  const { company_id: _ignored, ...rest } = productData ?? {};
+
   const { data, error } = await supabase
     .from("products")
-    .insert(productData)
+    .insert({ ...rest, company_id: companyId })
     .select()
     .single();
 

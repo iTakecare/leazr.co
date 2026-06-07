@@ -92,6 +92,7 @@ const LeazrSaasClients = lazy(() => import("@/pages/LeazrSaasClients"));
 const LeazrSaaSUsers = lazy(() => import("@/pages/LeazrSaaSUsers"));
 const CompanyDetailsPage = lazy(() => import("@/pages/CompanyDetailsPage"));
 const CompanySubscriptionPage = lazy(() => import("@/pages/CompanySubscriptionPage"));
+const SubscriptionSettings = lazy(() => import("@/pages/SubscriptionSettings"));
 const CompanyActionsPage = lazy(() => import("@/pages/CompanyActionsPage"));
 const LeazrSaaSAnalytics = lazy(() => import("@/pages/LeazrSaaSAnalytics"));
 const LeazrSaaSBilling = lazy(() => import("@/pages/LeazrSaaSBilling"));
@@ -324,6 +325,7 @@ const AppRoutes = () => {
       <Route path="panier" element={<Layout><CartPage /></Layout>} />
       
       {/* Settings sub-routes */}
+      <Route path="settings/subscription" element={<Layout><SubscriptionSettings /></Layout>} />
       <Route path="settings/company-values" element={<Layout><CompanyValuesSettings /></Layout>} />
       <Route path="settings/company-metrics" element={<Layout><CompanyMetricsSettings /></Layout>} />
       <Route path="settings/partner-logos" element={<Layout><PartnerLogosSettings /></Layout>} />

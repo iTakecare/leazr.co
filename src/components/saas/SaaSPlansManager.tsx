@@ -15,77 +15,26 @@ import {
   Zap
 } from "lucide-react";
 import { useModules, useSaaSData } from "@/hooks/useSaaSData";
+import { type SaasPlan } from "@/config/saasPlans";
+import { useSaasPlans } from "@/hooks/useSaasPlans";
+import { useModulesCatalog } from "@/hooks/useModulesCatalog";
+import type { SaasModule } from "@/services/saasModulesService";
+import SaasPlanEditDialog from "./SaasPlanEditDialog";
+import ModuleEditDialog from "./ModuleEditDialog";
 
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  features: string[];
-  maxUsers: number;
-  maxModules: number;
-  popular: boolean;
-}
+type Plan = SaasPlan;
 
 const SaaSPlansManager = () => {
   const [activeTab, setActiveTab] = useState<'plans' | 'modules'>('plans');
   const { modules, loading: modulesLoading } = useModules();
   const { companies } = useSaaSData();
 
-  // Plans basés sur les vraies données Supabase
-  const plans: Plan[] = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: 49,
-      description: 'Parfait pour débuter avec Leazr',
-      features: [
-        'Modules principaux inclus',
-        '1 utilisateur',
-        'Support email',
-        '1 GB de stockage',
-        'Rapports de base'
-      ],
-      maxUsers: 1,
-      maxModules: 1,
-      popular: false
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: 149,
-      description: 'Pour les équipes qui grandissent',
-      features: [
-        'Jusqu\'à 3 modules',
-        '5 utilisateurs',
-        'Support prioritaire',
-        '10 GB de stockage',
-        'Intégrations avancées',
-        'Rapports détaillés'
-      ],
-      maxUsers: 5,
-      maxModules: 3,
-      popular: true
-    },
-    {
-      id: 'business',
-      name: 'Business',
-      price: 299,
-      description: 'Pour les grandes organisations',
-      features: [
-        'Tous les modules',
-        '10 utilisateurs',
-        'Support dédié',
-        '50 GB de stockage',
-        'Personnalisation avancée',
-        'White-label',
-        'API complète'
-      ],
-      maxUsers: 10,
-      maxModules: -1,
-      popular: false
-    }
-  ];
+  // Grille tarifaire éditable depuis la DB (cf. table saas_plans + useSaasPlans)
+  const { plans, reload: reloadPlans } = useSaasPlans({ includeInactive: true });
+  // Catalogue des modules + socle inclus par plan (modèle hybride)
+  const { catalog, planModules, reload: reloadCatalog } = useModulesCatalog();
+  const [editingPlan, setEditingPlan] = useState<SaasPlan | null>(null);
+  const [editingModule, setEditingModule] = useState<SaasModule | null>(null);
 
   // Calculer les statistiques d'utilisation des plans
   const planStats = plans.map(plan => {
@@ -209,7 +158,7 @@ const SaaSPlansManager = () => {
                   </div>
 
                   <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingPlan(plan)}>
                       <Edit className="h-3 w-3 mr-1" />
                       Modifier
                     </Button>
@@ -304,7 +253,14 @@ const SaaSPlansManager = () => {
                           {module.is_core ? 'Dans tous les plans' : 'Module additionnel'}
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const m = catalog.find((c) => c.slug === module.slug);
+                          if (m) setEditingModule(m);
+                        }}
+                      >
                         <Edit className="h-3 w-3 mr-1" />
                         Modifier
                       </Button>
@@ -328,6 +284,31 @@ const SaaSPlansManager = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {editingPlan && (
+        <SaasPlanEditDialog
+          plan={editingPlan}
+          catalog={catalog}
+          includedSlugs={planModules[editingPlan.id] ?? []}
+          onClose={() => setEditingPlan(null)}
+          onSaved={() => {
+            setEditingPlan(null);
+            reloadPlans();
+            reloadCatalog();
+          }}
+        />
+      )}
+
+      {editingModule && (
+        <ModuleEditDialog
+          module={editingModule}
+          onClose={() => setEditingModule(null)}
+          onSaved={() => {
+            setEditingModule(null);
+            reloadCatalog();
+          }}
+        />
       )}
     </div>
   );

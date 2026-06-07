@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { useOfferDetail } from '@/hooks/offers/useOfferDetail';
+import {
+  fetchOfferCompanyBranding,
+  type OfferCompanyBranding,
+} from '@/services/offers/offerCompanyBranding';
 import { toast } from 'sonner';
 
 const OfferPrintView: React.FC = () => {
   const { offerId } = useParams<{ offerId: string }>();
   const navigate = useNavigate();
   const { offer, loading, error } = useOfferDetail(offerId || '');
+  const [branding, setBranding] = useState<OfferCompanyBranding | null>(null);
+
+  useEffect(() => {
+    const companyId = (offer as any)?.company_id || (offer as any)?.companies?.id;
+    if (!companyId) return;
+    fetchOfferCompanyBranding(companyId).then(setBranding);
+  }, [offer]);
 
   if (loading) {
     return (
@@ -65,6 +76,7 @@ const OfferPrintView: React.FC = () => {
 
       {/* Composant d'offre */}
       <CommercialOffer
+        {...(branding ?? {})}
         offerNumber={offer.reference || offer.id}
         offerDate={new Date(offer.created_at).toLocaleDateString('fr-FR')}
         clientName={offer.client_name}

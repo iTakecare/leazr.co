@@ -19,6 +19,12 @@ interface CommercialOfferData {
   clientAddress: string;
   companyLogo: string | null;
   companyName: string;
+  companyAddress?: string;
+  companyCity?: string;
+  companyPostalCode?: string;
+  companyEmail?: string;
+  companyPhone?: string;
+  companyVatNumber?: string;
   showPrintButton: boolean;
   isPDFMode: boolean;
   isPurchase: boolean;
@@ -242,6 +248,13 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
 
     const isPurchase = (offerData as any)?.is_purchase === true;
 
+    // Branding white-label de l'entreprise émettrice (coordonnées par tenant).
+    const { data: companyCustom } = await supabase
+      .from('company_customizations')
+      .select('company_name, company_address, company_city, company_postal_code, company_email, company_phone, company_vat_number')
+      .eq('company_id', offerData.companies?.id)
+      .maybeSingle();
+
     // Acompte et mensualité ajustée
     const downPayment = offerData.down_payment || 0;
     const coefficient = offerData.coefficient || 0;
@@ -259,7 +272,13 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
       clientCompany: (offerData as any).client_company || '',
       clientAddress: billingAddress,
       companyLogo: companyLogoBase64,
-      companyName: offerData.companies?.name || 'iTakecare',
+      companyName: companyCustom?.company_name || offerData.companies?.name || '',
+      companyAddress: companyCustom?.company_address || '',
+      companyCity: companyCustom?.company_city || '',
+      companyPostalCode: companyCustom?.company_postal_code || '',
+      companyEmail: companyCustom?.company_email || '',
+      companyPhone: companyCustom?.company_phone || '',
+      companyVatNumber: companyCustom?.company_vat_number || '',
       showPrintButton: false,
       isPDFMode: true,
       isPurchase: isPurchase,

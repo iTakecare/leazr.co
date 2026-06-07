@@ -126,8 +126,14 @@ export async function requireElevatedAccess(
       };
     }
 
-    const payload = decodeJwtPayload(token);
-    if (allowServiceRole && payload?.role === 'service_role') {
+    // SECURITY: only accept the service-role shortcut when the bearer token is
+    // *exactly* the real service-role key. The previous check trusted the
+    // unverified JWT payload (`payload.role === 'service_role'`), which an
+    // attacker could forge with a self-crafted token on any function deployed
+    // with `verify_jwt = false` (e.g. notify-documents-uploaded,
+    // send-signed-contract-email, update-extended-contracts). An exact-string
+    // match against the secret key cannot be forged.
+    if (allowServiceRole && token === supabaseServiceRoleKey) {
       return {
         ok: true,
         context: {
