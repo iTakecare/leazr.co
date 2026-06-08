@@ -32,6 +32,14 @@ interface Signer {
   mobile: string;
 }
 
+// A selectable client-side signer: the main client contact plus any
+// collaborators (people in the company with signing authority).
+interface SignerOption {
+  id: string;
+  label: string;
+  signer: Signer;
+}
+
 interface ConfigResponse {
   success: boolean;
   config: {
@@ -63,6 +71,8 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
   const [sending, setSending] = useState(false);
   const [signer, setSigner] = useState<Signer>({ title: "Mr", first_name: "", last_name: "", email: "", mobile: "" });
   const [partner, setPartner] = useState<Signer>({ title: "Mr", first_name: "", last_name: "", email: "", mobile: "" });
+  const [signerOptions, setSignerOptions] = useState<SignerOption[]>([]);
+  const [selectedSignerId, setSelectedSignerId] = useState<string>("client");
 
   useEffect(() => {
     void init();
@@ -81,11 +91,33 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
         .eq("id", clientId)
         .maybeSingle();
       const c = client as { first_name?: string; last_name?: string; name?: string; email?: string; phone?: string } | null;
+      const options: SignerOption[] = [];
       if (c) {
         const fallbackFirst = c.first_name || (c.name?.split(" ")[0] ?? "");
         const fallbackLast = c.last_name || (c.name?.split(" ").slice(1).join(" ") ?? "");
-        setSigner({ title: "Mr", first_name: fallbackFirst, last_name: fallbackLast, email: c.email ?? "", mobile: c.phone ?? "" });
+        const main: Signer = { title: "Mr", first_name: fallbackFirst, last_name: fallbackLast, email: c.email ?? "", mobile: c.phone ?? "" };
+        setSigner(main);
+        const mainName = `${fallbackFirst} ${fallbackLast}`.trim() || c.name || "Contact principal";
+        options.push({ id: "client", label: `${mainName} — contact principal`, signer: main });
       }
+      // Other people in the company with signing authority (collaborators).
+      const { data: collabs } = await supabase
+        .from("collaborators")
+        .select("id, name, email, phone, role")
+        .eq("client_id", clientId);
+      for (const collab of (collabs ?? []) as Array<{ id: string; name?: string; email?: string; phone?: string; role?: string }>) {
+        const name = (collab.name ?? "").trim();
+        if (!name) continue;
+        const first = name.split(" ")[0] ?? "";
+        const last = name.split(" ").slice(1).join(" ") ?? "";
+        options.push({
+          id: collab.id,
+          label: collab.role ? `${name} — ${collab.role}` : name,
+          signer: { title: "Mr", first_name: first, last_name: last, email: collab.email ?? "", mobile: collab.phone ?? "" },
+        });
+      }
+      setSignerOptions(options);
+      setSelectedSignerId("client");
     }
     // Prefill partner signer from the logged-in admin.
     const { data: { session } } = await supabase.auth.getSession();
@@ -118,6 +150,12 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
       if (ctx?.json) { try { body = await ctx.json(); } catch { /* */ } }
     }
     setConfig(body);
+  };
+
+  const handleSelectSigner = (id: string) => {
+    setSelectedSignerId(id);
+    const opt = signerOptions.find((o) => o.id === id);
+    if (opt) setSigner(opt.signer);
   };
 
   const handleSend = async () => {
@@ -195,9 +233,10 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
     </div>
   );
 
-  const signerForm = (s: Signer, setS: (s: Signer) => void, heading: string) => (
+  const signerForm = (s: Signer, setS: (s: Signer) => void, heading: string, selector?: React.ReactNode) => (
     <div className="space-y-2">
       <div className="text-xs font-medium">{heading}</div>
+      {selector}
       <div className="grid grid-cols-4 gap-2">
         <div className="space-y-0.5">
           <Label className="text-[10px] text-muted-foreground">Titre</Label>
@@ -248,7 +287,23 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
       )}
 
       {/* Signer forms — iTakecare (supplier) always signs in Grenke's flow. */}
-      {signerForm(signer, setSigner, "Signataire client (contrat + bon de livraison)")}
+      {signerForm(
+        signer,
+        setSigner,
+        "Signataire client (contrat + bon de livraison)",
+        signerOptions.length > 1 ? (
+          <div className="space-y-0.5">
+            <Label className="text-[10px] text-muted-foreground">Personne habilitée à signer</Label>
+            <select
+              value={selectedSignerId}
+              onChange={(e) => handleSelectSigner(e.target.value)}
+              className="h-7 w-full text-xs rounded-md border border-input bg-background px-2"
+            >
+              {signerOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+            </select>
+          </div>
+        ) : undefined,
+      )}
       {signerForm(partner, setPartner, "Signataire fournisseur (iTakecare)")}
 
       <Button
