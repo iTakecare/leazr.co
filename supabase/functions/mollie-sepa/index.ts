@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getMollieApiKey } from "../_shared/getMollieKey.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,9 +40,9 @@ async function mollieRequest(
   method: "GET" | "POST" | "DELETE" = "GET",
   body?: Record<string, unknown>
 ): Promise<{ success: boolean; data?: unknown; error?: string; status?: number }> {
-  const apiKey = Deno.env.get("MOLLIE_API_KEY");
+  const apiKey = await getMollieApiKey();
   if (!apiKey) {
-    return { success: false, error: "MOLLIE_API_KEY non configurée" };
+    return { success: false, error: "Clé API Mollie non configurée (SaaS admin → Paiement)" };
   }
 
   try {
