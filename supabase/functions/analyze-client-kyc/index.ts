@@ -107,6 +107,26 @@ async function downloadPdfAsBase64(
   const arrayBuffer = await data.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
 
+  // Source de vérité pour le mime = extension du fichier dans le path. data.type
+  // (renvoyé par Supabase Storage) peut être "application/json" ou autre selon
+  // ce qui était dans les métadonnées au moment de l'upload, ce qui ferait
+  // basculer Claude sur "image" et rejeter le PDF.
+  const inferredMime = inferMimeFromPath(filePath);
+  const mimeType = inferredMime || data.type || "application/pdf";
+
+  // Un PDF doit commencer par "%PDF". Sinon c'est une page web enregistrée, un
+  // téléchargement incomplet, ou un fichier renommé — Claude répondrait juste
+  // "The PDF specified was not valid". On donne un message actionnable à la place.
+  if (mimeType === "application/pdf") {
+    const header = String.fromCharCode(...bytes.subarray(0, 5));
+    if (!header.startsWith("%PDF")) {
+      return {
+        error:
+          "Le fichier envoyé n'est pas un PDF valide (en-tête %PDF manquant). C'est peut-être une page web enregistrée ou un téléchargement incomplet : ré-exportez le rapport en PDF et réessayez.",
+      };
+    }
+  }
+
   // Base64 encode in chunks (Deno's btoa chokes on very large strings).
   let binary = "";
   const chunkSize = 0x8000;
@@ -114,12 +134,15 @@ async function downloadPdfAsBase64(
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
 
-  // Source de vérité pour le mime = extension du fichier dans le path. data.type
-  // (renvoyé par Supabase Storage) peut être "application/json" ou autre selon
-  // ce qui était dans les métadonnées au moment de l'upload, ce qui ferait
-  // basculer Claude sur "image" et rejeter le PDF.
-  const inferredMime = inferMimeFromPath(filePath);
-  const mimeType = inferredMime || data.type || "application/pdf";
+  // Un PDF chiffré/protégé (cas fréquent des exports Graydon/CompanyWeb) est
+  // rejeté par Claude avec "The PDF specified was not valid". On le détecte via
+  // l'entrée /Encrypt et on explique comment le déprotéger.
+  if (mimeType === "application/pdf" && binary.includes("/Encrypt")) {
+    return {
+      error:
+        "Ce PDF est protégé (chiffré), l'analyse IA ne peut pas le lire. Ouvrez-le puis ré-enregistrez-le sans protection (Aperçu/Imprimer → « Enregistrer au format PDF »), et réuploadez-le. Vous pouvez aussi lancer le lookup automatique via le numéro de TVA.",
+    };
+  }
 
   return {
     base64: btoa(binary),
@@ -177,6 +200,12 @@ async function callClaudeOnPdf(pdfBase64: string, mimeType: string): Promise<any
 
   if (!resp.ok) {
     const errText = await resp.text();
+    // PDF illisible par Claude (protégé, scan corrompu, format exotique) → message actionnable.
+    if (resp.status === 400 && /not valid|could not (be )?process|unable to process|invalid.*pdf/i.test(errText)) {
+      throw new Error(
+        "Claude n'a pas pu lire ce PDF (PDF protégé, scan illisible ou format non standard). Ré-exportez le rapport en PDF standard (Imprimer → « Enregistrer au format PDF ») puis réessayez, ou utilisez le lookup automatique via le numéro de TVA.",
+      );
+    }
     throw new Error(`Claude API error ${resp.status}: ${errText.slice(0, 500)}`);
   }
   const data = await resp.json();
