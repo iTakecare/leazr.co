@@ -305,7 +305,9 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         .reduce((sum, cn) => sum + (cn.amount || 0), 0);
 
       // Combiner factures leasing + factures SL réelles
-      const totalRevenue = invoiceRevenue + selfLeasingRevenue;
+      // CA net des notes de crédit, comme le tableau mensuel (cohérence carte ↔ tableau)
+      const grossRevenue = invoiceRevenue + selfLeasingRevenue;
+      const totalRevenue = grossRevenue - totalCreditNotes;
       const totalPurchases = invoicePurchases + selfLeasingPurchases;
       const totalCount = (invoices?.length || 0) + (slInvoices?.length || 0);
 
@@ -316,7 +318,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         self_leasing_count: selfLeasingCount,
         total_revenue: totalRevenue,
         total_purchases: totalPurchases,
-        total_margin: totalRevenue - totalPurchases - totalCreditNotes
+        total_margin: totalRevenue - totalPurchases
       } as ContractStatistics;
     },
     enabled: !companyLoading && !!companyId,
