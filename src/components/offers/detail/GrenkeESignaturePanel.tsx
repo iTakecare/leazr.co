@@ -103,9 +103,12 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
       // Other people in the company with signing authority (collaborators).
       const { data: collabs } = await supabase
         .from("collaborators")
-        .select("id, name, email, phone, role")
+        .select("id, name, email, phone, role, is_primary")
         .eq("client_id", clientId);
-      for (const collab of (collabs ?? []) as Array<{ id: string; name?: string; email?: string; phone?: string; role?: string }>) {
+      for (const collab of (collabs ?? []) as Array<{ id: string; name?: string; email?: string; phone?: string; role?: string; is_primary?: boolean }>) {
+        // Skip the primary collaborator: it duplicates the main client contact
+        // already listed first (sourced from the clients table, with a better email).
+        if (collab.is_primary) continue;
         const name = (collab.name ?? "").trim();
         if (!name) continue;
         const first = name.split(" ")[0] ?? "";
