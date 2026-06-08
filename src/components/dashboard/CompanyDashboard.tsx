@@ -487,10 +487,11 @@ const CompanyDashboard = () => {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
+                  {/* CA/Achats/Marge = total du tableau mensuel (leasing + SL + ventes directes, net des notes de crédit selon la case "Déduire") pour garantir la cohérence carte ↔ tableau */}
                   <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
-                    <span>CA</span><span className="text-right font-medium text-foreground">{formatCurrency(Number(realizedStats?.total_revenue || 0))}</span>
-                    <span>Achats</span><span className="text-right font-medium text-foreground">{formatCurrency(Number(realizedStats?.total_purchases || 0))}</span>
-                    <span>Marge</span><span className="text-right font-semibold text-emerald-600">{formatCurrency(Number(realizedStats?.total_margin || 0))}</span>
+                    <span>CA</span><span className="text-right font-medium text-foreground">{formatCurrency(displayedTotals.ca)}</span>
+                    <span>Achats</span><span className="text-right font-medium text-foreground">{formatCurrency(displayedTotals.achats)}</span>
+                    <span>Marge</span><span className="text-right font-semibold text-emerald-600">{formatCurrency(displayedTotals.marge)}</span>
                   </div>
                 </div>
 
