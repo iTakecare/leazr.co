@@ -809,7 +809,7 @@ const [notesLoading, setNotesLoading] = useState(false);
     setScoringModalOpen(true);
   };
 
-  const handleInternalScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
+  const handleInternalScoring = async (score: 'A' | 'B' | 'C' | 'D', reason?: string) => {
     // Pour le score C, ouvrir la modale d'email de refus
     if (score === 'C') {
       setRejectionReason(reason || "");
@@ -838,12 +838,16 @@ const [notesLoading, setNotesLoading] = useState(false);
 
       let newStatus = '';
       switch (score) {
-        case 'A': 
+        case 'A':
           // Utiliser la transition configurée, sinon fallback
-          newStatus = transitions?.next_step_on_approval || 'internal_approved'; 
+          newStatus = transitions?.next_step_on_approval || 'internal_approved';
           break;
-        case 'B': 
-          newStatus = transitions?.next_step_on_docs_requested || 'internal_docs_requested'; 
+        case 'B':
+          newStatus = transitions?.next_step_on_docs_requested || 'internal_docs_requested';
+          break;
+        case 'D':
+          // Score D : dossier classé sans suite
+          newStatus = 'without_follow_up';
           break;
       }
       
@@ -886,7 +890,7 @@ const [notesLoading, setNotesLoading] = useState(false);
     }
   };
 
-const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
+const handleLeaserScoring = async (score: 'A' | 'B' | 'C' | 'D', reason?: string) => {
   // Pour le score C, ouvrir la modale d'email de refus
   if (score === 'C') {
     setRejectionReason(reason || "");
@@ -915,11 +919,15 @@ const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
 
     let newStatus = '';
     switch (score) {
-      case 'A': 
-        newStatus = transitions?.next_step_on_approval || 'leaser_approved'; 
+      case 'A':
+        newStatus = transitions?.next_step_on_approval || 'leaser_approved';
         break;
-      case 'B': 
-        newStatus = transitions?.next_step_on_docs_requested || 'leaser_docs_requested'; 
+      case 'B':
+        newStatus = transitions?.next_step_on_docs_requested || 'leaser_docs_requested';
+        break;
+      case 'D':
+        // Score D : dossier classé sans suite
+        newStatus = 'without_follow_up';
         break;
     }
     
