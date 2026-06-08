@@ -21,6 +21,7 @@ import PlatformIdentitySettings from "./PlatformIdentitySettings";
 import { PostalCodeImport } from "@/components/admin/PostalCodeImport";
 import SaaSModulesManager from "./SaaSModulesManager";
 import BrokerManagement from "./BrokerManagement";
+import PaymentSettings from "./PaymentSettings";
 import { Building } from "lucide-react";
 
 const SaaSSettingsManager = () => {
@@ -32,6 +33,7 @@ const SaaSSettingsManager = () => {
     { id: "modules", label: "Modules", icon: Layers },
     { id: "plans", label: "Plans & Tarifs", icon: Package },
     { id: "brokers", label: "Brokers", icon: Building },
+    { id: "payment", label: "Paiement", icon: CreditCard },
     { id: "postal-codes", label: "Codes Postaux", icon: MapPin },
   ];
 
@@ -49,7 +51,7 @@ const SaaSSettingsManager = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
             return (
@@ -100,6 +102,10 @@ const SaaSSettingsManager = () => {
 
         <TabsContent value="brokers" className="space-y-6">
           <BrokerManagement />
+        </TabsContent>
+
+        <TabsContent value="payment" className="space-y-6">
+          <PaymentSettings />
         </TabsContent>
 
         <TabsContent value="postal-codes" className="space-y-6">

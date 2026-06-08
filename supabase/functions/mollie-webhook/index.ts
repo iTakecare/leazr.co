@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getMollieApiKey } from "../_shared/getMollieKey.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,9 +39,9 @@ serve(async (req) => {
     console.log(`[Mollie Webhook] Received notification for: ${paymentId}`);
 
     // Fetch payment details from Mollie
-    const apiKey = Deno.env.get("MOLLIE_API_KEY");
+    const apiKey = await getMollieApiKey();
     if (!apiKey) {
-      console.error("[Mollie Webhook] MOLLIE_API_KEY not configured");
+      console.error("[Mollie Webhook] Clé API Mollie non configurée");
       return new Response("OK", { status: 200 });
     }
 

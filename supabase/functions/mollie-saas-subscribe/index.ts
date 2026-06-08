@@ -15,6 +15,7 @@
  */
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getMollieApiKey } from "../_shared/getMollieKey.ts";
 
 const MOLLIE_API_URL = "https://api.mollie.com/v2";
 
@@ -58,8 +59,8 @@ serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
-    const apiKey = Deno.env.get("MOLLIE_API_KEY");
-    if (!apiKey) return json(500, { error: "MOLLIE_API_KEY non configurée" });
+    const apiKey = await getMollieApiKey();
+    if (!apiKey) return json(500, { error: "Clé API Mollie non configurée (SaaS admin → Paiement)" });
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
