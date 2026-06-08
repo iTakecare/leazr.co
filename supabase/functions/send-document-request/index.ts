@@ -43,13 +43,16 @@ serve(async (req) => {
     const isCron = !!cronSecret && cronHeader === cronSecret;
 
     let supabase;
+    // Hoisted so the cross-company check below can read it. Stays null on the
+    // cron path (no user context — cron is a trusted service-role caller).
+    let access: Awaited<ReturnType<typeof requireElevatedAccess>> | null = null;
     if (isCron) {
       supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
     } else {
-      const access = await requireElevatedAccess(req, corsHeaders, {
+      access = await requireElevatedAccess(req, corsHeaders, {
         allowedRoles: ["admin", "super_admin", "broker"],
         rateLimit: {
           endpoint: "send-document-request",
@@ -255,7 +258,10 @@ serve(async (req) => {
     
     console.log("Company ID de l'offre:", offer.company_id);
 
+    // Cron path (access === null) is a trusted service-role caller and skips
+    // this check. For UI calls, block cross-company document requests.
     if (
+      access?.ok &&
       !access.context.isServiceRole &&
       access.context.role !== "super_admin" &&
       access.context.companyId !== offer.company_id
