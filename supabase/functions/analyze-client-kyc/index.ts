@@ -105,7 +105,7 @@ async function downloadPdfAsBase64(
     return { error: error?.message || "Fichier introuvable dans le bucket" };
   }
   const arrayBuffer = await data.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
+  let bytes = new Uint8Array(arrayBuffer);
 
   // Source de vérité pour le mime = extension du fichier dans le path. data.type
   // (renvoyé par Supabase Storage) peut être "application/json" ou autre selon
@@ -114,16 +114,27 @@ async function downloadPdfAsBase64(
   const inferredMime = inferMimeFromPath(filePath);
   const mimeType = inferredMime || data.type || "application/pdf";
 
-  // Un PDF doit commencer par "%PDF". Sinon c'est une page web enregistrée, un
-  // téléchargement incomplet, ou un fichier renommé — Claude répondrait juste
-  // "The PDF specified was not valid". On donne un message actionnable à la place.
+  // Un PDF valide doit commencer par "%PDF". On cherche le marqueur dans les
+  // 1024 premiers octets : certains exports (BOM, octets parasites en tête)
+  // décalent le "%PDF" — Claude rejette alors le fichier ("PDF not valid").
+  // Si on le trouve après le début, on retire le préambule. Sinon, le fichier
+  // n'est pas un PDF (page web, JSON d'erreur, upload tronqué) → message + aperçu.
   if (mimeType === "application/pdf") {
-    const header = String.fromCharCode(...bytes.subarray(0, 5));
-    if (!header.startsWith("%PDF")) {
+    const head = String.fromCharCode(...bytes.subarray(0, Math.min(bytes.length, 1024)));
+    const pdfIdx = head.indexOf("%PDF");
+    if (pdfIdx === -1) {
+      const previewAscii = String.fromCharCode(...bytes.subarray(0, 48)).replace(/[^\x20-\x7e]/g, ".");
+      const previewHex = Array.from(bytes.subarray(0, 8)).map((b) => b.toString(16).padStart(2, "0")).join(" ");
+      console.error(`[KYC] downloaded file is not a PDF — size=${bytes.length} hex=[${previewHex}] ascii="${previewAscii}"`);
       return {
         error:
-          "Le fichier envoyé n'est pas un PDF valide (en-tête %PDF manquant). C'est peut-être une page web enregistrée ou un téléchargement incomplet : ré-exportez le rapport en PDF et réessayez.",
+          `Le fichier téléchargé n'est pas un PDF (taille ${bytes.length} octets, début « ${previewAscii} »). ` +
+          `C'est peut-être une page web enregistrée, un JSON d'erreur ou un upload tronqué : ré-exportez le rapport en PDF et réessayez, ou utilisez le lookup automatique via le numéro de TVA.`,
       };
+    }
+    if (pdfIdx > 0) {
+      console.warn(`[KYC] stripping ${pdfIdx} junk byte(s) before %PDF marker`);
+      bytes = bytes.subarray(pdfIdx);
     }
   }
 
