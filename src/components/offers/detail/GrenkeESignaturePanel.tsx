@@ -19,6 +19,14 @@ import { toast } from "sonner";
 
 const TITLES = ["Mr", "Ms", "Miss", "Mrs", "Dr", "Prof"];
 
+// Split a full name into prénom / nom. Splits on ANY whitespace run (\s also
+// matches non-breaking spaces & co), so names saved with a U+00A0 between the
+// words still parse — a plain split(" ") would dump the whole string in first.
+const splitName = (full: string): { first: string; last: string } => {
+  const parts = (full ?? "").trim().split(/\s+/).filter(Boolean);
+  return { first: parts[0] ?? "", last: parts.slice(1).join(" ") };
+};
+
 interface GrenkeESignaturePanelProps {
   offerId: string;
   onSent?: () => void;
@@ -93,8 +101,9 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
       const c = client as { first_name?: string; last_name?: string; name?: string; email?: string; phone?: string } | null;
       const options: SignerOption[] = [];
       if (c) {
-        const fallbackFirst = c.first_name || (c.name?.split(" ")[0] ?? "");
-        const fallbackLast = c.last_name || (c.name?.split(" ").slice(1).join(" ") ?? "");
+        const parsed = splitName(c.name ?? "");
+        const fallbackFirst = c.first_name || parsed.first;
+        const fallbackLast = c.last_name || parsed.last;
         const main: Signer = { title: "Mr", first_name: fallbackFirst, last_name: fallbackLast, email: c.email ?? "", mobile: c.phone ?? "" };
         setSigner(main);
         const mainName = `${fallbackFirst} ${fallbackLast}`.trim() || c.name || "Contact principal";
@@ -111,8 +120,7 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
         if (collab.is_primary) continue;
         const name = (collab.name ?? "").trim();
         if (!name) continue;
-        const first = name.split(" ")[0] ?? "";
-        const last = name.split(" ").slice(1).join(" ") ?? "";
+        const { first, last } = splitName(name);
         options.push({
           id: collab.id,
           label: collab.role ? `${name} — ${collab.role}` : name,
