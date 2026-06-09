@@ -203,18 +203,21 @@ export default function GrenkePayloadPreviewButton({
   // if there are warnings or if already submitted.
   const handleSubmit = async () => {
     const payload = result?.payload as
-      | { Lessee?: { CompanyName?: string }; FinancingAmount?: number }
+      | { Lessee?: { CompanyName?: string }; FinancingAmount?: number; Period?: number; PaymentFrequency?: string; ProductType?: string }
       | undefined;
     const company = payload?.Lessee?.CompanyName ?? "ce client";
     const amount = payload?.FinancingAmount ?? 0;
     const fmtAmount = new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(amount);
+    const period = payload?.Period ?? 36;
+    const frequency = payload?.PaymentFrequency ?? "Quarterly";
+    const productType = payload?.ProductType ?? "Rent";
 
     const ok = window.confirm(
       `⚠️ SOUMISSION RÉELLE À GRENKE\n\n` +
       `Vous allez créer un VRAI dossier de financement chez Grenke pour :\n\n` +
       `  Client : ${company}\n` +
       `  Montant : ${fmtAmount}\n` +
-      `  Durée : 36 mois · Rent · Quarterly\n\n` +
+      `  Durée : ${period} mois · ${productType} · ${frequency}\n\n` +
       `Ceci n'est pas un test — un dossier sera créé dans le système Grenke.\n\n` +
       `Confirmer la soumission ?`,
     );
@@ -235,6 +238,7 @@ export default function GrenkePayloadPreviewButton({
         warnings?: Array<{ field: string; message: string }>;
         grenke_response?: unknown;
         status?: number;
+        auto_fixed_manufacturers?: string[];
       };
       let body: SubmitBody | null = (data ?? null) as SubmitBody | null;
       if (error) {
@@ -256,6 +260,15 @@ export default function GrenkePayloadPreviewButton({
           </div>,
           { duration: 10000 },
         );
+        if (r.auto_fixed_manufacturers && r.auto_fixed_manufacturers.length > 0) {
+          toast.info(
+            <div>
+              <strong>Marques inconnues chez Grenke remplacées par « Other »</strong>
+              <p className="text-sm mt-1">{r.auto_fixed_manufacturers.join(", ")} — mapping enregistré dans Settings → Grenke pour les prochaines offres.</p>
+            </div>,
+            { duration: 12000 },
+          );
+        }
 
         // Attach the selected documents now that the dossier (financingId) exists.
         const docIds = offerDocs.filter((d) => selectedDocs[d.id]).map((d) => d.id);

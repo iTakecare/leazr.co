@@ -1397,6 +1397,71 @@ async function handleBuildOfferPayload(
 //     submitted_at / environment on the offer.
 //   - On Grenke error: persists grenke_last_error and returns it.
 // =====================================================================
+
+// Grenke validates Manufacturer against an internal per-object-type list it
+// does NOT expose through the API (the swagger has no /manufacturers endpoint;
+// its only guidance is: "'Other' may be provided if Manufacturer not
+// available"). So a catalog brand like "TP-Link OMADA" can 400 the whole
+// submission. We parse the rejection messages out of the 400 body…
+function extractRejectedManufacturers(parsed: unknown): string[] {
+  const errors = (parsed as { Errors?: Record<string, unknown> } | null)?.Errors;
+  if (!errors || typeof errors !== "object") return [];
+  const names = new Set<string>();
+  for (const v of Object.values(errors)) {
+    for (const m of Array.isArray(v) ? v : [v]) {
+      const match = typeof m === "string"
+        ? m.match(/No Manufacturer with name '(.+?)' is available/i)
+        : null;
+      if (match) names.add(match[1]);
+    }
+  }
+  return [...names];
+}
+
+// …and learn from them so the NEXT payload is right on the first try:
+//   - brand-resolved lines → upsert a brand→"Other" mapping in
+//     grenke_field_mappings (visible/editable in Settings → Grenke → Mappings,
+//     so the user can later point the brand to a real Grenke name instead).
+//   - per-line overrides → rewrite the offending override to "Other".
+async function learnRejectedManufacturers(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  debug: EquipmentDebug[],
+  rejected: string[],
+): Promise<void> {
+  const rejectedLower = new Set(rejected.map((m) => m.toLowerCase()));
+  const hit = debug.filter((d) => rejectedLower.has(d.resolved_manufacturer.toLowerCase()));
+
+  const rows: Array<Record<string, string>> = [];
+  const seenBrands = new Set<string>();
+  for (const d of hit) {
+    if (d.resolved_brand_id && !seenBrands.has(d.resolved_brand_id)) {
+      seenBrands.add(d.resolved_brand_id);
+      rows.push({
+        company_id: companyId,
+        kind: "manufacturer",
+        leazr_key: d.resolved_brand_id,
+        grenke_value: "Other",
+        label: d.resolved_manufacturer,
+      });
+    }
+  }
+  if (rows.length > 0) {
+    const { error } = await adminSupabase
+      .from("grenke_field_mappings")
+      .upsert(rows, { onConflict: "company_id,kind,leazr_key" });
+    if (error) console.error("[grenke-api] learnRejectedManufacturers mapping upsert failed:", error.message);
+  }
+
+  const overrideIds = hit.filter((d) => d.brand_source === "override").map((d) => d.equipment_id);
+  if (overrideIds.length > 0) {
+    const { error } = await adminSupabase
+      .from("offer_equipment")
+      .update({ grenke_manufacturer_override: "Other" })
+      .in("id", overrideIds);
+    if (error) console.error("[grenke-api] learnRejectedManufacturers override update failed:", error.message);
+  }
+}
 async function handleSubmitOffer(
   adminSupabase: ReturnType<typeof createClient>,
   companyId: string,
@@ -1469,9 +1534,48 @@ async function handleSubmitOffer(
     return jsonResponse({ success: false, error: "network_or_tls_error", message: msg }, 502);
   }
 
-  const text = await response.text();
+  let text = await response.text();
   let parsed: unknown = text;
   try { parsed = JSON.parse(text); } catch { /* keep raw */ }
+
+  // Auto-fix unknown manufacturers: Grenke's spec explicitly allows "Other",
+  // so on a 400 "No Manufacturer with name 'X' is available" we learn the
+  // rejection (brand mapping / line override → "Other"), patch the payload
+  // in place and retry ONCE. Same dossier, same amounts — only the
+  // Manufacturer strings change.
+  let autoFixedManufacturers: string[] = [];
+  if (response.status === 400) {
+    const rejected = extractRejectedManufacturers(parsed);
+    if (rejected.length > 0) {
+      autoFixedManufacturers = rejected;
+      await learnRejectedManufacturers(adminSupabase, companyId, built.equipment_debug, rejected);
+      const rejectedLower = new Set(rejected.map((m) => m.toLowerCase()));
+      for (const obj of built.payload.FinancingObjects) {
+        if (rejectedLower.has(obj.Manufacturer.toLowerCase())) obj.Manufacturer = "Other";
+      }
+      try {
+        response = await grenkeFetch(
+          environment,
+          "/basic/v1/requests",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(built.payload),
+          },
+          creds,
+        );
+        text = await response.text();
+        parsed = text;
+        try { parsed = JSON.parse(text); } catch { /* keep raw */ }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await adminSupabase.from("offers").update({
+          grenke_last_error: { stage: "network", message: msg, at: new Date().toISOString() },
+        }).eq("id", offerId);
+        return jsonResponse({ success: false, error: "network_or_tls_error", message: msg }, 502);
+      }
+    }
+  }
 
   if (!response.ok) {
     await adminSupabase.from("offers").update({
@@ -1482,6 +1586,7 @@ async function handleSubmitOffer(
       error: "grenke_rejected",
       status: response.status,
       grenke_response: parsed,
+      auto_fixed_manufacturers: autoFixedManufacturers,
     }, response.status >= 500 ? 502 : response.status);
   }
 
@@ -1523,6 +1628,7 @@ async function handleSubmitOffer(
     grenke_request_id: requestId,
     grenke_state: state,
     grenke_response: parsed,
+    auto_fixed_manufacturers: autoFixedManufacturers,
   }, 200);
 }
 
