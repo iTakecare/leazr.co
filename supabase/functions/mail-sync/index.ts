@@ -404,6 +404,60 @@ async function getAttachment(adminSupabase: Admin, companyId: string, emailId: s
 }
 
 // ---------------------------------------------------------------------
+// resolve_inline — renvoie le HTML d'un email avec ses images inline
+// (références cid:) intégrées en data: URIs. Beaucoup d'emails (invitations,
+// signatures) cassent sinon. Récupéré à la volée via IMAP, plafonné en taille.
+// ---------------------------------------------------------------------
+const INLINE_MAX_TOTAL = 5_000_000;
+
+async function resolveInline(adminSupabase: Admin, companyId: string, emailId: string): Promise<Response> {
+  const { data: email } = await adminSupabase
+    .from("synced_emails")
+    .select("id, company_id, account_id, folder_path, imap_uid, body_html")
+    .eq("id", emailId).maybeSingle();
+  if (!email || email.company_id !== companyId) return jsonResponse({ success: false, error: "email_not_found" }, 404);
+  if (!email.body_html || !email.account_id || email.imap_uid == null) {
+    return jsonResponse({ success: true, html: email?.body_html ?? null });
+  }
+  const { data: account } = await adminSupabase
+    .from("imap_accounts").select("*").eq("id", email.account_id).maybeSingle();
+  if (!account) return jsonResponse({ success: true, html: email.body_html });
+  const password = await getPassword(adminSupabase, account.id);
+  if (!password) return jsonResponse({ success: true, html: email.body_html });
+
+  const client = imapClient(account as Account, password);
+  await client.connect();
+  try {
+    const lock = await client.getMailboxLock(email.folder_path);
+    try {
+      const full = await client.fetchOne(String(email.imap_uid), { uid: true, source: true }, { uid: true });
+      if (!full?.source) return jsonResponse({ success: true, html: email.body_html });
+      const parsed = await simpleParser(full.source);
+      let html = (typeof parsed.html === "string" ? parsed.html : email.body_html) as string;
+      let total = 0;
+      for (const att of parsed.attachments ?? []) {
+        const cid = att.contentId?.replace(/[<>]/g, "");
+        if (!cid || !att.content) continue;
+        if (total + att.content.length > INLINE_MAX_TOTAL) break;
+        total += att.content.length;
+        const bytes = new Uint8Array(att.content);
+        let bin = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        const dataUri = `data:${att.contentType ?? "image/png"};base64,${btoa(bin)}`;
+        // remplace src="cid:CID" / 'cid:CID' / cid:CID
+        const esc = cid.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        html = html.replace(new RegExp(`(src\\s*=\\s*["']?)cid:${esc}(["']?)`, "gi"), `$1${dataUri}$2`);
+      }
+      return jsonResponse({ success: true, html });
+    } finally {
+      lock.release();
+    }
+  } finally {
+    try { await client.logout(); } catch { /* */ }
+  }
+}
+
+// ---------------------------------------------------------------------
 // attach_to_offer — classe une pièce jointe d'email dans le dossier d'une
 // demande (offer_documents). Récupère la pièce via IMAP puis l'upload dans
 // le bucket offer-documents.
@@ -606,7 +660,10 @@ serve(async (req) => {
           const { error } = await adminSupabase.from("imap_accounts").update(fields).eq("id", accountId);
           if (error) return jsonResponse({ success: false, error: "save_failed", message: error.message }, 500);
         } else {
-          const { data, error } = await adminSupabase.from("imap_accounts").insert(fields).select("id").single();
+          // Nouveau compte : le créateur en devient propriétaire (il le voit
+          // dans SA boîte mail ; réassignable ensuite à un collègue).
+          const { data, error } = await adminSupabase.from("imap_accounts")
+            .insert({ ...fields, owner_user_id: claims.user.id }).select("id").single();
           if (error || !data) return jsonResponse({ success: false, error: "save_failed", message: error?.message }, 500);
           accountId = data.id;
         }
@@ -648,6 +705,11 @@ serve(async (req) => {
           return jsonResponse({ success: false, error: "missing_params" }, 400);
         }
         return await getAttachment(adminSupabase, companyId, body.email_id, Number(body.index));
+      }
+
+      case "resolve_inline": {
+        if (!body.email_id) return jsonResponse({ success: false, error: "missing_params" }, 400);
+        return await resolveInline(adminSupabase, companyId, body.email_id);
       }
 
       case "attach_to_offer": {

@@ -195,14 +195,21 @@ const MailboxPage: React.FC<MailboxPageProps> = ({ onManageAccounts }) => {
     }
   }, [selection]);
 
-  // Comptes actifs
+  // Comptes actifs — uniquement MES boîtes (owner = moi). Chaque
+  // collaborateur ne voit que les siennes dans la boîte mail ; les autres
+  // (ex. sales@ = celle de Tohann) restent gérables/assignables dans
+  // l'onglet « Comptes mail ».
   const { data: accounts = [], isLoading: accountsLoading } = useQuery({
     queryKey: ["mail-accounts"],
     queryFn: async (): Promise<ImapAccount[]> => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id;
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("imap_accounts")
         .select("*")
         .eq("is_active", true)
+        .eq("owner_user_id", uid)
         .order("display_name");
       if (error) throw error;
       return (data ?? []) as ImapAccount[];

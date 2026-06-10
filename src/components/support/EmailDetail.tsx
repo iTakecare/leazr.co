@@ -46,6 +46,21 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [linkDossierDialogOpen, setLinkDossierDialogOpen] = useState(false);
   const [aiCenterOpen, setAiCenterOpen] = useState(false);
+  // HTML avec images inline (cid:) résolues en data: URIs, récupéré à la volée.
+  const [resolvedHtml, setResolvedHtml] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setResolvedHtml(null);
+    if (email.body_html && email.body_html.includes("cid:")) {
+      supabase.functions
+        .invoke("mail-sync", { body: { action: "resolve_inline", email_id: email.id } })
+        .then(({ data }) => {
+          const html = (data as { success?: boolean; html?: string } | null)?.html;
+          if (html) setResolvedHtml(html);
+        })
+        .catch(() => { /* on garde le HTML brut */ });
+    }
+  }, [email.id, email.body_html]);
 
   // Link dossier state (2-step)
   const [linkStep, setLinkStep] = useState<'client' | 'dossier'>('client');
@@ -394,7 +409,11 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
             {email.body_html ? (
               <div
                 className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html) }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(resolvedHtml ?? email.body_html, {
+                  ADD_ATTR: ["target"],
+                  // autorise les images embarquées (data:) résolues depuis cid:
+                  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|data):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+                }) }}
               />
             ) : (
               <pre className="whitespace-pre-wrap text-sm font-sans">{email.body_text || "Aucun contenu"}</pre>
