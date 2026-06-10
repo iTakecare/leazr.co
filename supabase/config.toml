@@ -272,6 +272,9 @@ verify_jwt = false
 [functions.voice-tool-report-blockers]
 verify_jwt = false
 
+[functions.voice-tool-send-document-link]
+verify_jwt = false
+
 [functions.grenke-api]
 # verify_jwt is false because the function does its own auth: user actions
 # validate the Bearer token via auth.getUser, and the cron poller authenticates

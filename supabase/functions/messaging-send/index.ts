@@ -78,29 +78,47 @@ serve(async (req) => {
   const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    // ---------- auth (même pattern que grenke-api) ----------
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse({ success: false, error: "unauthorized" }, 401);
+    // ---------- auth ----------
+    // Two modes:
+    //  (a) System mode — trusted internal caller (e.g. the Alex voice agent
+    //      tool) authenticates with the shared ELEVENLABS_TOOL_SECRET via the
+    //      `x-system-secret` header and passes `x-system-company-id`. No user.
+    //  (b) User mode (default) — JWT bearer, same pattern as grenke-api.
+    let companyId: string;
+    let agentName: string;
+    const systemSecret = Deno.env.get("ELEVENLABS_TOOL_SECRET");
+    const providedSystem = req.headers.get("x-system-secret");
+    if (systemSecret && providedSystem && providedSystem === systemSecret) {
+      const sysCompany = req.headers.get("x-system-company-id");
+      if (!sysCompany) {
+        return jsonResponse({ success: false, error: "missing_system_company" }, 400);
+      }
+      companyId = sysCompany;
+      agentName = "Alex (IA)";
+    } else {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return jsonResponse({ success: false, error: "unauthorized" }, 401);
+      }
+      const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claims, error: claimsError } = await userSupabase.auth.getUser(token);
+      if (claimsError || !claims?.user) {
+        return jsonResponse({ success: false, error: "invalid_token" }, 401);
+      }
+      const { data: profile } = await userSupabase
+        .from("profiles")
+        .select("company_id, first_name, last_name")
+        .eq("id", claims.user.id)
+        .single();
+      if (!profile?.company_id) {
+        return jsonResponse({ success: false, error: "no_company_for_user" }, 403);
+      }
+      companyId = profile.company_id;
+      agentName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "Agent";
     }
-    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsError } = await userSupabase.auth.getUser(token);
-    if (claimsError || !claims?.user) {
-      return jsonResponse({ success: false, error: "invalid_token" }, 401);
-    }
-    const { data: profile } = await userSupabase
-      .from("profiles")
-      .select("company_id, first_name, last_name")
-      .eq("id", claims.user.id)
-      .single();
-    if (!profile?.company_id) {
-      return jsonResponse({ success: false, error: "no_company_for_user" }, 403);
-    }
-    const companyId: string = profile.company_id;
-    const agentName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "Agent";
 
     const body = (await req.json().catch(() => null)) as SendRequest | null;
     if (!body || body.action !== "send_message") {
