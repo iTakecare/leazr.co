@@ -35,6 +35,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSoftphone } from "@/hooks/useSoftphone";
 import RequestDocumentsDialog from "@/components/offers/RequestDocumentsDialog";
+import TaskDialog from "@/components/tasks/TaskDialog";
+import { useTaskMutations } from "@/hooks/useTasks";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -216,7 +218,8 @@ export default function PhoneCallCenter() {
   const [selectedClient, setSelectedClient] = useState<ClientRow | null>(null);
   const [activeVoiceCallId, setActiveVoiceCallId] = useState<string | null>(null);
   const [showClientSearch, setShowClientSearch] = useState(false);
-  const [creatingTask, setCreatingTask] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const { create: createTaskMutation } = useTaskMutations();
   const [transcribing, setTranscribing] = useState(false);
   const [docReqOffer, setDocReqOffer] = useState<string | null>(null);
 
@@ -552,28 +555,10 @@ export default function PhoneCallCenter() {
   }, [activeVoiceCallId, queryClient]);
 
   // Crée une tâche de suivi — liée au client si connu, sinon au numéro seul.
-  const handleCreateTask = useCallback(async () => {
-    if (!companyId || !user?.id) return;
-    setCreatingTask(true);
-    try {
-      const label = selectedClient?.name ?? phoneNumber ?? "appel";
-      const { error } = await db.from("tasks").insert({
-        related_client_id: selectedClient?.id ?? null,
-        company_id: companyId,
-        title: `Suivi appel — ${label}`.trim(),
-        description: phoneNumber ? `Appel ${phoneNumber}` : null,
-        status: "todo",
-        created_by: user.id,
-      });
-      if (error) throw error;
-      toast.success("Tâche créée");
-      if (selectedClient?.id) queryClient.invalidateQueries({ queryKey: ["client-tasks", selectedClient.id] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Impossible de créer la tâche");
-    } finally {
-      setCreatingTask(false);
-    }
-  }, [selectedClient, companyId, user?.id, phoneNumber, queryClient]);
+  // Ouvre la vraie modale de création de tâche (la même que la page Tâches),
+  // pré-remplie avec le client et un titre par défaut liés à l'appel.
+  const openTaskDialog = useCallback(() => setTaskDialogOpen(true), []);
+  const taskDefaultTitle = `Suivi appel — ${selectedClient?.name ?? phoneNumber ?? "appel"}`.trim();
 
   // --- Message rapide (WhatsApp/SMS) depuis la console ---
   const [msgOpen, setMsgOpen] = useState(false);
@@ -998,10 +983,9 @@ export default function PhoneCallCenter() {
                     <Button
                       variant="outline"
                       className="justify-start rounded-xl"
-                      onClick={handleCreateTask}
-                      disabled={creatingTask}
+                      onClick={openTaskDialog}
                     >
-                      {creatingTask ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckSquare className="h-4 w-4 mr-2" />}
+                      <CheckSquare className="h-4 w-4 mr-2" />
                       Créer une tâche de suivi
                     </Button>
                     <Button
@@ -1117,10 +1101,9 @@ export default function PhoneCallCenter() {
                         size="sm"
                         variant="outline"
                         className="rounded-xl"
-                        onClick={handleCreateTask}
-                        disabled={creatingTask}
+                        onClick={openTaskDialog}
                       >
-                        {creatingTask ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                        <Plus className="h-4 w-4 mr-2" />
                         Créer une tâche
                       </Button>
                       <Button
@@ -1390,6 +1373,26 @@ export default function PhoneCallCenter() {
         open={!!docReqOffer}
         onOpenChange={(o) => { if (!o) setDocReqOffer(null); }}
         offerId={docReqOffer ?? ""}
+      />
+
+      {/* Création de tâche — même modale que la page Tâches, préremplie */}
+      <TaskDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        task={null}
+        defaultClientId={selectedClient?.id}
+        defaultClientName={selectedClient?.name ?? undefined}
+        defaultTitle={taskDefaultTitle}
+        onSubmit={(data) => {
+          createTaskMutation.mutate(data, {
+            onSuccess: () => {
+              if (selectedClient?.id) {
+                queryClient.invalidateQueries({ queryKey: ["client-tasks", selectedClient.id] });
+              }
+            },
+          });
+          setTaskDialogOpen(false);
+        }}
       />
 
       {/* Modale message rapide (WhatsApp/SMS) avec destinataire préchargé */}
