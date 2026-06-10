@@ -31,7 +31,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useSoftphone } from "@/hooks/useSoftphone";
 
 import { Button } from "@/components/ui/button";
@@ -166,9 +165,15 @@ const CALL_STATUS_FR: Record<string, string> = {
 export default function PhoneCallCenter() {
   const { user } = useAuth();
   const { companyId } = useMultiTenant();
-  const { navigateToAdmin } = useRoleNavigation();
   const queryClient = useQueryClient();
   const sp = useSoftphone(true, { receiveIncoming: true });
+
+  // IMPORTANT : ouvrir une fiche/demande dans un NOUVEL ONGLET — naviguer dans
+  // la même page démonterait le softphone et RACCROCHERAIT l'appel en cours.
+  const openAdmin = useCallback((path: string) => {
+    const base = window.location.pathname.split("/admin")[0];
+    window.open(`${base}/admin/${path}`, "_blank", "noopener");
+  }, []);
 
   const [phoneNumber, setPhoneNumber] = useState("");
   const [clientSearch, setClientSearch] = useState("");
@@ -965,14 +970,14 @@ export default function PhoneCallCenter() {
                     <Button
                       variant="outline"
                       className="justify-start rounded-xl"
-                      onClick={() => navigateToAdmin("clients?create=1")}
+                      onClick={() => openAdmin("clients?create=1")}
                     >
                       <UserPlus className="h-4 w-4 mr-2" /> Créer une fiche client
                     </Button>
                     <Button
                       variant="outline"
                       className="justify-start rounded-xl"
-                      onClick={() => navigateToAdmin("create-offer")}
+                      onClick={() => openAdmin("create-offer")}
                     >
                       <FileText className="h-4 w-4 mr-2" /> Nouvelle demande
                     </Button>
@@ -1053,7 +1058,7 @@ export default function PhoneCallCenter() {
                       size="sm"
                       variant="outline"
                       className="w-full mt-3 rounded-xl"
-                      onClick={() => navigateToAdmin("clients/" + selectedClient.id)}
+                      onClick={() => openAdmin("clients/" + selectedClient.id)}
                     >
                       <ExternalLink className="h-4 w-4 mr-2" /> Ouvrir la fiche client
                     </Button>
@@ -1070,7 +1075,7 @@ export default function PhoneCallCenter() {
                     {offers.map((o) => (
                       <button
                         key={o.id}
-                        onClick={() => navigateToAdmin("offers/" + o.id)}
+                        onClick={() => openAdmin("offers/" + o.id)}
                         className="w-full text-left rounded-md border p-2 text-sm hover:bg-accent flex items-center justify-between gap-2"
                       >
                         <span className="truncate">
@@ -1097,7 +1102,7 @@ export default function PhoneCallCenter() {
                     {contracts.map((c) => (
                       <button
                         key={c.id}
-                        onClick={() => navigateToAdmin("contracts/" + c.id)}
+                        onClick={() => openAdmin("contracts/" + c.id)}
                         className="w-full text-left rounded-md border p-2 text-sm hover:bg-accent flex items-center justify-between gap-2"
                       >
                         <span className="truncate">{c.id.slice(0, 8)}</span>
@@ -1159,7 +1164,7 @@ export default function PhoneCallCenter() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => navigateToAdmin("support")}
+                          onClick={() => openAdmin("support")}
                         >
                           Ouvrir
                         </Button>
@@ -1250,7 +1255,7 @@ export default function PhoneCallCenter() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => navigateToAdmin("support")}
+                        onClick={() => openAdmin("support")}
                       >
                         <Mail className="h-4 w-4 mr-2" /> Nouvel email
                       </Button>

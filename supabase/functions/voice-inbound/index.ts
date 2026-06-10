@@ -46,14 +46,19 @@ serve(async (req) => {
     const companyId = settings?.company_id;
     if (!companyId) return twiml(`<Response><Say language="fr-FR">Ce numéro n'est pas configuré.</Say></Response>`);
 
-    // 2) identification de l'appelant (par téléphone)
-    const phone = normalizeBelgianPhone(from);
+    // 2) identification de l'appelant (par téléphone, format-agnostique :
+    //    comparaison sur les 9 derniers chiffres)
+    const digits = (from || "").replace(/\D/g, "");
+    const last9 = digits.slice(-9);
     let clientId: string | null = null;
-    if (phone) {
+    let clientName = "";
+    if (last9.length >= 8) {
       const { data: candidates } = await admin
-        .from("clients").select("id, phone").eq("company_id", companyId).not("phone", "is", null).limit(5000);
-      const match = (candidates ?? []).find((c) => normalizeBelgianPhone((c as { phone: string }).phone) === phone);
+        .from("clients").select("id, name, phone").eq("company_id", companyId).not("phone", "is", null).limit(5000);
+      const match = (candidates ?? []).find((c) =>
+        String((c as { phone: string }).phone).replace(/\D/g, "").slice(-9) === last9);
       clientId = (match as { id: string } | undefined)?.id ?? null;
+      clientName = (match as { name?: string } | undefined)?.name ?? "";
     }
 
     // 3) ligne voice_calls (inbound)
@@ -83,11 +88,13 @@ serve(async (req) => {
     if (agents && agents.length > 0) {
       // Fait sonner tous les agents en ligne ; le premier qui décroche prend.
       // On passe le contexte en paramètres custom (lus par le SDK à l'arrivée).
+      const attr = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
       const clients = agents.map((a) =>
         `<Client>${a.identity}` +
         `<Parameter name="voiceCallId" value="${voiceCallId}"/>` +
-        `<Parameter name="from" value="${from}"/>` +
+        `<Parameter name="from" value="${attr(from)}"/>` +
         (clientId ? `<Parameter name="clientId" value="${clientId}"/>` : "") +
+        (clientName ? `<Parameter name="clientName" value="${attr(clientName)}"/>` : "") +
         `</Client>`).join("");
       return twiml(
         `<Response><Dial timeout="25" answerOnBridge="true" record="record-from-answer-dual" ` +

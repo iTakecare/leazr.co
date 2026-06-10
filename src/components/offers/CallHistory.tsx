@@ -9,10 +9,15 @@ import {
   User,
   ArrowRight,
   Headset,
+  PhoneIncoming,
+  PhoneOutgoing,
+  Sparkles,
+  ChevronDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { format, parseISO, isToday, isPast } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getCallLogs, deleteCallLog, CallLog } from "@/services/callLogService";
@@ -65,15 +70,52 @@ const authorName = (log: CallLog): string => {
   return full || "Inconnu";
 };
 
+interface VoiceCall {
+  id: string;
+  direction: string | null;
+  status: string | null;
+  to_phone: string | null;
+  duration_seconds: number | null;
+  recording_path: string | null;
+  transcription: string | null;
+  summary: string | null;
+  created_at: string;
+}
+
+const VOICE_STATUS_FR: Record<string, string> = {
+  ringing: "Sonné", in_progress: "En cours", completed: "Terminé",
+  no_answer: "Sans réponse", busy: "Occupé", failed: "Échec", canceled: "Annulé",
+};
+
 export const CallHistory: React.FC<CallHistoryProps> = ({ offerId }) => {
   const { user } = useAuth();
   const [logs, setLogs] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [callModalOpen, setCallModalOpen] = useState(false);
+  const [voiceCalls, setVoiceCalls] = useState<VoiceCall[]>([]);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [clientInfo, setClientInfo] = useState<OfferClientInfo>({
     clientId: null,
     clientPhone: null,
   });
+
+  // Appels téléphoniques (softphone / agent IA) liés à la demande OU au client.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const filters = [`offer_id.eq.${offerId}`];
+      if (clientInfo.clientId) filters.push(`client_id.eq.${clientInfo.clientId}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("voice_calls")
+        .select("id, direction, status, to_phone, duration_seconds, recording_path, transcription, summary, created_at")
+        .or(filters.join(","))
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (!cancelled) setVoiceCalls((data as VoiceCall[]) ?? []);
+    })();
+    return () => { cancelled = true; };
+  }, [offerId, clientInfo.clientId, callModalOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,13 +191,73 @@ export const CallHistory: React.FC<CallHistoryProps> = ({ offerId }) => {
         </div>
       </CardHeader>
       <CardContent>
+        {/* Appels téléphoniques (softphone / agent IA) avec enregistrement + transcription */}
+        {voiceCalls.length > 0 && (
+          <div className="mb-4 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <Headset className="w-3.5 h-3.5" /> Appels téléphoniques
+            </p>
+            {voiceCalls.map((vc) => {
+              const isOpen = !!expanded[vc.id];
+              const hasContent = !!(vc.transcription || vc.summary || vc.recording_path);
+              return (
+                <div key={vc.id} className="rounded-lg border bg-white">
+                  <div className="flex items-center gap-3 p-3">
+                    <span className={`p-1.5 rounded-full shrink-0 ${vc.direction === "inbound" ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"}`}>
+                      {vc.direction === "inbound" ? <PhoneIncoming className="w-3.5 h-3.5" /> : <PhoneOutgoing className="w-3.5 h-3.5" />}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium font-mono">{vc.to_phone ?? "—"}</span>
+                        <Badge variant="outline" className="text-xs">{VOICE_STATUS_FR[vc.status ?? ""] ?? vc.status}</Badge>
+                        {vc.duration_seconds ? (
+                          <span className="text-xs text-muted-foreground">{Math.floor(vc.duration_seconds / 60)}m{String(vc.duration_seconds % 60).padStart(2, "0")}s</span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(vc.created_at), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                      </p>
+                    </div>
+                    {hasContent && (
+                      <Button variant="ghost" size="sm" className="h-7 shrink-0" onClick={() => setExpanded((e) => ({ ...e, [vc.id]: !isOpen }))}>
+                        <Sparkles className="w-3.5 h-3.5 mr-1" />
+                        {isOpen ? "Masquer" : "Détails"}
+                        <ChevronDown className={`w-3.5 h-3.5 ml-1 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      </Button>
+                    )}
+                  </div>
+                  {isOpen && hasContent && (
+                    <div className="border-t p-3 space-y-2">
+                      {vc.recording_path && <VoiceRecording path={vc.recording_path} />}
+                      {vc.summary && (
+                        <div className="rounded-md bg-violet-50 border border-violet-100 p-2 text-sm">
+                          <p className="text-xs font-medium text-violet-700 mb-0.5">Résumé IA</p>
+                          {vc.summary}
+                        </div>
+                      )}
+                      {vc.transcription && (
+                        <div className="rounded-md border p-2 text-sm whitespace-pre-wrap max-h-48 overflow-auto">
+                          {vc.transcription}
+                        </div>
+                      )}
+                      {!vc.transcription && vc.recording_path && (
+                        <p className="text-xs text-muted-foreground">Transcription en cours ou non lancée.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <Separator className="my-2" />
+          </div>
+        )}
         {loading ? (
           <div className="space-y-2">
             {[1, 2].map((i) => (
               <div key={i} className="h-16 bg-slate-100 animate-pulse rounded-lg" />
             ))}
           </div>
-        ) : logs.length === 0 ? (
+        ) : logs.length === 0 && voiceCalls.length === 0 ? (
           <div className="text-center py-8">
             <Phone className="w-10 h-10 text-slate-200 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground font-medium">
@@ -275,6 +377,20 @@ export const CallHistory: React.FC<CallHistoryProps> = ({ offerId }) => {
       />
     </Card>
   );
+};
+
+// Lecteur de l'enregistrement (bucket privé → URL signée)
+const VoiceRecording: React.FC<{ path: string }> = ({ path }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).storage.from("call-recordings").createSignedUrl(path, 3600)
+      .then(({ data }: { data: { signedUrl?: string } | null }) => { if (!cancelled) setUrl(data?.signedUrl ?? null); });
+    return () => { cancelled = true; };
+  }, [path]);
+  if (!url) return <div className="h-10 bg-slate-100 animate-pulse rounded" />;
+  return <audio controls preload="none" src={url} className="w-full h-10" />;
 };
 
 export default CallHistory;
