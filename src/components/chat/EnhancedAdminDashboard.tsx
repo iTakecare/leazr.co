@@ -139,6 +139,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const [conversationToDelete, setConversationToDelete] = useState<ChatConversation | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [activeTab, setActiveTab] = useState('waiting');
+  const [channelFilter, setChannelFilter] = useState<'all' | 'whatsapp' | 'sms' | 'web'>('all');
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
   const [isConnected, setIsConnected] = useState(false);
   const [sendingChannelMessage, setSendingChannelMessage] = useState(false);
@@ -609,6 +610,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
   };
 
   const filteredConversations = conversations.filter(conv => {
+    if (channelFilter !== 'all' && (conv.channel ?? 'web') !== channelFilter) return false;
     switch (activeTab) {
       case 'waiting': return conv.status === 'waiting';
       case 'active': return conv.status === 'active';
@@ -616,6 +618,9 @@ export const EnhancedAdminDashboard: React.FC = () => {
       default: return true;
     }
   });
+
+  const channelCount = (ch: 'whatsapp' | 'sms' | 'web') =>
+    conversations.filter((c) => (c.channel ?? 'web') === ch && c.status === 'waiting').length;
 
   const currentMessages = selectedConversation ? (messages[selectedConversation.id] || []) : [];
 
@@ -669,6 +674,35 @@ export const EnhancedAdminDashboard: React.FC = () => {
           </div>
         </div>
 
+      </div>
+
+      {/* Filtre par canal — WhatsApp / SMS / chat web séparés */}
+      <div className="flex items-center gap-1 mb-4">
+        {([
+          { key: 'all', label: 'Tous canaux', icon: Users },
+          { key: 'whatsapp', label: 'WhatsApp', icon: Phone },
+          { key: 'sms', label: 'SMS', icon: Smartphone },
+          { key: 'web', label: 'Chat web', icon: Globe },
+        ] as const).map(({ key, label, icon: Icon }) => {
+          const waiting = key === 'all' ? 0 : channelCount(key);
+          return (
+            <Button
+              key={key}
+              size="sm"
+              variant={channelFilter === key ? 'default' : 'outline'}
+              className={channelFilter === key && key === 'whatsapp' ? 'bg-emerald-600 hover:bg-emerald-700' : channelFilter === key && key === 'sms' ? 'bg-sky-600 hover:bg-sky-700' : ''}
+              onClick={() => setChannelFilter(key)}
+            >
+              <Icon className="h-3.5 w-3.5 mr-1.5" />
+              {label}
+              {waiting > 0 && (
+                <Badge className="ml-1.5 h-5 min-w-5 rounded-full px-1 bg-orange-500 text-white text-xs">
+                  {waiting}
+                </Badge>
+              )}
+            </Button>
+          );
+        })}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">

@@ -227,7 +227,7 @@ SELECT cron.schedule(
     url := 'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/mail-sync',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'X-Cron-Secret', 'bad95771a99ac9750cc38643a7b26796cd157bc164fef8fca95a2cf9f978c2a3'
+      'X-Cron-Secret', '<MAIL_CRON_SECRET>'
     ),
     body := jsonb_build_object('action', 'sync_all')
   );
