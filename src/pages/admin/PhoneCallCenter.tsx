@@ -46,6 +46,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import EmbeddedAdminView from "@/components/admin/EmbeddedAdminView";
 
 // ----------------------------------------------------------------------------
 // Types locaux (le client supabase n'est pas typé sur ces tables)
@@ -1311,7 +1312,7 @@ export default function PhoneCallCenter() {
                   {embedExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" title="Rafraîchir"
-                  onClick={() => setEmbedded((e) => e ? { ...e, url: e.url + (e.url.includes("#r") ? "" : "") + `#r${Date.now()}` } : e)}>
+                  onClick={() => setEmbedded((e) => e ? { ...e, url: e.url.replace(/#r\d+$/, "") + `#r${Date.now()}` } : e)}>
                   <Loader2 className="h-4 w-4" />
                 </Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" title="Ouvrir dans un onglet"
@@ -1323,12 +1324,12 @@ export default function PhoneCallCenter() {
                 </Button>
               </div>
             </div>
-            <iframe
-              key={embedded.url}
-              src={embedded.url}
-              title={embedded.title}
-              className="flex-1 w-full border-0"
-            />
+            {/* Rendu inline (plus d'iframe) : la vraie page admin dans un
+                routeur mémoire imbriqué. key sur l'url → remontage propre au
+                changement de cible ou au rafraîchissement (#r{ts}). */}
+            <div key={embedded.url} className="flex-1 min-h-0 overflow-auto">
+              <EmbeddedAdminView url={embedded.url} />
+            </div>
           </Card>
         )}
       </div>

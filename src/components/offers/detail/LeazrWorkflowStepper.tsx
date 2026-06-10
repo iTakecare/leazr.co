@@ -18,6 +18,7 @@ import {
   FilePen
 } from "lucide-react";
 import { toast } from "sonner";
+import { useIsEmbeddedView } from "@/context/EmbeddedViewContext";
 import { cn } from "@/lib/utils";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +57,10 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
   offer
 }) => {
   const { user } = useAuth();
+  // Compact layout when rendered in the Call Center's narrow right column
+  // (inline embed) — viewport breakpoints can't help there since it shares the
+  // full-screen viewport, so we switch on this explicit context flag.
+  const compact = useIsEmbeddedView();
   const [updating, setUpdating] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [isEmailProcessing, setIsEmailProcessing] = useState(false);
@@ -476,15 +481,18 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
             return (
               <React.Fragment key={step.key}>
                 {/* Step column */}
-                <div className="flex flex-col items-center relative min-w-[84px] md:min-w-[120px]">
+                <div className={cn("flex flex-col items-center relative", compact ? "min-w-[84px]" : "min-w-[120px]")}>
                   {/* Step box - Leazr style with ORANGE active border.
-                      Compact by default (narrow embed iframe) → full size at md:. */}
+                      Compact in the Call Center embed → full size in full page. */}
                   <button
                     onClick={() => canClick && handleStepClick(step.key, index)}
                     disabled={!canClick || updating}
                     className={cn(
-                      "relative flex flex-col items-center p-2 md:p-4 rounded-lg md:rounded-xl border-2 transition-all min-w-[108px] md:min-w-[160px]",
-                      isActive ? "min-h-[150px] md:min-h-[200px] justify-start" : "min-h-[104px] md:min-h-[140px] justify-center",
+                      "relative flex flex-col items-center rounded-xl border-2 transition-all",
+                      compact ? "p-2 rounded-lg min-w-[108px]" : "p-4 min-w-[160px]",
+                      isActive
+                        ? (compact ? "min-h-[150px] justify-start" : "min-h-[200px] justify-start")
+                        : (compact ? "min-h-[104px] justify-center" : "min-h-[140px] justify-center"),
                       isCompleted && "border-primary/40 bg-white",
                       isActive && "border-orange-400 shadow-lg bg-white",
                       isUpcoming && "border-gray-200 bg-white",
@@ -512,13 +520,14 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
 
                     {/* Icon inside rounded gray box - Leazr style */}
                     <div className={cn(
-                      "p-1.5 md:p-3 rounded-lg",
+                      "rounded-lg",
+                      compact ? "p-1.5" : "p-3",
                       isCompleted && "bg-primary/10",
                       isActive && "bg-orange-50",
                       isUpcoming && "bg-gray-100"
                     )}>
                       <Icon className={cn(
-                        "w-5 h-5 md:w-8 md:h-8",
+                        compact ? "w-5 h-5" : "w-8 h-8",
                         isCompleted && "text-primary",
                         isActive && "text-orange-500",
                         isUpcoming && "text-gray-400"
@@ -619,7 +628,8 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
 
                   {/* Step label */}
                   <span className={cn(
-                    "mt-2 md:mt-3 text-xs md:text-sm font-medium text-center max-w-[100px] md:max-w-[120px] leading-tight",
+                    "font-medium text-center leading-tight",
+                    compact ? "mt-2 text-xs max-w-[100px]" : "mt-3 text-sm max-w-[120px]",
                     isActive && "text-foreground",
                     isCompleted && "text-foreground",
                     isUpcoming && "text-muted-foreground"
@@ -659,8 +669,8 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
 
                 {/* Dashed arrow connector - Leazr style */}
                 {index < activeSteps.length - 1 && (
-                  <div className="flex items-center self-start mt-10 md:mt-14 px-0.5 md:px-2">
-                    <div className="w-3 md:w-8 border-t-2 border-dashed border-gray-300"></div>
+                  <div className={cn("flex items-center self-start", compact ? "mt-10 px-0.5" : "mt-14 px-2")}>
+                    <div className={cn("border-t-2 border-dashed border-gray-300", compact ? "w-3" : "w-8")}></div>
                     <ChevronRight className="w-4 h-4 text-gray-300 -ml-1" />
                   </div>
                 )}
