@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Check, X, Download, Trash2, MessageSquare, Mail, FileText, Eye } from 'lucide-react';
+import { Check, X, Download, Trash2, MessageSquare, Mail, FileText, Eye, Send } from 'lucide-react';
+import RequestDocumentsDialog from './RequestDocumentsDialog';
+import DocumentRequestsList from './DocumentRequestsList';
 import { getOfferDocuments, updateDocumentStatus, deleteDocument, downloadDocument, rejectDocumentWithEmail, markDocumentsAsViewed, DOCUMENT_TYPES, type OfferDocument } from '@/services/offers/offerDocuments';
 import { toast } from 'sonner';
 import { PDFViewer } from '@/components/pdf/PDFViewer';
@@ -28,6 +30,7 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
   
   // États pour le PDFViewer
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const [docReqOpen, setDocReqOpen] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfFilename, setPdfFilename] = useState('');
 
@@ -252,6 +255,13 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="mb-4">
+          <Button variant="outline" size="sm" onClick={() => setDocReqOpen(true)}>
+            <Send className="mr-2 h-4 w-4" /> Demander des documents
+          </Button>
+        </div>
+        <DocumentRequestsList offerId={offerId} />
+        <RequestDocumentsDialog open={docReqOpen} onOpenChange={setDocReqOpen} offerId={offerId} onSent={loadDocuments} />
         {documents.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />

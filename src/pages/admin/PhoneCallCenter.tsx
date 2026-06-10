@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSoftphone } from "@/hooks/useSoftphone";
+import RequestDocumentsDialog from "@/components/offers/RequestDocumentsDialog";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -191,6 +192,7 @@ export default function PhoneCallCenter() {
   const [showClientSearch, setShowClientSearch] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [docReqOffer, setDocReqOffer] = useState<string | null>(null);
 
   const inCall =
     sp.status === "connecting" || sp.status === "ringing" || sp.status === "in_call";
@@ -1082,21 +1084,27 @@ export default function PhoneCallCenter() {
                     emptyLabel="Aucune demande."
                   >
                     {offers.map((o) => (
-                      <button
-                        key={o.id}
-                        onClick={() => openEmbedded("offers/" + o.id, "Demande " + (o.offer_number ?? o.dossier_number ?? ""))}
-                        className="w-full text-left rounded-md border p-2 text-sm hover:bg-accent flex items-center justify-between gap-2"
-                      >
-                        <span className="truncate">
-                          {o.offer_number ?? o.dossier_number ?? o.id.slice(0, 8)}
-                          {o.workflow_status ? ` · ${o.workflow_status}` : ""}
-                        </span>
-                        {o.monthly_payment != null && (
-                          <span className="font-mono shrink-0">
-                            {o.monthly_payment} €/m
+                      <div key={o.id} className="flex items-center gap-1 rounded-md border p-1 pl-2 text-sm hover:bg-accent">
+                        <button
+                          onClick={() => openEmbedded("offers/" + o.id, "Demande " + (o.offer_number ?? o.dossier_number ?? ""))}
+                          className="flex-1 text-left flex items-center justify-between gap-2 min-w-0"
+                        >
+                          <span className="truncate">
+                            {o.offer_number ?? o.dossier_number ?? o.id.slice(0, 8)}
+                            {o.workflow_status ? ` · ${o.workflow_status}` : ""}
                           </span>
-                        )}
-                      </button>
+                          {o.monthly_payment != null && (
+                            <span className="font-mono shrink-0">{o.monthly_payment} €/m</span>
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDocReqOffer(o.id); }}
+                          className="shrink-0 h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background"
+                          title="Demander des documents"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </button>
+                      </div>
                     ))}
                   </Section>
 
@@ -1304,6 +1312,13 @@ export default function PhoneCallCenter() {
           </Card>
         )}
       </div>
+
+      {/* Demande de documents multi-canal (depuis une demande du client) */}
+      <RequestDocumentsDialog
+        open={!!docReqOffer}
+        onOpenChange={(o) => { if (!o) setDocReqOffer(null); }}
+        offerId={docReqOffer ?? ""}
+      />
 
       {/* Modale message rapide (WhatsApp/SMS) avec destinataire préchargé */}
       <Dialog open={msgOpen} onOpenChange={(o) => { setMsgOpen(o); if (!o) setMsgText(""); }}>
