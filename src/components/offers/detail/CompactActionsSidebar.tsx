@@ -25,6 +25,9 @@ import RelaunchYoungCompanyButton from "./RelaunchYoungCompanyButton";
 import CreateRetryOfferButton from "./CreateRetryOfferButton";
 import ReminderIndicator from "../ReminderIndicator";
 import { CallLogButton } from "../CallLogButton";
+import ClientCallModal from "../ClientCallModal";
+import { supabase } from "@/integrations/supabase/client";
+import { Headset } from "lucide-react";
 import { AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 import {
@@ -87,6 +90,18 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onPromoCard
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [callModalOpen, setCallModalOpen] = useState(false);
+  const [clientPhone, setClientPhone] = useState<string | null>(null);
+
+  // Téléphone du client (pour le softphone de la modale d'appel).
+  React.useEffect(() => {
+    const cid = offer?.client_id;
+    if (!cid) { setClientPhone(null); return; }
+    let cancelled = false;
+    supabase.from("clients").select("phone").eq("id", cid).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setClientPhone((data as { phone?: string } | null)?.phone ?? null); });
+    return () => { cancelled = true; };
+  }, [offer?.client_id]);
   
   // Statuts pour lesquels on peut envoyer une demande d'avis Google
   const googleReviewStatuses = ['validated', 'signed', 'completed', 'financed', 'contract_sent'];
@@ -319,12 +334,26 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
           <CardTitle className="text-base">Appels & Rappels</CardTitle>
         </CardHeader>
         <CardContent>
-          <CallLogButton
-            offerId={offer.id}
-            onCallLogged={onCallLogged}
-          />
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => setCallModalOpen(true)}
+          >
+            <Headset className="h-4 w-4 mr-2" />
+            Gérer l'appel client
+          </Button>
         </CardContent>
       </Card>
+
+      <ClientCallModal
+        open={callModalOpen}
+        onOpenChange={setCallModalOpen}
+        offerId={offer.id}
+        clientId={offer.client_id ?? null}
+        clientName={offer.client_name ?? undefined}
+        clientPhone={clientPhone}
+        onLogged={onCallLogged}
+      />
 
       {/* Actions rapides */}
       <Card>

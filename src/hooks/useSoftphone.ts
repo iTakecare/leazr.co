@@ -103,19 +103,24 @@ export function useSoftphone(enabled: boolean): UseSoftphoneResult {
           codecPreferences: ["opus", "pcmu"] as Call.Codec[],
         });
 
-        device.on("error", (err: { message?: string }) => {
+        // Les erreurs du Device ne sont FATALES que pendant un appel actif.
+        // En arrière-plan (ex. enregistrement entrant non configuré → 31000),
+        // on les ignore : les appels SORTANTS n'en ont pas besoin.
+        device.on("error", (err: { message?: string; code?: number }) => {
           if (cancelled) return;
-          setError(err?.message ?? "Erreur du softphone");
-          setStatus("error");
+          if (callRef.current) {
+            setError(err?.message ?? "Erreur du softphone");
+            setStatus("error");
+          } else {
+            console.warn("[softphone] device error (non bloquant):", err?.code, err?.message);
+          }
         });
 
-        await device.register();
-        if (cancelled) {
-          device.destroy();
-          return;
-        }
+        // Pas de device.register() : il ne sert qu'à RECEVOIR des appels et
+        // peut échouer (31000) sans compte d'appels entrants. Pour APPELER,
+        // device.connect() suffit. Le device est prêt dès sa création.
         deviceRef.current = device;
-        setReady(true);
+        if (!cancelled) setReady(true);
       } catch (e) {
         if (!cancelled) {
           const msg = e instanceof Error ? e.message : String(e);
