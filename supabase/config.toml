@@ -293,3 +293,11 @@ verify_jwt = true
 [functions.platform-secret]
 # SaaS admin secrets (super_admin only). Does its own auth.
 verify_jwt = true
+
+[functions.messaging-send]
+# Envoi WhatsApp/SMS sortant — auth utilisateur (pattern grenke-api).
+verify_jwt = true
+
+[functions.messaging-webhook]
+# Webhooks Twilio (inbound + status) — public, authentifié par X-Twilio-Signature.
+verify_jwt = false

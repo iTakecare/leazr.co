@@ -1,3 +1,5 @@
+export type MessagingChannel = 'web' | 'whatsapp' | 'sms'
+
 export interface ChatMessage {
   id?: string
   conversation_id: string
@@ -5,9 +7,15 @@ export interface ChatMessage {
   sender_id?: string | null
   sender_name: string
   message: string
-  message_type: 'text' | 'image' | 'file' | 'system'
+  message_type: 'text' | 'image' | 'file' | 'system' | 'media'
   metadata?: Record<string, any>
   created_at?: string
+  direction?: 'inbound' | 'outbound' | null
+  delivery_status?: string | null
+  delivery_error?: string | null
+  media_path?: string | null
+  media_content_type?: string | null
+  template_key?: string | null
 }
 
 export interface ChatConversation {
@@ -24,6 +32,9 @@ export interface ChatConversation {
   ended_at?: string | null
   created_at: string
   updated_at: string
+  channel?: MessagingChannel
+  client_phone?: string | null
+  last_inbound_at?: string | null
 }
 
 export interface ChatAgentStatus {

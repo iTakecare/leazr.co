@@ -18,11 +18,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { 
-  MessageCircle, 
-  Users, 
-  Clock, 
-  Send, 
+import {
+  MessageCircle,
+  Users,
+  Clock,
+  Send,
   User,
   CheckCircle,
   AlertCircle,
@@ -32,7 +32,12 @@ import {
   MoreHorizontal,
   Zap,
   Star,
-  Eye
+  Eye,
+  Check,
+  CheckCheck,
+  Globe,
+  FileImage,
+  Smartphone
 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +45,78 @@ import { ChatConversation, ChatMessage } from '@/types/chat';
 import { useAuth } from '@/context/AuthContext';
 import { OnlineStatusSwitch } from './OnlineStatusSwitch';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
+
+// Fenêtre WhatsApp : réponse libre autorisée pendant 24 h après le dernier
+// message entrant du client. Au-delà, seuls les templates approuvés passent.
+const WHATSAPP_WINDOW_MS = 24 * 60 * 60 * 1000;
+const whatsappWindowDeadline = (conv: ChatConversation): Date | null =>
+  conv.channel === 'whatsapp' && conv.last_inbound_at
+    ? new Date(new Date(conv.last_inbound_at).getTime() + WHATSAPP_WINDOW_MS)
+    : null;
+
+const ChannelBadge: React.FC<{ channel?: string }> = ({ channel }) => {
+  if (channel === 'whatsapp') {
+    return (
+      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+        <Phone className="h-3 w-3 mr-1" />
+        WhatsApp
+      </Badge>
+    );
+  }
+  if (channel === 'sms') {
+    return (
+      <Badge variant="secondary" className="bg-sky-100 text-sky-700 border-sky-200 hover:bg-sky-100">
+        <Smartphone className="h-3 w-3 mr-1" />
+        SMS
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted">
+      <Globe className="h-3 w-3 mr-1" />
+      Web
+    </Badge>
+  );
+};
+
+// Coches de livraison façon WhatsApp pour les messages sortants.
+const DeliveryTicks: React.FC<{ status?: string | null; error?: string | null }> = ({ status, error }) => {
+  if (!status) return null;
+  if (status === 'failed' || status === 'undelivered') {
+    return <span className="text-red-500 inline-flex items-center gap-1" title={error ?? 'Échec d\'envoi'}><AlertCircle className="h-3 w-3" /> échec</span>;
+  }
+  if (status === 'read') return <CheckCheck className="h-3.5 w-3.5 inline text-sky-400" />;
+  if (status === 'delivered') return <CheckCheck className="h-3.5 w-3.5 inline opacity-70" />;
+  return <Check className="h-3.5 w-3.5 inline opacity-70" />;
+};
+
+// Pièce jointe entrante (photo de document, PDF…) — bucket privé chat-media,
+// affichée via une URL signée courte durée.
+const MediaAttachment: React.FC<{ path: string; contentType?: string | null }> = ({ path, contentType }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.storage.from('chat-media').createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled) setUrl(data?.signedUrl ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [path]);
+  if (!url) {
+    return <span className="text-xs opacity-70 inline-flex items-center gap-1"><FileImage className="h-3 w-3" /> Chargement…</span>;
+  }
+  if (contentType?.startsWith('image/')) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer">
+        <img src={url} alt="Pièce jointe" className="max-h-48 rounded-lg mt-1" />
+      </a>
+    );
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="underline inline-flex items-center gap-1 mt-1">
+      <FileImage className="h-3.5 w-3.5" /> Ouvrir la pièce jointe
+    </a>
+  );
+};
 
 export const EnhancedAdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -53,6 +130,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('waiting');
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
   const [isConnected, setIsConnected] = useState(false);
+  const [sendingChannelMessage, setSendingChannelMessage] = useState(false);
 
   const { agentStatus } = useAgentStatus();
 
@@ -91,6 +169,36 @@ export const EnhancedAdminDashboard: React.FC = () => {
 
     fetchCompanyId();
   }, [user?.id]);
+
+  // WhatsApp/SMS : l'edge function envoie via Twilio ET insère le message en
+  // base — le realtime l'affiche. Pas d'insert direct ici (sinon doublon).
+  const sendChannelMessage = async (conversation: ChatConversation, text: string) => {
+    setSendingChannelMessage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('messaging-send', {
+        body: { action: 'send_message', conversation_id: conversation.id, text },
+      });
+      let body = (data ?? null) as { success?: boolean; error?: string; message?: string } | null;
+      if (error) {
+        const ctx = (error as unknown as { context?: Response }).context;
+        if (ctx?.json) { try { body = await ctx.json(); } catch { /* */ } }
+      }
+      if (!body?.success) {
+        if (body?.error === 'window_closed') {
+          showToast('Fenêtre WhatsApp fermée', 'Plus de 24 h sans message du client — il doit vous écrire, ou envoyez un template approuvé.', 'destructive');
+        } else {
+          showToast('Erreur', body?.message ?? body?.error ?? 'Envoi impossible', 'destructive');
+        }
+        return;
+      }
+      loadMessages(conversation.id);
+    } catch (e) {
+      console.error('Error sending channel message:', e);
+      showToast('Erreur', 'Envoi impossible', 'destructive');
+    } finally {
+      setSendingChannelMessage(false);
+    }
+  };
 
   // Simple message sending functionality
   const sendMessage = async (conversationId: string, message: string, senderName: string, senderType: 'agent' | 'visitor') => {
@@ -303,9 +411,12 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const handleSendMessage = () => {
     if (!currentMessage.trim() || !selectedConversation || !user) return;
 
-    const senderName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Agent';
-    
-    sendMessage(selectedConversation.id, currentMessage, senderName, 'agent');
+    if (selectedConversation.channel === 'whatsapp' || selectedConversation.channel === 'sms') {
+      sendChannelMessage(selectedConversation, currentMessage);
+    } else {
+      const senderName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Agent';
+      sendMessage(selectedConversation.id, currentMessage, senderName, 'agent');
+    }
     setCurrentMessage('');
     setIsTyping(false);
   };
@@ -573,7 +684,12 @@ export const EnhancedAdminDashboard: React.FC = () => {
                           </div>
                           
                           <div className="flex items-center justify-between">
-                            {getStatusBadge(conversation.status)}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {getStatusBadge(conversation.status)}
+                              {conversation.channel && conversation.channel !== 'web' && (
+                                <ChannelBadge channel={conversation.channel} />
+                              )}
+                            </div>
                             <span className="text-xs text-muted-foreground">
                               {new Date(conversation.started_at).toLocaleTimeString('fr-FR', {
                                 hour: '2-digit',
@@ -619,15 +735,16 @@ export const EnhancedAdminDashboard: React.FC = () => {
                         <CardTitle className="text-base">
                           {selectedConversation.visitor_name || 'Visiteur anonyme'}
                         </CardTitle>
-                        {selectedConversation.visitor_email && (
+                        {(selectedConversation.visitor_email || selectedConversation.client_phone) && (
                           <p className="text-sm text-muted-foreground">
-                            {selectedConversation.visitor_email}
+                            {selectedConversation.visitor_email || selectedConversation.client_phone}
                           </p>
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
+                      <ChannelBadge channel={selectedConversation.channel} />
                       {getStatusBadge(selectedConversation.status)}
                       
                       <div className="flex gap-1">
@@ -696,14 +813,21 @@ export const EnhancedAdminDashboard: React.FC = () => {
                                   : 'bg-muted rounded-bl-md'
                               }`}
                             >
-                              <p className="whitespace-pre-wrap">{message.message}</p>
+                              {message.media_path ? (
+                                <MediaAttachment path={message.media_path} contentType={message.media_content_type} />
+                              ) : (
+                                <p className="whitespace-pre-wrap">{message.message}</p>
+                              )}
                             </div>
-                            
-                            <p className="text-xs text-muted-foreground mt-1 px-2">
+
+                            <p className="text-xs text-muted-foreground mt-1 px-2 flex items-center gap-1 justify-end">
                               {message.created_at ? new Date(message.created_at).toLocaleTimeString('fr-FR', {
                                 hour: '2-digit',
                                 minute: '2-digit'
                               }) : ''}
+                              {message.direction === 'outbound' && (
+                                <DeliveryTicks status={message.delivery_status} error={message.delivery_error} />
+                              )}
                             </p>
                           </div>
                         </div>
@@ -724,37 +848,56 @@ export const EnhancedAdminDashboard: React.FC = () => {
                   </ScrollArea>
 
                   {/* Message Input */}
-                  {selectedConversation.status !== 'closed' && (
+                  {selectedConversation.status !== 'closed' && (() => {
+                    // Web : il faut être en ligne. WhatsApp : il faut que la
+                    // fenêtre de 24 h soit ouverte. SMS : toujours possible.
+                    const isChannelConv = selectedConversation.channel === 'whatsapp' || selectedConversation.channel === 'sms';
+                    const deadline = whatsappWindowDeadline(selectedConversation);
+                    const windowOpen = selectedConversation.channel !== 'whatsapp' || (deadline !== null && deadline.getTime() > Date.now());
+                    const canType = isChannelConv ? windowOpen : !!agentStatus?.is_online;
+                    return (
                     <div className="border-t p-4 bg-muted/20">
                       <div className="flex gap-3">
                         <div className="flex-1">
                            <Input
-                             placeholder="Tapez votre réponse..."
+                             placeholder={canType ? 'Tapez votre réponse...' : selectedConversation.channel === 'whatsapp' ? 'Fenêtre WhatsApp fermée' : 'Tapez votre réponse...'}
                              value={currentMessage}
                              onChange={(e) => handleInputChange(e.target.value)}
                              onKeyPress={handleKeyPress}
-                             disabled={!agentStatus?.is_online}
+                             disabled={!canType || sendingChannelMessage}
                              className="bg-white"
                            />
                         </div>
                          <Button
                            onClick={handleSendMessage}
-                           disabled={!currentMessage.trim() || !agentStatus?.is_online}
+                           disabled={!currentMessage.trim() || !canType || sendingChannelMessage}
                            size="sm"
                            className="px-4"
                          >
                            <Send className="h-4 w-4" />
                          </Button>
                       </div>
-                      
-                       {!agentStatus?.is_online && (
+
+                       {selectedConversation.channel === 'whatsapp' && windowOpen && deadline && (
+                         <p className="text-xs text-muted-foreground mt-2">
+                           Réponse libre possible jusqu'à {deadline.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} (fenêtre WhatsApp de 24 h).
+                         </p>
+                       )}
+                       {selectedConversation.channel === 'whatsapp' && !windowOpen && (
+                         <p className="text-xs text-orange-600 mt-2 flex items-center gap-1">
+                           <AlertCircle className="h-3 w-3" />
+                           Fenêtre de 24 h fermée — le client doit vous écrire pour la rouvrir, ou envoyez un template approuvé (relance documents, etc.).
+                         </p>
+                       )}
+                       {!isChannelConv && !agentStatus?.is_online && (
                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                            <div className="w-3 h-3 border border-red-600 border-t-transparent rounded-full animate-spin"></div>
                            Agent hors ligne - activez votre statut pour répondre
                          </p>
                        )}
                     </div>
-                  )}
+                    );
+                  })()}
                 </CardContent>
               </Card>
             ) : (

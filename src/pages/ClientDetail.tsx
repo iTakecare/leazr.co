@@ -14,6 +14,7 @@ import AmbassadorSelector from "@/components/ui/AmbassadorSelector";
 import { getClientAmbassador, updateClientAmbassador } from "@/services/ambassador/ambassadorClients";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import { useTaskMutations } from "@/hooks/useTasks";
+import ClientMessagingCard from "@/components/clients/ClientMessagingCard";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -242,8 +243,10 @@ export default function ClientDetail() {
         </CardContent>
       </Card>
 
-      <UnifiedClientView 
-        client={client} 
+      {id && <ClientMessagingCard clientId={id} />}
+
+      <UnifiedClientView
+        client={client}
         onClientUpdate={(updatedClient) => {
           setClient(updatedClient);
           toast.success("Client mis à jour avec succès");
