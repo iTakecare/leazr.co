@@ -23,7 +23,8 @@ import {
   Warehouse,
   Headset,
   FolderOpen,
-  Sparkles
+  Sparkles,
+  Phone
 } from "lucide-react";
 import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
@@ -97,6 +98,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
           { icon: CheckSquare, label: "Tâches", href: `${basePrefix}/admin/tasks`, moduleSlug: "tasks", alwaysVisible: true, badge: taskUnreadCount > 0 ? String(taskUnreadCount) : undefined },
           { icon: Mail, label: "Chat Admin", href: `${basePrefix}/admin/chat`, moduleSlug: "chat" },
           { icon: Headset, label: "Support", href: `${basePrefix}/admin/support`, moduleSlug: "support", alwaysVisible: true, badge: supportUnreadCount > 0 ? String(supportUnreadCount) : undefined },
+          { icon: Phone, label: "Centre d'appels", href: `${basePrefix}/admin/phone`, moduleSlug: "phone", alwaysVisible: true },
         ]
       },
     ];

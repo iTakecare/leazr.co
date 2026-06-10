@@ -80,6 +80,7 @@ const EquipmentOrders = lazy(() => import("@/pages/admin/EquipmentOrders"));
 const StockManagement = lazy(() => import("@/pages/admin/StockManagement"));
 const Tasks = lazy(() => import("@/pages/admin/Tasks"));
 const SupportPage = lazy(() => import("@/pages/admin/SupportPage"));
+const PhoneCallCenter = lazy(() => import("@/pages/admin/PhoneCallCenter"));
 const CRMPage = lazy(() => import("@/pages/CRMPage"));
 
 // Admin settings pages
@@ -336,6 +337,7 @@ const AppRoutes = () => {
       <Route path="stock" element={<Layout><StockManagement /></Layout>} />
       <Route path="tasks" element={<Layout><Tasks /></Layout>} />
       <Route path="support" element={<Layout><SupportPage /></Layout>} />
+      <Route path="phone" element={<Layout><PhoneCallCenter /></Layout>} />
       <Route path="crm" element={<Layout><CRMPage /></Layout>} />
       
       {/* Unified product form routes - handles both creation and editing */}
