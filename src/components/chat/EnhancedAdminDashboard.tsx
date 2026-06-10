@@ -953,8 +953,8 @@ export const EnhancedAdminDashboard: React.FC = () => {
                             <div
                               className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
                                 message.sender_type === 'agent'
-                                  ? 'bg-primary text-primary-foreground rounded-br-md'
-                                  : 'bg-muted rounded-bl-md'
+                                  ? 'bg-emerald-600 text-white rounded-br-md'
+                                  : 'bg-muted text-foreground rounded-bl-md'
                               }`}
                             >
                               {message.media_path ? (
