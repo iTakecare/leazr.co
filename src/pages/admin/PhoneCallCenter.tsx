@@ -14,6 +14,7 @@ import {
   Search,
   Delete,
   User,
+  UserPlus,
   Building2,
   Mail,
   ExternalLink,
@@ -390,6 +391,14 @@ export default function PhoneCallCenter() {
     const e164 = normalizeBeE164(phoneNumber);
     if (!e164) return;
 
+    // Si aucun client n'est sélectionné, on tente de le retrouver par son
+    // numéro (format-agnostique) pour charger son contexte automatiquement.
+    let client = selectedClient;
+    if (!client) {
+      const found = await findClientByPhone(phoneNumber);
+      if (found) { client = found; setSelectedClient(found); }
+    }
+
     try {
       const { data, error } = await db
         .from("voice_calls")
@@ -401,7 +410,7 @@ export default function PhoneCallCenter() {
           provider: "twilio_softphone",
           initiated_by: user.id,
           language: "fr",
-          client_id: selectedClient?.id ?? null,
+          client_id: client?.id ?? null,
         })
         .select("id")
         .maybeSingle();
@@ -417,7 +426,7 @@ export default function PhoneCallCenter() {
         e instanceof Error ? e.message : "Impossible de démarrer l'appel"
       );
     }
-  }, [phoneNumber, companyId, user?.id, selectedClient?.id, sp, queryClient]);
+  }, [phoneNumber, companyId, user?.id, selectedClient, findClientByPhone, sp, queryClient]);
 
   const handleSelectClient = useCallback((c: ClientRow) => {
     setSelectedClient(c);
@@ -459,43 +468,63 @@ export default function PhoneCallCenter() {
     }
   }, [activeVoiceCallId, queryClient]);
 
+  // Crée une tâche de suivi — liée au client si connu, sinon au numéro seul.
   const handleCreateTask = useCallback(async () => {
-    if (!selectedClient?.id || !companyId) return;
+    if (!companyId || !user?.id) return;
     setCreatingTask(true);
     try {
+      const label = selectedClient?.name ?? phoneNumber ?? "appel";
       const { error } = await db.from("tasks").insert({
-        related_client_id: selectedClient.id,
+        related_client_id: selectedClient?.id ?? null,
         company_id: companyId,
-        title: `Suivi appel — ${selectedClient.name ?? selectedClient.phone ?? ""}`.trim(),
+        title: `Suivi appel — ${label}`.trim(),
+        description: phoneNumber ? `Appel ${phoneNumber}` : null,
         status: "todo",
+        created_by: user.id,
       });
       if (error) throw error;
       toast.success("Tâche créée");
-      queryClient.invalidateQueries({ queryKey: ["client-tasks", selectedClient.id] });
+      if (selectedClient?.id) queryClient.invalidateQueries({ queryKey: ["client-tasks", selectedClient.id] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Impossible de créer la tâche");
     } finally {
       setCreatingTask(false);
     }
-  }, [selectedClient, companyId, queryClient]);
+  }, [selectedClient, companyId, user?.id, phoneNumber, queryClient]);
+
+  // Micro : autorisation explicite (utile dans une fenêtre PWA où le prompt
+  // n'apparaît pas tout seul).
+  const [micState, setMicState] = useState<"unknown" | "granted" | "denied">("unknown");
+  const requestMic = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+      setMicState("granted");
+      toast.success("Micro autorisé ✅ Vous pouvez appeler.");
+    } catch {
+      setMicState("denied");
+      toast.error("Micro refusé. Réglages macOS → Confidentialité → Microphone (autorisez votre navigateur), puis l'icône 🔒 de la barre d'adresse → Microphone : Autoriser.", { duration: 12000 });
+    }
+  }, []);
+
+  // Recherche d'un client par téléphone, insensible au format (RPC qui
+  // compare les 9 derniers chiffres).
+  const findClientByPhone = useCallback(async (raw: string): Promise<ClientRow | null> => {
+    if (!raw.trim() || !companyId) return null;
+    const { data } = await db.rpc("find_clients_by_phone", { p_company_id: companyId, p_phone: raw });
+    return ((data as ClientRow[]) ?? [])[0] ?? null;
+  }, [companyId]);
 
   const handleSearchByNumber = useCallback(async () => {
     if (!phoneNumber.trim() || !companyId) return;
-    const term = `%${phoneNumber.replace(/[^\d+]/g, "")}%`;
-    const { data } = await db
-      .from("clients")
-      .select("id, name, email, phone, company_name")
-      .eq("company_id", companyId)
-      .ilike("phone", term)
-      .limit(1);
-    const found = (data as ClientRow[])?.[0];
+    const found = await findClientByPhone(phoneNumber);
     if (found) {
       setSelectedClient(found);
       toast.success(`Client trouvé : ${found.name ?? ""}`);
     } else {
       toast.info("Aucun client avec ce numéro");
     }
-  }, [phoneNumber, companyId]);
+  }, [phoneNumber, companyId, findClientByPhone]);
 
   // --------------------------------------------------------------------------
   // RENDER
@@ -754,6 +783,20 @@ export default function PhoneCallCenter() {
               <div className="text-center space-y-4 text-muted-foreground">
                 <Phone className="h-14 w-14 mx-auto opacity-30" />
                 <p>Composez un numéro ou sélectionnez un client.</p>
+                {/* Activation du micro (indispensable pour appeler) */}
+                <div className="flex flex-col items-center gap-1">
+                  <Button
+                    variant={micState === "granted" ? "outline" : "default"}
+                    size="sm"
+                    onClick={requestMic}
+                  >
+                    <Mic className="h-4 w-4 mr-2" />
+                    {micState === "granted" ? "Micro autorisé ✅" : "Activer le micro"}
+                  </Button>
+                  <p className="text-xs">
+                    À faire une fois avant le premier appel.
+                  </p>
+                </div>
                 {sp.error && <p className="text-sm text-red-600">{sp.error}</p>}
               </div>
             )}
@@ -787,6 +830,26 @@ export default function PhoneCallCenter() {
                       disabled={!phoneNumber.trim()}
                     >
                       <Search className="h-4 w-4 mr-2" /> Rechercher ce numéro
+                    </Button>
+                    {/* Actions disponibles même sans client identifié */}
+                    <Button
+                      variant="outline"
+                      onClick={handleCreateTask}
+                      disabled={creatingTask}
+                    >
+                      <CheckSquare className="h-4 w-4 mr-2" /> Créer une tâche de suivi
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigateToAdmin("clients?create=1")}
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" /> Créer une fiche client
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigateToAdmin("create-offer")}
+                    >
+                      <FileText className="h-4 w-4 mr-2" /> Nouvelle demande
                     </Button>
                   </div>
 
