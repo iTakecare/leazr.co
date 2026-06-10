@@ -22,7 +22,6 @@ import { toast } from "sonner";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { getOfferById } from "@/services/offerService";
-import { sendDocumentRequestEmail } from "@/services/offers/documentEmail";
 import { sendLeasingRejectionEmail, sendNoFollowUpEmail } from "@/services/offers/offerEmail";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { getOfferDocuments } from "@/services/offers/offerDocuments";
@@ -140,6 +139,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [otherDoc, setOtherDoc] = useState("");
   const [customMessage, setCustomMessage] = useState("");
+  const [docChannels, setDocChannels] = useState<Array<"email" | "whatsapp" | "sms">>(["email"]);
   const [isSending, setIsSending] = useState(false);
   const [autoApprovalAvailable, setAutoApprovalAvailable] = useState(false);
   const [currentWorkflowStep, setCurrentWorkflowStep] = useState<WorkflowStepConfig | null>(null);
@@ -398,6 +398,10 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
         toast.error("Veuillez sélectionner au moins un document à demander");
         return;
       }
+      if (docChannels.length === 0) {
+        toast.error("Choisissez au moins un canal d'envoi (Email, WhatsApp ou SMS)");
+        return;
+      }
 
       try {
         setIsSending(true);
@@ -413,26 +417,30 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
           ...selectedDocs,
           ...(otherDoc.trim() ? [`custom:${otherDoc.trim()}`] : [])
         ];
-        
-        // Envoyer l'email avec le lien d'upload
-        const success = await sendDocumentRequestEmail({
-          offerClientEmail: offer.client_email,
-          offerClientName: offer.client_name,
-          offerId: offerId,
-          requestedDocuments: docsToRequest,
-          customMessage: customMessage || undefined,
-          requestedBy: analysisType
-        });
 
-        if (!success) {
-          throw new Error("Échec de l'envoi de l'email");
+        // Envoi MULTI-CANAL (email / WhatsApp / SMS) via document-request.
+        const { data, error } = await supabase.functions.invoke("document-request", {
+          body: { offer_id: offerId, documents: docsToRequest, custom_message: customMessage || undefined, channels: docChannels },
+        });
+        let resp = (data ?? null) as { success?: boolean; email_status?: string|null; whatsapp_status?: string|null; sms_status?: string|null } | null;
+        if (error) {
+          const ctx = (error as { context?: { json?: () => Promise<unknown> } }).context;
+          if (ctx?.json) { try { resp = (await ctx.json()) as typeof resp; } catch { /* */ } }
+        }
+        if (!resp?.success) {
+          throw new Error("Échec de l'envoi de la demande de documents");
         }
 
         // Appeler le handler parent avec le score B et la raison
         const fullReason = `Documents demandés: ${docsToRequest.join(', ')}${reason.trim() ? ` - ${reason.trim()}` : ''}`;
         await onScoreAssigned(selectedScore, fullReason);
-        
-        toast.success("Score B attribué et demande de documents envoyée");
+
+        const okParts = [
+          resp.email_status === "sent" ? "Email" : null,
+          resp.whatsapp_status === "sent" ? "WhatsApp" : null,
+          resp.sms_status === "sent" ? "SMS" : null,
+        ].filter(Boolean);
+        toast.success(`Score B attribué — demande envoyée${okParts.length ? " (" + okParts.join(", ") + ")" : ""}`);
         onClose();
       } catch (error) {
         console.error("Erreur lors de l'envoi de la demande:", error);
@@ -793,11 +801,29 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                   Demande de documents
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Sélectionnez les documents à demander au client. Un email avec un lien d'upload sécurisé sera envoyé.
+                  Sélectionnez les documents à demander au client. Un lien d'upload sécurisé sera envoyé sur les canaux choisis.
                 </p>
               </CardHeader>
 
               <CardContent className="space-y-4">
+                {/* Canaux d'envoi (email / WhatsApp / SMS) */}
+                <div>
+                  <p className="text-sm font-medium mb-1.5">Envoyer via</p>
+                  <div className="flex gap-2">
+                    {([["email", "Email"], ["whatsapp", "WhatsApp"], ["sms", "SMS"]] as const).map(([c, lbl]) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setDocChannels((cs) => cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c])}
+                        className={`flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors ${docChannels.includes(c) ? "bg-emerald-600 text-white border-emerald-600" : "hover:bg-accent"}`}
+                      >
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">WhatsApp/SMS : un numéro doit figurer sur la fiche client.</p>
+                </div>
+
                 <div className="space-y-2">
                   {DOCUMENT_OPTIONS.map((doc) => (
                     <div key={doc.id} className="flex items-center space-x-2">
