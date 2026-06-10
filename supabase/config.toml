@@ -329,3 +329,7 @@ verify_jwt = false
 [functions.voice-transcribe]
 # Transcription Whisper + résumé — service_role (interne) ou JWT user.
 verify_jwt = false
+
+[functions.voice-inbound]
+# Appels entrants — public, signé Twilio.
+verify_jwt = false
