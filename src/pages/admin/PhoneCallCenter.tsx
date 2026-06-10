@@ -45,6 +45,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 // ----------------------------------------------------------------------------
@@ -56,6 +57,7 @@ interface ClientRow {
   email: string | null;
   phone: string | null;
   company_name: string | null;
+  kyc_score: string | null;
 }
 
 interface VoiceCallRow {
@@ -162,6 +164,27 @@ const CALL_STATUS_FR: Record<string, string> = {
   canceled: "Annulé",
 };
 
+// Couleur du badge score KYC (A vert → D gris).
+function kycBadgeClass(score: string | null): string {
+  switch ((score || "").toUpperCase()) {
+    case "A": return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    case "B": return "bg-amber-100 text-amber-700 border-amber-200";
+    case "C": return "bg-red-100 text-red-700 border-red-200";
+    case "D": return "bg-gray-200 text-gray-600 border-gray-300";
+    default: return "bg-muted text-muted-foreground";
+  }
+}
+
+// Couleur du badge selon le statut de workflow d'une demande.
+function workflowBadgeClass(status: string | null): string {
+  const s = (status || "").toLowerCase();
+  if (s.includes("reject") || s.includes("refus")) return "bg-red-100 text-red-700 border-red-200";
+  if (s.includes("sign") || s.includes("accept") || s.includes("approv") || s.includes("valid")) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  if (s.includes("doc") || s.includes("attente") || s.includes("pending") || s.includes("wait")) return "bg-amber-100 text-amber-700 border-amber-200";
+  if (s.includes("sent") || s.includes("envoy")) return "bg-blue-100 text-blue-700 border-blue-200";
+  return "bg-muted text-muted-foreground";
+}
+
 // ----------------------------------------------------------------------------
 // Composant principal
 // ----------------------------------------------------------------------------
@@ -236,7 +259,7 @@ export default function PhoneCallCenter() {
   const loadClientById = useCallback(async (clientId: string) => {
     const { data } = await db
       .from("clients")
-      .select("id, name, email, phone, company_name")
+      .select("id, name, email, phone, company_name, kyc_score")
       .eq("id", clientId)
       .maybeSingle();
     if (data) setSelectedClient(data as ClientRow);
@@ -308,7 +331,7 @@ export default function PhoneCallCenter() {
       // Recherche texte : nom, société, email, téléphone (brut).
       const textP = db
         .from("clients")
-        .select("id, name, email, phone, company_name")
+        .select("id, name, email, phone, company_name, kyc_score")
         .eq("company_id", companyId)
         .or(`name.ilike.${term},company_name.ilike.${term},email.ilike.${term},phone.ilike.${term}`)
         .order("name")
@@ -1068,6 +1091,19 @@ export default function PhoneCallCenter() {
                         </p>
                       )}
                     </div>
+                    {/* Mini-résumé : score KYC + compteurs */}
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      {selectedClient.kyc_score && (
+                        <Badge variant="outline" className={cn("text-xs", kycBadgeClass(selectedClient.kyc_score))}>
+                          Score KYC {selectedClient.kyc_score}
+                        </Badge>
+                      )}
+                      <Badge variant="secondary" className="text-xs">{offers.length} demande{offers.length > 1 ? "s" : ""}</Badge>
+                      <Badge variant="secondary" className="text-xs">{contracts.length} contrat{contracts.length > 1 ? "s" : ""}</Badge>
+                      {clientTasks.length > 0 && (
+                        <Badge variant="secondary" className="text-xs">{clientTasks.length} tâche{clientTasks.length > 1 ? "s" : ""}</Badge>
+                      )}
+                    </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button
                         size="sm"
@@ -1106,8 +1142,15 @@ export default function PhoneCallCenter() {
                     </div>
                   </div>
 
-                  {/* Dossiers & suivi en grille 2 colonnes (large) */}
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+                  <Tabs defaultValue="dossiers" className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="dossiers">Dossiers ({offers.length + contracts.length})</TabsTrigger>
+                      <TabsTrigger value="suivi">Suivi ({clientTasks.length + conversations.length})</TabsTrigger>
+                      <TabsTrigger value="appel">Appel & transcription</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="dossiers" className="mt-4">
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
                   {/* DEMANDES */}
                   <Section
                     icon={<ClipboardList className="h-4 w-4" />}
@@ -1122,9 +1165,13 @@ export default function PhoneCallCenter() {
                           onClick={() => openEmbedded("offers/" + o.id, "Demande " + (o.offer_number ?? o.dossier_number ?? ""))}
                           className="flex-1 text-left flex items-center justify-between gap-2 min-w-0"
                         >
-                          <span className="truncate">
-                            {o.offer_number ?? o.dossier_number ?? o.id.slice(0, 8)}
-                            {o.workflow_status ? ` · ${o.workflow_status}` : ""}
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <span className="truncate">{o.offer_number ?? o.dossier_number ?? o.id.slice(0, 8)}</span>
+                            {o.workflow_status && (
+                              <Badge variant="outline" className={cn("shrink-0 text-[10px] px-1.5 py-0", workflowBadgeClass(o.workflow_status))}>
+                                {o.workflow_status}
+                              </Badge>
+                            )}
                           </span>
                           {o.monthly_payment != null && (
                             <span className="font-mono shrink-0">{o.monthly_payment} €/m</span>
@@ -1164,7 +1211,11 @@ export default function PhoneCallCenter() {
                       </button>
                     ))}
                   </Section>
+                      </div>
+                    </TabsContent>
 
+                    <TabsContent value="suivi" className="mt-4">
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
                   {/* TÂCHES */}
                   <Section
                     icon={<CheckSquare className="h-4 w-4" />}
@@ -1221,10 +1272,10 @@ export default function PhoneCallCenter() {
                       </div>
                     ))}
                   </Section>
-                  </div>
+                      </div>
+                    </TabsContent>
 
-                  <Separator />
-
+                    <TabsContent value="appel" className="mt-4">
                   {/* Enregistrement & Transcription */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -1276,6 +1327,8 @@ export default function PhoneCallCenter() {
                       </p>
                     )}
                   </div>
+                    </TabsContent>
+                  </Tabs>
 
                 </div>
               )}
