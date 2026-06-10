@@ -189,10 +189,17 @@ serve(async (req) => {
 
     // ---------- choix du canal ----------
     let channel: "whatsapp" | "sms";
-    if (body.channel && body.channel !== "auto") channel = body.channel;
+    let channelForced = false;
+    if (body.channel && body.channel !== "auto") { channel = body.channel; channelForced = true; }
     else if (conversation && conversation.channel !== "web") channel = conversation.channel as "whatsapp" | "sms";
     else if (client?.preferred_channel === "whatsapp" || client?.preferred_channel === "sms") channel = client.preferred_channel;
     else channel = client?.whatsapp_status === "no" ? "sms" : "whatsapp";
+
+    // En mode auto, si le sender WhatsApp n'est pas encore configuré
+    // (onboarding Meta en cours), on bascule en SMS plutôt que d'échouer.
+    if (channel === "whatsapp" && !channelForced && !settings.whatsapp_sender && !settings.messaging_service_sid && settings.sms_sender) {
+      channel = "sms";
+    }
 
     const sender = channel === "whatsapp" ? settings.whatsapp_sender : settings.sms_sender;
     if (!sender && !settings.messaging_service_sid) {
