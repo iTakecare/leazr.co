@@ -41,6 +41,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 // ----------------------------------------------------------------------------
@@ -531,6 +533,47 @@ export default function PhoneCallCenter() {
     }
   }, [selectedClient, companyId, user?.id, phoneNumber, queryClient]);
 
+  // --- Message rapide (WhatsApp/SMS) depuis la console ---
+  const [msgOpen, setMsgOpen] = useState(false);
+  const [msgText, setMsgText] = useState("");
+  const [msgChannel, setMsgChannel] = useState<"auto" | "whatsapp" | "sms">("sms");
+  const [msgSending, setMsgSending] = useState(false);
+
+  const sendQuickMessage = useCallback(async () => {
+    if (!msgText.trim()) return;
+    setMsgSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("messaging-send", {
+        body: {
+          action: "send_message",
+          client_id: selectedClient?.id ?? undefined,
+          channel: msgChannel,
+          text: msgText.trim(),
+        },
+      });
+      let body = (data ?? null) as { success?: boolean; error?: string; message?: string } | null;
+      if (error) {
+        const ctx = (error as { context?: { json?: () => Promise<unknown> } }).context;
+        if (ctx?.json) { try { body = (await ctx.json()) as typeof body; } catch { /* */ } }
+      }
+      if (!body?.success) {
+        if (body?.error === "window_closed") {
+          toast.error("Fenêtre WhatsApp fermée (24 h) — envoyez plutôt un SMS, ou un template.");
+        } else {
+          toast.error(body?.message ?? body?.error ?? "Envoi impossible");
+        }
+        return;
+      }
+      toast.success(`Message ${msgChannel === "sms" ? "SMS" : msgChannel === "whatsapp" ? "WhatsApp" : ""} envoyé`);
+      setMsgOpen(false);
+      setMsgText("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Envoi impossible");
+    } finally {
+      setMsgSending(false);
+    }
+  }, [msgText, msgChannel, selectedClient?.id]);
+
   // Micro : autorisation explicite (utile dans une fenêtre PWA où le prompt
   // n'apparaît pas tout seul).
   const [micState, setMicState] = useState<"unknown" | "granted" | "denied">("unknown");
@@ -577,7 +620,7 @@ export default function PhoneCallCenter() {
     (name ?? "").trim().split(/\s+/).map((s) => s[0]).slice(0, 2).join("").toUpperCase() || "?";
 
   return (
-    <div className="h-[calc(100vh-110px)] flex flex-col gap-4">
+    <div className="h-[calc(100vh-72px)] flex flex-col gap-4 p-4 sm:p-6 max-w-[1600px] mx-auto w-full">
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -1222,7 +1265,7 @@ export default function PhoneCallCenter() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => navigateToAdmin("support")}
+                        onClick={() => { setMsgChannel("sms"); setMsgOpen(true); }}
                       >
                         <MessageSquare className="h-4 w-4 mr-2" /> Envoyer un WhatsApp/SMS
                       </Button>
@@ -1241,6 +1284,65 @@ export default function PhoneCallCenter() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modale message rapide (WhatsApp/SMS) avec destinataire préchargé */}
+      <Dialog open={msgOpen} onOpenChange={(o) => { setMsgOpen(o); if (!o) setMsgText(""); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Envoyer un message</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm">
+              À : <span className="font-medium">{selectedClient?.name ?? "—"}</span>
+              {(selectedClient?.phone || phoneNumber) && (
+                <span className="font-mono text-muted-foreground"> · {selectedClient?.phone ?? phoneNumber}</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {(["sms", "whatsapp", "auto"] as const).map((ch) => (
+                <button
+                  key={ch}
+                  onClick={() => setMsgChannel(ch)}
+                  className={cn(
+                    "flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors",
+                    msgChannel === ch ? "bg-emerald-600 text-white border-emerald-600" : "hover:bg-accent"
+                  )}
+                >
+                  {ch === "sms" ? "SMS" : ch === "whatsapp" ? "WhatsApp" : "Auto"}
+                </button>
+              ))}
+            </div>
+            <Textarea
+              value={msgText}
+              onChange={(e) => setMsgText(e.target.value)}
+              placeholder="Votre message…"
+              className="min-h-[120px]"
+              autoFocus
+            />
+            {msgChannel === "whatsapp" && (
+              <p className="text-xs text-muted-foreground">
+                WhatsApp libre nécessite un échange récent (24 h) ; sinon utilisez le SMS.
+              </p>
+            )}
+            {!selectedClient && (
+              <p className="text-xs text-amber-600">
+                Aucun client associé — associez d'abord un client pour envoyer.
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setMsgOpen(false)}>Annuler</Button>
+              <Button
+                onClick={sendQuickMessage}
+                disabled={!msgText.trim() || msgSending || !selectedClient}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {msgSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MessageSquare className="h-4 w-4 mr-2" />}
+                Envoyer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
