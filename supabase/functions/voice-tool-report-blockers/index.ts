@@ -30,15 +30,27 @@ serve(async (req) => {
   }
 
   // ElevenLabs sends the LLM-shaped args directly per our declared schema.
-  // Expected shape: { voice_call_id, blockers: string[] }.
+  // Expected shape: { voice_call_id, blockers }. `blockers` may arrive as a
+  // string[] (legacy) or — because ElevenLabs' tool-schema validator makes
+  // array params painful — as a single string with items separated by ';' or
+  // newlines. We normalise both into a string[].
   const voiceCallId: string | undefined = body.voice_call_id;
-  const blockers: unknown = body.blockers;
+  const rawBlockers: unknown = body.blockers;
 
   if (!voiceCallId || typeof voiceCallId !== "string") {
     return text(400, "Missing voice_call_id");
   }
-  if (!Array.isArray(blockers) || !blockers.every((b) => typeof b === "string")) {
-    return text(400, "blockers must be an array of strings");
+
+  let blockers: string[];
+  if (Array.isArray(rawBlockers) && rawBlockers.every((b) => typeof b === "string")) {
+    blockers = rawBlockers;
+  } else if (typeof rawBlockers === "string") {
+    blockers = rawBlockers
+      .split(/[;\n]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  } else {
+    return text(400, "blockers must be a string or an array of strings");
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, {
