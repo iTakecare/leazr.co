@@ -313,3 +313,19 @@ verify_jwt = false
 [functions.mail-send]
 # Envoi SMTP — JWT utilisateur.
 verify_jwt = true
+
+[functions.voice-token]
+# Access token Twilio Voice — JWT utilisateur.
+verify_jwt = true
+
+[functions.voice-twiml]
+# TwiML d'appel sortant — public, signé Twilio.
+verify_jwt = false
+
+[functions.voice-recording]
+# Callbacks enregistrement/statut — public, signé Twilio.
+verify_jwt = false
+
+[functions.voice-transcribe]
+# Transcription Whisper + résumé — service_role (interne) ou JWT user.
+verify_jwt = false
