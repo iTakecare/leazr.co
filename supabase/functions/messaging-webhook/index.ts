@@ -182,6 +182,16 @@ async function handleInbound(
 
   const senderName = client?.name ?? p.ProfileName ?? phone;
 
+  // --- cloche admin : un message entrant doit se voir même hors de l'inbox ---
+  const preview = p.Body?.trim() ? p.Body.trim().slice(0, 120) : "📎 Pièce jointe";
+  await adminSupabase.from("admin_notifications").insert({
+    company_id: companyId,
+    type: "messaging_inbound",
+    title: channel === "whatsapp" ? "Nouveau message WhatsApp 💬" : "Nouveau SMS 📱",
+    message: `${senderName} : ${preview}`,
+    metadata: { conversation_id: conversationId, channel, from: phone, client_id: client?.id ?? null },
+  });
+
   // --- texte ---
   if (p.Body?.trim()) {
     await adminSupabase.from("chat_messages").insert({

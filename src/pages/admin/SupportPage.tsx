@@ -1,28 +1,40 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Headset, Mail, Ticket, Settings2, BookOpen } from "lucide-react";
+import { Headset, Mail, Ticket, Settings2, BookOpen, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ContactSubmissionsList from "@/components/support/ContactSubmissionsList";
 import SupportTicketsList from "@/components/support/SupportTicketsList";
 import EmailInbox from "@/components/support/EmailInbox";
 import ImapSettingsForm from "@/components/support/ImapSettingsForm";
 import KnowledgeBaseManager from "@/components/support/KnowledgeBaseManager";
+import { EnhancedAdminDashboard } from "@/components/chat/EnhancedAdminDashboard";
 import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
+import { useMessagingUnread } from "@/hooks/useMessagingUnread";
 
 const SupportPage = () => {
   const { unreadCount } = useTicketReplyNotifications({ role: "admin" });
+  const messagingWaiting = useMessagingUnread();
 
   return (
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Support</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Gérez les demandes de contact, tickets et emails
+          Gérez les conversations, demandes de contact, tickets et emails
         </p>
       </div>
 
-      <Tabs defaultValue="submissions" className="w-full">
+      <Tabs defaultValue="messaging" className="w-full">
         <TabsList>
+          <TabsTrigger value="messaging" className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4" />
+            Messagerie
+            {messagingWaiting > 0 && (
+              <Badge className="ml-1 bg-emerald-500 text-white border-emerald-500 text-[10px] px-1.5 py-0 animate-pulse">
+                {messagingWaiting}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="submissions" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
             Formulaire de contact
@@ -50,6 +62,9 @@ const SupportPage = () => {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="messaging">
+          <EnhancedAdminDashboard />
+        </TabsContent>
         <TabsContent value="submissions">
           <ContactSubmissionsList />
         </TabsContent>

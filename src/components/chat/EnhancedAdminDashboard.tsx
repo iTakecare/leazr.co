@@ -37,8 +37,17 @@ import {
   CheckCheck,
   Globe,
   FileImage,
-  Smartphone
+  Smartphone,
+  ExternalLink,
+  Link2
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatConversation, ChatMessage } from '@/types/chat';
@@ -131,6 +140,11 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
   const [isConnected, setIsConnected] = useState(false);
   const [sendingChannelMessage, setSendingChannelMessage] = useState(false);
+  const [associateOpen, setAssociateOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientResults, setClientResults] = useState<Array<{ id: string; name: string; email: string | null; phone: string | null }>>([]);
+
+  const { navigateToAdmin } = useRoleNavigation();
 
   const { agentStatus } = useAgentStatus();
 
@@ -169,6 +183,48 @@ export const EnhancedAdminDashboard: React.FC = () => {
 
     fetchCompanyId();
   }, [user?.id]);
+
+  // Recherche de clients pour associer une conversation à une fiche
+  // (numéro entrant inconnu). Scopée company par la RLS.
+  useEffect(() => {
+    if (!associateOpen || clientSearch.trim().length < 2) {
+      setClientResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from('clients')
+        .select('id, name, email, phone')
+        .or(`name.ilike.%${clientSearch.trim()}%,email.ilike.%${clientSearch.trim()}%`)
+        .limit(8);
+      setClientResults((data ?? []) as typeof clientResults);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [associateOpen, clientSearch]);
+
+  const associateClient = async (clientId: string, clientName: string, clientPhone: string | null) => {
+    if (!selectedConversation) return;
+    try {
+      const { error } = await supabase
+        .from('chat_conversations')
+        .update({ client_id: clientId, visitor_name: clientName })
+        .eq('id', selectedConversation.id);
+      if (error) throw error;
+      // Backfill du téléphone sur la fiche si elle n'en a pas — le numéro de
+      // la conversation est vérifié de fait (le client a écrit avec).
+      if (!clientPhone?.trim() && selectedConversation.client_phone) {
+        await supabase.from('clients').update({ phone: selectedConversation.client_phone }).eq('id', clientId);
+      }
+      setSelectedConversation((prev) => prev ? { ...prev, client_id: clientId, visitor_name: clientName } : prev);
+      setAssociateOpen(false);
+      setClientSearch('');
+      loadConversations();
+      showToast('Conversation associée', `Rattachée à la fiche de ${clientName}`);
+    } catch (e) {
+      console.error('Error associating client:', e);
+      showToast('Erreur', "Impossible d'associer le client", 'destructive');
+    }
+  };
 
   // WhatsApp/SMS : l'edge function envoie via Twilio ET insère le message en
   // base — le realtime l'affiche. Pas d'insert direct ici (sinon doublon).
@@ -746,8 +802,27 @@ export const EnhancedAdminDashboard: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <ChannelBadge channel={selectedConversation.channel} />
                       {getStatusBadge(selectedConversation.status)}
-                      
+
                       <div className="flex gap-1">
+                        {selectedConversation.client_id ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigateToAdmin(`clients/${selectedConversation.client_id}`)}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Fiche client
+                          </Button>
+                        ) : selectedConversation.channel && selectedConversation.channel !== 'web' ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setAssociateOpen(true)}
+                          >
+                            <Link2 className="h-4 w-4 mr-1" />
+                            Associer à un client
+                          </Button>
+                        ) : null}
                         {selectedConversation.status === 'waiting' && (
                            <Button
                             size="sm"
@@ -914,6 +989,41 @@ export const EnhancedAdminDashboard: React.FC = () => {
           </div>
         </div>
       </Tabs>
+
+      {/* Associate-to-client Dialog */}
+      <Dialog open={associateOpen} onOpenChange={(open) => { setAssociateOpen(open); if (!open) setClientSearch(''); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Associer à un client</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">
+            Le numéro {selectedConversation?.client_phone} n'est rattaché à aucune fiche. Recherchez le client :
+          </p>
+          <Input
+            placeholder="Nom ou email du client…"
+            value={clientSearch}
+            onChange={(e) => setClientSearch(e.target.value)}
+            autoFocus
+          />
+          <div className="max-h-64 overflow-y-auto divide-y">
+            {clientResults.map((c) => (
+              <button
+                key={c.id}
+                className="w-full text-left p-3 hover:bg-muted/50 transition-colors"
+                onClick={() => associateClient(c.id, c.name, c.phone)}
+              >
+                <p className="text-sm font-medium">{c.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {[c.email, c.phone].filter(Boolean).join(' · ') || 'aucune coordonnée'}
+                </p>
+              </button>
+            ))}
+            {clientSearch.trim().length >= 2 && clientResults.length === 0 && (
+              <p className="text-sm text-muted-foreground p-3">Aucun client trouvé.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!conversationToDelete} onOpenChange={() => setConversationToDelete(null)}>
