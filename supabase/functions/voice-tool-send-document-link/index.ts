@@ -140,6 +140,9 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        // service_role key satisfies the gateway's verify_jwt; the function
+        // then sees x-system-secret and runs in system mode (no user).
+        "Authorization": `Bearer ${serviceKey}`,
         "x-system-secret": expected,
         "x-system-company-id": call.company_id,
       },

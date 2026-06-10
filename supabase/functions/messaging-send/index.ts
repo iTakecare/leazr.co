@@ -86,6 +86,7 @@ serve(async (req) => {
     //  (b) User mode (default) — JWT bearer, same pattern as grenke-api.
     let companyId: string;
     let agentName: string;
+    let userId: string | null;
     const systemSecret = Deno.env.get("ELEVENLABS_TOOL_SECRET");
     const providedSystem = req.headers.get("x-system-secret");
     if (systemSecret && providedSystem && providedSystem === systemSecret) {
@@ -95,6 +96,7 @@ serve(async (req) => {
       }
       companyId = sysCompany;
       agentName = "Alex (IA)";
+      userId = null;
     } else {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader?.startsWith("Bearer ")) {
@@ -118,6 +120,7 @@ serve(async (req) => {
       }
       companyId = profile.company_id;
       agentName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "Agent";
+      userId = claims.user.id;
     }
 
     const body = (await req.json().catch(() => null)) as SendRequest | null;
@@ -292,7 +295,7 @@ serve(async (req) => {
       .insert({
         conversation_id: conversation.id,
         sender_type: "agent",
-        sender_id: claims.user.id,
+        sender_id: userId,
         sender_name: agentName,
         message: smsBody || `[template ${body.template_key}]`,
         message_type: "text",
