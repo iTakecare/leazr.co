@@ -53,3 +53,6 @@ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.voice_calls;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Un appel softphone peut viser un numéro SANS client connu → client_id nullable.
+ALTER TABLE public.voice_calls ALTER COLUMN client_id DROP NOT NULL;
