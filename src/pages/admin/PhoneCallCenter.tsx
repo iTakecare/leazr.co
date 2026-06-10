@@ -1068,16 +1068,46 @@ export default function PhoneCallCenter() {
                         </p>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full mt-3 rounded-xl"
-                      onClick={() => openEmbedded("clients/" + selectedClient.id, selectedClient.name ?? "Fiche client")}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" /> Ouvrir la fiche client
-                    </Button>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={() => openEmbedded("clients/" + selectedClient.id, selectedClient.name ?? "Fiche client")}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" /> Ouvrir la fiche
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={handleCreateTask}
+                        disabled={creatingTask}
+                      >
+                        {creatingTask ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                        Créer une tâche
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={() => { setMsgChannel("sms"); setMsgOpen(true); }}
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" /> WhatsApp/SMS
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={() => openAdmin("support")}
+                      >
+                        <Mail className="h-4 w-4 mr-2" /> Email
+                      </Button>
+                    </div>
                   </div>
 
+                  {/* Dossiers & suivi en grille 2 colonnes (large) */}
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
                   {/* DEMANDES */}
                   <Section
                     icon={<ClipboardList className="h-4 w-4" />}
@@ -1191,6 +1221,7 @@ export default function PhoneCallCenter() {
                       </div>
                     ))}
                   </Section>
+                  </div>
 
                   <Separator />
 
@@ -1246,41 +1277,6 @@ export default function PhoneCallCenter() {
                     )}
                   </div>
 
-                  <Separator />
-
-                  {/* Actions rapides */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Actions rapides</p>
-                    <div className="grid grid-cols-1 gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleCreateTask}
-                        disabled={creatingTask}
-                      >
-                        {creatingTask ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Plus className="h-4 w-4 mr-2" />
-                        )}
-                        Créer une tâche
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => { setMsgChannel("sms"); setMsgOpen(true); }}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" /> Envoyer un WhatsApp/SMS
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openAdmin("support")}
-                      >
-                        <Mail className="h-4 w-4 mr-2" /> Nouvel email
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               )}
             </ScrollArea>
