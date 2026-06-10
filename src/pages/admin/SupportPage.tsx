@@ -1,11 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Headset, Mail, Ticket, Settings2, BookOpen, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ContactSubmissionsList from "@/components/support/ContactSubmissionsList";
 import SupportTicketsList from "@/components/support/SupportTicketsList";
-import EmailInbox from "@/components/support/EmailInbox";
-import ImapSettingsForm from "@/components/support/ImapSettingsForm";
+import MailboxPage from "@/components/support/mail/MailboxPage";
+import ImapAccountsManager from "@/components/support/mail/ImapAccountsManager";
 import KnowledgeBaseManager from "@/components/support/KnowledgeBaseManager";
 import { EnhancedAdminDashboard } from "@/components/chat/EnhancedAdminDashboard";
 import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
@@ -14,6 +14,7 @@ import { useMessagingUnread } from "@/hooks/useMessagingUnread";
 const SupportPage = () => {
   const { unreadCount } = useTicketReplyNotifications({ role: "admin" });
   const messagingWaiting = useMessagingUnread();
+  const [activeTab, setActiveTab] = useState("messaging");
 
   return (
     <div className="space-y-6 p-6">
@@ -24,7 +25,7 @@ const SupportPage = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="messaging" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
           <TabsTrigger value="messaging" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
@@ -54,7 +55,7 @@ const SupportPage = () => {
           </TabsTrigger>
           <TabsTrigger value="imap" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
-            Configuration IMAP
+            Comptes mail
           </TabsTrigger>
           <TabsTrigger value="knowledge" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
@@ -72,10 +73,10 @@ const SupportPage = () => {
           <SupportTicketsList />
         </TabsContent>
         <TabsContent value="inbox">
-          <EmailInbox />
+          <MailboxPage onManageAccounts={() => setActiveTab("imap")} />
         </TabsContent>
         <TabsContent value="imap">
-          <ImapSettingsForm />
+          <ImapAccountsManager />
         </TabsContent>
         <TabsContent value="knowledge">
           <KnowledgeBaseManager />

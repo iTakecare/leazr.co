@@ -305,3 +305,11 @@ verify_jwt = false
 [functions.messaging-ai]
 # Assistant IA messagerie — JWT utilisateur OU service_role (webhook interne).
 verify_jwt = true
+
+[functions.mail-sync]
+# Sync IMAP v2 — X-Cron-Secret pour sync_all (cron), JWT utilisateur sinon.
+verify_jwt = false
+
+[functions.mail-send]
+# Envoi SMTP — JWT utilisateur.
+verify_jwt = true
