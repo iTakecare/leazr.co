@@ -415,6 +415,14 @@ export default function PhoneCallCenter() {
     setPhoneNumber((p) => p.slice(0, -1));
   }, []);
 
+  // Recherche d'un client par téléphone, insensible au format (RPC qui
+  // compare les 9 derniers chiffres). Déclaré AVANT placeCall qui l'utilise.
+  const findClientByPhone = useCallback(async (raw: string): Promise<ClientRow | null> => {
+    if (!raw.trim() || !companyId) return null;
+    const { data } = await db.rpc("find_clients_by_phone", { p_company_id: companyId, p_phone: raw });
+    return ((data as ClientRow[]) ?? [])[0] ?? null;
+  }, [companyId]);
+
   // Passe un appel vers `rawNumber` (sans dépendre de l'état pour éviter les
   // courses) ; associe le client connu ou le retrouve par son numéro.
   const placeCall = useCallback(async (rawNumber: string, knownClient?: ClientRow | null) => {
@@ -537,14 +545,6 @@ export default function PhoneCallCenter() {
       toast.error("Micro refusé. Réglages macOS → Confidentialité → Microphone (autorisez votre navigateur), puis l'icône 🔒 de la barre d'adresse → Microphone : Autoriser.", { duration: 12000 });
     }
   }, []);
-
-  // Recherche d'un client par téléphone, insensible au format (RPC qui
-  // compare les 9 derniers chiffres).
-  const findClientByPhone = useCallback(async (raw: string): Promise<ClientRow | null> => {
-    if (!raw.trim() || !companyId) return null;
-    const { data } = await db.rpc("find_clients_by_phone", { p_company_id: companyId, p_phone: raw });
-    return ((data as ClientRow[]) ?? [])[0] ?? null;
-  }, [companyId]);
 
   const handleSearchByNumber = useCallback(async () => {
     if (!phoneNumber.trim() || !companyId) return;
