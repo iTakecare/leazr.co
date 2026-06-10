@@ -69,6 +69,10 @@ CREATE POLICY imap_folders_company_access ON public.imap_folders
 -- 3. synced_emails — colonnes v2 + indexes (il n'y en avait AUCUN) +
 --    accès company (boîtes partagées ; l'ancienne policy user_id reste
 --    pour la rétrocompat).
+-- Les boîtes v2 sont partagées par la société : un email n'appartient
+-- plus à un utilisateur.
+ALTER TABLE public.synced_emails ALTER COLUMN user_id DROP NOT NULL;
+
 ALTER TABLE public.synced_emails
   ADD COLUMN IF NOT EXISTS account_id uuid REFERENCES public.imap_accounts(id) ON DELETE CASCADE,
   ADD COLUMN IF NOT EXISTS folder_path text NOT NULL DEFAULT 'INBOX',
