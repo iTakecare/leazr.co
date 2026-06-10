@@ -654,7 +654,7 @@ export default function PhoneCallCenter() {
     (name ?? "").trim().split(/\s+/).map((s) => s[0]).slice(0, 2).join("").toUpperCase() || "?";
 
   return (
-    <div className="h-[calc(100vh-72px)] flex flex-col gap-4 p-4 sm:p-6 max-w-[1600px] mx-auto w-full">
+    <div className="h-[calc(100vh-72px)] flex flex-col gap-4 p-4 sm:p-6 w-full">
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -944,7 +944,7 @@ export default function PhoneCallCenter() {
           <CardContent className="flex-1 min-h-0 overflow-hidden p-0">
             <ScrollArea className="h-full px-6 pb-6">
               {!selectedClient ? (
-                <div className="space-y-4 pt-2">
+                <div className="space-y-4 pt-2 max-w-xl mx-auto">
                   <div className="rounded-2xl border border-dashed p-5 text-center">
                     <div className="mx-auto h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center mb-3">
                       <User className="h-6 w-6 text-muted-foreground/60" />
