@@ -26,6 +26,8 @@ import {
   Loader2,
   Plus,
   X,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -173,6 +175,7 @@ export default function PhoneCallCenter() {
   // droite (mode ?embed=1, sans sidebar) au lieu de naviguer — sinon la page
   // se démonterait et l'appel RACCROCHERAIT.
   const [embedded, setEmbedded] = useState<{ url: string; title: string } | null>(null);
+  const [embedExpanded, setEmbedExpanded] = useState(false);
   const adminUrl = useCallback((path: string) => {
     const base = window.location.pathname.split("/admin")[0];
     return `${base}/admin/${path}`;
@@ -698,7 +701,7 @@ export default function PhoneCallCenter() {
       {/* Layout 3 colonnes */}
       <div className="flex gap-4 flex-1 min-h-0">
         {/* COLONNE GAUCHE */}
-        <div className={cn("shrink-0 flex-col gap-4 min-h-0", embedded ? "hidden 2xl:flex w-[300px]" : "flex w-[340px]")}>
+        <div className={cn("shrink-0 flex-col gap-4 min-h-0", embedded ? "hidden" : "flex w-[340px]")}>
           <Card className="shrink-0 overflow-hidden">
             <CardContent className="p-4 space-y-4">
               {/* Écran du numéroteur */}
@@ -877,7 +880,7 @@ export default function PhoneCallCenter() {
         </div>
 
         {/* ESPACE DE TRAVAIL : barre d'appel compacte + contexte client */}
-        <Card className={cn("min-h-0 flex flex-col", embedded ? "w-[400px] shrink-0" : "flex-1")}>
+        <Card className={cn("min-h-0 flex flex-col", embedded ? (embedExpanded ? "hidden" : "w-[340px] shrink-0") : "flex-1")}>
           <div className="p-3 border-b shrink-0">
             {sp.incoming && !inCall ? (
               <div className="flex items-center justify-between gap-3 rounded-xl bg-blue-50 border border-blue-200 px-3 py-2">
@@ -1290,6 +1293,23 @@ export default function PhoneCallCenter() {
             <div className="flex items-center justify-between gap-2 border-b px-3 py-2 shrink-0">
               <p className="text-sm font-semibold truncate">{embedded.title}</p>
               <div className="flex items-center gap-1 shrink-0">
+                {/* Contrôles d'appel conservés quand le contexte est masqué (mode agrandi) */}
+                {embedExpanded && inCall && (
+                  <div className={cn("flex items-center gap-1.5 mr-1 rounded-full px-2 py-1 text-white text-xs",
+                    sp.status === "in_call" ? "bg-emerald-600" : "bg-amber-500")}>
+                    <span className="font-mono tabular-nums">{fmtDuration(sp.callDurationSec)}</span>
+                    <button onClick={sp.toggleMute} className="hover:opacity-80" title={sp.isMuted ? "Réactiver" : "Muet"}>
+                      {sp.isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                    </button>
+                    <button onClick={sp.hangup} className="hover:opacity-80" title="Raccrocher">
+                      <PhoneOff className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+                <Button size="icon" variant="ghost" className="h-8 w-8" title={embedExpanded ? "Réduire" : "Agrandir"}
+                  onClick={() => setEmbedExpanded((v) => !v)}>
+                  {embedExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" title="Rafraîchir"
                   onClick={() => setEmbedded((e) => e ? { ...e, url: e.url + (e.url.includes("#r") ? "" : "") + `#r${Date.now()}` } : e)}>
                   <Loader2 className="h-4 w-4" />
@@ -1298,7 +1318,7 @@ export default function PhoneCallCenter() {
                   onClick={() => window.open(embedded.url.replace(/[?&]embed=1/, "").replace(/#r\d+$/, ""), "_blank", "noopener")}>
                   <ExternalLink className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" title="Fermer" onClick={() => setEmbedded(null)}>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Fermer" onClick={() => { setEmbedded(null); setEmbedExpanded(false); }}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
