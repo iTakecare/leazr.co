@@ -685,6 +685,21 @@ serve(async (req) => {
       }
     }
 
+    // RGPD messaging consent (WhatsApp / SMS) — même logique : on horodate
+    // messaging_opt_in_at une seule fois (préserve la date d'origine).
+    if (data.messaging_consent === true) {
+      const { error: msgConsentError } = await supabaseAdmin
+        .from('clients')
+        .update({ messaging_opt_in_at: new Date().toISOString() })
+        .eq('id', clientId)
+        .is('messaging_opt_in_at', null);
+      if (msgConsentError) {
+        console.warn(`[messaging-consent] failed to record for ${clientId}:`, msgConsentError);
+      } else {
+        console.log(`💬 messaging consent recorded for ${clientId}`);
+      }
+    }
+
     // Déterminer le leaser
     const { data: leaserIdData } = await supabaseAdmin
       .from('leasers').select('id').eq('name', 'Grenke Lease').single();

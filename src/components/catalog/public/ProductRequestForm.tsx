@@ -40,7 +40,8 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
     phone: "",
     company: "",
     message: "",
-    hasClientAccount: false
+    hasClientAccount: false,
+    contactConsent: false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -92,7 +93,10 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         quantity: quantity,
         duration: duration,
         phone: formData.phone,
-        has_client_account: formData.hasClientAccount
+        has_client_account: formData.hasClientAccount,
+        // Consentement à être recontacté par téléphone (agent IA) et messagerie.
+        voice_consent: formData.contactConsent,
+        messaging_consent: formData.contactConsent,
       };
       
       console.log("Envoi de la demande de produit...", requestData);
@@ -242,6 +246,19 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
               />
               <Label htmlFor="hasClientAccount" className="text-sm">
                 Je souhaite créer un compte client pour suivre mes demandes
+              </Label>
+            </div>
+
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="contactConsent"
+                checked={formData.contactConsent}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, contactConsent: !!checked }))}
+                className="mt-0.5"
+              />
+              <Label htmlFor="contactConsent" className="text-sm text-muted-foreground leading-snug">
+                J'accepte d'être recontacté(e) au sujet de ma demande par téléphone
+                (y compris par assistant vocal), WhatsApp ou SMS.
               </Label>
             </div>
           </div>

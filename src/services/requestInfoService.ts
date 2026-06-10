@@ -34,8 +34,10 @@ export interface ProductRequestData {
   phone?: string;
   company_id?: string;
   has_client_account?: boolean;
-  // voice_consent removed 2026-05-09 — see RequestSummary.tsx for context.
-  // The receiving edge function (create-product-request) never read it.
+  // Consentements RGPD captés au formulaire public — lus par
+  // create-product-request (voice_consent_given_at / messaging_opt_in_at).
+  voice_consent?: boolean;       // appels par l'agent vocal IA (Alex)
+  messaging_consent?: boolean;   // WhatsApp / SMS
 }
 
 export interface RequestInfoData {
@@ -147,6 +149,9 @@ export const createProductRequest = async (
       subtotal: data.amount || 0,
       create_client_account: data.has_client_account || false,
       notes: data.message || data.equipment_description || '',
+      // Consentements RGPD (au niveau racine — lus par l'edge function).
+      voice_consent: data.voice_consent === true,
+      messaging_consent: data.messaging_consent === true,
     };
 
     // Ajouter delivery_info si adresse de livraison différente
