@@ -167,6 +167,30 @@ async function syncAccount(
             }
 
             const env = one.envelope;
+
+            // Adoption des lignes v1 : si ce Message-ID existe déjà pour ce
+            // compte (historique synchronisé par l'ancien système, sans UID),
+            // on complète la ligne au lieu d'en créer un doublon.
+            if (env?.messageId) {
+              const { data: existing } = await adminSupabase
+                .from("synced_emails")
+                .select("id, imap_uid")
+                .eq("account_id", account.id)
+                .eq("message_id", env.messageId)
+                .maybeSingle();
+              if (existing) {
+                if (existing.imap_uid == null) {
+                  await adminSupabase.from("synced_emails").update({
+                    folder_path: folder.path,
+                    imap_uid: uid,
+                    header_message_id: env.messageId,
+                  }).eq("id", existing.id);
+                }
+                maxSeen = Math.max(maxSeen, uid);
+                continue;
+              }
+            }
+
             const attachmentsMeta = (parsed?.attachments ?? [])
               .filter((a) => !(a.contentDisposition === "inline" && a.contentId))
               .map((a, i) => ({
@@ -199,10 +223,13 @@ async function syncAccount(
             }, { onConflict: "account_id,folder_path,imap_uid", ignoreDuplicates: true });
 
             if (insErr && !insErr.message.includes("duplicate")) {
+              // Erreur DB (souvent transitoire) : on s'arrête SANS avancer le
+              // curseur — ce message et les suivants seront retentés au
+              // prochain passage du cron.
               errors.push(`${folder.path}#${uid}: ${insErr.message}`);
-            } else {
-              synced++;
+              break;
             }
+            synced++;
             maxSeen = Math.max(maxSeen, uid);
           } catch (e) {
             errors.push(`${folder.path}#${uid}: ${e instanceof Error ? e.message : e}`);

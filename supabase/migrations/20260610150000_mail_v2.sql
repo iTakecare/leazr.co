@@ -83,9 +83,10 @@ CREATE INDEX IF NOT EXISTS idx_synced_emails_account_folder
   ON public.synced_emails (account_id, folder_path, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_synced_emails_company_received
   ON public.synced_emails (company_id, received_at DESC);
+-- Non partiel : PostgREST upsert(onConflict) exige un index complet ;
+-- les NULL (lignes v1) ne se heurtent pas entre eux.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_synced_emails_account_folder_uid
-  ON public.synced_emails (account_id, folder_path, imap_uid)
-  WHERE account_id IS NOT NULL AND imap_uid IS NOT NULL;
+  ON public.synced_emails (account_id, folder_path, imap_uid);
 
 DROP POLICY IF EXISTS synced_emails_company_access ON public.synced_emails;
 CREATE POLICY synced_emails_company_access ON public.synced_emails
