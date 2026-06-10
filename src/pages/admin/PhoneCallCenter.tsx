@@ -46,7 +46,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import EmbeddedAdminView from "@/components/admin/EmbeddedAdminView";
 
 // ----------------------------------------------------------------------------
 // Types locaux (le client supabase n'est pas typé sur ces tables)
@@ -1324,12 +1323,15 @@ export default function PhoneCallCenter() {
                 </Button>
               </div>
             </div>
-            {/* Rendu inline (plus d'iframe) : la vraie page admin dans un
-                routeur mémoire imbriqué. key sur l'url → remontage propre au
-                changement de cible ou au rafraîchissement (#r{ts}). */}
-            <div key={embedded.url} className="flex-1 min-h-0 overflow-auto">
-              <EmbeddedAdminView url={embedded.url} />
-            </div>
+            {/* Iframe : ces pages admin lisent leur contexte depuis window.location
+                (slug/id), qu'un MemoryRouter imbriqué ne change pas → l'iframe
+                leur donne une vraie URL. Étapes rendues compactes via ?embed=1. */}
+            <iframe
+              key={embedded.url}
+              src={embedded.url}
+              title={embedded.title}
+              className="flex-1 w-full border-0"
+            />
           </Card>
         )}
       </div>

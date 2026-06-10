@@ -57,10 +57,12 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
   offer
 }) => {
   const { user } = useAuth();
-  // Compact layout when rendered in the Call Center's narrow right column
-  // (inline embed) — viewport breakpoints can't help there since it shares the
-  // full-screen viewport, so we switch on this explicit context flag.
-  const compact = useIsEmbeddedView();
+  // Compact layout when shown in the Call Center's narrow right panel.
+  // The panel renders the offer in an iframe with ?embed=1 → detect that here
+  // (the context flag is kept for any future non-iframe embed).
+  const compact = useIsEmbeddedView() ||
+    (typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("embed") === "1");
   const [updating, setUpdating] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [isEmailProcessing, setIsEmailProcessing] = useState(false);
