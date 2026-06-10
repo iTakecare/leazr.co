@@ -40,3 +40,4 @@ ios/DerivedData/
 # Fichiers Firebase sensibles (à ajouter manuellement sur le serveur CI)
 android/app/google-services.json
 ios/App/App/GoogleService-Info.plist
+.claude/
