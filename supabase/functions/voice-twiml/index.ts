@@ -35,8 +35,11 @@ serve(async (req) => {
     return twiml(`<Response><Say language="fr-FR">Numéro invalide.</Say></Response>`);
   }
 
-  const recCb = `${supabaseUrl}/functions/v1/voice-recording?voice_call_id=${encodeURIComponent(voiceCallId)}`;
-  const statusCb = `${supabaseUrl}/functions/v1/voice-recording?kind=status&voice_call_id=${encodeURIComponent(voiceCallId)}`;
+  // Dans le XML, les '&' des URLs DOIVENT être échappés en '&amp;' sinon le
+  // TwiML est invalide et Twilio refuse l'appel.
+  const xml = (s: string) => s.replace(/&/g, "&amp;");
+  const recCb = xml(`${supabaseUrl}/functions/v1/voice-recording?voice_call_id=${encodeURIComponent(voiceCallId)}`);
+  const statusCb = xml(`${supabaseUrl}/functions/v1/voice-recording?kind=status&voice_call_id=${encodeURIComponent(voiceCallId)}`);
   // record-from-answer-dual : 2 pistes (agent + client), démarre à la réponse.
   return twiml(
     `<Response>` +

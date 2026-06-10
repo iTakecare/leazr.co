@@ -75,8 +75,10 @@ serve(async (req) => {
       .from("voice_presence").select("identity, last_seen")
       .eq("company_id", companyId).eq("online", true).gte("last_seen", since);
 
-    const recCb = `${supabaseUrl}/functions/v1/voice-recording?voice_call_id=${encodeURIComponent(voiceCallId)}`;
-    const statusCb = `${supabaseUrl}/functions/v1/voice-recording?kind=status&voice_call_id=${encodeURIComponent(voiceCallId)}`;
+    // '&' échappés en '&amp;' (XML valide obligatoire pour Twilio).
+    const xmlEsc = (s: string) => s.replace(/&/g, "&amp;");
+    const recCb = xmlEsc(`${supabaseUrl}/functions/v1/voice-recording?voice_call_id=${encodeURIComponent(voiceCallId)}`);
+    const statusCb = xmlEsc(`${supabaseUrl}/functions/v1/voice-recording?kind=status&voice_call_id=${encodeURIComponent(voiceCallId)}`);
 
     if (agents && agents.length > 0) {
       // Fait sonner tous les agents en ligne ; le premier qui décroche prend.
