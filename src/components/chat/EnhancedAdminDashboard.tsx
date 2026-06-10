@@ -48,6 +48,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useRoleNavigation } from '@/hooks/useRoleNavigation';
+import { MessageAISuggestions } from './MessageAISuggestions';
+import { FileText } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatConversation, ChatMessage } from '@/types/chat';
@@ -804,6 +806,16 @@ export const EnhancedAdminDashboard: React.FC = () => {
                       {getStatusBadge(selectedConversation.status)}
 
                       <div className="flex gap-1">
+                        {selectedConversation.offer_id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigateToAdmin(`offers/${selectedConversation.offer_id}`)}
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            Voir la demande
+                          </Button>
+                        )}
                         {selectedConversation.client_id ? (
                           <Button
                             size="sm"
@@ -921,6 +933,20 @@ export const EnhancedAdminDashboard: React.FC = () => {
                       <div ref={messagesEndRef} />
                     </div>
                   </ScrollArea>
+
+                  {/* Suggestions de l'assistant IA (WhatsApp/SMS) */}
+                  {companyId && (
+                    <MessageAISuggestions
+                      conversation={selectedConversation}
+                      companyId={companyId}
+                      onPrefillReply={(body) => setCurrentMessage(body)}
+                      onAssociateClient={(prefill) => { setClientSearch(prefill); setAssociateOpen(true); }}
+                      onConversationPatched={(patch) => {
+                        setSelectedConversation((prev) => prev ? { ...prev, ...patch } : prev);
+                        loadConversations();
+                      }}
+                    />
+                  )}
 
                   {/* Message Input */}
                   {selectedConversation.status !== 'closed' && (() => {

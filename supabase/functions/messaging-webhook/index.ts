@@ -242,6 +242,27 @@ async function handleInbound(
     }
   }
 
+  // --- assistant IA : analyse asynchrone de la conversation (suggestions
+  // link_offer / task / classify_document / reply, validées dans l'inbox).
+  // waitUntil garde la lambda en vie après la réponse à Twilio — l'analyse
+  // Claude (~2-5 s) ne retarde pas le webhook.
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const analysis = fetch(`${supabaseUrl}/functions/v1/messaging-ai`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "analyze_conversation", conversation_id: conversationId, company_id: companyId }),
+  }).then((r) => {
+    if (!r.ok) console.error(`[messaging-webhook] messaging-ai HTTP ${r.status}`);
+  }).catch((e) => console.error("[messaging-webhook] messaging-ai failed:", e));
+  // deno-lint-ignore no-explicit-any
+  const runtime = (globalThis as any).EdgeRuntime;
+  if (runtime?.waitUntil) runtime.waitUntil(analysis);
+  else await analysis;
+
   return twiml();
 }
 

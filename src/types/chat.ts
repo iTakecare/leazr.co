@@ -35,6 +35,7 @@ export interface ChatConversation {
   channel?: MessagingChannel
   client_phone?: string | null
   last_inbound_at?: string | null
+  offer_id?: string | null
 }
 
 export interface ChatAgentStatus {

@@ -301,3 +301,7 @@ verify_jwt = true
 [functions.messaging-webhook]
 # Webhooks Twilio (inbound + status) — public, authentifié par X-Twilio-Signature.
 verify_jwt = false
+
+[functions.messaging-ai]
+# Assistant IA messagerie — JWT utilisateur OU service_role (webhook interne).
+verify_jwt = true
