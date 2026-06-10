@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import ClientSearchInput from "@/components/tasks/ClientSearchInput";
 import { fetchClientContracts, fetchClientOffers } from "@/services/taskService";
 import { formatCurrency, formatDateToFrench } from "@/utils/formatters";
+import EmailActionCenter from "@/components/support/mail/EmailActionCenter";
 
 interface EmailDetailProps {
   email: any;
@@ -44,6 +45,7 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
 
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [linkDossierDialogOpen, setLinkDossierDialogOpen] = useState(false);
+  const [aiCenterOpen, setAiCenterOpen] = useState(false);
 
   // Link dossier state (2-step)
   const [linkStep, setLinkStep] = useState<'client' | 'dossier'>('client');
@@ -292,6 +294,14 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
               )}
               {hasAnalysis ? "Ré-analyser" : "Analyser avec IA"}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAiCenterOpen(true)}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Assistant IA
+            </Button>
             {onHide && (
               <Button
                 variant="outline"
@@ -521,6 +531,15 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Assistant IA - centre d'actions sur l'email */}
+      <EmailActionCenter
+        open={aiCenterOpen}
+        onOpenChange={setAiCenterOpen}
+        email={email}
+        onReply={() => toast.info("Brouillon prêt")}
+        onChanged={() => queryClient.invalidateQueries({ queryKey: ["synced-emails"] })}
+      />
     </div>
   );
 };

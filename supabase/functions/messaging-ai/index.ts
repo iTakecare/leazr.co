@@ -219,9 +219,99 @@ Réponds UNIQUEMENT en JSON : {"summary":"<1 phrase>","suggestions":[{"kind":"..
   return jsonResponse({ success: true, summary: parsed.summary, suggestions });
 }
 
-// NB : l'analyse IA des EMAILS existe déjà ailleurs (edge function
-// analyze-email + synced_emails.ai_suggestions) — cette fonction ne couvre
-// que les conversations WhatsApp/SMS pour ne pas dupliquer.
+// ---------------------------------------------------------------------
+// analyze_email — centre d'actions IA pour la boîte mail (pattern Capptain).
+// Renvoie des suggestions éphémères affichées dans une modale ; l'exécution
+// se fait côté client / via mail-sync (attach_to_offer).
+//   kinds : link_offer, task, reply, create_ticket, classify_document
+// ---------------------------------------------------------------------
+async function analyzeEmail(
+  adminSupabase: Admin,
+  companyId: string,
+  emailId: string,
+): Promise<Response> {
+  const { data: email } = await adminSupabase
+    .from("synced_emails")
+    .select("id, company_id, from_address, from_name, subject, body_text, body_html, to_address, attachments, linked_offer_id")
+    .eq("id", emailId)
+    .maybeSingle();
+  if (!email || email.company_id !== companyId) {
+    return jsonResponse({ success: false, error: "email_not_found" }, 404);
+  }
+
+  // Match client par email expéditeur + ses demandes + ses tâches ouvertes.
+  let client: { id: string; name: string } | null = null;
+  let offers: Array<{ id: string; offer_number: string | null; dossier_number: string | null; workflow_status: string | null }> = [];
+  let openTasks: Array<{ title: string }> = [];
+  if (email.from_address) {
+    const { data: c } = await adminSupabase
+      .from("clients").select("id, name").eq("company_id", companyId)
+      .ilike("email", email.from_address.trim()).maybeSingle();
+    client = c;
+    if (c) {
+      const { data: o } = await adminSupabase
+        .from("offers").select("id, offer_number, dossier_number, workflow_status")
+        .eq("client_id", c.id).order("created_at", { ascending: false }).limit(10);
+      offers = o ?? [];
+      const { data: t } = await adminSupabase
+        .from("tasks").select("title").eq("related_client_id", c.id).neq("status", "done").limit(8);
+      openTasks = t ?? [];
+    }
+  }
+
+  const attachments = (email.attachments ?? []) as Array<{ filename: string; content_type: string; index: number }>;
+  const bodyText = (email.body_text ?? (email.body_html ? String(email.body_html).replace(/<[^>]+>/g, " ") : "")).slice(0, 4000);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const system = "Tu es l'assistant CRM de Leazr (leasing de matériel IT, B2B). Tu réponds uniquement par un objet JSON valide, sans texte autour.";
+  const user = `Date du jour : ${today}.
+
+Email reçu de ${email.from_name ?? ""} <${email.from_address ?? "?"}>${client ? ` — client connu : "${client.name}"` : " — expéditeur INCONNU du CRM"}${email.linked_offer_id ? " (déjà lié à une demande)" : ""}.
+Sujet : ${email.subject ?? "(sans objet)"}
+Corps :
+${bodyText}
+
+${client ? `Demandes du client (id, numéro, statut) :
+${JSON.stringify(offers.map((o) => ({ id: o.id, numero: o.offer_number ?? o.dossier_number, statut: o.workflow_status })))}
+Tâches déjà ouvertes : ${JSON.stringify(openTasks.map((t) => t.title))}` : ""}
+
+${attachments.length > 0 ? `Pièces jointes (index, nom, type) :
+${JSON.stringify(attachments.map((a) => ({ index: a.index, nom: a.filename, type: a.content_type })))}
+Types de documents possibles : ${JSON.stringify(DOCUMENT_TYPES)}` : ""}
+
+Détermine d'abord la nature de l'email (demande client, envoi de document, question, rappel de paiement/facture, message administratif, newsletter/spam). Newsletter/notification automatique/spam → AUCUNE action.
+Puis propose UNIQUEMENT les actions utiles parmi :
+- "link_offer" {"offer_id":"...","offer_label":"<numéro>"} : si l'email concerne clairement une demande listée et n'y est pas déjà lié. N'invente JAMAIS d'offer_id.
+- "task" {"title":"...","description":"...","due_in_days":N,"priority":"low"|"medium"|"high"} : si une action humaine est attendue. Rappel de paiement → title "Régler facture <réf> — <montant> € (échéance <date>)". Ne duplique pas une tâche ouverte.
+- "create_ticket" {"title":"..."} : si l'email est une demande de support à tracer.
+- "classify_document" {"attachment_index":N,"document_type":"<clé>","filename":"<nom>"} : une par pièce jointe pertinente, si son type est déductible.
+- "reply" {"subject":"Re: ...","body":"..."} : brouillon de réponse en français (vouvoiement, signature "L'équipe iTakecare", aucun chiffre ni délai inventé) si une réponse est attendue.
+Chaque suggestion a un "reason" (1 phrase).
+
+Réponds UNIQUEMENT en JSON : {"summary":"<1 phrase>","matched_client":${client ? `{"id":"${client.id}","name":${JSON.stringify(client.name)}}` : "null"},"suggestions":[{"kind":"...","payload":{...},"reason":"..."}]}`;
+
+  const { text } = await callClaude(system, user);
+  let parsed: { summary?: string; matched_client?: unknown; suggestions?: Suggestion[] };
+  try {
+    parsed = parseJsonLoose(text) as typeof parsed;
+  } catch (e) {
+    return jsonResponse({ success: false, error: "ai_parse_error", message: String(e) }, 502);
+  }
+
+  const validOfferIds = new Set(offers.map((o) => o.id));
+  const validAttachIdx = new Set(attachments.map((a) => a.index));
+  const suggestions = (parsed.suggestions ?? []).filter((s) => {
+    if (!s || !VALID_KINDS.has(s.kind) && s.kind !== "create_ticket") return false;
+    if (s.kind === "link_offer") return !email.linked_offer_id && typeof s.payload?.offer_id === "string" && validOfferIds.has(s.payload.offer_id as string);
+    if (s.kind === "classify_document") return validAttachIdx.has(Number(s.payload?.attachment_index)) && typeof s.payload?.document_type === "string" && (s.payload.document_type as string) in DOCUMENT_TYPES;
+    if (s.kind === "task") return !!s.payload?.title;
+    if (s.kind === "create_ticket") return !!s.payload?.title;
+    if (s.kind === "reply") return !!s.payload?.body;
+    return false;
+  });
+
+  return jsonResponse({ success: true, summary: parsed.summary, matched_client: parsed.matched_client ?? null, suggestions });
+}
 
 // ---------------------------------------------------------------------
 // classify_document — exécution : copie chat-media → offer-documents
@@ -294,6 +384,7 @@ serve(async (req) => {
       action?: string;
       conversation_id?: string;
       company_id?: string;
+      email_id?: string;
       payload?: Record<string, unknown>;
     } | null;
     if (!body?.action) return jsonResponse({ success: false, error: "invalid_action" }, 400);
@@ -323,6 +414,9 @@ serve(async (req) => {
       case "analyze_conversation":
         if (!body.conversation_id) return jsonResponse({ success: false, error: "conversation_id required" }, 400);
         return await analyzeConversation(adminSupabase, companyId, body.conversation_id);
+      case "analyze_email":
+        if (!body.email_id) return jsonResponse({ success: false, error: "email_id required" }, 400);
+        return await analyzeEmail(adminSupabase, companyId, body.email_id);
       case "classify_document":
         return await classifyDocument(adminSupabase, companyId, userId, (body.payload ?? {}) as { message_id?: string; offer_id?: string; document_type?: string });
       default:

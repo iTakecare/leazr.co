@@ -66,6 +66,50 @@ function imapClient(account: Account, password: string): ImapFlow {
   });
 }
 
+// special_use des dossiers suivis d'office à leur découverte.
+const AUTO_SYNC_SPECIAL = new Set(["\\Inbox", "\\Sent", "\\Drafts", "\\Archive", "\\Junk", "\\Trash"]);
+
+// Noms FR lisibles pour les dossiers standards (sinon le nom serveur).
+function frenchFolderName(name: string, special: string | null): string {
+  switch (special) {
+    case "\\Inbox": return "Boîte de réception";
+    case "\\Sent": return "Envoyés";
+    case "\\Drafts": return "Brouillons";
+    case "\\Archive": return "Archives";
+    case "\\Junk": return "Indésirables";
+    case "\\Trash": return "Corbeille";
+    default: return name;
+  }
+}
+
+type ImapClient = InstanceType<typeof ImapFlow>;
+
+// Remonte tous les dossiers du serveur dans imap_folders (préserve is_synced).
+async function discoverFolders(adminSupabase: Admin, accountId: string, client: ImapClient): Promise<void> {
+  const list = await client.list();
+  const { data: known } = await adminSupabase
+    .from("imap_folders").select("path, is_synced").eq("account_id", accountId);
+  const knownMap = new Map((known ?? []).map((f) => [f.path, f.is_synced]));
+
+  const rows = list
+    .filter((f) => !f.flags?.has?.("\\Noselect"))
+    .map((f) => {
+      const special = f.specialUse ?? (f.path.toUpperCase() === "INBOX" ? "\\Inbox" : null);
+      const already = knownMap.get(f.path);
+      return {
+        account_id: accountId,
+        path: f.path,
+        name: frenchFolderName(f.name, special),
+        special_use: special,
+        // nouveau dossier → suivi d'office si standard ; sinon on garde le choix.
+        is_synced: already !== undefined ? already : (special !== null && AUTO_SYNC_SPECIAL.has(special)),
+      };
+    });
+  if (rows.length > 0) {
+    await adminSupabase.from("imap_folders").upsert(rows, { onConflict: "account_id,path" });
+  }
+}
+
 // ---------------------------------------------------------------------
 // Sync d'un compte : pour chaque dossier suivi, ne lit que les UID
 // au-delà de last_uid. uidvalidity change → resync du dossier.
@@ -86,20 +130,6 @@ async function syncAccount(
     return { synced, errors: ["no_password"] };
   }
 
-  let { data: folders } = await adminSupabase
-    .from("imap_folders")
-    .select("id, path, uidvalidity, last_uid")
-    .eq("account_id", account.id)
-    .eq("is_synced", true);
-  if (!folders || folders.length === 0) {
-    // Premier contact : on suit au minimum INBOX.
-    const { data: created } = await adminSupabase
-      .from("imap_folders")
-      .upsert({ account_id: account.id, path: "INBOX", name: "Boîte de réception", is_synced: true }, { onConflict: "account_id,path" })
-      .select("id, path, uidvalidity, last_uid");
-    folders = created ?? [];
-  }
-
   const client = imapClient(account, password);
   try {
     await client.connect();
@@ -107,6 +137,31 @@ async function syncAccount(
     const msg = e instanceof Error ? e.message : String(e);
     await adminSupabase.from("imap_accounts").update({ last_sync_error: `Connexion IMAP: ${msg}` }).eq("id", account.id);
     return { synced, errors: [msg] };
+  }
+
+  // Auto-découverte : on remonte TOUS les dossiers du serveur dans
+  // imap_folders. Les nouveaux dossiers "standards" (INBOX, Envoyés,
+  // Brouillons, Archives, Indésirables, Corbeille) sont suivis d'office ;
+  // les dossiers personnalisés apparaissent désactivés (à cocher dans
+  // « Comptes mail »). On préserve toujours le is_synced déjà choisi.
+  try {
+    await discoverFolders(adminSupabase, account.id, client);
+  } catch (e) {
+    console.error(`[mail-sync] discoverFolders ${account.email_address}:`, e instanceof Error ? e.message : e);
+  }
+
+  let { data: folders } = await adminSupabase
+    .from("imap_folders")
+    .select("id, path, uidvalidity, last_uid")
+    .eq("account_id", account.id)
+    .eq("is_synced", true);
+  if (!folders || folders.length === 0) {
+    await adminSupabase.from("imap_folders")
+      .upsert({ account_id: account.id, path: "INBOX", name: "Boîte de réception", special_use: "\\Inbox", is_synced: true }, { onConflict: "account_id,path" });
+    const { data } = await adminSupabase
+      .from("imap_folders").select("id, path, uidvalidity, last_uid")
+      .eq("account_id", account.id).eq("is_synced", true);
+    folders = data ?? [];
   }
 
   try {
@@ -335,6 +390,83 @@ async function getAttachment(adminSupabase: Admin, companyId: string, emailId: s
 }
 
 // ---------------------------------------------------------------------
+// attach_to_offer — classe une pièce jointe d'email dans le dossier d'une
+// demande (offer_documents). Récupère la pièce via IMAP puis l'upload dans
+// le bucket offer-documents.
+// ---------------------------------------------------------------------
+async function attachToOffer(
+  adminSupabase: Admin,
+  companyId: string,
+  userId: string | null,
+  emailId: string,
+  index: number,
+  offerId: string,
+  documentType: string,
+): Promise<Response> {
+  const { data: email } = await adminSupabase
+    .from("synced_emails")
+    .select("id, company_id, account_id, folder_path, imap_uid")
+    .eq("id", emailId).maybeSingle();
+  if (!email || email.company_id !== companyId) return jsonResponse({ success: false, error: "email_not_found" }, 404);
+  if (!email.account_id || email.imap_uid == null) return jsonResponse({ success: false, error: "no_imap_ref" }, 422);
+
+  const { data: offer } = await adminSupabase
+    .from("offers").select("id, company_id").eq("id", offerId).maybeSingle();
+  if (!offer || offer.company_id !== companyId) return jsonResponse({ success: false, error: "offer_not_found" }, 404);
+
+  const { data: account } = await adminSupabase
+    .from("imap_accounts").select("*").eq("id", email.account_id).maybeSingle();
+  if (!account) return jsonResponse({ success: false, error: "account_not_found" }, 404);
+  const password = await getPassword(adminSupabase, account.id);
+  if (!password) return jsonResponse({ success: false, error: "no_password" }, 412);
+
+  const client = imapClient(account as Account, password);
+  await client.connect();
+  let bytes: Uint8Array | null = null;
+  let filename = `piece-jointe-${index + 1}`;
+  let contentType = "application/octet-stream";
+  try {
+    const lock = await client.getMailboxLock(email.folder_path);
+    try {
+      const full = await client.fetchOne(String(email.imap_uid), { uid: true, source: true }, { uid: true });
+      if (!full?.source) return jsonResponse({ success: false, error: "message_gone" }, 404);
+      const parsed = await simpleParser(full.source);
+      const atts = (parsed.attachments ?? []).filter((a) => !(a.contentDisposition === "inline" && a.contentId));
+      const att = atts[index];
+      if (!att) return jsonResponse({ success: false, error: "attachment_not_found" }, 404);
+      bytes = new Uint8Array(att.content);
+      filename = att.filename ?? filename;
+      contentType = att.contentType ?? contentType;
+    } finally {
+      lock.release();
+    }
+  } finally {
+    try { await client.logout(); } catch { /* */ }
+  }
+  if (!bytes) return jsonResponse({ success: false, error: "attachment_empty" }, 404);
+
+  const ext = filename.includes(".") ? filename.split(".").pop() : "bin";
+  const destName = `${documentType}-email-${Date.now()}.${ext}`;
+  const destPath = `${offerId}/${destName}`;
+  const { error: upErr } = await adminSupabase.storage
+    .from("offer-documents").upload(destPath, bytes, { contentType, upsert: true });
+  if (upErr) return jsonResponse({ success: false, error: "upload_failed", message: upErr.message }, 500);
+
+  const { error: insErr } = await adminSupabase.from("offer_documents").insert({
+    offer_id: offerId,
+    document_type: documentType,
+    file_name: filename,
+    file_path: destPath,
+    mime_type: contentType,
+    status: "pending",
+    uploaded_by: userId,
+    admin_notes: "Pièce jointe d'email classée par l'assistant IA.",
+  });
+  if (insErr) return jsonResponse({ success: false, error: "insert_failed", message: insErr.message }, 500);
+  return jsonResponse({ success: true, file_path: destPath });
+}
+
+// ---------------------------------------------------------------------
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -353,6 +485,8 @@ serve(async (req) => {
       is_synced?: boolean;
       email_id?: string;
       index?: number;
+      offer_id?: string;
+      document_type?: string;
       account?: Record<string, unknown>;
       password?: string;
     } | null;
@@ -500,6 +634,13 @@ serve(async (req) => {
           return jsonResponse({ success: false, error: "missing_params" }, 400);
         }
         return await getAttachment(adminSupabase, companyId, body.email_id, Number(body.index));
+      }
+
+      case "attach_to_offer": {
+        if (!body.email_id || body.index == null || !body.offer_id || !body.document_type) {
+          return jsonResponse({ success: false, error: "missing_params" }, 400);
+        }
+        return await attachToOffer(adminSupabase, companyId, claims.user.id, body.email_id, Number(body.index), body.offer_id, body.document_type);
       }
 
       default:
