@@ -38,15 +38,30 @@ serve(async (req) => {
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiKey) return json({ success: false, error: "openai_not_configured" }, 412);
 
+    // Contexte (nom client + société) pour guider la reconnaissance.
+    let clientName = ""; let companyName = "iTakecare";
+    if (call.client_id) {
+      const { data: c } = await admin.from("clients").select("name, company_name").eq("id", call.client_id).maybeSingle();
+      clientName = (c as { name?: string } | null)?.name ?? "";
+      companyName = (c as { company_name?: string } | null)?.company_name || companyName;
+    }
+    const { data: comp } = await admin.from("companies").select("name").eq("id", call.company_id).maybeSingle();
+    const orgName = (comp as { name?: string } | null)?.name || "iTakecare";
+
     // 1) Télécharge le MP3 du bucket.
     const { data: file, error: dlErr } = await admin.storage.from("call-recordings").download(call.recording_path);
     if (dlErr || !file) return json({ success: false, error: "download_failed", message: dlErr?.message }, 500);
 
-    // 2) Whisper (français).
+    // 2) Whisper (français) — le `prompt` biaise la reconnaissance vers le
+    //    vocabulaire métier et les noms propres (sinon "Gianni de iTakecare"
+    //    devient "Janine de ITKF"…).
+    const whisperPrompt = `Conversation téléphonique en français entre un conseiller de ${orgName} (société de leasing de matériel informatique) et un client${clientName ? ` nommé ${clientName}` : ""}. Termes fréquents : ${orgName}, Leazr, leasing, demande de financement, mensualité, Grenke, dossier, carte d'identité, bilan, extrait de rôle, documents, MacBook, ordinateur, partenaires financiers.`;
     const fd = new FormData();
     fd.append("file", file, "call.mp3");
     fd.append("model", "whisper-1");
     fd.append("language", "fr");
+    fd.append("prompt", whisperPrompt);
+    fd.append("temperature", "0");
     const wResp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
       headers: { Authorization: `Bearer ${openaiKey}` },
@@ -56,12 +71,14 @@ serve(async (req) => {
       const t = await wResp.text();
       return json({ success: false, error: "whisper_failed", message: t.slice(0, 300) }, 502);
     }
-    const transcription = ((await wResp.json()) as { text?: string }).text ?? "";
+    const rawTranscription = ((await wResp.json()) as { text?: string }).text ?? "";
+    let transcription = rawTranscription;
 
-    // 3) Résumé + actions suggérées (Claude), avec le contexte des demandes.
+    // 3) Claude : CORRIGE la transcription (noms/société mal reconnus) +
+    //    résumé + actions, avec le contexte des demandes.
     let summary = ""; let actions: unknown[] = [];
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (anthropicKey && transcription.trim()) {
+    if (anthropicKey && rawTranscription.trim()) {
       let offers: Array<{ id: string; numero: string | null; statut: string | null }> = [];
       if (call.client_id) {
         const { data: o } = await admin.from("offers")
@@ -70,24 +87,31 @@ serve(async (req) => {
         offers = (o ?? []).map((x) => ({ id: x.id, numero: x.offer_number ?? x.dossier_number, statut: x.workflow_status }));
       }
       const sys = "Tu es l'assistant CRM de Leazr (leasing IT B2B). Tu réponds uniquement par un objet JSON valide.";
-      const usr = `Transcription d'un appel téléphonique avec un client :
-"""${transcription.slice(0, 6000)}"""
+      const usr = `Transcription BRUTE (Whisper) d'un appel téléphonique. Elle contient des erreurs de reconnaissance, surtout sur les noms propres et la société.
 
-${offers.length ? `Demandes du client (id, numéro, statut) : ${JSON.stringify(offers)}` : ""}
+Contexte certain :
+- Société : ${orgName}
+${clientName ? `- Client : ${clientName}` : "- Client : inconnu"}
+${offers.length ? `- Demandes du client (id, numéro, statut) : ${JSON.stringify(offers)}` : ""}
+
+Transcription brute :
+"""${rawTranscription.slice(0, 8000)}"""
 
 Donne :
+- "transcription" : la transcription CORRIGÉE en français — corrige les noms propres mal reconnus (ex. remplace une mauvaise graphie du nom de la société par "${orgName}", du client par "${clientName || "le client"}"), la ponctuation et les évidences ; NE réécris PAS le sens, ne supprime rien, garde le style parlé. Idéalement préfixe les répliques par "Conseiller :" / "Client :" si c'est clair.
 - "summary" : 2-3 phrases résumant l'appel et ce qui a été convenu.
 - "actions" : suggestions parmi {kind, payload, reason} :
   • "task" {"title","description","due_in_days","priority":"low|medium|high"} si une action humaine est attendue
   • "link_offer" {"offer_id","offer_label"} si l'appel concerne une demande listée (jamais d'id inventé)
   • "callback" {"in_days":N,"reason":"..."} si un rappel est convenu
-  • "callback_ai" {"reason":"..."} si le client doit être rappelé par l'agent vocal IA pour des documents
-Réponds UNIQUEMENT en JSON : {"summary":"...","actions":[...]}`;
+  • "request_documents" {"documents":["carte d'identité","bilan"...],"offer_label":"..."} si le client doit envoyer des documents
+  • "callback_ai" {"reason":"..."} si le client doit être rappelé par l'agent vocal IA
+Réponds UNIQUEMENT en JSON : {"transcription":"...","summary":"...","actions":[...]}`;
       try {
         const aResp = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: { "x-api-key": anthropicKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, system: sys, messages: [{ role: "user", content: usr }] }),
+          body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 4000, system: sys, messages: [{ role: "user", content: usr }] }),
         });
         if (aResp.ok) {
           const data = await aResp.json();
@@ -96,6 +120,9 @@ Réponds UNIQUEMENT en JSON : {"summary":"...","actions":[...]}`;
           const s = cleaned.indexOf("{"), e = cleaned.lastIndexOf("}");
           if (s !== -1 && e !== -1) {
             const parsed = JSON.parse(cleaned.slice(s, e + 1));
+            if (typeof parsed.transcription === "string" && parsed.transcription.trim().length > 20) {
+              transcription = parsed.transcription;
+            }
             summary = parsed.summary ?? "";
             const validOfferIds = new Set(offers.map((o) => o.id));
             actions = (parsed.actions ?? []).filter((a: { kind?: string; payload?: { offer_id?: string } }) =>
