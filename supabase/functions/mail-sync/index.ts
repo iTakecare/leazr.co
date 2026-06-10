@@ -69,18 +69,29 @@ function imapClient(account: Account, password: string): ImapFlow {
 // special_use des dossiers suivis d'office à leur découverte.
 const AUTO_SYNC_SPECIAL = new Set(["\\Inbox", "\\Sent", "\\Drafts", "\\Archive", "\\Junk", "\\Trash"]);
 
-// Noms FR lisibles pour les dossiers standards (sinon le nom serveur).
-function frenchFolderName(name: string, special: string | null): string {
-  switch (special) {
-    case "\\Inbox": return "Boîte de réception";
-    case "\\Sent": return "Envoyés";
-    case "\\Drafts": return "Brouillons";
-    case "\\Archive": return "Archives";
-    case "\\Junk": return "Indésirables";
-    case "\\Trash": return "Corbeille";
-    default: return name;
-  }
+// Beaucoup de serveurs (Exchange/OVH) n'exposent PAS les flags RFC
+// SPECIAL-USE : on déduit alors le rôle du dossier depuis son nom (FR + EN).
+// Les dossiers non-courrier (Calendrier, Contacts, Notes…) ne sont jamais
+// suivis automatiquement.
+function specialUseFromName(name: string): string | null {
+  const n = name.trim().toLowerCase();
+  if (n === "inbox" || n === "boîte de réception" || n === "boite de reception") return "\\Inbox";
+  if (["envoyés", "envoyes", "éléments envoyés", "elements envoyes", "sent", "sent messages"].includes(n)) return "\\Sent";
+  if (["brouillons", "drafts"].includes(n)) return "\\Drafts";
+  if (["archive", "archives"].includes(n)) return "\\Archive";
+  if (["indésirables", "indesirables", "courrier indésirable", "courrier indesirable", "junk", "spam", "pourriel"].includes(n)) return "\\Junk";
+  if (["corbeille", "éléments supprimés", "elements supprimes", "trash", "deleted messages", "deleted items"].includes(n)) return "\\Trash";
+  return null;
 }
+
+const FRENCH_NAME: Record<string, string> = {
+  "\\Inbox": "Boîte de réception",
+  "\\Sent": "Envoyés",
+  "\\Drafts": "Brouillons",
+  "\\Archive": "Archives",
+  "\\Junk": "Indésirables",
+  "\\Trash": "Corbeille",
+};
 
 type ImapClient = InstanceType<typeof ImapFlow>;
 
@@ -94,14 +105,17 @@ async function discoverFolders(adminSupabase: Admin, accountId: string, client: 
   const rows = list
     .filter((f) => !f.flags?.has?.("\\Noselect"))
     .map((f) => {
-      const special = f.specialUse ?? (f.path.toUpperCase() === "INBOX" ? "\\Inbox" : null);
+      // flag serveur sinon déduction par nom (et INBOX toujours = Inbox).
+      const special = f.specialUse
+        ?? (f.path.toUpperCase() === "INBOX" ? "\\Inbox" : specialUseFromName(f.name));
       const already = knownMap.get(f.path);
       return {
         account_id: accountId,
         path: f.path,
-        name: frenchFolderName(f.name, special),
+        name: special && FRENCH_NAME[special] ? FRENCH_NAME[special] : f.name,
         special_use: special,
-        // nouveau dossier → suivi d'office si standard ; sinon on garde le choix.
+        // nouveau dossier standard → suivi d'office ; custom → désactivé
+        // (à cocher dans « Comptes mail ») ; existant → on respecte le choix.
         is_synced: already !== undefined ? already : (special !== null && AUTO_SYNC_SPECIAL.has(special)),
       };
     });
