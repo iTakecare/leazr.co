@@ -147,6 +147,17 @@ const STATUS_LABEL: Record<string, string> = {
   idle: "",
 };
 
+// Statuts stockés des appels → libellé FR pour l'historique.
+const CALL_STATUS_FR: Record<string, string> = {
+  ringing: "Sonné",
+  in_progress: "En cours",
+  completed: "Terminé",
+  no_answer: "Sans réponse",
+  busy: "Occupé",
+  failed: "Échec",
+  canceled: "Annulé",
+};
+
 // ----------------------------------------------------------------------------
 // Composant principal
 // ----------------------------------------------------------------------------
@@ -529,76 +540,124 @@ export default function PhoneCallCenter() {
   // --------------------------------------------------------------------------
   // RENDER
   // --------------------------------------------------------------------------
-  const dialpadKeys = useMemo(
-    () => ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"],
+  const dialpadKeys = useMemo<{ d: string; sub?: string }[]>(
+    () => [
+      { d: "1" }, { d: "2", sub: "ABC" }, { d: "3", sub: "DEF" },
+      { d: "4", sub: "GHI" }, { d: "5", sub: "JKL" }, { d: "6", sub: "MNO" },
+      { d: "7", sub: "PQRS" }, { d: "8", sub: "TUV" }, { d: "9", sub: "WXYZ" },
+      { d: "*" }, { d: "0", sub: "+" }, { d: "#" },
+    ],
     []
   );
 
   const incomingClientName =
     sp.incoming?.params.clientName ?? selectedClient?.name ?? null;
 
+  const initials = (name?: string | null) =>
+    (name ?? "").trim().split(/\s+/).map((s) => s[0]).slice(0, 2).join("").toUpperCase() || "?";
+
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col">
+    <div className="h-[calc(100vh-110px)] flex flex-col gap-4">
       {/* En-tête */}
-      <div className="flex items-center justify-between mb-4 px-1">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <PhoneCall className="h-6 w-6" /> Centre d'appels
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Passez et recevez des appels, avec le contexte client en direct.
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm shadow-emerald-500/30">
+            <PhoneCall className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold leading-tight">Centre d'appels</h1>
+            <p className="text-sm text-muted-foreground">
+              Appels entrants & sortants, contexte client en direct.
+            </p>
+          </div>
         </div>
-        {sp.ready && (
-          <Badge className="bg-green-600 hover:bg-green-600 text-white gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
-            En ligne pour les appels
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={requestMic}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+              micState === "granted"
+                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                : micState === "denied"
+                ? "bg-red-50 text-red-700 ring-1 ring-red-200 hover:bg-red-100"
+                : "bg-muted text-muted-foreground hover:bg-accent"
+            )}
+            title="Autoriser le microphone (requis pour appeler)"
+          >
+            <Mic className="h-3.5 w-3.5" />
+            {micState === "granted" ? "Micro OK" : micState === "denied" ? "Micro refusé" : "Activer le micro"}
+          </button>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium",
+              sp.ready
+                ? "bg-emerald-600 text-white"
+                : "bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+            )}
+          >
+            <span className={cn("h-2 w-2 rounded-full bg-current", sp.ready && "animate-pulse")} />
+            {sp.ready ? "En ligne" : "Connexion…"}
+          </span>
+        </div>
       </div>
 
       {/* Layout 3 colonnes */}
       <div className="flex gap-4 flex-1 min-h-0">
         {/* COLONNE GAUCHE */}
-        <div className="w-[320px] shrink-0 flex flex-col gap-4 min-h-0">
-          <Card className="shrink-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Composer</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Input
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Numéro à appeler"
-                className="text-center text-lg font-mono tracking-wider"
-              />
-              <div className="grid grid-cols-3 gap-2">
-                {dialpadKeys.map((k) => (
-                  <Button
-                    key={k}
-                    variant="outline"
-                    className="h-11 text-lg font-medium"
-                    onClick={() => appendDigit(k)}
+        <div className="w-[340px] shrink-0 flex flex-col gap-4 min-h-0">
+          <Card className="shrink-0 overflow-hidden">
+            <CardContent className="p-4 space-y-4">
+              {/* Écran du numéroteur */}
+              <div className="rounded-2xl bg-muted/60 px-4 py-3.5 flex items-center gap-2">
+                <input
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="Saisir un numéro"
+                  className="flex-1 min-w-0 bg-transparent text-center text-2xl font-semibold tracking-wide tabular-nums outline-none placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground"
+                />
+                {phoneNumber && (
+                  <button
+                    onClick={backspace}
+                    className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Effacer"
                   >
-                    {k}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  className="h-11 col-span-3"
-                  onClick={backspace}
-                  disabled={!phoneNumber}
-                >
-                  <Delete className="h-4 w-4" />
-                </Button>
+                    <Delete className="h-5 w-5" />
+                  </button>
+                )}
               </div>
+
+              {/* Clavier */}
+              <div className="grid grid-cols-3 gap-2.5">
+                {dialpadKeys.map((k) => (
+                  <button
+                    key={k.d}
+                    onClick={() => appendDigit(k.d)}
+                    className="group h-14 rounded-2xl bg-muted/40 hover:bg-accent active:scale-95 transition-all flex flex-col items-center justify-center"
+                  >
+                    <span className="text-xl font-semibold leading-none">{k.d}</span>
+                    {k.sub && (
+                      <span className="text-[9px] tracking-widest text-muted-foreground mt-0.5">
+                        {k.sub}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Bouton appeler */}
               <Button
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                size="lg"
+                className="w-full h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-base shadow-sm shadow-emerald-600/30"
                 onClick={handleCall}
                 disabled={!phoneNumber.trim() || inCall || !sp.ready}
               >
-                <Phone className="h-4 w-4 mr-2" /> Appeler
+                <Phone className="h-5 w-5 mr-2" /> Appeler
               </Button>
+              {micState !== "granted" && (
+                <p className="text-[11px] text-center text-muted-foreground">
+                  Pensez à <button onClick={requestMic} className="underline font-medium">activer le micro</button> avant d'appeler.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -670,20 +729,27 @@ export default function PhoneCallCenter() {
                       <button
                         key={call.id}
                         onClick={() => handleRecentClick(call)}
-                        className="w-full text-left rounded-md border p-2 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+                        className="w-full text-left rounded-xl p-2 text-sm hover:bg-accent transition-colors flex items-center gap-2.5"
                       >
-                        {call.direction === "inbound" ? (
-                          <PhoneIncoming className="h-4 w-4 text-blue-600 shrink-0" />
-                        ) : (
-                          <PhoneOutgoing className="h-4 w-4 text-green-600 shrink-0" />
-                        )}
+                        <span
+                          className={cn(
+                            "h-8 w-8 shrink-0 rounded-full flex items-center justify-center",
+                            call.direction === "inbound" ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"
+                          )}
+                        >
+                          {call.direction === "inbound" ? (
+                            <PhoneIncoming className="h-4 w-4" />
+                          ) : (
+                            <PhoneOutgoing className="h-4 w-4" />
+                          )}
+                        </span>
                         <div className="min-w-0 flex-1">
-                          <div className="truncate font-medium">
+                          <div className="truncate font-medium font-mono text-[13px]">
                             {call.to_phone ?? "Inconnu"}
                           </div>
                           <div className="text-xs text-muted-foreground truncate">
                             {fmtTime(call.created_at)}
-                            {call.status ? ` · ${call.status}` : ""}
+                            {call.status ? ` · ${CALL_STATUS_FR[call.status] ?? call.status}` : ""}
                           </div>
                         </div>
                       </button>
@@ -696,111 +762,105 @@ export default function PhoneCallCenter() {
         </div>
 
         {/* COLONNE CENTRE */}
-        <Card className="flex-1 min-h-0 flex flex-col">
-          <CardHeader className="pb-3 shrink-0">
-            <CardTitle className="text-base">Appel</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex items-center justify-center">
-            {sp.incoming && !inCall ? (
-              <div className="text-center space-y-6 max-w-sm">
-                <div className="mx-auto h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center animate-pulse">
-                  <PhoneIncoming className="h-9 w-9 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Appel entrant</p>
-                  <p className="text-2xl font-semibold font-mono">
-                    {sp.incoming.from}
-                  </p>
-                  {incomingClientName && (
-                    <p className="text-base text-muted-foreground mt-1">
-                      {incomingClientName}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center justify-center gap-3">
-                  <Button
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={handleAcceptIncoming}
-                  >
-                    <Phone className="h-4 w-4 mr-2" /> Décrocher
-                  </Button>
-                  <Button variant="destructive" onClick={sp.rejectIncoming}>
-                    <PhoneOff className="h-4 w-4 mr-2" /> Refuser
-                  </Button>
+        <Card className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {sp.incoming && !inCall ? (
+            // ---------- APPEL ENTRANT ----------
+            <div className="flex-1 flex flex-col items-center justify-center gap-7 bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-8">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium uppercase tracking-wide">
+                <PhoneIncoming className="h-3.5 w-3.5" /> Appel entrant
+              </span>
+              <div className="relative">
+                <span className="absolute inset-0 rounded-full bg-white/30 animate-ping" />
+                <div className="relative h-28 w-28 rounded-full bg-white/15 ring-4 ring-white/30 flex items-center justify-center text-3xl font-bold">
+                  {incomingClientName ? initials(incomingClientName) : <PhoneIncoming className="h-12 w-12" />}
                 </div>
               </div>
-            ) : inCall ? (
-              <div className="text-center space-y-6">
-                <div
-                  className={cn(
-                    "mx-auto h-24 w-24 rounded-full flex items-center justify-center",
-                    sp.status === "in_call"
-                      ? "bg-green-100"
-                      : "bg-amber-100 animate-pulse"
-                  )}
+              <div className="text-center">
+                <p className="text-2xl font-bold">{incomingClientName ?? "Numéro inconnu"}</p>
+                <p className="text-white/80 font-mono mt-1">{sp.incoming.from}</p>
+              </div>
+              <div className="flex items-center gap-6">
+                <button
+                  onClick={sp.rejectIncoming}
+                  className="h-16 w-16 rounded-full bg-red-500 hover:bg-red-600 active:scale-95 transition-all flex items-center justify-center shadow-lg"
+                  title="Refuser"
                 >
-                  <PhoneCall
-                    className={cn(
-                      "h-10 w-10",
-                      sp.status === "in_call" ? "text-green-600" : "text-amber-600"
-                    )}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {STATUS_LABEL[sp.status] ?? ""}
-                  </p>
-                  <p className="text-2xl font-semibold font-mono">
-                    {selectedClient?.name ?? phoneNumber ?? "—"}
-                  </p>
-                  {sp.status === "in_call" && (
-                    <p className="text-xl font-mono mt-2 tabular-nums">
-                      {fmtDuration(sp.callDurationSec)}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center justify-center gap-3">
-                  <Button
-                    variant={sp.isMuted ? "default" : "outline"}
-                    onClick={sp.toggleMute}
-                  >
-                    {sp.isMuted ? (
-                      <MicOff className="h-4 w-4 mr-2" />
-                    ) : (
-                      <Mic className="h-4 w-4 mr-2" />
-                    )}
-                    {sp.isMuted ? "Réactiver" : "Muet"}
-                  </Button>
-                  <Button variant="destructive" onClick={sp.hangup}>
-                    <PhoneOff className="h-4 w-4 mr-2" /> Raccrocher
-                  </Button>
-                </div>
-                {sp.error && (
-                  <p className="text-sm text-red-600">{sp.error}</p>
+                  <PhoneOff className="h-7 w-7" />
+                </button>
+                <button
+                  onClick={handleAcceptIncoming}
+                  className="h-16 w-16 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center shadow-lg animate-bounce"
+                  title="Décrocher"
+                >
+                  <Phone className="h-7 w-7" />
+                </button>
+              </div>
+            </div>
+          ) : inCall ? (
+            // ---------- APPEL EN COURS ----------
+            <div
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-7 p-8 text-white transition-colors",
+                sp.status === "in_call"
+                  ? "bg-gradient-to-br from-emerald-500 to-teal-600"
+                  : "bg-gradient-to-br from-amber-500 to-orange-600"
+              )}
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium uppercase tracking-wide">
+                {sp.status !== "in_call" && <span className="h-2 w-2 rounded-full bg-white animate-pulse" />}
+                {STATUS_LABEL[sp.status] ?? ""}
+              </span>
+              <div className="h-28 w-28 rounded-full bg-white/15 ring-4 ring-white/30 flex items-center justify-center text-3xl font-bold">
+                {selectedClient ? initials(selectedClient.name) : <User className="h-12 w-12" />}
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{selectedClient?.name ?? phoneNumber ?? "—"}</p>
+                <p className="text-white/80 font-mono mt-1">{phoneNumber}</p>
+                {sp.status === "in_call" && (
+                  <p className="text-4xl font-bold tabular-nums mt-4">{fmtDuration(sp.callDurationSec)}</p>
                 )}
               </div>
-            ) : (
-              <div className="text-center space-y-4 text-muted-foreground">
-                <Phone className="h-14 w-14 mx-auto opacity-30" />
-                <p>Composez un numéro ou sélectionnez un client.</p>
-                {/* Activation du micro (indispensable pour appeler) */}
-                <div className="flex flex-col items-center gap-1">
-                  <Button
-                    variant={micState === "granted" ? "outline" : "default"}
-                    size="sm"
-                    onClick={requestMic}
-                  >
-                    <Mic className="h-4 w-4 mr-2" />
-                    {micState === "granted" ? "Micro autorisé ✅" : "Activer le micro"}
-                  </Button>
-                  <p className="text-xs">
-                    À faire une fois avant le premier appel.
-                  </p>
-                </div>
-                {sp.error && <p className="text-sm text-red-600">{sp.error}</p>}
+              <div className="flex items-center gap-5">
+                <button
+                  onClick={sp.toggleMute}
+                  className={cn(
+                    "h-14 w-14 rounded-full active:scale-95 transition-all flex items-center justify-center",
+                    sp.isMuted ? "bg-white text-foreground" : "bg-white/20 hover:bg-white/30"
+                  )}
+                  title={sp.isMuted ? "Réactiver le micro" : "Couper le micro"}
+                >
+                  {sp.isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                </button>
+                <button
+                  onClick={sp.hangup}
+                  className="h-16 w-16 rounded-full bg-red-500 hover:bg-red-600 active:scale-95 transition-all flex items-center justify-center shadow-lg"
+                  title="Raccrocher"
+                >
+                  <PhoneOff className="h-7 w-7" />
+                </button>
               </div>
-            )}
-          </CardContent>
+              {sp.error && <p className="text-sm bg-white/20 rounded-lg px-3 py-1.5">{sp.error}</p>}
+            </div>
+          ) : (
+            // ---------- AU REPOS ----------
+            <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8 text-center">
+              <div className="h-24 w-24 rounded-full bg-muted/60 flex items-center justify-center">
+                <PhoneCall className="h-11 w-11 text-muted-foreground/50" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold">Prêt à appeler</p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+                  Composez un numéro, choisissez un client dans l'annuaire, ou recevez un appel entrant.
+                </p>
+              </div>
+              {micState !== "granted" && (
+                <Button onClick={requestMic} variant="outline" className="rounded-full">
+                  <Mic className="h-4 w-4 mr-2" /> Activer le micro
+                </Button>
+              )}
+              {sp.error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-1.5">{sp.error}</p>}
+            </div>
+          )}
         </Card>
 
         {/* COLONNE DROITE */}
@@ -812,41 +872,52 @@ export default function PhoneCallCenter() {
             <ScrollArea className="h-full px-6 pb-6">
               {!selectedClient ? (
                 <div className="space-y-4 pt-2">
-                  <p className="text-sm text-muted-foreground">
-                    Aucun client associé.
-                    <br />
-                    Numéro : <span className="font-mono">{phoneNumber || "—"}</span>
-                  </p>
+                  <div className="rounded-2xl border border-dashed p-5 text-center">
+                    <div className="mx-auto h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center mb-3">
+                      <User className="h-6 w-6 text-muted-foreground/60" />
+                    </div>
+                    <p className="text-sm font-medium">Aucun client associé</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Numéro : <span className="font-mono">{phoneNumber || "—"}</span>
+                    </p>
+                  </div>
                   <div className="flex flex-col gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowClientSearch((v) => !v)}
-                    >
+                    <Button onClick={() => setShowClientSearch((v) => !v)} className="rounded-xl">
                       <User className="h-4 w-4 mr-2" /> Associer à un client
                     </Button>
                     <Button
                       variant="outline"
+                      className="rounded-xl"
                       onClick={handleSearchByNumber}
                       disabled={!phoneNumber.trim()}
                     >
                       <Search className="h-4 w-4 mr-2" /> Rechercher ce numéro
                     </Button>
-                    {/* Actions disponibles même sans client identifié */}
+                  </div>
+                  <Separator />
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Actions rapides
+                  </p>
+                  <div className="grid grid-cols-1 gap-2">
                     <Button
                       variant="outline"
+                      className="justify-start rounded-xl"
                       onClick={handleCreateTask}
                       disabled={creatingTask}
                     >
-                      <CheckSquare className="h-4 w-4 mr-2" /> Créer une tâche de suivi
+                      {creatingTask ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckSquare className="h-4 w-4 mr-2" />}
+                      Créer une tâche de suivi
                     </Button>
                     <Button
                       variant="outline"
+                      className="justify-start rounded-xl"
                       onClick={() => navigateToAdmin("clients?create=1")}
                     >
                       <UserPlus className="h-4 w-4 mr-2" /> Créer une fiche client
                     </Button>
                     <Button
                       variant="outline"
+                      className="justify-start rounded-xl"
                       onClick={() => navigateToAdmin("create-offer")}
                     >
                       <FileText className="h-4 w-4 mr-2" /> Nouvelle demande
@@ -886,52 +957,53 @@ export default function PhoneCallCenter() {
               ) : (
                 <div className="space-y-4 pt-2">
                   {/* En-tête client */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-lg truncate">
-                        {selectedClient.name}
-                      </p>
-                      {selectedClient.company_name && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 truncate">
-                          <Building2 className="h-3.5 w-3.5 shrink-0" />
-                          {selectedClient.company_name}
+                  <div className="rounded-2xl border bg-gradient-to-br from-muted/50 to-transparent p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold">
+                        {initials(selectedClient.name)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-base truncate">{selectedClient.name}</p>
+                        {selectedClient.company_name && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                            <Building2 className="h-3 w-3 shrink-0" />
+                            {selectedClient.company_name}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => setSelectedClient(null)}
+                        title="Désassocier"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="mt-3 space-y-1">
+                      {selectedClient.phone && (
+                        <p className="text-sm flex items-center gap-2 truncate font-mono">
+                          <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          {selectedClient.phone}
                         </p>
                       )}
                       {selectedClient.email && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 truncate">
-                          <Mail className="h-3.5 w-3.5 shrink-0" />
+                        <p className="text-sm flex items-center gap-2 truncate">
+                          <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {selectedClient.email}
-                        </p>
-                      )}
-                      {selectedClient.phone && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 truncate font-mono">
-                          <Phone className="h-3.5 w-3.5 shrink-0" />
-                          {selectedClient.phone}
                         </p>
                       )}
                     </div>
                     <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setSelectedClient(null)}
-                      title="Désassocier"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1"
+                      className="w-full mt-3 rounded-xl"
                       onClick={() => navigateToAdmin("clients/" + selectedClient.id)}
                     >
-                      <ExternalLink className="h-4 w-4 mr-2" /> Ouvrir la fiche
+                      <ExternalLink className="h-4 w-4 mr-2" /> Ouvrir la fiche client
                     </Button>
                   </div>
-
-                  <Separator />
 
                   {/* DEMANDES */}
                   <Section
