@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 // (messaging-webhook) — affiché ici en lecture seule.
 interface MessagingFields {
   messaging_opt_in_at: string | null;
+  voice_consent_given_at: string | null;
   whatsapp_status: "unknown" | "yes" | "no";
   preferred_channel: "auto" | "whatsapp" | "sms" | "none";
   phone: string | null;
@@ -39,7 +40,7 @@ export default function ClientMessagingCard({ clientId }: { clientId: string }) 
     let cancelled = false;
     supabase
       .from("clients")
-      .select("messaging_opt_in_at, whatsapp_status, preferred_channel, phone")
+      .select("messaging_opt_in_at, voice_consent_given_at, whatsapp_status, preferred_channel, phone")
       .eq("id", clientId)
       .maybeSingle()
       .then(({ data }) => {
@@ -70,7 +71,7 @@ export default function ClientMessagingCard({ clientId }: { clientId: string }) 
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <MessageCircle className="h-5 w-5" />
-          Messagerie WhatsApp / SMS
+          Messagerie & appels IA
           {fields.whatsapp_status === "yes" && (
             <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">WhatsApp ✓</Badge>
           )}
@@ -97,6 +98,25 @@ export default function ClientMessagingCard({ clientId }: { clientId: string }) 
             {optedIn && fields.messaging_opt_in_at && (
               <span className="block text-xs text-muted-foreground">
                 depuis le {new Date(fields.messaging_opt_in_at).toLocaleDateString("fr-FR")}
+              </span>
+            )}
+          </Label>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Switch
+            id="voice-consent"
+            checked={!!fields.voice_consent_given_at}
+            disabled={saving}
+            onCheckedChange={(checked) =>
+              save({ voice_consent_given_at: checked ? new Date().toISOString() : null })
+            }
+          />
+          <Label htmlFor="voice-consent" className="text-sm">
+            Consentement appels IA (Alex)
+            {fields.voice_consent_given_at && (
+              <span className="block text-xs text-muted-foreground">
+                depuis le {new Date(fields.voice_consent_given_at).toLocaleDateString("fr-FR")}
               </span>
             )}
           </Label>
