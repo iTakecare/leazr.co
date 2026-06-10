@@ -37,6 +37,7 @@ interface ImapFolder {
   name: string;
   special_use: string | null;
   is_synced: boolean;
+  last_uid?: number;
 }
 
 interface SyncedEmail {
@@ -77,12 +78,22 @@ interface MailboxPageProps {
 const PAGE_SIZE = 50;
 const SELECTION_STORAGE_KEY = "leazr_mail_selection";
 
+// Ordre traditionnel Outlook : Réception, Brouillons, Envoyés, Corbeille,
+// Indésirables, Archives, puis les dossiers personnalisés (alphabétiques).
 const SPECIAL_USE_ORDER: Record<string, number> = {
-  "\\Sent": 1,
+  "\\Inbox": 1,
   "\\Drafts": 2,
-  "\\Archive": 3,
-  "\\Junk": 4,
-  "\\Trash": 5,
+  "\\Sent": 3,
+  "\\Trash": 4,
+  "\\Junk": 5,
+  "\\Archive": 6,
+};
+const CUSTOM_FOLDER_ORDER = 50;
+
+const folderPriority = (f: ImapFolder): number => {
+  if (f.special_use && SPECIAL_USE_ORDER[f.special_use]) return SPECIAL_USE_ORDER[f.special_use];
+  if (!f.special_use && f.path.toUpperCase() === "INBOX") return 1;
+  return CUSTOM_FOLDER_ORDER;
 };
 
 const folderIcon = (specialUse: string | null) => {
@@ -246,12 +257,30 @@ const MailboxPage: React.FC<MailboxPageProps> = ({ onManageAccounts }) => {
       list.push(folder);
       map.set(folder.account_id, list);
     }
-    for (const list of map.values()) {
-      list.sort(
-        (a, b) =>
-          (a.special_use ? SPECIAL_USE_ORDER[a.special_use] ?? 9 : 0) -
-          (b.special_use ? SPECIAL_USE_ORDER[b.special_use] ?? 9 : 0)
-      );
+    for (const [accountId, list] of map) {
+      // Déduplication : certains serveurs (Exchange) exposent plusieurs
+      // dossiers pour le même rôle (Sent / Sent Messages / Éléments envoyés).
+      // On ne garde que le plus actif (last_uid le plus haut) par special_use.
+      const bySpecial = new Map<string, ImapFolder>();
+      const customs: ImapFolder[] = [];
+      for (const f of list) {
+        if (f.special_use) {
+          const cur = bySpecial.get(f.special_use);
+          if (!cur || (f.last_uid ?? 0) > (cur.last_uid ?? 0)) bySpecial.set(f.special_use, f);
+        } else if (f.path.toUpperCase() === "INBOX") {
+          bySpecial.set("\\Inbox", f);
+        } else {
+          customs.push(f);
+        }
+      }
+      const deduped = [...bySpecial.values(), ...customs];
+      deduped.sort((a, b) => {
+        const pa = folderPriority(a);
+        const pb = folderPriority(b);
+        if (pa !== pb) return pa - pb;
+        return a.name.localeCompare(b.name, "fr");
+      });
+      map.set(accountId, deduped);
     }
     return map;
   }, [folders]);
@@ -260,7 +289,7 @@ const MailboxPage: React.FC<MailboxPageProps> = ({ onManageAccounts }) => {
   const inboxPaths = useMemo(() => {
     const paths = new Set<string>();
     for (const folder of folders) {
-      if (!folder.special_use && folder.path.toUpperCase() === "INBOX") {
+      if (folder.special_use === "\\Inbox" || folder.path.toUpperCase() === "INBOX") {
         paths.add(folder.path);
       }
     }

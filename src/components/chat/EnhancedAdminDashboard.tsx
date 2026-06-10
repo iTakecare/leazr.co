@@ -233,6 +233,22 @@ export const EnhancedAdminDashboard: React.FC = () => {
   // base — le realtime l'affiche. Pas d'insert direct ici (sinon doublon).
   const sendChannelMessage = async (conversation: ChatConversation, text: string) => {
     setSendingChannelMessage(true);
+    // Affichage optimiste : le message apparaît tout de suite dans le fil
+    // (le serveur insère la ligne réelle ; le reload la réconcilie).
+    const tempId = `temp-${crypto.randomUUID()}`;
+    const optimistic: ChatMessage = {
+      id: tempId,
+      conversation_id: conversation.id,
+      sender_type: 'agent',
+      sender_id: user?.id,
+      sender_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Agent',
+      message: text,
+      message_type: 'text',
+      direction: 'outbound',
+      delivery_status: 'queued',
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => ({ ...prev, [conversation.id]: [...(prev[conversation.id] || []), optimistic] }));
     try {
       const { data, error } = await supabase.functions.invoke('messaging-send', {
         body: { action: 'send_message', conversation_id: conversation.id, text },
@@ -243,6 +259,8 @@ export const EnhancedAdminDashboard: React.FC = () => {
         if (ctx?.json) { try { body = await ctx.json(); } catch { /* */ } }
       }
       if (!body?.success) {
+        // retire l'optimiste en cas d'échec
+        setMessages(prev => ({ ...prev, [conversation.id]: (prev[conversation.id] || []).filter(m => m.id !== tempId) }));
         if (body?.error === 'window_closed') {
           showToast('Fenêtre WhatsApp fermée', 'Plus de 24 h sans message du client — il doit vous écrire, ou envoyez un template approuvé.', 'destructive');
         } else {
@@ -250,9 +268,14 @@ export const EnhancedAdminDashboard: React.FC = () => {
         }
         return;
       }
-      loadMessages(conversation.id);
+      // Réconciliation : on remplace par les vraies lignes serveur (qui
+      // portent provider_sid + statut). Un 2e reload couvre la latence
+      // d'insertion/realtime.
+      await loadMessages(conversation.id);
+      setTimeout(() => loadMessages(conversation.id), 1500);
     } catch (e) {
       console.error('Error sending channel message:', e);
+      setMessages(prev => ({ ...prev, [conversation.id]: (prev[conversation.id] || []).filter(m => m.id !== tempId) }));
       showToast('Erreur', 'Envoi impossible', 'destructive');
     } finally {
       setSendingChannelMessage(false);
