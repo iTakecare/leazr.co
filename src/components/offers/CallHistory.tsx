@@ -8,6 +8,7 @@ import {
   Calendar,
   User,
   ArrowRight,
+  Headset,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,10 +18,18 @@ import { fr } from "date-fns/locale";
 import { getCallLogs, deleteCallLog, CallLog } from "@/services/callLogService";
 import { toast } from "sonner";
 import { CallLogButton } from "./CallLogButton";
+import ClientCallModal from "./ClientCallModal";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CallHistoryProps {
   offerId: string;
+}
+
+interface OfferClientInfo {
+  clientId: string | null;
+  clientName?: string;
+  clientPhone: string | null;
 }
 
 const STATUS_CONFIG = {
@@ -60,6 +69,32 @@ export const CallHistory: React.FC<CallHistoryProps> = ({ offerId }) => {
   const { user } = useAuth();
   const [logs, setLogs] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [callModalOpen, setCallModalOpen] = useState(false);
+  const [clientInfo, setClientInfo] = useState<OfferClientInfo>({
+    clientId: null,
+    clientPhone: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("offers")
+        .select("client_id, client_name, clients(phone)")
+        .eq("id", offerId)
+        .single();
+      if (cancelled || error || !data) return;
+      setClientInfo({
+        clientId: (data.client_id as string) ?? null,
+        clientName: (data.client_name as string) ?? undefined,
+        clientPhone: (data.clients?.phone as string) ?? null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [offerId]);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -95,7 +130,22 @@ export const CallHistory: React.FC<CallHistoryProps> = ({ offerId }) => {
               </span>
             )}
           </CardTitle>
-          <CallLogButton offerId={offerId} onCallLogged={fetchLogs} />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-violet-600 hover:text-violet-700 hover:bg-violet-50 border-violet-200"
+              onClick={() => setCallModalOpen(true)}
+            >
+              <Headset className="w-4 h-4 mr-2" />
+              Gérer l'appel
+            </Button>
+            <CallLogButton
+              offerId={offerId}
+              onCallLogged={fetchLogs}
+              className="h-8 text-sm text-sky-600 hover:text-sky-700 hover:bg-sky-50 border-sky-200"
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -213,6 +263,16 @@ export const CallHistory: React.FC<CallHistoryProps> = ({ offerId }) => {
           </div>
         )}
       </CardContent>
+
+      <ClientCallModal
+        open={callModalOpen}
+        onOpenChange={setCallModalOpen}
+        offerId={offerId}
+        clientId={clientInfo.clientId}
+        clientName={clientInfo.clientName}
+        clientPhone={clientInfo.clientPhone}
+        onLogged={fetchLogs}
+      />
     </Card>
   );
 };
