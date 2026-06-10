@@ -25,6 +25,13 @@ const Layout = ({ children }: LayoutProps) => {
   // Utiliser la sidebar SaaS si on est admin SaaS et sur une page SaaS
   const shouldUseLeazrSaaSSidebar = isLeazrSaaSAdmin && isLeazrSaaSPage;
 
+  // Mode embarqué (?embed=1) : page nue, sans sidebar ni bandeau — utilisé
+  // pour afficher une demande/fiche dans une iframe (ex. Centre d'appels).
+  const isEmbedded = new URLSearchParams(location.search).get("embed") === "1";
+  if (isEmbedded) {
+    return <div className="min-h-screen bg-background">{children}</div>;
+  }
+
   // Rendu mobile
   if (isMobile) {
     return <MobileLayout>{children}</MobileLayout>;

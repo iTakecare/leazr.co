@@ -168,12 +168,21 @@ export default function PhoneCallCenter() {
   const queryClient = useQueryClient();
   const sp = useSoftphone(true, { receiveIncoming: true });
 
-  // IMPORTANT : ouvrir une fiche/demande dans un NOUVEL ONGLET — naviguer dans
-  // la même page démonterait le softphone et RACCROCHERAIT l'appel en cours.
-  const openAdmin = useCallback((path: string) => {
+  // Vue scindée : on EMBARQUE la fiche/demande dans une iframe du panneau de
+  // droite (mode ?embed=1, sans sidebar) au lieu de naviguer — sinon la page
+  // se démonterait et l'appel RACCROCHERAIT.
+  const [embedded, setEmbedded] = useState<{ url: string; title: string } | null>(null);
+  const adminUrl = useCallback((path: string) => {
     const base = window.location.pathname.split("/admin")[0];
-    window.open(`${base}/admin/${path}`, "_blank", "noopener");
+    return `${base}/admin/${path}`;
   }, []);
+  const openEmbedded = useCallback((path: string, title: string) => {
+    const url = adminUrl(path) + (path.includes("?") ? "&" : "?") + "embed=1";
+    setEmbedded({ url, title });
+  }, [adminUrl]);
+  const openAdmin = useCallback((path: string) => {
+    window.open(adminUrl(path), "_blank", "noopener");
+  }, [adminUrl]);
 
   const [phoneNumber, setPhoneNumber] = useState("");
   const [clientSearch, setClientSearch] = useState("");
@@ -687,7 +696,7 @@ export default function PhoneCallCenter() {
       {/* Layout 3 colonnes */}
       <div className="flex gap-4 flex-1 min-h-0">
         {/* COLONNE GAUCHE */}
-        <div className="w-[340px] shrink-0 flex flex-col gap-4 min-h-0">
+        <div className={cn("shrink-0 flex-col gap-4 min-h-0", embedded ? "hidden 2xl:flex w-[300px]" : "flex w-[340px]")}>
           <Card className="shrink-0 overflow-hidden">
             <CardContent className="p-4 space-y-4">
               {/* Écran du numéroteur */}
@@ -866,7 +875,7 @@ export default function PhoneCallCenter() {
         </div>
 
         {/* ESPACE DE TRAVAIL : barre d'appel compacte + contexte client */}
-        <Card className="flex-1 min-h-0 flex flex-col">
+        <Card className={cn("min-h-0 flex flex-col", embedded ? "w-[400px] shrink-0" : "flex-1")}>
           <div className="p-3 border-b shrink-0">
             {sp.incoming && !inCall ? (
               <div className="flex items-center justify-between gap-3 rounded-xl bg-blue-50 border border-blue-200 px-3 py-2">
@@ -970,14 +979,14 @@ export default function PhoneCallCenter() {
                     <Button
                       variant="outline"
                       className="justify-start rounded-xl"
-                      onClick={() => openAdmin("clients?create=1")}
+                      onClick={() => openEmbedded("clients?create=1", "Nouvelle fiche client")}
                     >
                       <UserPlus className="h-4 w-4 mr-2" /> Créer une fiche client
                     </Button>
                     <Button
                       variant="outline"
                       className="justify-start rounded-xl"
-                      onClick={() => openAdmin("create-offer")}
+                      onClick={() => openEmbedded("create-offer", "Nouvelle demande")}
                     >
                       <FileText className="h-4 w-4 mr-2" /> Nouvelle demande
                     </Button>
@@ -1058,7 +1067,7 @@ export default function PhoneCallCenter() {
                       size="sm"
                       variant="outline"
                       className="w-full mt-3 rounded-xl"
-                      onClick={() => openAdmin("clients/" + selectedClient.id)}
+                      onClick={() => openEmbedded("clients/" + selectedClient.id, selectedClient.name ?? "Fiche client")}
                     >
                       <ExternalLink className="h-4 w-4 mr-2" /> Ouvrir la fiche client
                     </Button>
@@ -1075,7 +1084,7 @@ export default function PhoneCallCenter() {
                     {offers.map((o) => (
                       <button
                         key={o.id}
-                        onClick={() => openAdmin("offers/" + o.id)}
+                        onClick={() => openEmbedded("offers/" + o.id, "Demande " + (o.offer_number ?? o.dossier_number ?? ""))}
                         className="w-full text-left rounded-md border p-2 text-sm hover:bg-accent flex items-center justify-between gap-2"
                       >
                         <span className="truncate">
@@ -1102,7 +1111,7 @@ export default function PhoneCallCenter() {
                     {contracts.map((c) => (
                       <button
                         key={c.id}
-                        onClick={() => openAdmin("contracts/" + c.id)}
+                        onClick={() => openEmbedded("contracts/" + c.id, "Contrat")}
                         className="w-full text-left rounded-md border p-2 text-sm hover:bg-accent flex items-center justify-between gap-2"
                       >
                         <span className="truncate">{c.id.slice(0, 8)}</span>
@@ -1266,6 +1275,34 @@ export default function PhoneCallCenter() {
             </ScrollArea>
           </CardContent>
         </Card>
+
+        {/* PANNEAU EMBARQUÉ : demande/fiche affichée à côté, sans couper l'appel */}
+        {embedded && (
+          <Card className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between gap-2 border-b px-3 py-2 shrink-0">
+              <p className="text-sm font-semibold truncate">{embedded.title}</p>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Rafraîchir"
+                  onClick={() => setEmbedded((e) => e ? { ...e, url: e.url + (e.url.includes("#r") ? "" : "") + `#r${Date.now()}` } : e)}>
+                  <Loader2 className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Ouvrir dans un onglet"
+                  onClick={() => window.open(embedded.url.replace(/[?&]embed=1/, "").replace(/#r\d+$/, ""), "_blank", "noopener")}>
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Fermer" onClick={() => setEmbedded(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <iframe
+              key={embedded.url}
+              src={embedded.url}
+              title={embedded.title}
+              className="flex-1 w-full border-0"
+            />
+          </Card>
+        )}
       </div>
 
       {/* Modale message rapide (WhatsApp/SMS) avec destinataire préchargé */}
