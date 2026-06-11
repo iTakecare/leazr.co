@@ -3,7 +3,7 @@ import WaveLoader from "@/components/ui/WaveLoader";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3 } from "lucide-react";
+import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,6 +20,7 @@ import { CreditNotesList } from "@/components/invoicing/CreditNotesList";
 import { NewInvoiceDialog } from "@/components/invoicing/NewInvoiceDialog";
 import { InvoiceDateRangeFilter } from "@/components/invoicing/InvoiceDateRangeFilter";
 import { AccountingReportTab } from "@/components/invoicing/AccountingReportTab";
+import SupplierInvoicesTab from "@/components/invoicing/SupplierInvoicesTab";
 
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { toast } from "sonner";
@@ -277,6 +278,10 @@ const InvoicingPage = () => {
                    <Badge variant="secondary" className="ml-1">{creditNotes.length}</Badge>
                  )}
                </TabsTrigger>
+               <TabsTrigger value="purchases" className="flex items-center gap-2">
+                 <ShoppingCart className="h-4 w-4" />
+                 Factures d'achat
+               </TabsTrigger>
                <TabsTrigger value="accounting-report" className="flex items-center gap-2">
                  <BarChart3 className="h-4 w-4" />
                  Rapport comptable
@@ -487,6 +492,10 @@ const InvoicingPage = () => {
                   />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="purchases" className="mt-6">
+              <SupplierInvoicesTab />
             </TabsContent>
 
             <TabsContent value="accounting-report" className="mt-6">

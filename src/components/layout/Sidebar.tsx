@@ -24,7 +24,8 @@ import {
   Headset,
   FolderOpen,
   Sparkles,
-  Phone
+  Phone,
+  Wallet
 } from "lucide-react";
 import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
@@ -80,6 +81,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
           { icon: FileText, label: "Contrats", href: `${basePrefix}/admin/contracts`, moduleSlug: "contracts" },
           { icon: ClipboardList, label: "Demandes", href: `${basePrefix}/admin/offers`, moduleSlug: "offers" },
           { icon: Calculator, label: "Factures", href: `${basePrefix}/admin/invoicing`, moduleSlug: "invoicing" },
+          { icon: Wallet, label: "Gestion", href: `${basePrefix}/admin/gestion`, moduleSlug: "invoicing" },
           { icon: FolderOpen, label: "Documents", href: `${basePrefix}/admin/client-documents`, moduleSlug: "crm", alwaysVisible: true },
         ]
       },

@@ -122,6 +122,13 @@ export const isSaleInvoice = (o: BillitOrder): boolean =>
 export const isSaleCreditNote = (o: BillitOrder): boolean =>
   o?.OrderDirection === "Income" && o?.OrderType === "CreditNote";
 
+// Achats (fournisseurs, arrivés via Peppol) : OrderDirection === "Cost" (PAS "Expense")
+export const isCostInvoice = (o: BillitOrder): boolean =>
+  o?.OrderDirection === "Cost" && o?.OrderType === "Invoice";
+
+export const isCostCreditNote = (o: BillitOrder): boolean =>
+  o?.OrderDirection === "Cost" && o?.OrderType === "CreditNote";
+
 export function billitOrderDateInRange(
   orderDate: string | undefined,
   fromDate?: string | null,

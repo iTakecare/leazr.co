@@ -1,5 +1,23 @@
+// billit-import-purchase-invoices — synchronise les factures d'achat (fournisseurs)
+// depuis Billit (arrivées via Peppol) vers la table supplier_invoices.
+// Idempotent : upsert par (company_id, billit_order_id). À chaque sync, les statuts
+// de paiement (Paid/ToPay/Overdue/PaidDate) sont RAFRAÎCHIS — ils évoluent dans
+// Billit au fil des paiements bancaires. Les lignes (OrderLines) ne sont récupérées
+// que pour les factures nouvelles (1 appel détail / nouvelle facture).
+// Appelée par l'UI (bouton Synchroniser) et par le cron quotidien billit-purchase-sync.
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { requireElevatedAccess } from "../_shared/security.ts";
+import {
+  BillitOrder,
+  normalizeBillitBaseUrl,
+  getBillitAccount,
+  fetchAllBillitOrders,
+  getBillitOrderDetail,
+  isCostInvoice,
+  isCostCreditNote,
+  billitOrderDateInRange,
+  billitPdfUrl,
+} from "../_shared/billit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,49 +31,24 @@ interface BillitCredentials {
   companyId: string;
 }
 
-interface BillitInvoice {
-  OrderID: number;
-  OrderNumber: string;
-  OrderDate: string;
-  TotalExcl: number;
-  TotalIncl: number;
-  VATAmount: number;
-  Paid: boolean;
-  IsSent: boolean;
-  OrderDirection: string;
-  OrderType: string;
-  CounterParty?: {
-    DisplayName: string;
-    VATNumber?: string;
-    Email?: string;
-  };
-  OrderPDF?: {
-    FileID: string;
-  };
-}
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status,
+  });
 
-// Match score based on amount proximity
-const calculateMatchScore = (invoiceAmount: number, equipmentTotal: number): number => {
-  if (!equipmentTotal || equipmentTotal === 0) return 0;
-  const diff = Math.abs(invoiceAmount - equipmentTotal);
-  const percentDiff = (diff / invoiceAmount) * 100;
-  if (percentDiff <= 1) return 100;
-  if (percentDiff <= 3) return 80;
-  if (percentDiff <= 5) return 60;
-  if (percentDiff <= 10) return 40;
-  return 0;
+const dateOrNull = (d: unknown): string | null => {
+  if (!d) return null;
+  const t = new Date(String(d)).getTime();
+  return isNaN(t) ? null : String(d).slice(0, 10);
 };
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders, status: 204 });
   }
-
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Méthode non supportée' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 405
-    });
+    return jsonResponse({ success: false, error: 'Méthode non supportée' }, 405);
   }
 
   try {
@@ -68,298 +61,167 @@ serve(async (req) => {
         identifierPrefix: "billit-import-purchase-invoices",
       },
     });
-
     if (!access.ok) return access.response;
 
-    let payload: { companyId: string };
+    let payload: { companyId: string; fromDate?: string; toDate?: string };
     try {
       payload = await req.json();
     } catch {
-      return new Response(JSON.stringify({ success: false, error: "Invalid JSON body" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      });
+      return jsonResponse({ success: false, error: "Invalid JSON body" }, 400);
     }
 
     const { companyId } = payload;
-    console.log("📥 Début import factures d'ACHAT Billit - companyId:", companyId);
-
-    if (!companyId) {
-      return new Response(JSON.stringify({ success: false, error: "companyId is required" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      });
-    }
+    const fromDate = payload.fromDate || '2026-01-01';
+    const toDate = payload.toDate || null;
+    if (!companyId) return jsonResponse({ success: false, error: "companyId is required" }, 400);
 
     if (
       !access.context.isServiceRole &&
       access.context.role !== "super_admin" &&
       access.context.companyId !== companyId
     ) {
-      return new Response(JSON.stringify({ success: false, error: "Cross-company access forbidden" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403
-      });
+      return jsonResponse({ success: false, error: "Cross-company access forbidden" }, 403);
     }
 
     const supabase = access.context.supabaseAdmin;
 
-    // Get Billit credentials
     const { data: integration, error: integrationError } = await supabase
       .from('company_integrations')
       .select('api_credentials, is_enabled')
       .eq('company_id', companyId)
       .eq('integration_type', 'billit')
       .single();
-
     if (integrationError || !integration?.is_enabled) {
       throw new Error("Intégration Billit non trouvée ou désactivée");
     }
 
     const credentials = integration.api_credentials as BillitCredentials;
+    const apiBaseUrl = normalizeBillitBaseUrl(credentials.baseUrl);
 
-    // Fix base URL
-    let apiBaseUrl = credentials.baseUrl;
-    if (apiBaseUrl.includes('my.billit.be')) {
-      apiBaseUrl = apiBaseUrl.replace('my.billit.be', 'api.billit.be');
-    }
-    if (apiBaseUrl.includes('my.sandbox.billit.be')) {
-      apiBaseUrl = apiBaseUrl.replace('my.sandbox.billit.be', 'api.sandbox.billit.be');
-    }
-    apiBaseUrl = apiBaseUrl.replace(/\/$/, '');
-
-    // Auth check
-    const authResponse = await fetch(`${apiBaseUrl}/v1/account/accountInformation`, {
-      method: 'GET',
-      headers: {
-        'ApiKey': credentials.apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!authResponse.ok) {
-      const authErrorText = await authResponse.text();
-      throw new Error(`Clé API Billit invalide: ${authResponse.status} - ${authErrorText}`);
-    }
-
-    const accountData = await authResponse.json();
-    const companies = accountData?.Companies || [];
-
-    // Fetch EXPENSE invoices (purchase invoices)
-    const billitUrl = `${apiBaseUrl}/v1/orders?OrderDirection=Expense&OrderType=Invoice`;
-    console.log("📡 Appel API Billit (Expense):", billitUrl);
-
-    const fetchOrders = async (usePartyId: string | null) => {
-      const headers: Record<string, string> = {
-        'ApiKey': credentials.apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
-      if (usePartyId) headers['ContextPartyID'] = usePartyId;
-      return await fetch(billitUrl, { method: 'GET', headers });
-    };
-
-    let billitResponse: Response;
-    let usedPartyId: string | null = null;
-
-    // Strategy 1: without ContextPartyID
-    billitResponse = await fetchOrders(null);
-
-    if (!billitResponse.ok) {
-      // Strategy 2: with configured PartyID
-      const configuredPartyId = credentials.companyId?.trim();
-      if (configuredPartyId) {
-        billitResponse = await fetchOrders(configuredPartyId);
-        if (billitResponse.ok) usedPartyId = configuredPartyId;
-      }
-
-      // Strategy 3: try each available PartyID
-      if (!billitResponse.ok && companies.length > 0) {
-        for (const company of companies) {
-          const partyId = company.PartyID || company.ID;
-          if (partyId && partyId !== configuredPartyId) {
-            billitResponse = await fetchOrders(partyId);
-            if (billitResponse.ok) {
-              usedPartyId = partyId;
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    if (!billitResponse.ok) {
-      const errorText = await billitResponse.text();
-      throw new Error(`Erreur API Billit (${billitResponse.status}): ${errorText.substring(0, 200)}`);
-    }
-
-    const billitData = await billitResponse.json();
-    const billitInvoices: BillitInvoice[] = billitData.Items || billitData || [];
-    console.log(`📋 ${billitInvoices.length} facture(s) d'achat récupérée(s)`);
-
-    // Get existing purchase invoices to avoid duplicates
-    const { data: existingInvoices } = await supabase
-      .from('invoices')
-      .select('external_invoice_id')
-      .eq('company_id', companyId)
-      .eq('invoice_type', 'purchase')
-      .not('external_invoice_id', 'is', null);
-
-    const existingExternalIds = new Set(
-      (existingInvoices || []).map(inv => inv.external_invoice_id)
+    const account = await getBillitAccount(apiBaseUrl, credentials.apiKey);
+    const { orders, usedPartyId } = await fetchAllBillitOrders(
+      apiBaseUrl,
+      credentials.apiKey,
+      credentials.companyId,
+      account,
     );
 
-    // Get suppliers for name matching
-    const { data: suppliersData } = await supabase
-      .from('suppliers')
-      .select('id, name')
-      .eq('company_id', companyId)
-      .eq('is_active', true);
+    const costDocs: BillitOrder[] = orders
+      .filter((o) => isCostInvoice(o) || isCostCreditNote(o))
+      .filter((o) => billitOrderDateInRange(o.OrderDate, fromDate, toDate));
+    console.log(`📋 ${costDocs.length} document(s) d'achat à synchroniser (Cost, depuis ${fromDate})`);
 
-    const suppliersList = suppliersData || [];
+    // Existant : pour distinguer create/update et savoir qui a déjà ses lignes
+    const { data: existing } = await supabase
+      .from('supplier_invoices')
+      .select('id, billit_order_id, lines, category')
+      .eq('company_id', companyId);
+    const existingByBillit = new Map(
+      (existing || []).map((r: any) => [String(r.billit_order_id), r]),
+    );
 
-    // Get contract equipment for matching
-    const { data: contractEquipment } = await supabase
-      .from('contract_equipment')
-      .select(`
-        id, title, quantity, purchase_price, supplier_id, supplier_price, order_status,
-        contracts!inner(id, contract_number, client_name, company_id)
-      `)
-      .eq('contracts.company_id', companyId);
-
-    const equipmentItems = contractEquipment || [];
-
-    let importedCount = 0;
-    let skippedCount = 0;
+    let created = 0;
+    let updated = 0;
     const errors: string[] = [];
 
-    for (const billitInvoice of billitInvoices) {
+    // Pool de détail pour les nouvelles factures (lignes), concurrence 6
+    const newOnes = costDocs.filter((o) => {
+      const ex = existingByBillit.get(String(o.OrderID));
+      return !ex || !Array.isArray(ex.lines) || ex.lines.length === 0;
+    });
+    const details = new Map<number, any>();
+    {
+      let idx = 0;
+      const worker = async () => {
+        while (idx < newOnes.length) {
+          const o = newOnes[idx++];
+          details.set(o.OrderID, await getBillitOrderDetail(apiBaseUrl, credentials.apiKey, usedPartyId, o.OrderID));
+        }
+      };
+      await Promise.all(Array.from({ length: 6 }, worker));
+    }
+
+    const mapLines = (detail: any) =>
+      (detail?.OrderLines || [])
+        .map((l: any) => ({
+          description: (l?.Description || '').toString(),
+          unit_price_excl: l?.UnitPriceExcl ?? 0,
+          quantity: l?.Quantity ?? 1,
+          total_excl: l?.TotalExcl ?? ((l?.UnitPriceExcl ?? 0) * (l?.Quantity ?? 1)),
+        }))
+        .filter((l: any) => l.description.trim() || l.total_excl);
+
+    for (const o of costDocs) {
       try {
-        const externalId = `purchase-${billitInvoice.OrderID}`;
+        const ex = existingByBillit.get(String(o.OrderID));
+        const detail = details.get(o.OrderID);
+        const anyO = o as any;
 
-        if (existingExternalIds.has(externalId)) {
-          skippedCount++;
-          continue;
-        }
-
-        let status = 'draft';
-        if (billitInvoice.Paid) status = 'paid';
-        else if (billitInvoice.IsSent) status = 'sent';
-
-        // Try to match supplier by name
-        const counterPartyName = billitInvoice.CounterParty?.DisplayName?.toLowerCase() || '';
-        const matchedSupplier = suppliersList.find(s =>
-          s.name.toLowerCase() === counterPartyName ||
-          counterPartyName.includes(s.name.toLowerCase()) ||
-          s.name.toLowerCase().includes(counterPartyName)
-        );
-
-        // Build equipment match suggestions
-        const matchSuggestions = equipmentItems
-          .map((eq: any) => {
-            const eqTotal = (eq.supplier_price || eq.purchase_price) * eq.quantity;
-            let score = calculateMatchScore(billitInvoice.TotalExcl, eqTotal);
-
-            // Boost score if supplier matches
-            if (matchedSupplier && eq.supplier_id === matchedSupplier.id) {
-              score = Math.min(100, score + 20);
-            }
-
-            return {
-              equipment_id: eq.id,
-              equipment_title: eq.title,
-              contract_id: eq.contracts?.id,
-              contract_number: eq.contracts?.contract_number,
-              client_name: eq.contracts?.client_name,
-              equipment_total: eqTotal,
-              score
-            };
-          })
-          .filter(m => m.score > 0)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 5);
-
-        let pdfUrl = null;
-        if (billitInvoice.OrderPDF?.FileID) {
-          pdfUrl = `${apiBaseUrl}/v1/files/${billitInvoice.OrderPDF.FileID}`;
-        }
-
-        const invoiceData = {
-          company_id: companyId,
-          external_invoice_id: externalId,
-          invoice_number: billitInvoice.OrderNumber,
-          amount: billitInvoice.TotalExcl,
-          status,
-          invoice_type: 'purchase',
-          integration_type: 'billit',
-          invoice_date: billitInvoice.OrderDate ? new Date(billitInvoice.OrderDate).toISOString() : new Date().toISOString(),
-          leaser_name: billitInvoice.CounterParty?.DisplayName || 'Fournisseur Billit',
-          contract_id: null,
-          pdf_url: pdfUrl,
-          sent_at: billitInvoice.IsSent ? new Date().toISOString() : null,
-          paid_at: billitInvoice.Paid ? new Date().toISOString() : null,
-          billing_data: {
-            billit_data: billitInvoice,
-            import_source: 'billit_purchase_import',
-            billit_supplier_name: billitInvoice.CounterParty?.DisplayName || null,
-            billit_supplier_vat: billitInvoice.CounterParty?.VATNumber || null,
-            matched_supplier_id: matchedSupplier?.id || null,
-            total_incl_vat: billitInvoice.TotalIncl,
-            vat_amount: billitInvoice.VATAmount,
-            imported_at: new Date().toISOString(),
-            match_suggestions: matchSuggestions
-          }
+        const base: Record<string, unknown> = {
+          invoice_number: o.OrderNumber || String(o.OrderID),
+          doc_type: isCostCreditNote(o) ? 'credit_note' : 'invoice',
+          supplier_name: o.CounterParty?.DisplayName || null,
+          supplier_vat: o.CounterParty?.VATNumber || null,
+          invoice_date: dateOrNull(o.OrderDate),
+          due_date: dateOrNull(anyO.ExpiryDate),
+          paid_date: dateOrNull(anyO.PaidDate),
+          amount_excl: o.TotalExcl ?? 0,
+          vat_amount: o.VATAmount ?? anyO.TotalVAT ?? 0,
+          amount_incl: o.TotalIncl ?? 0,
+          to_pay: anyO.ToPay ?? (o.Paid ? 0 : (o.TotalIncl ?? 0)),
+          paid: !!o.Paid,
+          order_status: anyO.OrderStatus || null,
+          payment_method: anyO.PaymentMethod || null,
+          overdue: !!anyO.Overdue,
+          days_overdue: anyO.DaysOverdue ?? null,
+          pdf_url: billitPdfUrl(apiBaseUrl, o),
+          updated_at: new Date().toISOString(),
         };
 
-        const { error: insertError } = await supabase
-          .from('invoices')
-          .insert(invoiceData);
-
-        if (insertError) {
-          console.error(`❌ Erreur insertion facture achat ${externalId}:`, insertError);
-          errors.push(`Facture ${billitInvoice.OrderNumber}: ${insertError.message}`);
-          continue;
+        if (ex) {
+          // Update : rafraîchir paiement/montants ; ne PAS toucher category ;
+          // compléter les lignes si manquantes.
+          if (detail) base.lines = mapLines(detail);
+          const { error } = await supabase
+            .from('supplier_invoices')
+            .update(base)
+            .eq('id', ex.id);
+          if (error) { errors.push(`${o.OrderNumber}: ${error.message}`); continue; }
+          updated++;
+        } else {
+          const { error } = await supabase
+            .from('supplier_invoices')
+            .insert({
+              company_id: companyId,
+              billit_order_id: String(o.OrderID),
+              ...base,
+              lines: detail ? mapLines(detail) : [],
+              billit_data: o,
+            });
+          if (error) { errors.push(`${o.OrderNumber}: ${error.message}`); continue; }
+          created++;
         }
-
-        importedCount++;
-      } catch (invoiceError) {
-        errors.push(`Erreur: ${invoiceError instanceof Error ? invoiceError.message : 'Unknown error'}`);
+      } catch (e) {
+        errors.push(`${o.OrderNumber}: ${e instanceof Error ? e.message : 'Unknown error'}`);
       }
     }
 
-    // Count unmatched purchase invoices
-    const { count: unmatchedCount } = await supabase
-      .from('invoices')
-      .select('*', { count: 'exact', head: true })
-      .eq('company_id', companyId)
-      .eq('invoice_type', 'purchase')
-      .is('contract_id', null);
+    console.log(`✅ Sync achats terminée: ${created} créée(s), ${updated} mise(s) à jour, ${errors.length} erreur(s)`);
 
-    console.log(`✅ Import achats terminé: ${importedCount} importée(s), ${skippedCount} existante(s)`);
-
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
-      message: `Import terminé: ${importedCount} facture(s) d'achat importée(s)`,
-      imported: importedCount,
-      skipped: skippedCount,
-      total_billit: billitInvoices.length,
-      unmatched_count: unmatchedCount || 0,
-      errors: errors.length > 0 ? errors : undefined
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
+      message: `Sync terminée: ${created} nouvelle(s), ${updated} mise(s) à jour`,
+      created,
+      updated,
+      total_billit: costDocs.length,
+      errors: errors.length > 0 ? errors : undefined,
     });
-
   } catch (error) {
-    console.error("❌ Erreur import achats Billit:", error);
-    return new Response(JSON.stringify({
+    console.error("❌ Erreur sync achats Billit:", error);
+    return jsonResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error),
-      message: "Erreur lors de l'import des factures d'achat"
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
-    });
+      message: "Erreur lors de la synchronisation des factures d'achat",
+    }, 500);
   }
 });

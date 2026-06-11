@@ -69,6 +69,7 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const CatalogManagement = lazy(() => import("@/pages/CatalogManagement"));
 const CatalogImportPage = lazy(() => import("@/pages/AdminPages/CatalogImportPage"));
 const InvoicingPage = lazy(() => import("@/pages/InvoicingPage"));
+const CostManagementPage = lazy(() => import("@/pages/CostManagementPage"));
 const InvoiceDetailPage = lazy(() => import("@/pages/InvoiceDetailPage"));
 const InvoiceEditPage = lazy(() => import("@/pages/InvoiceEditPage"));
 const CompanyDocuments = lazy(() => import("@/pages/CompanyDocuments"));
@@ -322,6 +323,7 @@ const AppRoutes = () => {
       <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
       <Route path="invoicing/:id" element={<Layout><InvoiceDetailPage /></Layout>} />
       <Route path="invoicing/:id/edit" element={<Layout><InvoiceEditPage /></Layout>} />
+      <Route path="gestion" element={<Layout><CostManagementPage /></Layout>} />
       <Route path="create-offer" element={<Layout><AdminCreateOfferSwitch /></Layout>} />
       <Route path="panier" element={<Layout><CartPage /></Layout>} />
       
