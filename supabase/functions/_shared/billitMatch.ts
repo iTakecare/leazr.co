@@ -65,7 +65,7 @@ export interface LeazrEnrichment {
 export async function loadLeazrEnrichment(supabase: any, companyId: string): Promise<LeazrEnrichment> {
   const [{ data: contracts }, { data: clients }, { data: leasers }, { data: offers }] = await Promise.all([
     supabase.from("contracts").select("id, contract_number, offer_id, client_id, leaser_id, leaser_name, status, created_at").eq("company_id", companyId),
-    supabase.from("clients").select("id, name, company, email, phone, address, city, postal_code, country, vat_number").eq("company_id", companyId),
+    supabase.from("clients").select("id, name, contact_name, company, email, phone, address, city, postal_code, country, vat_number").eq("company_id", companyId),
     supabase.from("leasers").select("id, name, company_name, address, city, postal_code, country, email, phone, vat_number").eq("company_id", companyId),
     supabase.from("offers").select("id, offer_number, dossier_number, client_id, client_name, client_email, is_purchase").eq("company_id", companyId),
   ]);
@@ -123,8 +123,9 @@ export function buildBillitBillingData(
       }
     : null;
 
-  // Nom/email client : depuis la fiche client, sinon depuis l'offre (ventes directes sans contrat)
-  const clientName = client?.company || client?.name || offer?.client_name || null;
+  // Nom client = la PERSONNE (gérant/contact), pas la raison sociale (qui va dans
+  // client_data.company / colonne "Société"). Fallback offre pour les ventes directes.
+  const clientName = client?.name || client?.contact_name || client?.company || offer?.client_name || null;
   const clientEmail = client?.email || offer?.client_email || null;
 
   const client_data = client
