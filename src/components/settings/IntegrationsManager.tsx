@@ -9,6 +9,7 @@ import WooCommerceConfigurationManager from './WooCommerceConfigurationManager';
 import AdiOSIntegrationCard from './AdiOSIntegrationCard';
 import GrenkeIntegrationCard from './GrenkeIntegrationCard';
 import TulipIntegrationCard from './TulipIntegrationCard';
+import BillitIntegrationSettings from './BillitIntegrationSettings';
 
 interface Integration {
   id: string;
@@ -98,7 +99,15 @@ const integrations: Integration[] = [
     comingSoon: true
   },
   
-  // Comptabilité
+  // Facturation
+  {
+    id: 'billit',
+    name: 'Billit',
+    description: 'Synchronisez vos factures de vente et notes de crédit depuis Billit (avec aperçu)',
+    logoUrl: 'https://logo.clearbit.com/billit.be',
+    status: 'available',
+    category: 'Facturation'
+  },
   {
     id: 'cegid',
     name: 'Cegid',
@@ -592,7 +601,11 @@ const IntegrationsManager = () => {
               <TulipIntegrationCard />
             )}
 
-            {selectedIntegration && !['woocommerce', 'companyweb', 'adios', 'grenke', 'tulip'].includes(selectedIntegration) && (
+            {selectedIntegration === 'billit' && (
+              <BillitIntegrationSettings />
+            )}
+
+            {selectedIntegration && !['woocommerce', 'companyweb', 'adios', 'grenke', 'tulip', 'billit'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
