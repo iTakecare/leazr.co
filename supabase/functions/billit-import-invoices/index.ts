@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { requireElevatedAccess } from "../_shared/security.ts";
+import {
+  normalizeBillitBaseUrl,
+  getBillitAccount,
+  fetchAllBillitOrders,
+  isSaleInvoice,
+  billitOrderDateInRange,
+} from "../_shared/billit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,6 +43,8 @@ interface BillitInvoice {
 
 interface ImportRequest {
   companyId: string;
+  fromDate?: string; // YYYY-MM-DD — ne traiter que les factures à partir de cette date
+  toDate?: string;
 }
 
 interface ContractMatch {
@@ -121,7 +130,9 @@ serve(async (req) => {
     }
 
     const { companyId } = payload;
-    console.log("📥 Début import factures Billit - companyId:", companyId);
+    const fromDate = payload.fromDate || null;
+    const toDate = payload.toDate || null;
+    console.log("📥 Début import factures Billit - companyId:", companyId, "fromDate:", fromDate);
 
     if (!companyId) {
       return new Response(JSON.stringify({ success: false, error: "companyId is required" }), {
@@ -156,98 +167,34 @@ serve(async (req) => {
     }
 
     const credentials = integration.api_credentials as BillitCredentials;
-    
+
     console.log("🔑 Credentials récupérées:", {
       hasApiKey: !!credentials.apiKey,
       apiKeyLength: credentials.apiKey?.length || 0,
       baseUrl: credentials.baseUrl,
       companyId: credentials.companyId || 'NON_CONFIGURE'
     });
-    
-    // Corriger l'URL de base si nécessaire
-    let apiBaseUrl = credentials.baseUrl;
-    if (apiBaseUrl.includes('my.billit.be')) {
-      apiBaseUrl = apiBaseUrl.replace('my.billit.be', 'api.billit.be');
-    }
-    if (apiBaseUrl.includes('my.sandbox.billit.be')) {
-      apiBaseUrl = apiBaseUrl.replace('my.sandbox.billit.be', 'api.sandbox.billit.be');
-    }
-    apiBaseUrl = apiBaseUrl.replace(/\/$/, '');
 
-    // ÉTAPE 1: Vérifier l'authentification
-    console.log("🔐 Vérification authentification Billit...");
-    const authTestUrl = `${apiBaseUrl}/v1/account/accountInformation`;
-    const authResponse = await fetch(authTestUrl, {
-      method: 'GET',
-      headers: {
-        'ApiKey': credentials.apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
+    const apiBaseUrl = normalizeBillitBaseUrl(credentials.baseUrl);
 
-    if (!authResponse.ok) {
-      const authErrorText = await authResponse.text();
-      console.error("❌ Erreur authentification Billit:", authResponse.status, authErrorText);
-      throw new Error(`Clé API Billit invalide: ${authResponse.status} - ${authErrorText}`);
-    }
-
-    const accountData = await authResponse.json();
+    // ÉTAPE 1: Auth + récupération de TOUTES les commandes (en-tête PartyID).
+    // Billit IGNORE les query params OrderDirection/OrderType -> on filtre côté
+    // client sur Income/Invoice, puis par date.
+    const accountData = await getBillitAccount(apiBaseUrl, credentials.apiKey);
     console.log("✅ Authentification réussie, compte:", accountData?.Email || 'N/A');
-    
-    const companies = accountData?.Companies || [];
 
-    // ÉTAPE 2: Récupérer les factures - stratégie adaptative
-    const billitUrl = `${apiBaseUrl}/v1/orders?OrderDirection=Income&OrderType=Invoice`;
-    console.log("📡 Appel API Billit:", billitUrl);
+    const { orders, usedPartyId } = await fetchAllBillitOrders(
+      apiBaseUrl,
+      credentials.apiKey,
+      credentials.companyId,
+      accountData,
+    );
+    console.log(`📡 ${orders.length} commande(s) récupérée(s) (PartyID=${usedPartyId ?? 'défaut'})`);
 
-    const fetchOrders = async (usePartyId: string | null) => {
-      const headers: Record<string, string> = {
-        'ApiKey': credentials.apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
-      if (usePartyId) {
-        headers['ContextPartyID'] = usePartyId;
-      }
-      return await fetch(billitUrl, { method: 'GET', headers });
-    };
-
-    let billitResponse: Response;
-    let usedPartyId: string | null = null;
-    
-    billitResponse = await fetchOrders(null);
-    
-    if (!billitResponse.ok) {
-      const configuredPartyId = credentials.companyId?.trim();
-      if (configuredPartyId) {
-        billitResponse = await fetchOrders(configuredPartyId);
-        if (billitResponse.ok) usedPartyId = configuredPartyId;
-      }
-      
-      if (!billitResponse.ok && companies.length > 0) {
-        for (const company of companies) {
-          const partyId = company.PartyID || company.ID;
-          if (partyId && partyId !== configuredPartyId) {
-            billitResponse = await fetchOrders(partyId);
-            if (billitResponse.ok) {
-              usedPartyId = partyId;
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    if (!billitResponse.ok) {
-      const errorText = await billitResponse.text();
-      console.error("❌ Erreur API Billit:", billitResponse.status, errorText);
-      throw new Error(`Erreur API Billit (${billitResponse.status}): ${errorText.substring(0, 200)}`);
-    }
-
-    const billitData = await billitResponse.json();
-    const billitInvoices: BillitInvoice[] = billitData.Items || billitData || [];
-    console.log(`📋 ${billitInvoices.length} facture(s) récupérée(s) depuis Billit`);
+    const billitInvoices: BillitInvoice[] = orders
+      .filter(isSaleInvoice)
+      .filter((o) => billitOrderDateInRange(o.OrderDate, fromDate, toDate)) as BillitInvoice[];
+    console.log(`📋 ${billitInvoices.length} facture(s) de vente à traiter (Income/Invoice${fromDate ? `, depuis ${fromDate}` : ''})`);
 
     // Récupérer les factures avec external_invoice_id (déjà importées)
     const { data: existingInvoices } = await supabase

@@ -103,9 +103,9 @@ async function handleBillitTest(companyId: string) {
       apiBaseUrl = apiBaseUrl.replace('my.sandbox.billit.be', 'api.sandbox.billit.be');
       results.warnings.push("URL corrigée automatiquement: my.sandbox.billit.be → api.sandbox.billit.be");
     }
-    // Supprimer le trailing slash si présent
-    apiBaseUrl = apiBaseUrl.replace(/\/$/, '');
-    
+    // Supprimer le trailing slash et un éventuel /v1 final (on l'ajoute nous-mêmes)
+    apiBaseUrl = apiBaseUrl.replace(/\/+$/, '').replace(/\/v1$/i, '');
+
     console.log("🔗 Test connexion API Billit:", apiBaseUrl);
     console.log("🔗 URL originale:", credentials.baseUrl);
     
@@ -129,28 +129,57 @@ async function handleBillitTest(companyId: string) {
       if (testResponse.ok) {
         const accountData = await testResponse.json();
         results.auth_test = true;
-        results.company_access = true;
-        results.api_test = true;
-        console.log("✅ Connexion API réussie, compte:", accountData?.Email || 'N/A');
-        
+        console.log("✅ Authentification réussie, compte:", accountData?.Email || 'N/A');
+
         // Ajouter les infos du compte dans les résultats
         if (accountData?.Email) {
           results.warnings.push(`Connecté en tant que: ${accountData.Email}`);
         }
-        
-        // Afficher les entreprises associées avec leurs PartyIDs
+
+        // Afficher les entreprises associées avec leurs PartyIDs + leur accès API
         if (accountData?.Companies && accountData.Companies.length > 0) {
           results.warnings.push(`${accountData.Companies.length} entreprise(s) associée(s):`);
           accountData.Companies.forEach((company: any, index: number) => {
             const companyName = company.Name || company.CommercialName || 'Sans nom';
             const partyId = company.PartyID || company.ID || 'N/A';
-            results.warnings.push(`  ${index + 1}. ${companyName} (PartyID: ${partyId})`);
-            console.log(`  📋 Entreprise ${index + 1}: ${companyName} - PartyID: ${partyId}`);
+            const apiFlag = company.APIAllowed === false ? ' — ⚠️ API non autorisée' : '';
+            results.warnings.push(`  ${index + 1}. ${companyName} (PartyID: ${partyId})${apiFlag}`);
+            console.log(`  📋 Entreprise ${index + 1}: ${companyName} - PartyID: ${partyId} - APIAllowed: ${company.APIAllowed}`);
           });
-          
-          // Si plusieurs entreprises, indiquer que ContextPartyID est nécessaire
-          if (accountData.Companies.length > 1) {
-            results.warnings.push(`⚠️ Plusieurs entreprises détectées - veuillez configurer le PartyID correct`);
+        }
+
+        // Test RÉEL d'accès aux commandes avec l'en-tête PartyID (PAS ContextPartyID).
+        // C'est ce test qui valide vraiment le lien : l'auth seule passe toujours.
+        const configuredPartyId = (credentials.companyId || '').trim();
+        if (!configuredPartyId) {
+          results.errors.push("PartyID (ID entreprise Billit) non configuré — obligatoire pour accéder aux factures");
+        } else {
+          try {
+            const ordersResp = await fetch(`${apiBaseUrl}/v1/orders?$top=1`, {
+              method: 'GET',
+              headers: {
+                'ApiKey': credentials.apiKey,
+                'PartyID': configuredPartyId,
+                'Accept': 'application/json',
+              },
+            });
+            if (ordersResp.ok) {
+              results.company_access = true;
+              results.api_test = true;
+              console.log("✅ Accès aux commandes OK (PartyID =", configuredPartyId, ")");
+            } else {
+              const ordersErr = await ordersResp.text();
+              console.log("❌ Accès commandes refusé:", ordersResp.status, ordersErr);
+              if (ordersErr.includes("ApiKeyNotValid")) {
+                results.errors.push(`PartyID ${configuredPartyId} : clé API non valide pour cette société. Vérifiez le PartyID, ou générez la clé depuis la bonne société Billit.`);
+              } else if (ordersErr.includes("InvalidOrExpiredLicense")) {
+                results.errors.push(`PartyID ${configuredPartyId} : accès API non activé/licencié pour cette société Billit (APIAllowed=false).`);
+              } else {
+                results.errors.push(`Accès aux commandes échoué (${ordersResp.status}): ${ordersErr.substring(0, 150)}`);
+              }
+            }
+          } catch (ordersError) {
+            results.errors.push(`Erreur test commandes: ${ordersError instanceof Error ? ordersError.message : 'inconnue'}`);
           }
         }
       } else {

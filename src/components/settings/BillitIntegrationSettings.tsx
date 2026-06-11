@@ -9,9 +9,8 @@ import { Building2, Key, Globe, TestTube, CheckCircle, XCircle, ExternalLink } f
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { setupBillitIntegration, disableBillitIntegration, getBillitIntegration, testBillitIntegration } from "@/services/invoiceService";
 import { toast } from "sonner";
-import BillitInvoiceImportCard from "./BillitInvoiceImportCard";
+import BillitSalesSyncCard from "./BillitSalesSyncCard";
 import BillitPurchaseInvoiceImportCard from "./BillitPurchaseInvoiceImportCard";
-import BillitCreditNoteImportCard from "./BillitCreditNoteImportCard";
 
 const BillitIntegrationSettings = () => {
   const { companyId } = useMultiTenant();
@@ -211,16 +210,17 @@ const BillitIntegrationSettings = () => {
 
             <div className="space-y-2">
               <Label htmlFor="companyId">
-                ID de votre entreprise Billit *
+                PartyID de votre société Billit *
               </Label>
               <Input
                 id="companyId"
                 value={formData.companyId}
                 onChange={(e) => setFormData(prev => ({ ...prev, companyId: e.target.value }))}
-                placeholder="123456 (ID numérique uniquement)"
+                placeholder="12307433 (PartyID numérique)"
               />
               <p className="text-xs text-muted-foreground">
-                Utilisez votre ID numérique d'entreprise Billit, pas votre email
+                Le <strong>PartyID</strong> numérique de la société qui émet vos factures (visible dans le test ci-dessous).
+                Il est envoyé à Billit via l'en-tête <code>PartyID</code> et doit correspondre à une société dont l'accès API est autorisé.
               </p>
             </div>
 
@@ -380,20 +380,14 @@ const BillitIntegrationSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Import des factures Billit (ventes) */}
-      <BillitInvoiceImportCard 
-        companyId={companyId || ''} 
+      {/* Synchronisation des ventes (factures + notes de crédit) avec aperçu */}
+      <BillitSalesSyncCard
+        companyId={companyId || ''}
         integrationEnabled={integration?.is_enabled || false}
       />
 
       {/* Import des factures d'achat Billit */}
       <BillitPurchaseInvoiceImportCard
-        companyId={companyId || ''}
-        integrationEnabled={integration?.is_enabled || false}
-      />
-
-      {/* Import des notes de crédit Billit */}
-      <BillitCreditNoteImportCard
         companyId={companyId || ''}
         integrationEnabled={integration?.is_enabled || false}
       />

@@ -504,13 +504,46 @@ export const testBillitIntegration = async (companyId: string) => {
 
     return {
       success: data.success,
-      results: data.test_results,
+      results: data.results,
       message: data.message
     };
   } catch (error) {
     console.error('❌ Erreur lors du test:', error);
     throw error;
   }
+};
+
+// PRÉVISUALISATION lecture seule des factures de vente + notes de crédit Billit
+// (n'écrit rien — sert d'étape de validation avant l'import réel)
+export const previewBillitDocuments = async (
+  companyId: string,
+  fromDate: string = '2026-01-01',
+  toDate?: string
+) => {
+  const { data, error } = await supabase.functions.invoke('billit-preview', {
+    body: { companyId, fromDate, toDate }
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error || data?.message || 'Échec de la prévisualisation');
+  return data;
+};
+
+// Import réel des factures de vente Billit (écrit en base), borné par fromDate
+export const importBillitSalesInvoices = async (companyId: string, fromDate?: string) => {
+  const { data, error } = await supabase.functions.invoke('billit-import-invoices', {
+    body: { companyId, fromDate }
+  });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+// Import réel des notes de crédit de vente Billit (écrit en base), borné par fromDate
+export const importBillitCreditNotes = async (companyId: string, fromDate?: string) => {
+  const { data, error } = await supabase.functions.invoke('billit-import-credit-notes', {
+    body: { companyId, fromDate }
+  });
+  if (error) throw new Error(error.message);
+  return data;
 };
 
 // Récupérer toutes les factures d'une entreprise

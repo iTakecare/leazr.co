@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { requireElevatedAccess } from "../_shared/security.ts";
+import {
+  normalizeBillitBaseUrl,
+  getBillitAccount,
+  fetchAllBillitOrders,
+  isSaleCreditNote,
+  billitOrderDateInRange,
+} from "../_shared/billit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,7 +67,7 @@ serve(async (req) => {
 
     if (!access.ok) return access.response;
 
-    let payload: { companyId: string };
+    let payload: { companyId: string; fromDate?: string; toDate?: string };
     try {
       payload = await req.json();
     } catch {
@@ -71,6 +78,8 @@ serve(async (req) => {
     }
 
     const { companyId } = payload;
+    const fromDate = payload.fromDate || null;
+    const toDate = payload.toDate || null;
     if (!companyId) {
       return new Response(JSON.stringify({ success: false, error: "companyId is required" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -105,72 +114,23 @@ serve(async (req) => {
     }
 
     const credentials = integration.api_credentials as BillitCredentials;
-    let apiBaseUrl = credentials.baseUrl;
-    if (apiBaseUrl.includes('my.billit.be')) {
-      apiBaseUrl = apiBaseUrl.replace('my.billit.be', 'api.billit.be');
-    }
-    if (apiBaseUrl.includes('my.sandbox.billit.be')) {
-      apiBaseUrl = apiBaseUrl.replace('my.sandbox.billit.be', 'api.sandbox.billit.be');
-    }
-    apiBaseUrl = apiBaseUrl.replace(/\/$/, '');
+    const apiBaseUrl = normalizeBillitBaseUrl(credentials.baseUrl);
 
-    // Vérifier l'authentification
-    const authResponse = await fetch(`${apiBaseUrl}/v1/account/accountInformation`, {
-      method: 'GET',
-      headers: {
-        'ApiKey': credentials.apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
+    // Auth + récupération de TOUTES les commandes (en-tête PartyID). Billit IGNORE
+    // les query params -> on filtre côté client sur Income/CreditNote puis par date.
+    const accountData = await getBillitAccount(apiBaseUrl, credentials.apiKey);
+    const { orders, usedPartyId } = await fetchAllBillitOrders(
+      apiBaseUrl,
+      credentials.apiKey,
+      credentials.companyId,
+      accountData,
+    );
+    console.log(`📡 ${orders.length} commande(s) récupérée(s) (PartyID=${usedPartyId ?? 'défaut'})`);
 
-    if (!authResponse.ok) {
-      throw new Error(`Clé API Billit invalide: ${authResponse.status}`);
-    }
-
-    const accountData = await authResponse.json();
-    const companies = accountData?.Companies || [];
-
-    // Récupérer les credit notes Income depuis Billit
-    const billitUrl = `${apiBaseUrl}/v1/orders?OrderDirection=Income&OrderType=CreditNote`;
-    console.log("📡 Appel API Billit (Credit Notes):", billitUrl);
-
-    const fetchOrders = async (usePartyId: string | null) => {
-      const headers: Record<string, string> = {
-        'ApiKey': credentials.apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
-      if (usePartyId) headers['ContextPartyID'] = usePartyId;
-      return await fetch(billitUrl, { method: 'GET', headers });
-    };
-
-    let billitResponse = await fetchOrders(null);
-    
-    if (!billitResponse.ok) {
-      const configuredPartyId = credentials.companyId?.trim();
-      if (configuredPartyId) {
-        billitResponse = await fetchOrders(configuredPartyId);
-      }
-      if (!billitResponse.ok && companies.length > 0) {
-        for (const company of companies) {
-          const partyId = company.PartyID || company.ID;
-          if (partyId) {
-            billitResponse = await fetchOrders(partyId);
-            if (billitResponse.ok) break;
-          }
-        }
-      }
-    }
-
-    if (!billitResponse.ok) {
-      const errorText = await billitResponse.text();
-      throw new Error(`Erreur API Billit (${billitResponse.status}): ${errorText.substring(0, 200)}`);
-    }
-
-    const billitData = await billitResponse.json();
-    const billitCreditNotes: BillitCreditNote[] = billitData.Items || billitData || [];
-    console.log(`📋 ${billitCreditNotes.length} note(s) de crédit récupérée(s) depuis Billit`);
+    const billitCreditNotes: BillitCreditNote[] = orders
+      .filter(isSaleCreditNote)
+      .filter((o) => billitOrderDateInRange(o.OrderDate, fromDate, toDate)) as BillitCreditNote[];
+    console.log(`📋 ${billitCreditNotes.length} note(s) de crédit de vente à traiter (Income/CreditNote${fromDate ? `, depuis ${fromDate}` : ''})`);
 
     // Récupérer les NC déjà importées (via billing_data.billit_order_id)
     const { data: existingCreditNotes } = await supabase
