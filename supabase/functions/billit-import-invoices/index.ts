@@ -142,6 +142,7 @@ serve(async (req) => {
     const errors: string[] = [];
 
     // Enrichissement Leazr (contrats/clients/bailleurs/offres) pour rebâtir billing_data
+    // (nom client = personne/gérant, cf. _shared/billitMatch.ts buildBillitBillingData)
     const enrich = await loadLeazrEnrichment(supabase, companyId);
 
     const statusOf = (b: BillitOrder) => (b.Paid ? 'paid' : b.IsSent ? 'sent' : 'draft');
