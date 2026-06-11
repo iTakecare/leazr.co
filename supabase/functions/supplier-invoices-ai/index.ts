@@ -218,6 +218,11 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
     (existingMatches || []).map((m: any) => `${m.supplier_invoice_id}|${m.line_index}|${m.contract_equipment_id}`),
   );
 
+  // Lignes déjà traitées (au moins une suggestion existante) -> on ne les re-examine pas
+  const linesWithMatch = new Set(
+    (existingMatches || []).map((m: any) => `${m.supplier_invoice_id}|${m.line_index}`),
+  );
+
   // Candidats heuristiques par ligne
   type Cand = { invoice: any; lineIndex: number; line: any; candidates: any[] };
   const work: Cand[] = [];
@@ -225,6 +230,7 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
     (inv.lines || []).forEach((line: any, lineIndex: number) => {
       const price = line.unit_price_excl || 0;
       if (!line.description || price < 20) return; // ignorer les petites lignes (frais, etc.)
+      if (linesWithMatch.has(`${inv.id}|${lineIndex}`)) return; // déjà suggérée
       const cands = (equipment || [])
         .map((eq: any) => ({ eq, score: heuristicScore(line.description, price, eq) }))
         .filter((c: any) => c.score >= 35)
@@ -234,7 +240,12 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
     });
   }
 
-  if (!work.length) return { suggestions: 0, lines_examined: 0 };
+  if (!work.length) return { suggestions: 0, lines_examined: 0, lines_remaining: 0 };
+
+  // Bornage par invocation (timeout edge function 150s) — l'appelant reboucle.
+  const CAP = 100;
+  const totalWork = work.length;
+  const bounded = work.slice(0, CAP);
 
   // Validation IA par lots
   const schema = {
@@ -268,8 +279,8 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
 
   let suggestions = 0;
   const batchSize = 25;
-  for (let i = 0; i < work.length; i += batchSize) {
-    const batch = work.slice(i, i + batchSize);
+  for (let i = 0; i < bounded.length; i += batchSize) {
+    const batch = bounded.slice(i, i + batchSize);
     const userMsg = JSON.stringify(
       batch.map((w, bi) => ({
         key: `${i + bi}`,
@@ -290,7 +301,7 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
     );
     const out = await callClaudeJson(system, `Valide les rapprochements:\n${userMsg}`, schema, 10000);
     for (const m of out.matches || []) {
-      const w = work[parseInt(m.key, 10)];
+      const w = bounded[parseInt(m.key, 10) - 0] ?? null;
       if (!w || !m.confident) continue;
       const cand = w.candidates.find((c: any) => c.eq.id === m.equipment_id);
       if (!cand) continue;
@@ -311,7 +322,7 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
     }
   }
 
-  return { suggestions, lines_examined: work.length };
+  return { suggestions, lines_examined: bounded.length, lines_remaining: Math.max(0, totalWork - bounded.length) };
 }
 
 // ---------- action: analyze ----------

@@ -113,14 +113,22 @@ export const categorizeSupplierInvoices = async (companyId: string) => {
   return { categorized, remaining };
 };
 
-// IA : suggestions de matching achats <-> équipements de contrats
+// IA : suggestions de matching achats <-> équipements de contrats.
+// L'edge function traite max 100 lignes par appel (timeout) — on boucle.
 export const suggestSupplierInvoiceMatches = async (companyId: string, invoiceId?: string) => {
-  const { data, error } = await supabase.functions.invoke("supplier-invoices-ai", {
-    body: { companyId, action: "match", invoiceId },
-  });
-  if (error) throw new Error(error.message);
-  if (!data?.success) throw new Error(data?.error || "Échec du matching");
-  return data as { suggestions: number; lines_examined: number };
+  let suggestions = 0;
+  let lines_examined = 0;
+  for (let i = 0; i < 8; i++) {
+    const { data, error } = await supabase.functions.invoke("supplier-invoices-ai", {
+      body: { companyId, action: "match", invoiceId },
+    });
+    if (error) throw new Error(error.message);
+    if (!data?.success) throw new Error(data?.error || "Échec du matching");
+    suggestions += data.suggestions || 0;
+    lines_examined += data.lines_examined || 0;
+    if (!data.lines_remaining || !data.lines_examined) break;
+  }
+  return { suggestions, lines_examined };
 };
 
 // IA : analyse des coûts + suggestions d'optimisation (markdown)
