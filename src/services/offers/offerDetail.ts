@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getOfferEquipment, convertEquipmentToJson } from "./offerEquipment";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
 export const getOfferById = async (id: string) => {
   try {
@@ -38,6 +39,23 @@ export const updateOffer = async (id: string, updates: any) => {
   
   // Ajouter updated_at pour satisfaire les règles RLS/politiques
   const payload = { ...updates, updated_at: new Date().toISOString() };
+
+  // BLINDAGE : garder financed_amount cohérent avec mensualité × coefficient.
+  // Quand on change la durée d'une offre, l'éditeur recalcule mensualité +
+  // coefficient (qui encode la durée) mais laissait financed_amount sur
+  // l'ancienne valeur → désynchronisation (ex. calculé en 36 mois puis passé
+  // en 48). Dès que la MAJ porte mensualité ET coefficient, on redérive
+  // financed_amount = mensualité × 100 / coefficient (même formule que la
+  // création), sauf si l'appelant fixe explicitement financed_amount à 0
+  // (mode Achat).
+  const m = Number(payload.monthly_payment);
+  const coef = Number(payload.coefficient);
+  if (
+    payload.monthly_payment != null && payload.coefficient != null &&
+    m > 0 && coef > 0 && payload.financed_amount !== 0
+  ) {
+    payload.financed_amount = calculateFinancedAmount(m, coef);
+  }
   console.log("🔄 UPDATING OFFER - Payload:", payload);
   
   // 1. Mettre à jour l'offre elle-même
