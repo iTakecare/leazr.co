@@ -39,61 +39,59 @@ const jsonResponse = (body: unknown, status = 200) =>
     status,
   });
 
+// Appel Anthropic avec retry/backoff sur 429/529/5xx (le cron tourne sans humain)
+async function anthropicFetch(body: Record<string, unknown>): Promise<any> {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY non configurée");
+  let lastErr = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt));
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      console.log(`[supplier-invoices-ai] usage: ${JSON.stringify(data.usage)}`);
+      return data;
+    }
+    const t = await resp.text();
+    lastErr = `Anthropic ${resp.status}: ${t.slice(0, 300)}`;
+    if (![429, 500, 529].includes(resp.status)) throw new Error(lastErr);
+    console.warn(`[supplier-invoices-ai] retry ${attempt + 1}/3 après ${lastErr}`);
+  }
+  throw new Error(lastErr);
+}
+
 async function callClaudeJson(
   system: string,
   user: string,
   schema: Record<string, unknown>,
   maxTokens = 8000,
 ): Promise<any> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY non configurée");
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: "user", content: user }],
-      output_config: { format: { type: "json_schema", schema } },
-    }),
+  const data = await anthropicFetch({
+    model: ANTHROPIC_MODEL,
+    max_tokens: maxTokens,
+    system,
+    messages: [{ role: "user", content: user }],
+    output_config: { format: { type: "json_schema", schema } },
   });
-  if (!resp.ok) {
-    const t = await resp.text();
-    throw new Error(`Anthropic ${resp.status}: ${t.slice(0, 300)}`);
-  }
-  const data = await resp.json();
   const text = (data.content ?? []).map((b: { text?: string }) => b.text ?? "").join("");
-  console.log(`[supplier-invoices-ai] usage: ${JSON.stringify(data.usage)}`);
   return JSON.parse(text);
 }
 
 async function callClaudeText(system: string, user: string, maxTokens = 6000): Promise<string> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY non configurée");
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: "user", content: user }],
-    }),
+  const data = await anthropicFetch({
+    model: ANTHROPIC_MODEL,
+    max_tokens: maxTokens,
+    system,
+    messages: [{ role: "user", content: user }],
   });
-  if (!resp.ok) {
-    const t = await resp.text();
-    throw new Error(`Anthropic ${resp.status}: ${t.slice(0, 300)}`);
-  }
-  const data = await resp.json();
   return (data.content ?? []).map((b: { text?: string }) => b.text ?? "").join("");
 }
 
