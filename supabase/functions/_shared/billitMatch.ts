@@ -54,6 +54,122 @@ export function parseBillitReference(ref: string | null | undefined): string | n
   return s.trim();
 }
 
+// ---- Enrichissement (pour reconstruire billing_data) ----
+export interface LeazrEnrichment {
+  contractsById: Map<string, any>;
+  clientsById: Map<string, any>;
+  leasersById: Map<string, any>;
+  offersById: Map<string, any>;
+}
+
+export async function loadLeazrEnrichment(supabase: any, companyId: string): Promise<LeazrEnrichment> {
+  const [{ data: contracts }, { data: clients }, { data: leasers }, { data: offers }] = await Promise.all([
+    supabase.from("contracts").select("id, contract_number, offer_id, client_id, leaser_id, leaser_name, status, created_at").eq("company_id", companyId),
+    supabase.from("clients").select("id, name, company, email, phone, address, city, postal_code, country, vat_number").eq("company_id", companyId),
+    supabase.from("leasers").select("id, name, company_name, address, city, postal_code, country, email, phone, vat_number").eq("company_id", companyId),
+    supabase.from("offers").select("id, offer_number, dossier_number").eq("company_id", companyId),
+  ]);
+  return {
+    contractsById: new Map((contracts || []).map((c: any) => [c.id, c])),
+    clientsById: new Map((clients || []).map((c: any) => [c.id, c])),
+    leasersById: new Map((leasers || []).map((l: any) => [l.id, l])),
+    offersById: new Map((offers || []).map((o: any) => [o.id, o])),
+  };
+}
+
+// Parse une ligne Billit -> ligne d'équipement Leazr. "Titre | SN : XXX" -> {title, serial}
+export function parseBillitLine(line: any): any {
+  const desc = (line?.Description || "").toString();
+  let title = desc;
+  const serial: string[] = [];
+  const m = desc.match(/^(.*?)\s*\|\s*SN\s*:?\s*(.+)$/i) || desc.match(/^(.*?)\s*-\s*SN\s*:?\s*(.+)$/i);
+  if (m) { title = m[1].trim(); serial.push(m[2].trim()); }
+  return {
+    title,
+    serial_number: serial,
+    selling_price_excl_vat: line?.UnitPriceExcl ?? line?.TotalExcl ?? 0,
+    quantity: line?.Quantity ?? 1,
+  };
+}
+
+// Reconstruit le billing_data complet d'une facture Billit (lignes Billit + contexte Leazr).
+export function buildBillitBillingData(
+  order: any,
+  detail: any,
+  ctx: { contract?: any; client?: any; leaser?: any; offer?: any },
+  existing?: any,
+): any {
+  const { contract, client, leaser, offer } = ctx;
+  const lines = (detail?.OrderLines || [])
+    .map(parseBillitLine)
+    .filter((l: any) => (l.title && l.title.trim()) || l.selling_price_excl_vat);
+
+  const leaser_data = leaser
+    ? {
+        name: leaser.company_name || leaser.name,
+        address: leaser.address || "",
+        city: leaser.city || "",
+        postal_code: leaser.postal_code || "",
+        country: leaser.country || "",
+        email: leaser.email || "",
+        phone: leaser.phone || "",
+        vat_number: leaser.vat_number || "",
+      }
+    : order?.CounterParty
+    ? {
+        name: order.CounterParty.DisplayName || "",
+        vat_number: order.CounterParty.VATNumber || "",
+        email: order.CounterParty.Email || "",
+      }
+    : null;
+
+  const client_data = client
+    ? {
+        id: client.id,
+        name: client.name || "",
+        company: client.company || "",
+        email: client.email || "",
+        phone: client.phone || "",
+        address: client.address || "",
+        city: client.city || "",
+        postal_code: client.postal_code || "",
+        country: client.country || "",
+        vat_number: client.vat_number || "",
+      }
+    : null;
+
+  const contract_data = contract
+    ? {
+        id: contract.contract_number || null,
+        offer_id: offer?.offer_number || offer?.dossier_number || null,
+        created_at: contract.created_at || null,
+        status: contract.status || null,
+        client_name: client?.company || client?.name || null,
+        client_email: client?.email || null,
+      }
+    : null;
+
+  return {
+    ...(existing && typeof existing === "object" ? existing : {}),
+    leaser_data,
+    client_data,
+    contract_data,
+    equipment_data: lines,
+    invoice_totals: {
+      total_excl_vat: order?.TotalExcl ?? 0,
+      vat_amount: order?.VATAmount ?? order?.TotalVAT ?? 0,
+      total_incl_vat: order?.TotalIncl ?? 0,
+    },
+    // métadonnées Billit
+    billit_order_id: order?.OrderID,
+    billit_reference: detail?.Reference || null,
+    billit_customer_name: order?.CounterParty?.DisplayName || null,
+    billit_customer_vat: order?.CounterParty?.VATNumber || null,
+    import_source: "billit_match",
+    reconciled_at: new Date().toISOString(),
+  };
+}
+
 export async function loadLeazrMatchData(supabase: any, companyId: string): Promise<LeazrMatchData> {
   const [{ data: contracts }, { data: offers }, { data: invoices }] = await Promise.all([
     supabase.from("contracts").select("id, contract_number, offer_id").eq("company_id", companyId),

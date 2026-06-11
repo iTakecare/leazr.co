@@ -10,7 +10,7 @@ import {
   billitOrderDateInRange,
   billitPdfUrl,
 } from "../_shared/billit.ts";
-import { loadLeazrMatchData, matchBillitInvoices } from "../_shared/billitMatch.ts";
+import { loadLeazrMatchData, matchBillitInvoices, loadLeazrEnrichment, buildBillitBillingData } from "../_shared/billitMatch.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -141,19 +141,21 @@ serve(async (req) => {
     let alreadyCount = 0;
     const errors: string[] = [];
 
+    // Enrichissement Leazr (contrats/clients/bailleurs/offres) pour rebâtir billing_data
+    const enrich = await loadLeazrEnrichment(supabase, companyId);
+
     const statusOf = (b: BillitOrder) => (b.Paid ? 'paid' : b.IsSent ? 'sent' : 'draft');
-    const billingData = (b: BillitOrder, source: string, ref: string | null) => ({
-      billit_data: b,
-      import_source: source,
-      billit_customer_name: b.CounterParty?.DisplayName || null,
-      billit_customer_vat: b.CounterParty?.VATNumber || null,
-      billit_reference: ref || null,
-      total_incl_vat: b.TotalIncl,
-      vat_amount: b.VATAmount,
-      reconciled_at: new Date().toISOString(),
-    });
-    const viaTag = (via: string | null) =>
-      via === 'numéro' ? 'number' : via === 'référence' ? 'reference' : 'amount';
+    const isoOrNull = (d: any) => { if (!d) return null; const t = new Date(d).getTime(); return isNaN(t) ? null : new Date(t).toISOString(); };
+    const paidAtOf = (b: any) => (b.Paid ? (isoOrNull(b.PaidDate) || isoOrNull(b.OrderDate)) : null);
+    const sentAtOf = (b: any) => (b.IsSent ? isoOrNull(b.OrderDate) : null);
+    const resolveCtx = (m: any) => {
+      const contract = m.contract_id ? enrich.contractsById.get(m.contract_id) : null;
+      const client = contract?.client_id ? enrich.clientsById.get(contract.client_id) : null;
+      const leaser = contract?.leaser_id ? enrich.leasersById.get(contract.leaser_id) : null;
+      const offer = (m.offer_id && enrich.offersById.get(m.offer_id)) ||
+        (contract?.offer_id && enrich.offersById.get(contract.offer_id)) || null;
+      return { contract, client, leaser, offer };
+    };
 
     for (const m of matches) {
       const b = billitByOrder.get(m.order_id);
@@ -162,46 +164,53 @@ serve(async (req) => {
       const pdfUrl = billitPdfUrl(apiBaseUrl, b);
 
       try {
-        if (m.action === 'link' && m.leazr_invoice_id) {
-          if (m.already_linked) { alreadyCount++; continue; }
-          const { error } = await supabase
-            .from('invoices')
-            .update({
-              external_invoice_id: String(b.OrderID),
-              integration_type: 'billit',
-              amount: b.TotalExcl, // Billit prime
-              status,
-              pdf_url: pdfUrl,
-              sent_at: b.IsSent ? new Date().toISOString() : null,
-              paid_at: b.Paid ? new Date().toISOString() : null,
-              billing_data: billingData(b, `billit_match_${viaTag(m.via)}`, m.reference),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', m.leazr_invoice_id);
-          if (error) { errors.push(`Lien ${b.OrderNumber}: ${error.message}`); continue; }
-          linkedCount++;
-          if (m.delta != null && Math.abs(m.delta) >= 0.005) adjustedCount++;
-        } else if (m.action === 'create') {
-          const { error } = await supabase
-            .from('invoices')
-            .insert({
-              company_id: companyId,
-              external_invoice_id: String(b.OrderID),
-              invoice_number: b.OrderNumber,
-              amount: b.TotalExcl,
-              status,
-              integration_type: 'billit',
-              invoice_date: b.OrderDate ? new Date(b.OrderDate).toISOString() : new Date().toISOString(),
-              leaser_name: b.CounterParty?.DisplayName || 'Client Billit',
-              contract_id: m.contract_id || null,
-              offer_id: m.offer_id || null,
-              pdf_url: pdfUrl,
-              sent_at: b.IsSent ? new Date().toISOString() : null,
-              paid_at: b.Paid ? new Date().toISOString() : null,
-              billing_data: billingData(b, 'billit_create_reference', m.reference),
-            });
-          if (error) { errors.push(`Création ${b.OrderNumber}: ${error.message}`); continue; }
-          createdCount++;
+        if (m.action === 'link' || m.action === 'create') {
+          // Détail Billit (lignes) + reconstruction du billing_data complet
+          const detail = await getBillitOrderDetail(apiBaseUrl, credentials.apiKey, usedPartyId, b.OrderID);
+          const ctx = resolveCtx(m);
+          const billing_data = buildBillitBillingData(b, detail, ctx, undefined);
+
+          if (m.action === 'link' && m.leazr_invoice_id) {
+            const { error } = await supabase
+              .from('invoices')
+              .update({
+                external_invoice_id: String(b.OrderID),
+                integration_type: 'billit',
+                amount: b.TotalExcl, // Billit prime
+                status,
+                pdf_url: pdfUrl,
+                sent_at: sentAtOf(b),
+                paid_at: paidAtOf(b),
+                billing_data,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', m.leazr_invoice_id);
+            if (error) { errors.push(`Lien ${b.OrderNumber}: ${error.message}`); continue; }
+            linkedCount++;
+            if (m.already_linked) alreadyCount++;
+            if (m.delta != null && Math.abs(m.delta) >= 0.005) adjustedCount++;
+          } else {
+            const { error } = await supabase
+              .from('invoices')
+              .insert({
+                company_id: companyId,
+                external_invoice_id: String(b.OrderID),
+                invoice_number: b.OrderNumber,
+                amount: b.TotalExcl,
+                status,
+                integration_type: 'billit',
+                invoice_date: isoOrNull(b.OrderDate) || new Date().toISOString(),
+                leaser_name: ctx.leaser?.company_name || ctx.leaser?.name || b.CounterParty?.DisplayName || 'Client Billit',
+                contract_id: m.contract_id || null,
+                offer_id: m.offer_id || ctx.contract?.offer_id || null,
+                pdf_url: pdfUrl,
+                sent_at: sentAtOf(b),
+                paid_at: paidAtOf(b),
+                billing_data,
+              });
+            if (error) { errors.push(`Création ${b.OrderNumber}: ${error.message}`); continue; }
+            createdCount++;
+          }
         } else {
           // Aucun match fiable -> laissé pour matching manuel (rien écrit).
           manualCount++;
