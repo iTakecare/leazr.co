@@ -67,7 +67,7 @@ export async function loadLeazrEnrichment(supabase: any, companyId: string): Pro
     supabase.from("contracts").select("id, contract_number, offer_id, client_id, leaser_id, leaser_name, status, created_at").eq("company_id", companyId),
     supabase.from("clients").select("id, name, company, email, phone, address, city, postal_code, country, vat_number").eq("company_id", companyId),
     supabase.from("leasers").select("id, name, company_name, address, city, postal_code, country, email, phone, vat_number").eq("company_id", companyId),
-    supabase.from("offers").select("id, offer_number, dossier_number").eq("company_id", companyId),
+    supabase.from("offers").select("id, offer_number, dossier_number, client_id, client_name, client_email, is_purchase").eq("company_id", companyId),
   ]);
   return {
     contractsById: new Map((contracts || []).map((c: any) => [c.id, c])),
@@ -123,6 +123,10 @@ export function buildBillitBillingData(
       }
     : null;
 
+  // Nom/email client : depuis la fiche client, sinon depuis l'offre (ventes directes sans contrat)
+  const clientName = client?.company || client?.name || offer?.client_name || null;
+  const clientEmail = client?.email || offer?.client_email || null;
+
   const client_data = client
     ? {
         id: client.id,
@@ -136,24 +140,32 @@ export function buildBillitBillingData(
         country: client.country || "",
         vat_number: client.vat_number || "",
       }
-    : null;
+    : (offer?.client_name
+        ? { name: offer.client_name, company: offer.client_name, email: offer.client_email || "" }
+        : null);
 
-  const contract_data = contract
+  // contract_data sert aussi de porteur du nom client dans la liste des factures
+  const contract_data = (contract || offer || clientName)
     ? {
-        id: contract.contract_number || null,
+        id: contract?.contract_number || null,
         offer_id: offer?.offer_number || offer?.dossier_number || null,
-        created_at: contract.created_at || null,
-        status: contract.status || null,
-        client_name: client?.company || client?.name || null,
-        client_email: client?.email || null,
+        created_at: contract?.created_at || null,
+        status: contract?.status || null,
+        client_name: clientName,
+        client_email: clientEmail,
       }
     : null;
+
+  const offer_data = offer
+    ? { id: offer.id, offer_number: offer.offer_number || null, is_purchase: !!offer.is_purchase }
+    : undefined;
 
   return {
     ...(existing && typeof existing === "object" ? existing : {}),
     leaser_data,
     client_data,
     contract_data,
+    ...(offer_data ? { offer_data } : {}),
     equipment_data: lines,
     invoice_totals: {
       total_excl_vat: order?.TotalExcl ?? 0,

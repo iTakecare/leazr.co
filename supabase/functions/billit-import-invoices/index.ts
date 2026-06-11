@@ -150,10 +150,12 @@ serve(async (req) => {
     const sentAtOf = (b: any) => (b.IsSent ? isoOrNull(b.OrderDate) : null);
     const resolveCtx = (m: any) => {
       const contract = m.contract_id ? enrich.contractsById.get(m.contract_id) : null;
-      const client = contract?.client_id ? enrich.clientsById.get(contract.client_id) : null;
-      const leaser = contract?.leaser_id ? enrich.leasersById.get(contract.leaser_id) : null;
       const offer = (m.offer_id && enrich.offersById.get(m.offer_id)) ||
         (contract?.offer_id && enrich.offersById.get(contract.offer_id)) || null;
+      // client via le contrat, sinon via l'offre (ventes directes sans contrat)
+      const client = (contract?.client_id && enrich.clientsById.get(contract.client_id)) ||
+        (offer?.client_id && enrich.clientsById.get(offer.client_id)) || null;
+      const leaser = contract?.leaser_id ? enrich.leasersById.get(contract.leaser_id) : null;
       return { contract, client, leaser, offer };
     };
 
