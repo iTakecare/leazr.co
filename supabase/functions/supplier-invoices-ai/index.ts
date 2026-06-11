@@ -97,12 +97,14 @@ async function callClaudeText(system: string, user: string, maxTokens = 6000): P
 
 // ---------- action: categorize ----------
 async function actionCategorize(supabase: any, companyId: string) {
+  // Bornage : max 2 lots de 60 par invocation (timeout edge function = 150s).
+  // L'appelant reboucle tant que remaining > 0.
   const { data: uncategorized } = await supabase
     .from("supplier_invoices")
     .select("id, supplier_name, amount_excl, lines")
     .eq("company_id", companyId)
     .is("category", null)
-    .limit(400);
+    .limit(120);
 
   const items = uncategorized || [];
   if (!items.length) return { categorized: 0, remaining: 0 };

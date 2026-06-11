@@ -95,14 +95,22 @@ export const syncSupplierInvoices = async (companyId: string, fromDate?: string)
   return data as { created: number; updated: number; total_billit: number };
 };
 
-// IA : catégorisation des factures non catégorisées
+// IA : catégorisation des factures non catégorisées.
+// L'edge function traite max 120 factures par appel (timeout) — on boucle.
 export const categorizeSupplierInvoices = async (companyId: string) => {
-  const { data, error } = await supabase.functions.invoke("supplier-invoices-ai", {
-    body: { companyId, action: "categorize" },
-  });
-  if (error) throw new Error(error.message);
-  if (!data?.success) throw new Error(data?.error || "Échec de la catégorisation");
-  return data as { categorized: number; remaining: number };
+  let categorized = 0;
+  let remaining = 0;
+  for (let i = 0; i < 10; i++) {
+    const { data, error } = await supabase.functions.invoke("supplier-invoices-ai", {
+      body: { companyId, action: "categorize" },
+    });
+    if (error) throw new Error(error.message);
+    if (!data?.success) throw new Error(data?.error || "Échec de la catégorisation");
+    categorized += data.categorized || 0;
+    remaining = data.remaining || 0;
+    if (!remaining || !data.categorized) break;
+  }
+  return { categorized, remaining };
 };
 
 // IA : suggestions de matching achats <-> équipements de contrats
