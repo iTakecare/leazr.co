@@ -10,7 +10,7 @@ import {
   billitOrderDateInRange,
   billitPdfUrl,
 } from "../_shared/billit.ts";
-import { loadLeazrMatchData, matchBillitInvoices, loadLeazrEnrichment, buildBillitBillingData } from "../_shared/billitMatch.ts";
+import { loadLeazrMatchData, matchBillitInvoices, loadLeazrEnrichment, buildBillitBillingData, parseBillitReference } from "../_shared/billitMatch.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -149,10 +149,21 @@ serve(async (req) => {
     const isoOrNull = (d: any) => { if (!d) return null; const t = new Date(d).getTime(); return isNaN(t) ? null : new Date(t).toISOString(); };
     const paidAtOf = (b: any) => (b.Paid ? (isoOrNull(b.PaidDate) || isoOrNull(b.OrderDate)) : null);
     const sentAtOf = (b: any) => (b.IsSent ? isoOrNull(b.OrderDate) : null);
-    const resolveCtx = (m: any) => {
-      const contract = m.contract_id ? enrich.contractsById.get(m.contract_id) : null;
-      const offer = (m.offer_id && enrich.offersById.get(m.offer_id)) ||
+    const norm = (s: any) => (s ?? '').toString().toUpperCase().replace(/\s+/g, '').trim();
+    const resolveCtx = (m: any, detail: any) => {
+      let contract = m.contract_id ? enrich.contractsById.get(m.contract_id) : null;
+      let offer = (m.offer_id && enrich.offersById.get(m.offer_id)) ||
         (contract?.offer_id && enrich.offersById.get(contract.offer_id)) || null;
+      // Repli : facture sans contrat/offre (ex. facture de solde) -> résoudre le
+      // contexte via la Reference Billit (n° dossier/contrat).
+      if (!contract && !offer && detail?.Reference) {
+        const nref = norm(parseBillitReference(detail.Reference));
+        const refContract = leazrData.contractByNum.get(nref);
+        const refOffer = leazrData.offerByRef.get(nref);
+        if (refContract) contract = enrich.contractsById.get(refContract.id) || refContract;
+        if (refOffer) offer = enrich.offersById.get(refOffer.id) || refOffer;
+        if (!offer && contract?.offer_id) offer = enrich.offersById.get(contract.offer_id) || null;
+      }
       // client via le contrat, sinon via l'offre (ventes directes sans contrat)
       const client = (contract?.client_id && enrich.clientsById.get(contract.client_id)) ||
         (offer?.client_id && enrich.clientsById.get(offer.client_id)) || null;
@@ -170,7 +181,7 @@ serve(async (req) => {
         if (m.action === 'link' || m.action === 'create') {
           // Détail Billit (lignes) + reconstruction du billing_data complet
           const detail = await getBillitOrderDetail(apiBaseUrl, credentials.apiKey, usedPartyId, b.OrderID);
-          const ctx = resolveCtx(m);
+          const ctx = resolveCtx(m, detail);
           const billing_data = buildBillitBillingData(b, detail, ctx, undefined);
 
           if (m.action === 'link' && m.leazr_invoice_id) {
