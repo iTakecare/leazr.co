@@ -132,10 +132,10 @@ serve(async (req) => {
       .filter((o) => billitOrderDateInRange(o.OrderDate, fromDate, toDate)) as BillitCreditNote[];
     console.log(`📋 ${billitCreditNotes.length} note(s) de crédit de vente à traiter (Income/CreditNote${fromDate ? `, depuis ${fromDate}` : ''})`);
 
-    // Récupérer les NC déjà importées (via billing_data.billit_order_id)
+    // Récupérer les NC existantes (lien Billit + numéro pour le matching)
     const { data: existingCreditNotes } = await supabase
       .from('credit_notes')
-      .select('id, billing_data')
+      .select('id, credit_note_number, amount, invoice_id, billing_data')
       .eq('company_id', companyId);
 
     const existingBillitIds = new Set(
@@ -143,6 +143,14 @@ serve(async (req) => {
         .filter((cn: any) => cn.billing_data?.billit_order_id)
         .map((cn: any) => cn.billing_data.billit_order_id.toString())
     );
+
+    // Index par numéro normalisé (Billit OrderNumber == credit_note_number Leazr)
+    const normNum = (s: any) => (s ?? '').toString().toUpperCase().replace(/\s+/g, '').trim();
+    const cnByNumber = new Map<string, any>();
+    for (const cn of existingCreditNotes || []) {
+      if (cn.credit_note_number) cnByNumber.set(normNum(cn.credit_note_number), cn);
+    }
+    let linkedCount = 0;
 
     // Récupérer les factures existantes pour le matching par numéro ou montant
     const { data: existingInvoices } = await supabase
@@ -164,6 +172,37 @@ serve(async (req) => {
         // Skip si déjà importée
         if (existingBillitIds.has(billitId)) {
           skippedCount++;
+          continue;
+        }
+
+        // PRIORITÉ : lier à une NC Leazr existante de même numéro (évite les doublons).
+        // Billit prime -> on synchronise le montant.
+        const existingByNumber = cnByNumber.get(normNum(cn.OrderNumber));
+        if (existingByNumber) {
+          const { error: linkError } = await supabase
+            .from('credit_notes')
+            .update({
+              amount: cn.TotalExcl,
+              billing_data: {
+                ...(existingByNumber.billing_data || {}),
+                billit_order_id: cn.OrderID,
+                billit_data: cn,
+                import_source: 'billit_credit_note_link',
+                billit_customer_name: cn.CounterParty?.DisplayName || null,
+                about_invoice_number: cn.AboutInvoiceNumber || null,
+                total_incl_vat: cn.TotalIncl,
+                vat_amount: cn.VATAmount,
+                reconciled_at: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingByNumber.id);
+          if (linkError) {
+            errors.push(`Lien NC ${cn.OrderNumber}: ${linkError.message}`);
+          } else {
+            linkedCount++;
+            console.log(`🔗 NC Billit ${cn.OrderNumber} liée à la NC Leazr existante (même numéro)`);
+          }
           continue;
         }
 
@@ -269,12 +308,13 @@ serve(async (req) => {
       }
     }
 
-    console.log(`✅ Import NC terminé: ${importedCount} importée(s), ${matchedWithInvoice} liée(s), ${skippedCount} déjà existante(s)`);
+    console.log(`✅ Import NC terminé: ${importedCount} créée(s), ${linkedCount} liée(s) à NC existante, ${matchedWithInvoice} liée(s) à facture, ${skippedCount} déjà existante(s)`);
 
     return new Response(JSON.stringify({
       success: true,
-      message: `Import terminé: ${importedCount} note(s) de crédit importée(s), ${matchedWithInvoice} liée(s) à des factures`,
+      message: `Import terminé: ${linkedCount} NC liée(s), ${importedCount} créée(s)`,
       imported: importedCount,
+      linked: linkedCount,
       matched: matchedWithInvoice,
       skipped: skippedCount,
       total_billit: billitCreditNotes.length,

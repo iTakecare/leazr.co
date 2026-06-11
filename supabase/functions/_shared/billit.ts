@@ -137,3 +137,22 @@ export function billitOrderDateInRange(
 export function billitPdfUrl(apiBaseUrl: string, order: BillitOrder): string | null {
   return order?.OrderPDF?.FileID ? `${apiBaseUrl}/v1/files/${order.OrderPDF.FileID}` : null;
 }
+
+// Détail complet d'une commande (inclut Reference + OrderLines, absents de la liste).
+export async function getBillitOrderDetail(
+  apiBaseUrl: string,
+  apiKey: string,
+  partyId: string | null,
+  orderId: number | string,
+): Promise<any | null> {
+  try {
+    const res = await fetch(`${apiBaseUrl}/v1/orders/${orderId}`, {
+      method: "GET",
+      headers: billitHeaders(apiKey, partyId),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}

@@ -29,6 +29,12 @@ interface PreviewRow {
   status: string;
   about_invoice_number: string | null;
   already_imported: boolean;
+  // matching (factures uniquement)
+  match_action?: "link" | "create" | "manual";
+  match_via?: string | null;
+  leazr_invoice_number?: string | null;
+  leazr_amount?: number | null;
+  amount_delta?: number | null;
 }
 
 const fmtEur = (n: number) =>
@@ -37,7 +43,15 @@ const fmtEur = (n: number) =>
 const statusLabel = (s: string) =>
   s === "paid" ? "payée" : s === "sent" ? "envoyée" : "brouillon";
 
-const DocTable: React.FC<{ title: string; rows: PreviewRow[] }> = ({ title, rows }) => (
+const actionBadge = (r: PreviewRow) => {
+  if (r.match_action === "link")
+    return <Badge variant="default" title={`via ${r.match_via}`}>Lier</Badge>;
+  if (r.match_action === "create")
+    return <Badge variant="secondary">Créer</Badge>;
+  return <Badge variant="outline" className="text-amber-600 border-amber-300">Manuel</Badge>;
+};
+
+const DocTable: React.FC<{ title: string; rows: PreviewRow[]; showMatch?: boolean }> = ({ title, rows, showMatch }) => (
   <div className="space-y-2">
     <div className="text-sm font-medium">{title} ({rows.length})</div>
     {rows.length === 0 ? (
@@ -51,27 +65,47 @@ const DocTable: React.FC<{ title: string; rows: PreviewRow[] }> = ({ title, rows
               <TableHead>Date</TableHead>
               <TableHead>Client</TableHead>
               <TableHead className="text-right">HTVA</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead>État</TableHead>
+              {showMatch ? (
+                <>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Fact. Leazr</TableHead>
+                  <TableHead className="text-right">Écart</TableHead>
+                </>
+              ) : (
+                <TableHead>État</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.order_id}>
-                <TableCell className="font-mono text-xs whitespace-nowrap">{r.order_number || `#${r.order_id}`}</TableCell>
-                <TableCell className="whitespace-nowrap text-xs">{r.order_date || "—"}</TableCell>
-                <TableCell className="max-w-[180px] truncate" title={r.customer || ""}>{r.customer || "—"}</TableCell>
-                <TableCell className="text-right whitespace-nowrap">{fmtEur(r.total_excl)}</TableCell>
-                <TableCell className="text-xs">{statusLabel(r.status)}</TableCell>
-                <TableCell>
-                  {r.already_imported ? (
-                    <Badge variant="secondary">Déjà importé</Badge>
+            {rows.map((r) => {
+              const delta = r.amount_delta;
+              const hasDelta = delta != null && Math.abs(delta) >= 0.005;
+              return (
+                <TableRow key={r.order_id}>
+                  <TableCell className="font-mono text-xs whitespace-nowrap">{r.order_number || `#${r.order_id}`}</TableCell>
+                  <TableCell className="whitespace-nowrap text-xs">{r.order_date || "—"}</TableCell>
+                  <TableCell className="max-w-[160px] truncate" title={r.customer || ""}>{r.customer || "—"}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{fmtEur(r.total_excl)}</TableCell>
+                  {showMatch ? (
+                    <>
+                      <TableCell>{actionBadge(r)}</TableCell>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">{r.leazr_invoice_number || "—"}</TableCell>
+                      <TableCell className={`text-right whitespace-nowrap text-xs ${hasDelta ? "text-amber-600 font-medium" : "text-muted-foreground"}`}>
+                        {delta == null ? "—" : hasDelta ? `${delta > 0 ? "+" : ""}${delta.toFixed(2)} €` : "0"}
+                      </TableCell>
+                    </>
                   ) : (
-                    <Badge variant="default">Nouveau</Badge>
+                    <TableCell>
+                      {r.already_imported ? (
+                        <Badge variant="secondary">Déjà importé</Badge>
+                      ) : (
+                        <Badge variant="default">Nouveau</Badge>
+                      )}
+                    </TableCell>
                   )}
-                </TableCell>
-              </TableRow>
-            ))}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </ScrollArea>
@@ -109,10 +143,11 @@ const BillitSalesSyncCard: React.FC<Props> = ({ companyId, integrationEnabled })
     try {
       const inv = await importBillitSalesInvoices(companyId, fromDate);
       const cn = await importBillitCreditNotes(companyId, fromDate);
-      const importedInv = inv?.imported || 0;
-      const reconInv = (inv?.reconciled || 0) + (inv?.post_reconciled || 0);
+      const linked = inv?.linked ?? inv?.reconciled ?? 0;
+      const created = inv?.created ?? inv?.imported ?? 0;
+      const manual = inv?.manual ?? 0;
       const importedCn = cn?.imported || 0;
-      toast.success(`Import terminé: ${importedInv} facture(s) (${reconInv} réconciliée(s)), ${importedCn} note(s) de crédit`);
+      toast.success(`Factures : ${linked} liée(s), ${created} créée(s)${manual ? `, ${manual} à matcher` : ""} · NC : ${importedCn} importée(s)`);
       // Rafraîchir l'aperçu pour refléter les nouveaux "déjà importé"
       await handlePreview();
     } catch (e: any) {
@@ -211,10 +246,23 @@ const BillitSalesSyncCard: React.FC<Props> = ({ companyId, integrationEnabled })
             </div>
           )}
 
+          {/* Synthèse du matching (factures) */}
+          {s && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Matching factures :</span>
+              <Badge variant="default">{s.match_link ?? 0} à lier</Badge>
+              <Badge variant="secondary">{s.match_create ?? 0} à créer</Badge>
+              <Badge variant="outline" className="text-amber-600 border-amber-300">{s.match_manual ?? 0} manuelles</Badge>
+              {(s.amount_adjustments ?? 0) > 0 && (
+                <Badge variant="outline">{s.amount_adjustments} montant(s) ajusté(s) — Billit prime</Badge>
+              )}
+            </div>
+          )}
+
           {/* Tables */}
           {preview && (
             <div className="space-y-4">
-              <DocTable title="Factures de vente (Income / Invoice)" rows={preview.invoices} />
+              <DocTable title="Factures de vente (Income / Invoice)" rows={preview.invoices} showMatch />
               <DocTable title="Notes de crédit (Income / CreditNote)" rows={preview.credit_notes} />
               <Button variant="ghost" size="sm" onClick={() => setMatchingOpen(true)} className="flex items-center gap-2">
                 <Link2 className="h-4 w-4" />

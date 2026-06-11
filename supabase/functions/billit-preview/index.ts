@@ -9,11 +9,13 @@ import {
   normalizeBillitBaseUrl,
   getBillitAccount,
   fetchAllBillitOrders,
+  getBillitOrderDetail,
   isSaleInvoice,
   isSaleCreditNote,
   billitOrderDateInRange,
   billitPdfUrl,
 } from "../_shared/billit.ts";
+import { loadLeazrMatchData, matchBillitInvoices } from "../_shared/billitMatch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -124,12 +126,16 @@ serve(async (req) => {
 
     const { data: existingCreditNotes } = await supabase
       .from("credit_notes")
-      .select("billing_data")
+      .select("credit_note_number, billing_data")
       .eq("company_id", companyId);
     const importedCreditNoteIds = new Set(
       (existingCreditNotes || [])
         .filter((cn: any) => cn.billing_data?.billit_order_id)
         .map((cn: any) => String(cn.billing_data.billit_order_id)),
+    );
+    const normNum = (s: any) => (s ?? "").toString().toUpperCase().replace(/\s+/g, "").trim();
+    const existingCreditNoteNumbers = new Set(
+      (existingCreditNotes || []).filter((cn: any) => cn.credit_note_number).map((cn: any) => normNum(cn.credit_note_number)),
     );
 
     const mapOrder = (o: BillitOrder, importedSet: Set<string>) => ({
@@ -148,16 +154,43 @@ serve(async (req) => {
       already_imported: importedSet.has(String(o.OrderID)),
     });
 
+    // Matching proposé (même logique que l'import) : numéro -> référence -> montant
+    const leazrData = await loadLeazrMatchData(supabase, companyId);
+    const getReference = async (orderId: number) => {
+      const d = await getBillitOrderDetail(apiBaseUrl, credentials.apiKey, usedPartyId, orderId);
+      return d?.Reference || null;
+    };
+    const matches = await matchBillitInvoices(saleInvoices, leazrData, getReference);
+    const matchByOrder = new Map(matches.map((m) => [m.order_id, m]));
+
     const invoiceRows = saleInvoices
-      .map((o) => mapOrder(o, importedInvoiceIds))
+      .map((o) => {
+        const row = mapOrder(o, importedInvoiceIds);
+        const m = matchByOrder.get(o.OrderID);
+        return {
+          ...row,
+          match_action: m?.action || "manual",
+          match_via: m?.via || null,
+          leazr_invoice_number: m?.leazr_invoice_number || null,
+          leazr_amount: m?.leazr_amount ?? null,
+          contract_number: m?.contract_number || null,
+          amount_delta: m?.delta ?? null,
+        };
+      })
       .sort((a, b) => (a.order_date || "").localeCompare(b.order_date || ""));
     const creditNoteRows = saleCreditNotes
-      .map((o) => mapOrder(o, importedCreditNoteIds))
+      .map((o) => {
+        const row = mapOrder(o, importedCreditNoteIds);
+        // déjà géré si lié par billit_order_id OU si une NC de même numéro existe (sera liée)
+        row.already_imported = row.already_imported || existingCreditNoteNumbers.has(normNum(o.OrderNumber));
+        return row;
+      })
       .sort((a, b) => (a.order_date || "").localeCompare(b.order_date || ""));
 
     const sum = (rows: any[], key: string) => rows.reduce((s, r) => s + (r[key] || 0), 0);
     const newInvoices = invoiceRows.filter((r) => !r.already_imported);
     const newCreditNotes = creditNoteRows.filter((r) => !r.already_imported);
+    const adjustments = invoiceRows.filter((r) => r.amount_delta != null && Math.abs(r.amount_delta) >= 0.005);
 
     return jsonResponse({
       success: true,
@@ -178,6 +211,10 @@ serve(async (req) => {
         credit_notes_already: creditNoteRows.length - newCreditNotes.length,
         credit_notes_total_excl: sum(creditNoteRows, "total_excl"),
         credit_notes_total_incl: sum(creditNoteRows, "total_incl"),
+        match_link: invoiceRows.filter((r) => r.match_action === "link").length,
+        match_create: invoiceRows.filter((r) => r.match_action === "create").length,
+        match_manual: invoiceRows.filter((r) => r.match_action === "manual").length,
+        amount_adjustments: adjustments.length,
       },
       invoices: invoiceRows,
       credit_notes: creditNoteRows,

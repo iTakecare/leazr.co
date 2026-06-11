@@ -1,12 +1,16 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { requireElevatedAccess } from "../_shared/security.ts";
 import {
+  BillitOrder,
   normalizeBillitBaseUrl,
   getBillitAccount,
   fetchAllBillitOrders,
+  getBillitOrderDetail,
   isSaleInvoice,
   billitOrderDateInRange,
+  billitPdfUrl,
 } from "../_shared/billit.ts";
+import { loadLeazrMatchData, matchBillitInvoices } from "../_shared/billitMatch.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,77 +24,11 @@ interface BillitCredentials {
   companyId: string;
 }
 
-interface BillitInvoice {
-  OrderID: number;
-  OrderNumber: string;
-  OrderDate: string;
-  TotalExcl: number;
-  TotalIncl: number;
-  VATAmount: number;
-  Paid: boolean;
-  IsSent: boolean;
-  OrderDirection: string;
-  OrderType: string;
-  CounterParty?: {
-    DisplayName: string;
-    VATNumber?: string;
-    Email?: string;
-  };
-  OrderPDF?: {
-    FileID: string;
-  };
-}
-
 interface ImportRequest {
   companyId: string;
   fromDate?: string; // YYYY-MM-DD — ne traiter que les factures à partir de cette date
   toDate?: string;
 }
-
-interface ContractMatch {
-  id: string;
-  client_name: string;
-  estimated_selling_price: number;
-  monthly_payment: number;
-  created_at: string;
-  contract_number: string | null;
-}
-
-interface LeazrInvoice {
-  id: string;
-  invoice_number: string | null;
-  amount: number;
-  leaser_name: string | null;
-  offer_id: string | null;
-  contract_id: string | null;
-}
-
-// Calcul du score de matching basé sur la proximité des montants
-const calculateMatchScore = (invoiceAmount: number, contractSellingPrice: number): number => {
-  if (!contractSellingPrice || contractSellingPrice === 0) return 0;
-  
-  const diff = Math.abs(invoiceAmount - contractSellingPrice);
-  const percentDiff = (diff / invoiceAmount) * 100;
-  
-  if (percentDiff <= 1) return 100;
-  if (percentDiff <= 3) return 80;
-  if (percentDiff <= 5) return 60;
-  if (percentDiff <= 10) return 40;
-  return 0;
-};
-
-// Normaliser un nom pour la comparaison
-const normalizeName = (name: string): string => {
-  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-};
-
-// Vérifier si deux noms sont similaires
-const areNamesSimilar = (name1: string, name2: string): boolean => {
-  const n1 = normalizeName(name1);
-  const n2 = normalizeName(name2);
-  if (!n1 || !n2) return false;
-  return n1.includes(n2) || n2.includes(n1) || n1 === n2;
-};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -167,19 +105,10 @@ serve(async (req) => {
     }
 
     const credentials = integration.api_credentials as BillitCredentials;
-
-    console.log("🔑 Credentials récupérées:", {
-      hasApiKey: !!credentials.apiKey,
-      apiKeyLength: credentials.apiKey?.length || 0,
-      baseUrl: credentials.baseUrl,
-      companyId: credentials.companyId || 'NON_CONFIGURE'
-    });
-
     const apiBaseUrl = normalizeBillitBaseUrl(credentials.baseUrl);
 
-    // ÉTAPE 1: Auth + récupération de TOUTES les commandes (en-tête PartyID).
-    // Billit IGNORE les query params OrderDirection/OrderType -> on filtre côté
-    // client sur Income/Invoice, puis par date.
+    // Auth + récupération de TOUTES les commandes (en-tête PartyID). Billit IGNORE
+    // les query params -> on filtre côté client sur Income/Invoice, puis par date.
     const accountData = await getBillitAccount(apiBaseUrl, credentials.apiKey);
     console.log("✅ Authentification réussie, compte:", accountData?.Email || 'N/A');
 
@@ -191,280 +120,116 @@ serve(async (req) => {
     );
     console.log(`📡 ${orders.length} commande(s) récupérée(s) (PartyID=${usedPartyId ?? 'défaut'})`);
 
-    const billitInvoices: BillitInvoice[] = orders
+    const billitInvoices: BillitOrder[] = orders
       .filter(isSaleInvoice)
-      .filter((o) => billitOrderDateInRange(o.OrderDate, fromDate, toDate)) as BillitInvoice[];
+      .filter((o) => billitOrderDateInRange(o.OrderDate, fromDate, toDate));
     console.log(`📋 ${billitInvoices.length} facture(s) de vente à traiter (Income/Invoice${fromDate ? `, depuis ${fromDate}` : ''})`);
 
-    // Récupérer les factures avec external_invoice_id (déjà importées)
-    const { data: existingInvoices } = await supabase
-      .from('invoices')
-      .select('external_invoice_id')
-      .eq('company_id', companyId)
-      .not('external_invoice_id', 'is', null);
+    // Matching (même module que l'aperçu) : numéro -> référence -> montant+client+date
+    const leazrData = await loadLeazrMatchData(supabase, companyId);
+    const getReference = async (orderId: number) => {
+      const d = await getBillitOrderDetail(apiBaseUrl, credentials.apiKey, usedPartyId, orderId);
+      return d?.Reference || null;
+    };
+    const matches = await matchBillitInvoices(billitInvoices, leazrData, getReference);
+    const billitByOrder = new Map(billitInvoices.map((b) => [b.OrderID, b]));
 
-    const existingExternalIds = new Set(
-      (existingInvoices || []).map((inv: any) => inv.external_invoice_id)
-    );
-    console.log(`📊 ${existingExternalIds.size} facture(s) déjà importée(s)`);
-
-    // NOUVEAU: Récupérer les factures Leazr SANS external_invoice_id pour la réconciliation
-    const { data: leazrUnlinkedInvoices } = await supabase
-      .from('invoices')
-      .select('id, invoice_number, amount, leaser_name, offer_id, contract_id')
-      .eq('company_id', companyId)
-      .is('external_invoice_id', null);
-
-    const unlinkedInvoices: LeazrInvoice[] = leazrUnlinkedInvoices || [];
-    console.log(`🔍 ${unlinkedInvoices.length} facture(s) Leazr sans lien Billit (candidates à la réconciliation)`);
-
-    // Récupérer les contrats sans facture pour le matching classique
-    const { data: availableContracts } = await supabase
-      .from('contracts')
-      .select('id, client_name, estimated_selling_price, monthly_payment, created_at, contract_number')
-      .eq('company_id', companyId)
-      .eq('invoice_generated', false);
-
-    const contracts: ContractMatch[] = availableContracts || [];
-    console.log(`📋 ${contracts.length} contrat(s) disponible(s) pour le matching`);
-
-    let importedCount = 0;
-    let skippedCount = 0;
-    let reconciledCount = 0;
-    let postReconciledCount = 0;
+    let linkedCount = 0;
+    let createdCount = 0;
+    let manualCount = 0;
+    let adjustedCount = 0;
+    let alreadyCount = 0;
     const errors: string[] = [];
-    const importedInvoices: any[] = [];
-    // Track reconciled Leazr invoice IDs to avoid double-matching
-    const reconciledLeazrIds = new Set<string>();
-    // Track Billit invoices that were skipped (already imported) for post-reconciliation
-    const skippedBillitInvoices: BillitInvoice[] = [];
 
-    for (const billitInvoice of billitInvoices) {
+    const statusOf = (b: BillitOrder) => (b.Paid ? 'paid' : b.IsSent ? 'sent' : 'draft');
+    const billingData = (b: BillitOrder, source: string, ref: string | null) => ({
+      billit_data: b,
+      import_source: source,
+      billit_customer_name: b.CounterParty?.DisplayName || null,
+      billit_customer_vat: b.CounterParty?.VATNumber || null,
+      billit_reference: ref || null,
+      total_incl_vat: b.TotalIncl,
+      vat_amount: b.VATAmount,
+      reconciled_at: new Date().toISOString(),
+    });
+    const viaTag = (via: string | null) =>
+      via === 'numéro' ? 'number' : via === 'référence' ? 'reference' : 'amount';
+
+    for (const m of matches) {
+      const b = billitByOrder.get(m.order_id);
+      if (!b) continue;
+      const status = statusOf(b);
+      const pdfUrl = billitPdfUrl(apiBaseUrl, b);
+
       try {
-        const externalId = billitInvoice.OrderID.toString();
-        
-        // 1. Skip si déjà importée (but track for post-reconciliation)
-        if (existingExternalIds.has(externalId)) {
-          skippedCount++;
-          skippedBillitInvoices.push(billitInvoice);
-          continue;
-        }
-
-        let status: string = 'draft';
-        if (billitInvoice.Paid) {
-          status = 'paid';
-        } else if (billitInvoice.IsSent) {
-          status = 'sent';
-        }
-
-        let pdfUrl = null;
-        if (billitInvoice.OrderPDF?.FileID) {
-          pdfUrl = `${apiBaseUrl}/v1/files/${billitInvoice.OrderPDF.FileID}`;
-        }
-
-        // 2. NOUVEAU: Chercher une facture Leazr existante matchant par montant (±2%) et nom client
-        const billitAmount = billitInvoice.TotalExcl;
-        const billitCustomerName = billitInvoice.CounterParty?.DisplayName || '';
-
-        const existingMatch = unlinkedInvoices.find(inv => {
-          if (reconciledLeazrIds.has(inv.id)) return false;
-          if (!inv.amount || billitAmount === 0) return false;
-          const amountDiff = Math.abs(inv.amount - billitAmount) / billitAmount;
-          if (amountDiff > 0.02) return false; // Tolérance ±2%
-          // Si le nom client est dispo, vérifier la similarité
-          if (billitCustomerName && inv.leaser_name) {
-            return areNamesSimilar(billitCustomerName, inv.leaser_name);
-          }
-          // Match par montant seul si pas de nom
-          return true;
-        });
-
-        if (existingMatch) {
-          // RÉCONCILIATION: lier la facture Leazr existante à Billit
-          console.log(`🔗 Réconciliation: facture Leazr ${existingMatch.invoice_number} ↔ Billit ${billitInvoice.OrderNumber} (montant: ${billitAmount})`);
-          
-          const { error: updateError } = await supabase
+        if (m.action === 'link' && m.leazr_invoice_id) {
+          if (m.already_linked) { alreadyCount++; continue; }
+          const { error } = await supabase
             .from('invoices')
             .update({
-              external_invoice_id: externalId,
-              pdf_url: pdfUrl,
-              status: status,
+              external_invoice_id: String(b.OrderID),
               integration_type: 'billit',
-              amount: billitAmount, // Synchroniser le montant HTVA depuis Billit
-              billing_data: {
-                billit_data: billitInvoice,
-                import_source: 'billit_reconciliation',
-                billit_customer_name: billitCustomerName,
-                billit_customer_vat: billitInvoice.CounterParty?.VATNumber || null,
-                total_incl_vat: billitInvoice.TotalIncl,
-                vat_amount: billitInvoice.VATAmount,
-                reconciled_at: new Date().toISOString(),
-              },
+              amount: b.TotalExcl, // Billit prime
+              status,
+              pdf_url: pdfUrl,
+              sent_at: b.IsSent ? new Date().toISOString() : null,
+              paid_at: b.Paid ? new Date().toISOString() : null,
+              billing_data: billingData(b, `billit_match_${viaTag(m.via)}`, m.reference),
               updated_at: new Date().toISOString(),
             })
-            .eq('id', existingMatch.id);
-
-          if (updateError) {
-            console.error(`❌ Erreur réconciliation facture ${existingMatch.id}:`, updateError);
-            errors.push(`Réconciliation ${billitInvoice.OrderNumber}: ${updateError.message}`);
-          } else {
-            reconciledCount++;
-            reconciledLeazrIds.add(existingMatch.id);
-          }
-          continue;
+            .eq('id', m.leazr_invoice_id);
+          if (error) { errors.push(`Lien ${b.OrderNumber}: ${error.message}`); continue; }
+          linkedCount++;
+          if (m.delta != null && Math.abs(m.delta) >= 0.005) adjustedCount++;
+        } else if (m.action === 'create') {
+          const { error } = await supabase
+            .from('invoices')
+            .insert({
+              company_id: companyId,
+              external_invoice_id: String(b.OrderID),
+              invoice_number: b.OrderNumber,
+              amount: b.TotalExcl,
+              status,
+              integration_type: 'billit',
+              invoice_date: b.OrderDate ? new Date(b.OrderDate).toISOString() : new Date().toISOString(),
+              leaser_name: b.CounterParty?.DisplayName || 'Client Billit',
+              contract_id: m.contract_id || null,
+              offer_id: m.offer_id || null,
+              pdf_url: pdfUrl,
+              sent_at: b.IsSent ? new Date().toISOString() : null,
+              paid_at: b.Paid ? new Date().toISOString() : null,
+              billing_data: billingData(b, 'billit_create_reference', m.reference),
+            });
+          if (error) { errors.push(`Création ${b.OrderNumber}: ${error.message}`); continue; }
+          createdCount++;
+        } else {
+          // Aucun match fiable -> laissé pour matching manuel (rien écrit).
+          manualCount++;
         }
-
-        // 3. Pas de match existant → créer une nouvelle facture (comportement original)
-        const matchSuggestions = contracts
-          .map(contract => ({
-            contract,
-            score: calculateMatchScore(billitAmount, contract.estimated_selling_price)
-          }))
-          .filter(m => m.score > 0)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 5);
-
-        const invoiceData = {
-          company_id: companyId,
-          external_invoice_id: externalId,
-          invoice_number: billitInvoice.OrderNumber,
-          amount: billitAmount,
-          status,
-          integration_type: 'billit',
-          invoice_date: billitInvoice.OrderDate ? new Date(billitInvoice.OrderDate).toISOString() : new Date().toISOString(),
-          leaser_name: billitCustomerName || 'Client Billit',
-          contract_id: null,
-          pdf_url: pdfUrl,
-          sent_at: billitInvoice.IsSent ? new Date().toISOString() : null,
-          paid_at: billitInvoice.Paid ? new Date().toISOString() : null,
-          billing_data: {
-            billit_data: billitInvoice,
-            import_source: 'billit_import',
-            billit_customer_name: billitCustomerName || null,
-            billit_customer_vat: billitInvoice.CounterParty?.VATNumber || null,
-            total_incl_vat: billitInvoice.TotalIncl,
-            vat_amount: billitInvoice.VATAmount,
-            imported_at: new Date().toISOString(),
-            match_suggestions: matchSuggestions.map(m => ({
-              contract_id: m.contract.id,
-              contract_number: m.contract.contract_number,
-              client_name: m.contract.client_name,
-              selling_price: m.contract.estimated_selling_price,
-              score: m.score
-            }))
-          }
-        };
-
-        const { data: insertedInvoice, error: insertError } = await supabase
-          .from('invoices')
-          .insert(invoiceData)
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error(`❌ Erreur insertion facture ${externalId}:`, insertError);
-          errors.push(`Facture ${billitInvoice.OrderNumber}: ${insertError.message}`);
-          continue;
-        }
-
-        console.log(`✅ Facture ${billitInvoice.OrderNumber} importée avec ${matchSuggestions.length} suggestion(s)`);
-        importedCount++;
-        
-        importedInvoices.push({
-          ...insertedInvoice,
-          match_suggestions: matchSuggestions.map(m => ({
-            contract_id: m.contract.id,
-            contract_number: m.contract.contract_number,
-            client_name: m.contract.client_name,
-            selling_price: m.contract.estimated_selling_price,
-            score: m.score
-          }))
-        });
-
-      } catch (invoiceError) {
-        console.error(`❌ Erreur traitement facture:`, invoiceError);
-        errors.push(`Erreur: ${invoiceError instanceof Error ? invoiceError.message : 'Unknown error'}`);
+      } catch (e) {
+        errors.push(`${b.OrderNumber}: ${e instanceof Error ? e.message : 'Unknown error'}`);
       }
     }
 
-    // ÉTAPE POST-IMPORT: Réconcilier les factures Billit déjà importées mais orphelines
-    // (avec external_invoice_id mais sans contract_id ni offer_id)
-    if (skippedBillitInvoices.length > 0 && unlinkedInvoices.length > 0) {
-      console.log(`🔄 Post-réconciliation: ${skippedBillitInvoices.length} factures Billit déjà importées, ${unlinkedInvoices.filter(i => !reconciledLeazrIds.has(i.id)).length} Leazr candidates restantes`);
-      
-      // Get orphan imported invoices (billit imports without contract/offer)
-      const { data: orphanImports } = await supabase
-        .from('invoices')
-        .select('id, external_invoice_id, amount, leaser_name, invoice_number')
-        .eq('company_id', companyId)
-        .eq('integration_type', 'billit')
-        .not('external_invoice_id', 'is', null)
-        .is('contract_id', null)
-        .is('offer_id', null);
-
-      if (orphanImports && orphanImports.length > 0) {
-        console.log(`🔍 ${orphanImports.length} facture(s) Billit orpheline(s) à réconcilier`);
-        
-        for (const orphan of orphanImports) {
-          if (!orphan.amount || orphan.amount === 0) continue;
-          
-          const matchingLeazr = unlinkedInvoices.find(inv => {
-            if (reconciledLeazrIds.has(inv.id)) return false;
-            if (!inv.amount || inv.amount === 0) return false;
-            const amountDiff = Math.abs(inv.amount - orphan.amount) / orphan.amount;
-            if (amountDiff > 0.02) return false;
-            if (orphan.leaser_name && inv.leaser_name) {
-              return areNamesSimilar(orphan.leaser_name, inv.leaser_name);
-            }
-            return false; // Require name match for post-reconciliation to avoid false positives
-          });
-
-          if (matchingLeazr) {
-            console.log(`🔗 Post-réconciliation: Leazr ${matchingLeazr.invoice_number} ↔ Billit orphan ${orphan.invoice_number} (montant: ${orphan.amount})`);
-            
-            // Transfer external_invoice_id to Leazr invoice and sync amount
-            const { error: updateError } = await supabase
-              .from('invoices')
-              .update({
-                external_invoice_id: orphan.external_invoice_id,
-                integration_type: 'billit',
-                amount: orphan.amount, // Synchroniser le montant HTVA depuis Billit
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', matchingLeazr.id);
-
-            if (!updateError) {
-              // Delete the orphan Billit import
-              await supabase.from('invoices').delete().eq('id', orphan.id);
-              postReconciledCount++;
-              reconciledLeazrIds.add(matchingLeazr.id);
-            } else {
-              console.error(`❌ Erreur post-réconciliation:`, updateError);
-              errors.push(`Post-réconciliation ${orphan.invoice_number}: ${updateError.message}`);
-            }
-          }
-        }
-      }
-    }
-
-    const { count: unmatchedCount } = await supabase
-      .from('invoices')
-      .select('*', { count: 'exact', head: true })
-      .eq('company_id', companyId)
-      .is('contract_id', null);
-
-    console.log(`✅ Import terminé: ${importedCount} importée(s), ${reconciledCount} réconciliée(s), ${postReconciledCount} post-réconciliée(s), ${skippedCount} déjà existante(s), ${errors.length} erreur(s)`);
+    console.log(`✅ Import terminé: ${linkedCount} liée(s), ${createdCount} créée(s), ${manualCount} manuelle(s), ${adjustedCount} ajustement(s), ${alreadyCount} déjà liée(s), ${errors.length} erreur(s)`);
 
     return new Response(JSON.stringify({
       success: true,
-      message: `Import terminé: ${importedCount} importée(s), ${reconciledCount + postReconciledCount} réconciliée(s)`,
-      imported: importedCount,
-      reconciled: reconciledCount,
-      post_reconciled: postReconciledCount,
-      skipped: skippedCount,
+      message: `Import terminé: ${linkedCount} liée(s), ${createdCount} créée(s), ${manualCount} à matcher`,
+      // champs rétro-compatibles avec l'UI existante
+      imported: createdCount,
+      reconciled: linkedCount,
+      post_reconciled: 0,
+      skipped: alreadyCount,
+      // détail
+      linked: linkedCount,
+      created: createdCount,
+      manual: manualCount,
+      adjusted: adjustedCount,
+      already_linked: alreadyCount,
       total_billit: billitInvoices.length,
-      unmatched_count: unmatchedCount || 0,
-      imported_invoices: importedInvoices,
+      unmatched_count: manualCount,
+      matches,
       errors: errors.length > 0 ? errors : undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -473,9 +238,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("❌ Erreur import Billit:", error);
-    
-    return new Response(JSON.stringify({ 
-      success: false, 
+
+    return new Response(JSON.stringify({
+      success: false,
       error: error instanceof Error ? error.message : String(error),
       message: "Erreur lors de l'import des factures"
     }), {
