@@ -67,11 +67,11 @@ import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
 type SortColumn = 'date' | 'contract_number' | 'offer_number' | 'company' | 'client' | 'leaser' | 'monthly_payment' | 'financed_amount' | 'start_date' | 'end_date' | 'status';
 type SortDirection = 'asc' | 'desc';
 
-// Montant financé cohérent avec la liste des offres : mensualité × 100 / coefficient.
-// Le coefficient encode déjà la durée (36/48 mois), donc ce calcul est correct quelle
-// que soit la durée. Le `financed_amount` stocké sur l'offre peut être désynchronisé
-// (calculé avec un coefficient 36 mois puis durée passée à 48) → on ne s'y fie qu'en
-// dernier recours, quand le coefficient est absent.
+// Montant financé = mensualité × 100 / coefficient. C'est la valeur ROBUSTE :
+// la mensualité est contractuelle (ce que le client paie, identique au portail
+// Grenke) et le coefficient encode la durée → correct en 36 comme en 48 mois.
+// On ne se rabat sur le `financed_amount` stocké (cache parfois périmé) ou
+// `amount` que si le coefficient manque.
 function effectiveFinancedAmount(contract: any): number {
   const coef = Number(contract?.coefficient) || 0;
   const monthly = Number(contract?.monthly_payment) || 0;

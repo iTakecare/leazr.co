@@ -3081,9 +3081,37 @@ async function handleReconcileGrenkeContracts(
     financedFromContracts++;
   }
 
+  // === SYNC DES MONTANTS DEPUIS GRENKE (source de vérité) ===
+  // Grenke renvoie NetAcquisitionValue (= le montant financé affiché sur le
+  // portail) pour chaque contrat. On l'aligne sur offers.financed_amount, dont
+  // dérivent le contrat Leazr et l'affichage. Cela corrige les montants figés
+  // (calculés avec une mauvaise durée/coefficient avant édition).
+  const grenkeAmountByCid = new Map<string, number>();
+  for (const c of contracts) {
+    if (c.ContractId && typeof c.NetAcquisitionValue === "number" && c.NetAcquisitionValue > 0) {
+      grenkeAmountByCid.set(String(c.ContractId), Math.round(c.NetAcquisitionValue * 100) / 100);
+    }
+  }
+  let amountsSynced = 0;
+  const amountChanges: Array<Record<string, unknown>> = [];
+  for (const cc of existingContracts) {
+    if (!cc.offer_id || !cc.contract_number) continue;
+    const grenkeAmount = grenkeAmountByCid.get(String(cc.contract_number));
+    if (grenkeAmount == null) continue;
+    const o = offerByIdC.get(cc.offer_id);
+    if (!o) continue;
+    const current = Math.round((Number((o as { financed_amount?: number | null }).financed_amount) || 0) * 100) / 100;
+    if (Math.abs(current - grenkeAmount) > 0.5) {
+      await adminSupabase.from("offers").update({ financed_amount: grenkeAmount }).eq("id", cc.offer_id);
+      amountChanges.push({ offer_id: cc.offer_id, contract: cc.contract_number, client: cc.client_name, from: current, to: grenkeAmount });
+      amountsSynced++;
+    }
+  }
+
   return jsonResponse({
     success: true,
-    summary: { total: contracts.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch, financed_from_contracts: financedFromContracts, created_contracts: createdContracts },
+    summary: { total: contracts.length, already_linked: alreadyLinked, auto_linked: autoLinked, needs_review: needsReview, no_match: noMatch, financed_from_contracts: financedFromContracts, created_contracts: createdContracts, amounts_synced: amountsSynced },
+    amount_changes: amountChanges,
     results,
   }, 200);
 }
