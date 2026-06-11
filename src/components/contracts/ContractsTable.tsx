@@ -67,6 +67,18 @@ import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
 type SortColumn = 'date' | 'contract_number' | 'offer_number' | 'company' | 'client' | 'leaser' | 'monthly_payment' | 'financed_amount' | 'start_date' | 'end_date' | 'status';
 type SortDirection = 'asc' | 'desc';
 
+// Montant financé cohérent avec la liste des offres : mensualité × 100 / coefficient.
+// Le coefficient encode déjà la durée (36/48 mois), donc ce calcul est correct quelle
+// que soit la durée. Le `financed_amount` stocké sur l'offre peut être désynchronisé
+// (calculé avec un coefficient 36 mois puis durée passée à 48) → on ne s'y fie qu'en
+// dernier recours, quand le coefficient est absent.
+function effectiveFinancedAmount(contract: any): number {
+  const coef = Number(contract?.coefficient) || 0;
+  const monthly = Number(contract?.monthly_payment) || 0;
+  if (coef > 0 && monthly > 0) return Math.round((monthly * 100 / coef) * 100) / 100;
+  return Number(contract?.financed_amount) || Number(contract?.amount) || 0;
+}
+
 const ISSUE_LABELS: Record<string, string> = {
   faillite: "Faillite",
   resiliation: "Résiliation",
@@ -192,7 +204,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
           comparison = (a.monthly_payment || 0) - (b.monthly_payment || 0);
           break;
         case 'financed_amount':
-          comparison = ((a as any).financed_amount || 0) - ((b as any).financed_amount || 0);
+          comparison = effectiveFinancedAmount(a) - effectiveFinancedAmount(b);
           break;
         case 'start_date':
           const aStart = a.contract_start_date ? new Date(a.contract_start_date).getTime() : 0;
@@ -582,7 +594,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   {formatCurrency(contract.monthly_payment)}
                 </TableCell>
                 <TableCell className="px-2 py-1.5 text-right font-medium">
-                  {formatCurrency((contract as any).financed_amount || 0)}
+                  {formatCurrency(effectiveFinancedAmount(contract))}
                 </TableCell>
                 <TableCell className="px-2 py-1.5 whitespace-nowrap">
                   <span className="flex items-center gap-1">
