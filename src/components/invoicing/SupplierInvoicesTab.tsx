@@ -559,11 +559,18 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
                       <TableCell className="text-xs whitespace-nowrap">{inv.due_date || "—"}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          {(suggested > 0 || confirmed > 0) && (
-                            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setMatchDialogInvoice(inv)}>
-                              <Link2 className="h-3 w-3 mr-1" />
-                              {confirmed > 0 && <span className="text-green-600 text-xs">{confirmed}</span>}
-                              {suggested > 0 && <Badge variant="secondary" className="text-xs ml-1">{suggested}</Badge>}
+                          {inv.category === "Achat de marchandises" && (
+                            <Button
+                              variant={confirmed > 0 ? "ghost" : "outline"}
+                              size="sm"
+                              className={`h-7 px-2 gap-1 ${confirmed > 0 ? "" : "border-blue-300 text-blue-700 hover:bg-blue-50"}`}
+                              onClick={() => setMatchDialogInvoice(inv)}
+                              title="Lier cette facture à un ou plusieurs contrats (ligne par ligne)"
+                            >
+                              <Link2 className="h-3 w-3" />
+                              <span className="text-xs">Lier</span>
+                              {confirmed > 0 && <span className="text-green-600 text-xs font-medium ml-0.5">{confirmed}</span>}
+                              {suggested > 0 && <Badge variant="secondary" className="text-xs ml-0.5">{suggested}</Badge>}
                             </Button>
                           )}
                           {inv.pdf_url && (
@@ -593,8 +600,11 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>
-              Matching — {matchDialogInvoice?.invoice_number} ({matchDialogInvoice?.supplier_name})
+              Lier aux contrats — {matchDialogInvoice?.invoice_number} ({matchDialogInvoice?.supplier_name})
             </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Une ligne = un équipement. Chaque ligne peut être attribuée à un contrat différent (ou laissée en stock / usage interne).
+            </p>
           </DialogHeader>
           <ScrollArea className="max-h-[65vh]">
             <div className="space-y-3 pr-3">
