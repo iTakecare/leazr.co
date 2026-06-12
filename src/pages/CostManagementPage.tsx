@@ -12,8 +12,10 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
-import { Wallet, Sparkles, RefreshCw, TrendingUp, AlertTriangle, PiggyBank } from "lucide-react";
+import { Wallet, Sparkles, RefreshCw, TrendingUp, AlertTriangle, PiggyBank, Receipt, LineChart } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
+import ProfitabilityTab from "@/components/gestion/ProfitabilityTab";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { toast } from "sonner";
 import {
@@ -141,6 +143,22 @@ const CostManagementPage: React.FC = () => {
               </Button>
             </div>
           </div>
+
+          <Tabs defaultValue="expenses">
+            <TabsList>
+              <TabsTrigger value="expenses" className="flex items-center gap-2">
+                <Receipt className="h-4 w-4" /> Dépenses
+              </TabsTrigger>
+              <TabsTrigger value="profitability" className="flex items-center gap-2">
+                <LineChart className="h-4 w-4" /> Rentabilité contrats
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profitability" className="mt-4">
+              <ProfitabilityTab />
+            </TabsContent>
+
+            <TabsContent value="expenses" className="mt-4 space-y-6">
 
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -303,6 +321,9 @@ const CostManagementPage: React.FC = () => {
               </CardContent>
             )}
           </Card>
+
+            </TabsContent>
+          </Tabs>
         </div>
       </Container>
     </PageTransition>
