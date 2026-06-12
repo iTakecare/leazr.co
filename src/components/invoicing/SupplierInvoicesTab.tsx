@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import {
   PURCHASE_CATEGORIES,
   SupplierInvoice,
+  SupplierInvoiceLine,
   SupplierInvoiceMatch,
   getSupplierInvoices,
   syncSupplierInvoices,
@@ -40,18 +41,15 @@ import {
 const fmtEur = (n: number) =>
   (n || 0).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
 
-// Carte de matching : demande + client + comparaison prix prévu / réel saisi / Billit
-const MatchCard: React.FC<{
-  m: SupplierInvoiceMatch;
-  invoice: SupplierInvoice;
+// Recherche d'équipement + attribution d'une ligne d'achat (réutilisé partout).
+// Liste scrollable native (le ScrollArea Radix ne se contraint pas sous un simple max-h).
+const EquipmentSearchAttach: React.FC<{
   companyId: string;
-  onConfirm: () => void;
-  onReject: () => void;
-  onChanged: () => void;
-}> = ({ m, invoice, companyId, onConfirm, onReject, onChanged }) => {
-  const eq = m.contract_equipment;
-  const c = eq?.contracts;
-  const [searchOpen, setSearchOpen] = useState(false);
+  invoice: SupplierInvoice;
+  line: { line_index: number; line_description: string; amount: number };
+  onAttached: () => void;
+  autoFocus?: boolean;
+}> = ({ companyId, invoice, line, onAttached, autoFocus }) => {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<EquipmentSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -71,19 +69,87 @@ const MatchCard: React.FC<{
 
   const attach = async (equipmentId: string) => {
     try {
-      await attachLineToEquipment(
-        companyId,
-        { id: invoice.id },
-        { line_index: m.line_index, line_description: m.line_description || "", amount: m.amount || 0 },
-        equipmentId,
-        invoice.invoice_date,
-      );
+      await attachLineToEquipment(companyId, { id: invoice.id }, line, equipmentId, invoice.invoice_date);
       toast.success("Ligne attribuée au bon contrat — prix réel enregistré");
-      onChanged();
+      onAttached();
     } catch (e: any) {
       toast.error(e.message || "Erreur d'attribution");
     }
   };
+
+  return (
+    <div className="space-y-2">
+      <Input
+        placeholder="Chercher par client, n° contrat ou modèle (ex. FEBA)..."
+        value={q}
+        onChange={(e) => doSearch(e.target.value)}
+        className="h-8 text-xs"
+        autoFocus={autoFocus}
+      />
+      {searching && <div className="text-xs text-muted-foreground">Recherche...</div>}
+      <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+        {results.map((r) => (
+          <div key={r.id} className="flex items-center justify-between gap-2 rounded border p-2 text-xs hover:bg-muted/50">
+            <div className="min-w-0">
+              <div className="font-medium truncate">{r.title}</div>
+              <div className="text-muted-foreground truncate">
+                {r.client_name} · contrat {r.contract_number || "?"} · prévu {fmtEur(r.purchase_price)}
+                {r.actual_purchase_price != null && <span className="text-amber-600"> · déjà un prix réel</span>}
+                {r.serial_number && <span> · SN {String(r.serial_number).slice(0, 14)}</span>}
+              </div>
+            </div>
+            <Button size="sm" className="h-7 shrink-0" onClick={() => attach(r.id)}>Attribuer</Button>
+          </div>
+        ))}
+        {q.trim().length >= 2 && !searching && !results.length && (
+          <div className="text-xs text-muted-foreground py-2">Aucun équipement trouvé pour « {q} ».</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Attribution manuelle d'une ligne sans suggestion (toggle + recherche)
+const LineAttach: React.FC<{
+  companyId: string;
+  invoice: SupplierInvoice;
+  lineIndex: number;
+  line: SupplierInvoiceLine;
+  onChanged: () => void;
+}> = ({ companyId, invoice, lineIndex, line, onChanged }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button className="text-xs text-blue-600 hover:underline flex items-center gap-1" onClick={() => setOpen((o) => !o)}>
+        <SearchIcon className="h-3 w-3" /> {open ? "Fermer" : "Attribuer cette ligne à un contrat / client"}
+      </button>
+      {open && (
+        <div className="mt-2">
+          <EquipmentSearchAttach
+            companyId={companyId}
+            invoice={invoice}
+            line={{ line_index: lineIndex, line_description: line.description || "", amount: line.unit_price_excl || 0 }}
+            onAttached={onChanged}
+            autoFocus
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Carte de matching : demande + client + comparaison prix prévu / réel saisi / Billit
+const MatchCard: React.FC<{
+  m: SupplierInvoiceMatch;
+  invoice: SupplierInvoice;
+  companyId: string;
+  onConfirm: () => void;
+  onReject: () => void;
+  onChanged: () => void;
+}> = ({ m, invoice, companyId, onConfirm, onReject, onChanged }) => {
+  const eq = m.contract_equipment;
+  const c = eq?.contracts;
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const planned = eq?.purchase_price || 0;        // prix prévu (offre/contrat)
   const real = eq?.actual_purchase_price;          // prix réel déjà saisi (Suivi des achats)
@@ -152,35 +218,14 @@ const MatchCard: React.FC<{
             <SearchIcon className="h-3 w-3" /> {searchOpen ? "Fermer" : "Pas le bon ? Attribuer à un autre contrat / client"}
           </button>
           {searchOpen && (
-            <div className="mt-2 space-y-2">
-              <Input
-                placeholder="Chercher par client, n° contrat ou modèle (ex. FEBA)..."
-                value={q}
-                onChange={(e) => doSearch(e.target.value)}
-                className="h-8 text-xs"
+            <div className="mt-2">
+              <EquipmentSearchAttach
+                companyId={companyId}
+                invoice={invoice}
+                line={{ line_index: m.line_index, line_description: m.line_description || "", amount: m.amount || 0 }}
+                onAttached={onChanged}
                 autoFocus
               />
-              {searching && <div className="text-xs text-muted-foreground">Recherche...</div>}
-              <ScrollArea className="max-h-48">
-                <div className="space-y-1">
-                  {results.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between gap-2 rounded border p-2 text-xs hover:bg-muted/50">
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{r.title}</div>
-                        <div className="text-muted-foreground truncate">
-                          {r.client_name} · contrat {r.contract_number || "?"} · prévu {fmtEur(r.purchase_price)}
-                          {r.actual_purchase_price != null && <span className="text-amber-600"> · déjà un prix réel</span>}
-                          {r.serial_number && <span> · SN {String(r.serial_number).slice(0, 14)}</span>}
-                        </div>
-                      </div>
-                      <Button size="sm" className="h-7 shrink-0" onClick={() => attach(r.id)}>Attribuer</Button>
-                    </div>
-                  ))}
-                  {q.trim().length >= 2 && !searching && !results.length && (
-                    <div className="text-xs text-muted-foreground py-2">Aucun équipement trouvé pour « {q} ».</div>
-                  )}
-                </div>
-              </ScrollArea>
             </div>
           )}
         </div>
@@ -551,13 +596,33 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
               Matching — {matchDialogInvoice?.invoice_number} ({matchDialogInvoice?.supplier_name})
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
+          <ScrollArea className="max-h-[65vh]">
             <div className="space-y-3 pr-3">
-              {dialogMatches.map((m) => (
-                <MatchCard key={m.id} m={m} invoice={matchDialogInvoice!} companyId={companyId!} onConfirm={() => handleConfirm(m)} onReject={() => handleReject(m)} onChanged={load} />
-              ))}
-              {!dialogMatches.length && (
-                <div className="text-center text-muted-foreground py-6">Aucune suggestion pour cette facture.</div>
+              {(matchDialogInvoice?.lines || []).map((line, idx) => {
+                const lineMatches = dialogMatches.filter((m) => m.line_index === idx);
+                const confirmed = lineMatches.some((m) => m.status === "confirmed");
+                return (
+                  <div key={idx} className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-medium truncate">{line.description || `Ligne ${idx + 1}`}</div>
+                      <div className="text-xs text-muted-foreground shrink-0">
+                        {line.quantity > 1 ? `${line.quantity} × ` : ""}{fmtEur(line.unit_price_excl)}
+                      </div>
+                    </div>
+                    {lineMatches.map((m) => (
+                      <MatchCard key={m.id} m={m} invoice={matchDialogInvoice!} companyId={companyId!} onConfirm={() => handleConfirm(m)} onReject={() => handleReject(m)} onChanged={load} />
+                    ))}
+                    {/* Pas de suggestion confirmée -> attribution manuelle de la ligne */}
+                    {!confirmed && (
+                      <LineAttach companyId={companyId!} invoice={matchDialogInvoice!} lineIndex={idx} line={line} onChanged={load} />
+                    )}
+                  </div>
+                );
+              })}
+              {!(matchDialogInvoice?.lines || []).length && (
+                <div className="text-center text-muted-foreground py-6">
+                  Cette facture n'a pas de lignes détaillées — resynchronise Billit pour les récupérer.
+                </div>
               )}
             </div>
           </ScrollArea>
