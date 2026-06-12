@@ -52,9 +52,12 @@ async function buildFinancialContext(supabase: any, companyId: string) {
   const fromYear = `${year}-01-01`;
 
   const [salesQ, purchasesQ, contractsQ, equipmentQ, cnQ, offersQ] = await Promise.all([
+    // PAS de filtre date ici : les marges par contrat ont besoin de TOUTES les
+    // factures liées (sinon les contrats anciens comptent leurs coûts sans CA).
+    // Les stats mensuelles sont filtrées plus bas.
     supabase.from("invoices")
       .select("amount, status, invoice_date, paid_at, due_date, leaser_name, contract_id")
-      .eq("company_id", companyId).gte("invoice_date", fromYear),
+      .eq("company_id", companyId),
     supabase.from("supplier_invoices")
       .select("supplier_name, invoice_date, due_date, amount_excl, to_pay, paid, overdue, days_overdue, category, doc_type")
       .eq("company_id", companyId).gte("invoice_date", fromYear),
@@ -76,8 +79,11 @@ async function buildFinancialContext(supabase: any, companyId: string) {
   let unpaidClients = 0, unpaidClientsAmt = 0;
   const today = new Date().toISOString().slice(0, 10);
   for (const s of sales) {
-    const m = (s.invoice_date || "").slice(0, 7);
-    if (m) salesByMonth[m] = (salesByMonth[m] || 0) + (s.amount || 0);
+    const d = (s.invoice_date || "");
+    if (d >= fromYear) {
+      const m = d.slice(0, 7);
+      if (m) salesByMonth[m] = (salesByMonth[m] || 0) + (s.amount || 0);
+    }
     if (s.status === "sent" && !s.paid_at) { unpaidClients++; unpaidClientsAmt += s.amount || 0; }
   }
 
