@@ -23,9 +23,9 @@ const MONTH_LABELS = ["jan", "fév", "mar", "avr", "mai", "juin", "juil", "août
 const CAT_COLORS = ["#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e", "#64748b"];
 const monthLabel = (ym: string) => `${MONTH_LABELS[parseInt(ym.slice(5), 10) - 1] || ym}`;
 
-interface Props { fromDate: string }
+interface Props { fromDate: string; costCenterId?: string | null }
 
-const OverviewTab: React.FC<Props> = ({ fromDate }) => {
+const OverviewTab: React.FC<Props> = ({ fromDate, costCenterId }) => {
   const { companyId } = useMultiTenant();
   const [sales, setSales] = useState<SalesInvoiceDetail[]>([]);
   const [purchases, setPurchases] = useState<SupplierInvoice[]>([]);
@@ -39,7 +39,7 @@ const OverviewTab: React.FC<Props> = ({ fromDate }) => {
   useEffect(() => {
     if (!companyId) return;
     setLoading(true);
-    Promise.all([getSalesOverview(companyId, fromDate), getSupplierInvoices(companyId, fromDate)])
+    Promise.all([getSalesOverview(companyId, fromDate, costCenterId), getSupplierInvoices(companyId, fromDate, costCenterId)])
       .then(([ov, pur]) => {
         setSales(ov.revenues.invoices);
         setRevByMonth(ov.revenues.byMonth);
@@ -47,7 +47,7 @@ const OverviewTab: React.FC<Props> = ({ fromDate }) => {
       })
       .catch((e) => console.error("Erreur overview:", e))
       .finally(() => setLoading(false));
-  }, [companyId, fromDate]);
+  }, [companyId, fromDate, costCenterId]);
 
   const totals = useMemo(() => {
     const rev = sales.reduce((s, i) => s + i.amount, 0);

@@ -29,13 +29,15 @@ export interface GestionOverview {
 
 const MONTH = (d: string | null) => (d || "").slice(0, 7);
 
-export const getSalesOverview = async (companyId: string, fromDate: string): Promise<GestionOverview> => {
-  const { data, error } = await supabase
+export const getSalesOverview = async (companyId: string, fromDate: string, costCenterId?: string | null): Promise<GestionOverview> => {
+  let query = supabase
     .from("invoices")
     .select("id, invoice_number, amount, status, invoice_date, paid_at, leaser_name, contract_id, credited_amount, billing_data")
     .eq("company_id", companyId)
     .gte("invoice_date", fromDate)
     .order("invoice_date", { ascending: false });
+  if (costCenterId) query = query.eq("cost_center_id", costCenterId);
+  const { data, error } = await query;
   if (error) throw error;
 
   const invoices: SalesInvoiceDetail[] = (data || [])

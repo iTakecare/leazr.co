@@ -78,13 +78,14 @@ export interface SupplierInvoiceMatch {
 }
 
 // Liste des factures d'achat
-export const getSupplierInvoices = async (companyId: string, fromDate?: string): Promise<SupplierInvoice[]> => {
+export const getSupplierInvoices = async (companyId: string, fromDate?: string, costCenterId?: string | null): Promise<SupplierInvoice[]> => {
   let q = supabase
     .from("supplier_invoices" as any)
     .select("*")
     .eq("company_id", companyId)
     .order("invoice_date", { ascending: false });
   if (fromDate) q = q.gte("invoice_date", fromDate);
+  if (costCenterId) q = q.eq("cost_center_id", costCenterId);
   const { data, error } = await q;
   if (error) throw error;
   return (data || []) as unknown as SupplierInvoice[];

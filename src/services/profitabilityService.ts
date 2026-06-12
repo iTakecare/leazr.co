@@ -61,12 +61,14 @@ const ACTIVE_STATUSES = new Set(["active", "completed", "equipment_ordered", "co
 export const getContractProfitability = async (
   companyId: string,
   fromDate?: string,
+  costCenterId?: string | null,
 ): Promise<ProfitabilitySummary> => {
+  const contractsBase = supabase
+    .from("contracts")
+    .select("id, contract_number, client_name, leaser_name, status, is_self_leasing, created_at, monthly_payment, contract_duration, offer_id, dossier_fee_amount, dossier_fee_status")
+    .eq("company_id", companyId);
   const [contractsQ, equipmentQ, invoicesQ, creditNotesQ, offersQ] = await Promise.all([
-    supabase
-      .from("contracts")
-      .select("id, contract_number, client_name, leaser_name, status, is_self_leasing, created_at, monthly_payment, contract_duration, offer_id, dossier_fee_amount, dossier_fee_status")
-      .eq("company_id", companyId),
+    costCenterId ? contractsBase.eq("cost_center_id", costCenterId) : contractsBase,
     supabase
       .from("contract_equipment")
       .select("contract_id, title, quantity, purchase_price, actual_purchase_price, is_gifted"),

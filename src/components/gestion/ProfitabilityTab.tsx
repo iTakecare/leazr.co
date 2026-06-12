@@ -37,7 +37,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 type SortKey = "margin_real" | "margin_pct" | "revenue_invoiced" | "created_at";
 
-const ProfitabilityTab: React.FC = () => {
+const ProfitabilityTab: React.FC<{ costCenterId?: string | null }> = ({ costCenterId }) => {
   const { companyId } = useMultiTenant();
   const [data, setData] = useState<ProfitabilitySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,11 +50,11 @@ const ProfitabilityTab: React.FC = () => {
   useEffect(() => {
     if (!companyId) return;
     setLoading(true);
-    getContractProfitability(companyId)
+    getContractProfitability(companyId, undefined, costCenterId)
       .then(setData)
       .catch((e) => console.error("Erreur rentabilité:", e))
       .finally(() => setLoading(false));
-  }, [companyId]);
+  }, [companyId, costCenterId]);
 
   const rows = useMemo(() => {
     if (!data) return [];

@@ -113,7 +113,7 @@ const statusBadge = (inv: SupplierInvoice) => {
   return <Badge className="bg-amber-100 text-amber-700">À payer</Badge>;
 };
 
-const SupplierInvoicesTab: React.FC = () => {
+const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costCenterId }) => {
   const { companyId } = useMultiTenant();
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
   const [matches, setMatches] = useState<SupplierInvoiceMatch[]>([]);
@@ -130,7 +130,7 @@ const SupplierInvoicesTab: React.FC = () => {
     if (!companyId) return;
     try {
       const [inv, m] = await Promise.all([
-        getSupplierInvoices(companyId),
+        getSupplierInvoices(companyId, undefined, costCenterId),
         getInvoiceMatches(companyId),
       ]);
       setInvoices(inv);
@@ -142,7 +142,7 @@ const SupplierInvoicesTab: React.FC = () => {
     }
   };
 
-  useEffect(() => { load(); }, [companyId]);
+  useEffect(() => { load(); }, [companyId, costCenterId]);
 
   const handleSync = async () => {
     if (!companyId) return;
