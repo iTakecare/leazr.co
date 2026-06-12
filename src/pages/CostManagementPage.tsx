@@ -16,6 +16,9 @@ import { Wallet, Sparkles, RefreshCw, TrendingUp, AlertTriangle, PiggyBank, Rece
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
 import ProfitabilityTab from "@/components/gestion/ProfitabilityTab";
+import CfoAiTab from "@/components/gestion/CfoAiTab";
+import YukiComptaTab from "@/components/gestion/YukiComptaTab";
+import { Bot, BookOpen } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { toast } from "sonner";
 import {
@@ -152,10 +155,24 @@ const CostManagementPage: React.FC = () => {
               <TabsTrigger value="profitability" className="flex items-center gap-2">
                 <LineChart className="h-4 w-4" /> Rentabilité contrats
               </TabsTrigger>
+              <TabsTrigger value="cfo" className="flex items-center gap-2">
+                <Bot className="h-4 w-4" /> CFO IA
+              </TabsTrigger>
+              <TabsTrigger value="compta" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" /> Comptabilité
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="profitability" className="mt-4">
               <ProfitabilityTab />
+            </TabsContent>
+
+            <TabsContent value="cfo" className="mt-4">
+              <CfoAiTab />
+            </TabsContent>
+
+            <TabsContent value="compta" className="mt-4">
+              <YukiComptaTab />
             </TabsContent>
 
             <TabsContent value="expenses" className="mt-4 space-y-6">

@@ -10,6 +10,7 @@ import AdiOSIntegrationCard from './AdiOSIntegrationCard';
 import GrenkeIntegrationCard from './GrenkeIntegrationCard';
 import TulipIntegrationCard from './TulipIntegrationCard';
 import BillitIntegrationSettings from './BillitIntegrationSettings';
+import YukiIntegrationSettings from './YukiIntegrationSettings';
 
 interface Integration {
   id: string;
@@ -116,6 +117,14 @@ const integrations: Integration[] = [
     status: 'inactive',
     category: 'Facturation',
     comingSoon: true
+  },
+  {
+    id: 'yuki',
+    name: 'Yuki',
+    description: 'Lisez votre comptabilité (P&L, bilan, trésorerie) pour le pilotage et le CFO IA — lecture seule',
+    logoUrl: 'https://logo.clearbit.com/yuki.be',
+    status: 'available',
+    category: 'Comptabilité'
   },
   {
     id: 'sage',
@@ -605,7 +614,11 @@ const IntegrationsManager = () => {
               <BillitIntegrationSettings />
             )}
 
-            {selectedIntegration && !['woocommerce', 'companyweb', 'adios', 'grenke', 'tulip', 'billit'].includes(selectedIntegration) && (
+            {selectedIntegration === 'yuki' && (
+              <YukiIntegrationSettings />
+            )}
+
+            {selectedIntegration && !['woocommerce', 'companyweb', 'adios', 'grenke', 'tulip', 'billit', 'yuki'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
