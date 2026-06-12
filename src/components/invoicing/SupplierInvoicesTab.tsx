@@ -35,6 +35,75 @@ import {
 const fmtEur = (n: number) =>
   (n || 0).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
 
+// Carte de matching : demande + client + comparaison prix prévu / réel saisi / Billit
+const MatchCard: React.FC<{ m: SupplierInvoiceMatch; onConfirm: () => void; onReject: () => void }> = ({ m, onConfirm, onReject }) => {
+  const eq = m.contract_equipment;
+  const c = eq?.contracts;
+  const planned = eq?.purchase_price || 0;        // prix prévu (offre/contrat)
+  const real = eq?.actual_purchase_price;          // prix réel déjà saisi (Suivi des achats)
+  const billit = m.amount || 0;                    // prix réellement facturé par le fournisseur (Billit)
+  const refPrice = real ?? planned;                // référence de comparaison
+  const delta = billit - refPrice;                 // >0 = on a payé plus cher que prévu/saisi
+  const deltaColor = delta > 0.5 ? "text-red-600" : delta < -0.5 ? "text-green-600" : "text-muted-foreground";
+  const scoreColor = (m.score || 0) >= 85 ? "bg-green-100 text-green-700" : (m.score || 0) >= 60 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
+
+  return (
+    <Card className={m.status === "confirmed" ? "border-green-400 bg-green-50/40" : m.status === "rejected" ? "opacity-50" : "border-l-4 border-l-blue-400"}>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="text-sm font-medium">{eq?.title}</div>
+            <div className="text-xs text-muted-foreground">Ligne facture : « {m.line_description} »</div>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">Contrat {c?.contract_number || "?"}</Badge>
+              {c?.offers?.offer_number && <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200">Demande {c.offers.offer_number}</Badge>}
+              {c?.client_name && <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">{c.client_name}</Badge>}
+              <Badge className={`${scoreColor} border-0`}>score {m.score}</Badge>
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {m.status === "suggested" ? (
+              <>
+                <Button size="sm" className="h-8 gap-1 bg-green-600 hover:bg-green-700" onClick={onConfirm}>
+                  <Check className="h-3 w-3" /> Confirmer
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 gap-1 text-red-600 border-red-200" onClick={onReject}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </>
+            ) : (
+              <Badge variant={m.status === "confirmed" ? "default" : "secondary"} className={m.status === "confirmed" ? "bg-green-600" : ""}>
+                {m.status === "confirmed" ? "Confirmé" : "Rejeté"}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Comparaison de prix */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-md bg-muted/60 p-2">
+            <div className="text-xs text-muted-foreground">Prix prévu</div>
+            <div className="font-medium text-sm">{fmtEur(planned)}</div>
+          </div>
+          <div className="rounded-md bg-muted/60 p-2">
+            <div className="text-xs text-muted-foreground">Prix réel saisi</div>
+            <div className="font-medium text-sm">{real != null ? fmtEur(real) : <span className="text-amber-600">—</span>}</div>
+          </div>
+          <div className="rounded-md bg-blue-50 p-2 border border-blue-200">
+            <div className="text-xs text-blue-700">Prix facturé (Billit)</div>
+            <div className="font-bold text-sm">{fmtEur(billit)}</div>
+          </div>
+        </div>
+        <div className={`text-xs text-right font-medium ${deltaColor}`}>
+          Écart vs {real != null ? "prix réel saisi" : "prix prévu"} : {delta > 0 ? "+" : ""}{delta.toFixed(2)} €
+          {m.status === "suggested" && " — confirmer écrit le prix Billit comme prix réel"}
+        </div>
+        {m.reason && <div className="text-xs text-muted-foreground italic">{m.reason}</div>}
+      </CardContent>
+    </Card>
+  );
+};
+
 const statusBadge = (inv: SupplierInvoice) => {
   if (inv.doc_type === "credit_note") return <Badge className="bg-purple-100 text-purple-700">Note de crédit</Badge>;
   if (inv.paid) return <Badge className="bg-green-100 text-green-700">Payée</Badge>;
@@ -339,42 +408,7 @@ const SupplierInvoicesTab: React.FC = () => {
           <ScrollArea className="max-h-[60vh]">
             <div className="space-y-3 pr-3">
               {dialogMatches.map((m) => (
-                <Card key={m.id} className={m.status === "confirmed" ? "border-green-300" : m.status === "rejected" ? "opacity-50" : ""}>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 text-sm">
-                        <div className="font-medium">{m.line_description}</div>
-                        <div className="text-muted-foreground text-xs">
-                          → <span className="font-medium text-foreground">{m.contract_equipment?.title}</span>
-                          {" · "}contrat {m.contract_equipment?.contracts?.contract_number || "?"}
-                          {" · "}{m.contract_equipment?.contracts?.client_name}
-                        </div>
-                        <div className="text-xs">
-                          Achat facturé : <strong>{fmtEur(m.amount || 0)}</strong>
-                          {" · "}prévu au contrat : {fmtEur(m.contract_equipment?.purchase_price || 0)}
-                          {" · "}score <Badge variant="outline" className="text-xs">{m.score}</Badge>
-                        </div>
-                        {m.reason && <div className="text-xs text-muted-foreground italic">{m.reason}</div>}
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        {m.status === "suggested" ? (
-                          <>
-                            <Button size="sm" className="h-8 gap-1" onClick={() => handleConfirm(m)}>
-                              <Check className="h-3 w-3" /> Confirmer
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleReject(m)}>
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </>
-                        ) : (
-                          <Badge variant={m.status === "confirmed" ? "default" : "secondary"}>
-                            {m.status === "confirmed" ? "Confirmé" : "Rejeté"}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <MatchCard key={m.id} m={m} onConfirm={() => handleConfirm(m)} onReject={() => handleReject(m)} />
               ))}
               {!dialogMatches.length && (
                 <div className="text-center text-muted-foreground py-6">Aucune suggestion pour cette facture.</div>

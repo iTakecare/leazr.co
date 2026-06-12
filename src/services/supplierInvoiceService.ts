@@ -68,7 +68,12 @@ export interface SupplierInvoiceMatch {
     purchase_price: number;
     actual_purchase_price: number | null;
     contract_id: string;
-    contracts?: { contract_number: string | null; client_name: string | null };
+    contracts?: {
+      contract_number: string | null;
+      client_name: string | null;
+      offer_id: string | null;
+      offers?: { offer_number: string | null; dossier_number: string | null } | null;
+    };
   };
 }
 
@@ -154,7 +159,7 @@ export const updateSupplierInvoiceCategory = async (id: string, category: string
 export const getInvoiceMatches = async (companyId: string, supplierInvoiceId?: string): Promise<SupplierInvoiceMatch[]> => {
   let q = supabase
     .from("supplier_invoice_matches" as any)
-    .select("*, contract_equipment(id, title, purchase_price, actual_purchase_price, contract_id, contracts(contract_number, client_name))")
+    .select("*, contract_equipment(id, title, purchase_price, actual_purchase_price, contract_id, contracts(contract_number, client_name, offer_id, offers!contracts_offer_id_fkey(offer_number, dossier_number)))")
     .eq("company_id", companyId);
   if (supplierInvoiceId) q = q.eq("supplier_invoice_id", supplierInvoiceId);
   const { data, error } = await q.order("score", { ascending: false });
