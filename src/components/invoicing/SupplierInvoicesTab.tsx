@@ -14,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  RefreshCw, Sparkles, Link2, Search, Search as SearchIcon, FileText, ExternalLink, Check, X,
+  RefreshCw, Sparkles, Link2, Search, Search as SearchIcon, FileText, ExternalLink, Check, X, CheckCheck,
 } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ import {
   syncSupplierInvoices,
   categorizeSupplierInvoices,
   suggestSupplierInvoiceMatches,
+  bulkConfirmCertainMatches,
   updateSupplierInvoiceCategory,
   setSupplierInvoiceAllocation,
   getInvoiceMatches,
@@ -205,6 +206,7 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
   const [syncing, setSyncing] = useState(false);
   const [categorizing, setCategorizing] = useState(false);
   const [matching, setMatching] = useState(false);
+  const [confirmingBulk, setConfirmingBulk] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -260,13 +262,30 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
     if (!companyId) return;
     setMatching(true);
     try {
-      const r = await suggestSupplierInvoiceMatches(companyId);
+      // reset=true : purge les anciennes suggestions (non confirmées) et re-matche
+      // proprement avec le scoring corrigé (gate marque/modèle).
+      const r = await suggestSupplierInvoiceMatches(companyId, undefined, true);
       toast.success(`IA : ${r.suggestions} suggestion(s) de matching (${r.lines_examined} ligne(s) examinée(s))`);
       await load();
     } catch (e: any) {
       toast.error(e.message || "Erreur de matching");
     } finally {
       setMatching(false);
+    }
+  };
+
+  const handleBulkConfirm = async () => {
+    if (!companyId) return;
+    setConfirmingBulk(true);
+    try {
+      const r = await bulkConfirmCertainMatches(companyId);
+      if (r.confirmed) toast.success(`${r.confirmed} match(s) sûr(s) confirmé(s)${r.ambiguous ? ` · ${r.ambiguous} ligne(s) ambiguë(s) à trancher` : ""}`);
+      else toast.info(r.ambiguous ? `Aucun match certain — ${r.ambiguous} ligne(s) ambiguë(s) à trancher manuellement` : "Aucune suggestion à confirmer");
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    } finally {
+      setConfirmingBulk(false);
     }
   };
 
@@ -394,6 +413,10 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
         <Button onClick={handleMatch} disabled={matching || !invoices.length} variant="outline" className="gap-2">
           <Link2 className={`h-4 w-4 ${matching ? "animate-pulse" : ""}`} />
           {matching ? "Matching..." : "Matcher aux contrats (IA)"}
+        </Button>
+        <Button onClick={handleBulkConfirm} disabled={confirmingBulk || !invoices.length} variant="outline" className="gap-2 border-green-200 text-green-700 hover:bg-green-50">
+          <CheckCheck className={`h-4 w-4 ${confirmingBulk ? "animate-pulse" : ""}`} />
+          {confirmingBulk ? "Confirmation..." : "Confirmer les matchs sûrs"}
         </Button>
       </div>
 

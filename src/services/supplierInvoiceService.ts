@@ -123,12 +123,13 @@ export const categorizeSupplierInvoices = async (companyId: string) => {
 
 // IA : suggestions de matching achats <-> équipements de contrats.
 // L'edge function traite max 100 lignes par appel (timeout) — on boucle.
-export const suggestSupplierInvoiceMatches = async (companyId: string, invoiceId?: string) => {
+export const suggestSupplierInvoiceMatches = async (companyId: string, invoiceId?: string, reset = false) => {
   let suggestions = 0;
   let lines_examined = 0;
   for (let i = 0; i < 8; i++) {
     const { data, error } = await supabase.functions.invoke("supplier-invoices-ai", {
-      body: { companyId, action: "match", invoiceId },
+      // reset uniquement au 1er appel (purge les suggestions non confirmées avant de re-matcher)
+      body: { companyId, action: "match", invoiceId, reset: reset && i === 0 },
     });
     if (error) throw new Error(error.message);
     if (!data?.success) throw new Error(data?.error || "Échec du matching");
@@ -225,15 +226,25 @@ export interface EquipmentSearchResult {
 export const searchContractEquipment = async (companyId: string, query: string): Promise<EquipmentSearchResult[]> => {
   const term = query.trim();
   if (term.length < 2) return [];
-  // On cherche par titre d'équipement OU par client/contrat via une requête large
-  const { data, error } = await supabase
-    .from("contract_equipment")
-    .select("id, title, purchase_price, actual_purchase_price, serial_number, contract_id, contracts!inner(contract_number, client_name, company_id, offers!contracts_offer_id_fkey(offer_number))")
-    .eq("contracts.company_id", companyId)
-    .or(`title.ilike.%${term}%,contracts.client_name.ilike.%${term}%,contracts.contract_number.ilike.%${term}%`)
-    .limit(40);
-  if (error) throw error;
-  return (data || []).map((e: any) => ({
+  const like = `%${term}%`;
+  const SEL = "id, title, purchase_price, actual_purchase_price, serial_number, contract_id, contracts!inner(contract_number, client_name, company_id, offers!contracts_offer_id_fkey(offer_number))";
+
+  // PostgREST n'autorise pas .or() sur une relation jointe -> deux requêtes puis fusion.
+  // 1) par titre d'équipement
+  const byTitle = supabase.from("contract_equipment").select(SEL).eq("contracts.company_id", companyId).ilike("title", like).limit(25);
+  // 2) par client ou n° de contrat -> on récupère les contrats puis leurs équipements
+  const contractsQ = await supabase.from("contracts").select("id").eq("company_id", companyId).or(`client_name.ilike.${like},contract_number.ilike.${like}`).limit(25);
+  const contractIds = (contractsQ.data || []).map((c: any) => c.id);
+  const byContract = contractIds.length
+    ? supabase.from("contract_equipment").select(SEL).in("contract_id", contractIds).limit(40)
+    : Promise.resolve({ data: [], error: null });
+
+  const [t, c] = await Promise.all([byTitle, byContract as any]);
+  if (t.error) throw t.error;
+  const merged = new Map<string, any>();
+  for (const e of [...(t.data || []), ...((c as any).data || [])]) merged.set(e.id, e);
+
+  return [...merged.values()].slice(0, 40).map((e: any) => ({
     id: e.id,
     title: e.title,
     purchase_price: e.purchase_price,
@@ -285,6 +296,52 @@ export const attachLineToEquipment = async (
   const update: Record<string, unknown> = { actual_purchase_price: line.amount };
   if (invoiceDate) update.actual_purchase_date = invoiceDate;
   await supabase.from("contract_equipment").update(update).eq("id", equipmentId);
+};
+
+// Confirmation en masse : valide d'un coup les lignes dont l'unité est CERTAINE
+// (un seul candidat suggéré + score élevé / n° de série). Laisse les lignes
+// ambiguës (plusieurs unités identiques) à trancher manuellement.
+export const bulkConfirmCertainMatches = async (
+  companyId: string,
+): Promise<{ confirmed: number; ambiguous: number }> => {
+  const { data: matches, error } = await supabase
+    .from("supplier_invoice_matches" as any)
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("status", "suggested");
+  if (error) throw error;
+  const rows = (matches || []) as any[];
+  if (!rows.length) return { confirmed: 0, ambiguous: 0 };
+
+  // dates des factures (pour renseigner la date d'achat réelle à la confirmation)
+  const invIds = [...new Set(rows.map((m) => m.supplier_invoice_id))];
+  const { data: invs } = await supabase
+    .from("supplier_invoices" as any)
+    .select("id, invoice_date")
+    .in("id", invIds);
+  const dateById = new Map((invs || []).map((i: any) => [i.id, i.invoice_date]));
+
+  // grouper par ligne (facture + index)
+  const groups = new Map<string, any[]>();
+  for (const m of rows) {
+    const k = `${m.supplier_invoice_id}|${m.line_index}`;
+    const g = groups.get(k) || [];
+    g.push(m);
+    groups.set(k, g);
+  }
+
+  let confirmed = 0;
+  let ambiguous = 0;
+  for (const g of groups.values()) {
+    // certain = un seul candidat ET score >= 75 (n° de série -> score 100)
+    if (g.length === 1 && (g[0].score ?? 0) >= 75) {
+      await confirmMatch(g[0] as SupplierInvoiceMatch, dateById.get(g[0].supplier_invoice_id) || null);
+      confirmed++;
+    } else {
+      ambiguous++;
+    }
+  }
+  return { confirmed, ambiguous };
 };
 
 export const rejectMatch = async (matchId: string) => {

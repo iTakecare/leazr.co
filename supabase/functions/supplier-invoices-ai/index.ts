@@ -203,11 +203,56 @@ function daysBetweenISO(a?: string, b?: string): number {
 
 interface Discriminators { snMatch: boolean; dateDeltaDays: number; reconciled: boolean }
 
+// Marque déduite d'un libellé (mot de marque explicite OU gamme produit caractéristique)
+function brandOf(s: string): string | null {
+  const x = (s || "").toLowerCase();
+  if (/\bapple\b|macbook|imac|\bipad\b|iphone|airpods|mac\s?mini|mac\s?studio/.test(x)) return "apple";
+  if (/\bhp\b|probook|elitebook|pavilion|omen|envy/.test(x)) return "hp";
+  if (/lenovo|thinkpad|ideapad|legion|yoga/.test(x)) return "lenovo";
+  if (/\bdell\b|latitude|inspiron|\bxps\b|precision/.test(x)) return "dell";
+  if (/\bacer\b|aspire|swift|nitro/.test(x)) return "acer";
+  if (/\basus\b|zenbook|vivobook|\brog\b/.test(x)) return "asus";
+  if (/samsung|galaxy/.test(x)) return "samsung";
+  if (/microsoft|surface/.test(x)) return "microsoft";
+  if (/logitech/.test(x)) return "logitech";
+  if (/\bmsi\b/.test(x)) return "msi";
+  if (/\blg\b/.test(x)) return "lg";
+  if (/zebra/.test(x)) return "zebra";
+  if (/ugreen/.test(x)) return "ugreen";
+  return null;
+}
+
+// Mots génériques (specs/couleurs/états) à ignorer dans la comparaison de modèle
+const GENERIC = new Set([
+  "go", "gb", "tb", "ssd", "ram", "win", "windows", "pro", "home", "cpu", "gpu", "ghz",
+  "pouces", "pouce", "inch", "wifi", "eu", "new", "rfb", "renew", "reconditionne", "reconditionné",
+  "occasion", "azerty", "qwerty", "noir", "blanc", "gris", "black", "white", "silver", "gray", "grey",
+  "blue", "blauw", "bleu", "deep", "ultra", "core", "intel", "amd", "ryzen", "the", "for", "business",
+  "11", "10", "256", "512", "128", "16", "8", "32", "64", "1tb", "wuxga", "sp", "blk",
+]);
+
 function heuristicScore(lineDesc: string, linePrice: number, invoiceDate: string | null, eq: any): { score: number; disc: Discriminators } {
   const lt = new Set(normTokens(lineDesc));
   const et = normTokens(eq.title || "");
   if (!et.length || !lt.size) return { score: 0, disc: { snMatch: false, dateDeltaDays: 9999, reconciled: false } };
-  const overlap = et.filter((t) => lt.has(t)).length / et.length;
+
+  // --- GATE MODÈLE : le modèle DOIT correspondre, le prix ne qualifie jamais ---
+  const bLine = brandOf(lineDesc);
+  const bEq = brandOf(eq.title || "");
+  if (bLine && bEq && bLine !== bEq) {
+    return { score: 0, disc: { snMatch: false, dateDeltaDays: 9999, reconciled: false } }; // marques différentes -> rejet
+  }
+  // tokens significatifs (hors génériques) partagés
+  const sig = (set: Set<string>) => [...set].filter((t) => !GENERIC.has(t) && t.length >= 2);
+  const lineSig = sig(lt);
+  const shared = sig(new Set(et)).filter((t) => lt.has(t));
+  const overlap = lineSig.length ? shared.length / lineSig.length : 0;
+  // exiger une vraie correspondance de modèle : ≥2 tokens significatifs communs OU (marque connue commune + ≥1 token)
+  const modelMatches = shared.length >= 2 || (!!bLine && bLine === bEq && shared.length >= 1);
+  if (!modelMatches) {
+    return { score: 0, disc: { snMatch: false, dateDeltaDays: 9999, reconciled: false } }; // modèle non concordant -> rejet
+  }
+
   const price = eq.purchase_price || 0;
   let priceScore = 0;
   if (price > 0 && linePrice > 0) {
@@ -238,7 +283,14 @@ function heuristicScore(lineDesc: string, linePrice: number, invoiceDate: string
   return { score: Math.max(0, Math.round(base * 100)), disc: { snMatch, dateDeltaDays, reconciled } };
 }
 
-async function actionMatch(supabase: any, companyId: string, invoiceId?: string) {
+async function actionMatch(supabase: any, companyId: string, invoiceId?: string, reset?: boolean) {
+  // Purge des suggestions non confirmées (re-matching propre après correction du
+  // scoring). On ne touche jamais aux matchs 'confirmed'/'rejected'.
+  if (reset) {
+    let del = supabase.from("supplier_invoice_matches").delete().eq("company_id", companyId).eq("status", "suggested");
+    if (invoiceId) del = del.eq("supplier_invoice_id", invoiceId);
+    await del;
+  }
   // Factures d'achat de marchandises avec lignes
   let q = supabase
     .from("supplier_invoices")
@@ -322,6 +374,7 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
     "ATTENTION : iTakecare achète souvent le MÊME modèle (ex. 20 'HP ProBook 460 G11' au même prix) pour des clients différents. " +
     "Le modèle + le prix ne suffisent donc JAMAIS à identifier l'unité précise.\n" +
     "Règles :\n" +
+    "- RÈGLE ABSOLUE : le MODÈLE de la ligne de facture (marque + gamme) DOIT correspondre au candidat. Un 'Acer Chromebook' ne se rapproche JAMAIS d'un 'Lenovo' ou d'un 'HP', même si le prix est identique. Le prix ne sert qu'à départager des unités du MÊME modèle, jamais à rapprocher des modèles différents. Si un candidat n'a pas le bon modèle, ignore-le totalement.\n" +
     "- confident=true UNIQUEMENT si tu identifies l'UNITÉ précise via : sn_match=true (n° de série de la facture), OU date_delta_jours faible (achat cohérent avec la date facture) ET reconcilie=false.\n" +
     "- Si plusieurs candidats ont le même modèle et un prix proche SANS élément distinctif (pas de sn_match, dates incohérentes), renvoie-les TOUS (jusqu'à 3) avec confident=false et reason='Plusieurs unités identiques — choisir le bon contrat'.\n" +
     "- Préfère les équipements reconcilie=false (pas encore de prix réel) et date_delta_jours faible.\n" +
@@ -451,7 +504,7 @@ serve(async (req) => {
     });
     if (!access.ok) return access.response;
 
-    let payload: { companyId: string; action: string; invoiceId?: string; fromDate?: string };
+    let payload: { companyId: string; action: string; invoiceId?: string; fromDate?: string; reset?: boolean };
     try {
       payload = await req.json();
     } catch {
@@ -475,7 +528,7 @@ serve(async (req) => {
 
     let result: unknown;
     if (action === "categorize") result = await actionCategorize(supabase, companyId);
-    else if (action === "match") result = await actionMatch(supabase, companyId, payload.invoiceId);
+    else if (action === "match") result = await actionMatch(supabase, companyId, payload.invoiceId, payload.reset);
     else if (action === "analyze") result = await actionAnalyze(supabase, companyId, fromDate);
     else return jsonResponse({ success: false, error: `Action inconnue: ${action}` }, 400);
 
