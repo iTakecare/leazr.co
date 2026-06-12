@@ -217,15 +217,22 @@ function heuristicScore(lineDesc: string, linePrice: number, invoiceDate: string
   // n° de série présent dans la ligne de facture = verrou
   const lineUpper = (lineDesc || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   const snMatch = serialTokens(eq).some((sn) => lineUpper.includes(sn));
-  // proximité de date (date facture vs date d'achat/réception réelle)
+  // Proximité de date : un achat tombe généralement PRÈS de la création du
+  // contrat/demande ou de la date d'achat/réception réelle. C'est le meilleur
+  // discriminant entre unités identiques -> poids fort.
   const dateDeltaDays = Math.min(
     daysBetweenISO(invoiceDate || undefined, eq.actual_purchase_date),
     daysBetweenISO(invoiceDate || undefined, eq.reception_date),
     daysBetweenISO(invoiceDate || undefined, eq.order_date),
+    daysBetweenISO(invoiceDate || undefined, eq.contracts?.created_at),
   );
   const reconciled = eq.actual_purchase_price != null;
-  let base = overlap * 0.55 + priceScore * 0.35;
-  if (dateDeltaDays <= 30) base += 0.15; else if (dateDeltaDays <= 90) base += 0.05;
+  let base = overlap * 0.45 + priceScore * 0.25;
+  // date = signal dominant pour départager des modèles identiques
+  if (dateDeltaDays <= 14) base += 0.30;
+  else if (dateDeltaDays <= 30) base += 0.22;
+  else if (dateDeltaDays <= 60) base += 0.12;
+  else if (dateDeltaDays <= 120) base += 0.04;
   if (reconciled) base -= 0.2;   // déjà réconcilié -> dé-prioriser
   if (snMatch) base = 1;          // verrou n° de série
   return { score: Math.max(0, Math.round(base * 100)), disc: { snMatch, dateDeltaDays, reconciled } };
@@ -245,7 +252,7 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
   // Équipements de contrats (candidats) + signaux de désambiguïsation
   const { data: equipment } = await supabase
     .from("contract_equipment")
-    .select("id, title, purchase_price, quantity, serial_number, individual_serial_number, actual_purchase_price, actual_purchase_date, reception_date, order_date, contract_id, contracts!inner(contract_number, client_name, company_id)")
+    .select("id, title, purchase_price, quantity, serial_number, individual_serial_number, actual_purchase_price, actual_purchase_date, reception_date, order_date, contract_id, contracts!inner(contract_number, client_name, company_id, created_at)")
     .eq("contracts.company_id", companyId);
 
   // Matches existants (éviter les doublons)

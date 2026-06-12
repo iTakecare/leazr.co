@@ -133,6 +133,9 @@ serve(async (req) => {
     };
     const matches = await matchBillitInvoices(billitInvoices, leazrData, getReference);
     const billitByOrder = new Map(billitInvoices.map((b) => [b.OrderID, b]));
+    // billing_data existant par facture Leazr -> à préserver lors de la reconstruction
+    // (notamment le marqueur type='self_leasing_monthly' utilisé par le dashboard)
+    const existingBillingById = new Map(leazrData.invoices.map((i: any) => [i.id, i.billing_data]));
 
     let linkedCount = 0;
     let createdCount = 0;
@@ -182,7 +185,9 @@ serve(async (req) => {
           // Détail Billit (lignes) + reconstruction du billing_data complet
           const detail = await getBillitOrderDetail(apiBaseUrl, credentials.apiKey, usedPartyId, b.OrderID);
           const ctx = resolveCtx(m, detail);
-          const billing_data = buildBillitBillingData(b, detail, ctx, undefined);
+          // Préserver le billing_data existant (marqueurs type/self_leasing_monthly, etc.)
+          const existingBd = m.leazr_invoice_id ? existingBillingById.get(m.leazr_invoice_id) : undefined;
+          const billing_data = buildBillitBillingData(b, detail, ctx, existingBd);
 
           if (m.action === 'link' && m.leazr_invoice_id) {
             const { error } = await supabase

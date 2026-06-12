@@ -48,6 +48,8 @@ export interface SupplierInvoice {
   days_overdue: number | null;
   category: string | null;
   category_source: string | null;
+  allocation: "contract" | "stock" | "internal" | null;
+  allocation_note: string | null;
   lines: SupplierInvoiceLine[];
   pdf_url: string | null;
 }
@@ -145,6 +147,18 @@ export const analyzeSupplierCosts = async (companyId: string, fromDate?: string)
   if (error) throw new Error(error.message);
   if (!data?.success) throw new Error(data?.error || "Échec de l'analyse");
   return data as { analysis: string };
+};
+
+// Affecter une facture d'achat : contrat / stock / usage interne
+export const setSupplierInvoiceAllocation = async (
+  id: string,
+  allocation: "contract" | "stock" | "internal" | null,
+) => {
+  const { error } = await supabase
+    .from("supplier_invoices" as any)
+    .update({ allocation, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
 };
 
 // Changer manuellement la catégorie d'une facture

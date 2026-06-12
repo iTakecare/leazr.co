@@ -27,6 +27,7 @@ import {
   categorizeSupplierInvoices,
   suggestSupplierInvoiceMatches,
   updateSupplierInvoiceCategory,
+  setSupplierInvoiceAllocation,
   getInvoiceMatches,
   confirmMatch,
   rejectMatch,
@@ -269,6 +270,17 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
     }
   };
 
+  const handleAllocationChange = async (inv: SupplierInvoice, allocation: "contract" | "stock" | "internal") => {
+    try {
+      await setSupplierInvoiceAllocation(inv.id, allocation);
+      setInvoices((prev) => prev.map((i) => (i.id === inv.id ? { ...i, allocation } : i)));
+      if (allocation === "contract") setMatchDialogInvoice(inv); // ouvre le matching
+      else toast.success(allocation === "stock" ? "Affecté au stock (en attente d'attribution)" : "Affecté en usage interne (à amortir)");
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    }
+  };
+
   const handleCategoryChange = async (inv: SupplierInvoice, category: string) => {
     try {
       await updateSupplierInvoiceCategory(inv.id, category);
@@ -310,8 +322,13 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
     const overdue = invoices.filter((i) => i.overdue);
     const overdueAmt = overdue.reduce((s, i) => s + (i.to_pay || 0), 0);
     const uncategorized = invoices.filter((i) => !i.category).length;
-    return { total, toPay, unpaidCount: unpaid.length, overdueAmt, overdueCount: overdue.length, uncategorized };
-  }, [invoices]);
+    // Marchandises non affectées : catégorie = Achat de marchandises, pas d'affectation ET pas de match confirmé
+    const unallocated = invoices.filter((i) =>
+      i.category === "Achat de marchandises" && !i.allocation &&
+      !(matchesByInvoice.get(i.id) || []).some((m) => m.status === "confirmed"),
+    ).length;
+    return { total, toPay, unpaidCount: unpaid.length, overdueAmt, overdueCount: overdue.length, uncategorized, unallocated };
+  }, [invoices, matchesByInvoice]);
 
   const dialogMatches = matchDialogInvoice ? (matchesByInvoice.get(matchDialogInvoice.id) || []) : [];
 
@@ -357,6 +374,9 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
           <div className="text-xl font-bold">{invoices.length}</div>
           {kpis.uncategorized > 0 && (
             <div className="text-xs text-amber-600">{kpis.uncategorized} non catégorisée(s)</div>
+          )}
+          {kpis.unallocated > 0 && (
+            <div className="text-xs text-orange-600">{kpis.unallocated} marchandise(s) à affecter</div>
           )}
         </CardContent></Card>
       </div>
@@ -417,6 +437,7 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
                   <TableHead>Fournisseur</TableHead>
                   <TableHead>Objet</TableHead>
                   <TableHead>Catégorie</TableHead>
+                  <TableHead>Affectation</TableHead>
                   <TableHead className="text-right">HTVA</TableHead>
                   <TableHead className="text-right">À payer</TableHead>
                   <TableHead>Statut</TableHead>
@@ -445,6 +466,25 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
                           </SelectContent>
                         </Select>
                       </TableCell>
+                      <TableCell>
+                        {inv.category === "Achat de marchandises" ? (
+                          <Select
+                            value={confirmed > 0 ? "contract" : (inv.allocation || "")}
+                            onValueChange={(v) => handleAllocationChange(inv, v as any)}
+                          >
+                            <SelectTrigger className={`h-7 w-36 text-xs ${!inv.allocation && confirmed === 0 ? "border-amber-400 text-amber-700" : ""}`}>
+                              <SelectValue placeholder="À affecter" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contract">📄 Contrat (matcher)</SelectItem>
+                              <SelectItem value="stock">📦 Stock</SelectItem>
+                              <SelectItem value="internal">🏢 Usage interne</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">frais</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right whitespace-nowrap">{fmtEur(inv.amount_excl * (inv.doc_type === "credit_note" ? -1 : 1))}</TableCell>
                       <TableCell className="text-right whitespace-nowrap text-xs">{inv.paid ? "—" : fmtEur(inv.to_pay)}</TableCell>
                       <TableCell>{statusBadge(inv)}</TableCell>
@@ -469,7 +509,7 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
                   );
                 })}
                 {!filtered.length && (
-                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                     <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
                     Aucune facture d'achat. Cliquez sur « Synchroniser Billit » pour importer.
                   </TableCell></TableRow>

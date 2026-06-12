@@ -187,7 +187,7 @@ export async function loadLeazrMatchData(supabase: any, companyId: string): Prom
   const [{ data: contracts }, { data: offers }, { data: invoices }] = await Promise.all([
     supabase.from("contracts").select("id, contract_number, offer_id").eq("company_id", companyId),
     supabase.from("offers").select("id, offer_number, dossier_number, leaser_request_number").eq("company_id", companyId),
-    supabase.from("invoices").select("id, invoice_number, contract_id, offer_id, amount, external_invoice_id, leaser_name, invoice_date").eq("company_id", companyId),
+    supabase.from("invoices").select("id, invoice_number, contract_id, offer_id, amount, external_invoice_id, leaser_name, invoice_date, billing_data").eq("company_id", companyId),
   ]);
 
   const invByNumber = new Map<string, any>();
