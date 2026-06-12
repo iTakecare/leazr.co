@@ -169,7 +169,15 @@ const CFO_SYSTEM =
   "qui refinance ses contrats principalement chez GRENKE et fait aussi du self-leasing (loyers mensuels encaissés en direct). " +
   "Tu reçois les données financières réelles en JSON : ventes, achats (sync Billit/Peppol), rentabilité réelle par contrat, " +
   "et si disponible la comptabilité Yuki (PCMN belge : classe 6 charges, 7 produits, 55 trésorerie, 40 clients, 44 fournisseurs). " +
-  "Sois direct, concret et chiffré. Pas de généralités creuses. Montants en €. Tu t'adresses au fondateur (Gianni).";
+  "Sois direct, concret et chiffré. Pas de généralités creuses. Montants en €. Tu t'adresses au fondateur (Gianni).\n\n" +
+  "RÈGLES DE FORMAT (impératif, le rendu est en markdown GFM) :\n" +
+  "- Titres de section en '## ' courts.\n" +
+  "- Paragraphes de 2-3 lignes MAX ; privilégie les listes à puces '- '.\n" +
+  "- Mets les montants/indicateurs clés en **gras**.\n" +
+  "- Pour les chiffres, utilise de VRAIS tableaux markdown avec ligne d'en-tête ET séparateur, ex :\n" +
+  "  | Poste | Montant |\n  |---|---:|\n  | CA | **161 545 €** |\n" +
+  "- JAMAIS de tableau écrit en une seule ligne ni de longs blocs denses. Aère.\n" +
+  "- Termine chaque section d'analyse par une ou deux actions concrètes en gras.";
 
 // ---------- actions ----------
 async function actionReport(supabase: any, companyId: string) {
@@ -180,12 +188,17 @@ async function actionReport(supabase: any, companyId: string) {
     [{
       role: "user",
       content:
-        `Rédige le rapport CFO mensuel (markdown) pour ${period}. Structure :\n` +
-        "## Synthèse exécutive (5 lignes max)\n## Ventes & cash entrant\n## Dépenses & cash sortant (retards !)\n" +
-        "## Rentabilité des contrats (marges réelles, contrats à problème)\n" +
-        (ctx.comptabilite_yuki && !ctx.comptabilite_yuki.erreur ? "## Vue comptable (Yuki)\n" : "") +
-        "## Risques & points d'attention\n## Plan d'action (5 actions max, priorisées, chiffrées)\n\n" +
-        `Données réelles :\n${JSON.stringify(ctx)}`,
+        `Rédige le rapport CFO mensuel pour ${period}, clair et scannable en 1 minute. Sections EXACTES :\n\n` +
+        "## 🎯 Synthèse exécutive\n3-4 puces : la situation en un coup d'œil + LA priorité du mois.\n\n" +
+        "## 💰 Ventes & encaissements\nTableau CA par mois + commentaire bref. Mentionne les impayés clients.\n\n" +
+        "## 💸 Dépenses & paiements\nTop 3 catégories (tableau) + les retards fournisseurs critiques (tableau : fournisseur | montant | jours).\n\n" +
+        "## 📊 Rentabilité des contrats\nMarge globale en gras, puis les contrats à marge négative (tableau : contrat | client | marge).\n\n" +
+        (ctx.comptabilite_yuki && !ctx.comptabilite_yuki.erreur
+          ? "## 📒 Vue comptable (Yuki)\nTableau : Résultat, Trésorerie, Clients, Fournisseurs. Souligne l'écart résultat/trésorerie (BFR) s'il existe.\n\n"
+          : "") +
+        "## ⚠️ Risques\n2-4 puces.\n\n" +
+        "## ✅ Plan d'action\nTableau priorisé : Priorité | Action | Impact € estimé. Max 5 lignes.\n\n" +
+        `Données réelles (JSON) :\n${JSON.stringify(ctx)}`,
     }],
     10000,
   );

@@ -10,12 +10,23 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sparkles, Send, FileText, AlertTriangle, RefreshCw, Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { toast } from "sonner";
 import {
   AiReport, ChatMessage,
   getAiReports, generateCfoReport, cfoChat,
 } from "@/services/cfoService";
+
+// Markdown enrichi (tableaux, listes) avec styles lisibles pour les rapports CFO
+const MD: React.FC<{ children: string }> = ({ children }) => (
+  <div className="prose prose-sm max-w-none dark:prose-invert
+    prose-headings:font-semibold prose-h2:text-base prose-h2:mt-4 prose-h2:mb-2 prose-h2:border-b prose-h2:pb-1
+    prose-table:text-xs prose-th:bg-muted prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1 prose-td:border-t
+    prose-strong:text-foreground prose-li:my-0.5">
+    <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+  </div>
+);
 
 const CfoAiTab: React.FC = () => {
   const { companyId } = useMultiTenant();
@@ -93,9 +104,7 @@ const CfoAiTab: React.FC = () => {
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription>
             <div className="font-medium mb-1">{latestAlert.title}</div>
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>{latestAlert.content || ""}</ReactMarkdown>
-            </div>
+            <MD>{latestAlert.content || ""}</MD>
           </AlertDescription>
         </Alert>
       )}
@@ -128,9 +137,7 @@ const CfoAiTab: React.FC = () => {
           <CardContent>
             {selectedReport ? (
               <ScrollArea className="h-[480px] pr-3">
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown>{selectedReport.content || ""}</ReactMarkdown>
-                </div>
+                <MD>{selectedReport.content || ""}</MD>
               </ScrollArea>
             ) : (
               <div className="text-center text-muted-foreground py-12">
@@ -162,9 +169,7 @@ const CfoAiTab: React.FC = () => {
                 {messages.map((m, i) => (
                   <div key={i} className={`rounded-lg p-3 text-sm ${m.role === "user" ? "bg-primary/10 ml-8" : "bg-muted mr-4"}`}>
                     {m.role === "assistant" ? (
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
-                      </div>
+                      <MD>{m.content}</MD>
                     ) : m.content}
                   </div>
                 ))}
@@ -206,9 +211,7 @@ const CfoAiTab: React.FC = () => {
             {alerts.slice(0, 5).map((a) => (
               <details key={a.id} className="border rounded-lg p-3">
                 <summary className="text-sm font-medium cursor-pointer">{a.title} <span className="text-xs text-muted-foreground">— {new Date(a.created_at).toLocaleDateString("fr-BE")}</span></summary>
-                <div className="prose prose-sm max-w-none mt-2 dark:prose-invert">
-                  <ReactMarkdown>{a.content || ""}</ReactMarkdown>
-                </div>
+                <MD>{a.content || ""}</MD>
               </details>
             ))}
           </CardContent>

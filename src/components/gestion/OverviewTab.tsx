@@ -80,6 +80,8 @@ const OverviewTab: React.FC<Props> = ({ fromDate, costCenterId }) => {
     return purchases.filter((p) => !s || `${p.invoice_number} ${p.supplier_name} ${p.category}`.toLowerCase().includes(s));
   }, [purchases, searchExp]);
 
+  const tickByMonth = useMemo(() => Object.fromEntries(chartData.map((d) => [d.mois, d])), [chartData]);
+
   const { catBreakdown, topSuppliers } = useMemo(() => {
     const byCat: Record<string, number> = {};
     const bySupp: Record<string, number> = {};
@@ -93,6 +95,23 @@ const OverviewTab: React.FC<Props> = ({ fromDate, costCenterId }) => {
       topSuppliers: Object.entries(bySupp).sort((a, b) => b[1] - a[1]).slice(0, 10),
     };
   }, [purchases]);
+
+  const kEur = (v: number) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(Math.abs(v) >= 10000 ? 0 : 1)}k` : `${Math.round(v)}`);
+  // Tick personnalisé : mois + revenus (vert) / dépenses (rouge) / marge sous chaque barre
+  const renderMonthTick = (props: any) => {
+    const { x, y, payload } = props;
+    const d = tickByMonth[payload.value];
+    if (!d) return null;
+    const marge = (d.Revenus || 0) - (d.Dépenses || 0);
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={14} textAnchor="middle" fontSize={11} fontWeight={600} fill="currentColor">{payload.value}</text>
+        <text x={0} y={0} dy={28} textAnchor="middle" fontSize={9} fill="#16a34a">{kEur(d.Revenus)}€</text>
+        <text x={0} y={0} dy={40} textAnchor="middle" fontSize={9} fill="#ef4444">{kEur(d.Dépenses)}€</text>
+        <text x={0} y={0} dy={52} textAnchor="middle" fontSize={9} fontWeight={700} fill={marge >= 0 ? "#059669" : "#e11d48"}>{marge >= 0 ? "+" : ""}{kEur(marge)}€</text>
+      </g>
+    );
+  };
 
   if (loading) return <div className="p-8 text-center text-muted-foreground">Chargement de la vue d'ensemble...</div>;
 
@@ -140,18 +159,21 @@ const OverviewTab: React.FC<Props> = ({ fromDate, costCenterId }) => {
           <CardTitle className="text-base flex items-center gap-2"><Wallet className="h-4 w-4" /> Revenus vs Dépenses par mois</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-72">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} barGap={4}>
+              <BarChart data={chartData} barGap={4} margin={{ bottom: 36 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="mois" fontSize={12} />
+                <XAxis dataKey="mois" tick={renderMonthTick} height={60} interval={0} />
                 <YAxis fontSize={12} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
                 <Tooltip formatter={(v: number) => fmtEurFull(v)} />
-                <Legend />
+                <Legend verticalAlign="top" />
                 <Bar dataKey="Revenus" fill="#16a34a" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Dépenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1 text-center">
+            Sous chaque mois : <span className="text-green-600 font-medium">revenus</span> / <span className="text-red-600 font-medium">dépenses</span> / <span className="font-medium">marge</span>
           </div>
         </CardContent>
       </Card>
