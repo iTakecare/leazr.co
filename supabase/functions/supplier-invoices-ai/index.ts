@@ -178,10 +178,35 @@ const normTokens = (s: string) =>
     .split(/\s+/)
     .filter((t) => t.length >= 2);
 
-function heuristicScore(lineDesc: string, linePrice: number, eq: any): number {
+// Extrait les n° de série exploitables d'un équipement (champ string ou tableau JSON)
+function serialTokens(eq: any): string[] {
+  const out: string[] = [];
+  for (const v of [eq.serial_number, eq.individual_serial_number]) {
+    if (!v) continue;
+    let arr: any[] = [];
+    if (Array.isArray(v)) arr = v;
+    else if (typeof v === "string") {
+      try { const p = JSON.parse(v); arr = Array.isArray(p) ? p : [v]; } catch { arr = [v]; }
+    }
+    for (const s of arr) {
+      const t = String(s).toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (t.length >= 6 && !/^0+$/.test(t)) out.push(t);
+    }
+  }
+  return out;
+}
+
+function daysBetweenISO(a?: string, b?: string): number {
+  if (!a || !b) return 9999;
+  return Math.abs((new Date(a).getTime() - new Date(b).getTime()) / 86400000);
+}
+
+interface Discriminators { snMatch: boolean; dateDeltaDays: number; reconciled: boolean }
+
+function heuristicScore(lineDesc: string, linePrice: number, invoiceDate: string | null, eq: any): { score: number; disc: Discriminators } {
   const lt = new Set(normTokens(lineDesc));
   const et = normTokens(eq.title || "");
-  if (!et.length || !lt.size) return 0;
+  if (!et.length || !lt.size) return { score: 0, disc: { snMatch: false, dateDeltaDays: 9999, reconciled: false } };
   const overlap = et.filter((t) => lt.has(t)).length / et.length;
   const price = eq.purchase_price || 0;
   let priceScore = 0;
@@ -189,7 +214,21 @@ function heuristicScore(lineDesc: string, linePrice: number, eq: any): number {
     const diff = Math.abs(price - linePrice) / Math.max(price, linePrice);
     priceScore = diff <= 0.02 ? 1 : diff <= 0.1 ? 0.7 : diff <= 0.25 ? 0.4 : 0;
   }
-  return Math.round((overlap * 0.6 + priceScore * 0.4) * 100);
+  // n° de série présent dans la ligne de facture = verrou
+  const lineUpper = (lineDesc || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const snMatch = serialTokens(eq).some((sn) => lineUpper.includes(sn));
+  // proximité de date (date facture vs date d'achat/réception réelle)
+  const dateDeltaDays = Math.min(
+    daysBetweenISO(invoiceDate || undefined, eq.actual_purchase_date),
+    daysBetweenISO(invoiceDate || undefined, eq.reception_date),
+    daysBetweenISO(invoiceDate || undefined, eq.order_date),
+  );
+  const reconciled = eq.actual_purchase_price != null;
+  let base = overlap * 0.55 + priceScore * 0.35;
+  if (dateDeltaDays <= 30) base += 0.15; else if (dateDeltaDays <= 90) base += 0.05;
+  if (reconciled) base -= 0.2;   // déjà réconcilié -> dé-prioriser
+  if (snMatch) base = 1;          // verrou n° de série
+  return { score: Math.max(0, Math.round(base * 100)), disc: { snMatch, dateDeltaDays, reconciled } };
 }
 
 async function actionMatch(supabase: any, companyId: string, invoiceId?: string) {
@@ -203,10 +242,10 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
   if (invoiceId) q = q.eq("id", invoiceId);
   const { data: invoices } = await q;
 
-  // Équipements de contrats (candidats)
+  // Équipements de contrats (candidats) + signaux de désambiguïsation
   const { data: equipment } = await supabase
     .from("contract_equipment")
-    .select("id, title, purchase_price, quantity, serial_number, actual_purchase_price, contract_id, contracts!inner(contract_number, client_name, company_id)")
+    .select("id, title, purchase_price, quantity, serial_number, individual_serial_number, actual_purchase_price, actual_purchase_date, reception_date, order_date, contract_id, contracts!inner(contract_number, client_name, company_id)")
     .eq("contracts.company_id", companyId);
 
   // Matches existants (éviter les doublons)
@@ -232,10 +271,10 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
       if (!line.description || price < 20) return; // ignorer les petites lignes (frais, etc.)
       if (linesWithMatch.has(`${inv.id}|${lineIndex}`)) return; // déjà suggérée
       const cands = (equipment || [])
-        .map((eq: any) => ({ eq, score: heuristicScore(line.description, price, eq) }))
+        .map((eq: any) => { const h = heuristicScore(line.description, price, inv.invoice_date, eq); return { eq, score: h.score, disc: h.disc }; })
         .filter((c: any) => c.score >= 35)
         .sort((a: any, b: any) => b.score - a.score)
-        .slice(0, 4);
+        .slice(0, 5);
       if (cands.length) work.push({ invoice: inv, lineIndex, line, candidates: cands });
     });
   }
@@ -272,13 +311,18 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
   };
 
   const system =
-    "Tu aides iTakecare à rapprocher des lignes de factures d'achat fournisseur avec les équipements de ses contrats de leasing. " +
-    "Pour chaque ligne, choisis le meilleur équipement candidat (même modèle + prix d'achat cohérent), ou aucun si douteux. " +
-    "confident=true seulement si le modèle correspond clairement (marque, gamme, taille, specs) ET le prix est plausible. " +
-    "score: 0-100. reason: une phrase en français expliquant le rapprochement (modèle, prix).";
+    "Tu rapproches des lignes de factures d'achat fournisseur avec les équipements des contrats de leasing d'iTakecare. " +
+    "ATTENTION : iTakecare achète souvent le MÊME modèle (ex. 20 'HP ProBook 460 G11' au même prix) pour des clients différents. " +
+    "Le modèle + le prix ne suffisent donc JAMAIS à identifier l'unité précise.\n" +
+    "Règles :\n" +
+    "- confident=true UNIQUEMENT si tu identifies l'UNITÉ précise via : sn_match=true (n° de série de la facture), OU date_delta_jours faible (achat cohérent avec la date facture) ET reconcilie=false.\n" +
+    "- Si plusieurs candidats ont le même modèle et un prix proche SANS élément distinctif (pas de sn_match, dates incohérentes), renvoie-les TOUS (jusqu'à 3) avec confident=false et reason='Plusieurs unités identiques — choisir le bon contrat'.\n" +
+    "- Préfère les équipements reconcilie=false (pas encore de prix réel) et date_delta_jours faible.\n" +
+    "- N'invente jamais : si aucun candidat ne convient, ne renvoie rien pour cette ligne.\n" +
+    "Tu peux renvoyer plusieurs objets pour une même 'key' (un par candidat). score 0-100, reason en français.";
 
   let suggestions = 0;
-  const batchSize = 25;
+  const batchSize = 20;
   for (let i = 0; i < bounded.length; i += batchSize) {
     const batch = bounded.slice(i, i + batchSize);
     const userMsg = JSON.stringify(
@@ -286,27 +330,34 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
         key: `${i + bi}`,
         facture: w.invoice.invoice_number,
         fournisseur: w.invoice.supplier_name,
-        date: w.invoice.invoice_date,
+        date_facture: w.invoice.invoice_date,
         ligne: w.line.description,
         prix_unitaire_htva: w.line.unit_price_excl,
         candidats: w.candidates.map((c: any) => ({
           equipment_id: c.eq.id,
           titre: c.eq.title,
           prix_achat_prevu: c.eq.purchase_price,
-          deja_achete: !!c.eq.actual_purchase_price,
+          reconcilie: !!c.eq.actual_purchase_price,
+          sn_match: c.disc.snMatch,
+          date_delta_jours: c.disc.dateDeltaDays >= 9999 ? null : Math.round(c.disc.dateDeltaDays),
           contrat: c.eq.contracts?.contract_number,
           client: c.eq.contracts?.client_name,
         })),
       })),
     );
-    const out = await callClaudeJson(system, `Valide les rapprochements:\n${userMsg}`, schema, 10000);
+    const out = await callClaudeJson(system, `Rapproche (désambiguïse par n° série / date) :\n${userMsg}`, schema, 12000);
+    // Limiter à 3 candidats par ligne
+    const perLine: Record<string, number> = {};
     for (const m of out.matches || []) {
-      const w = bounded[parseInt(m.key, 10) - 0] ?? null;
-      if (!w || !m.confident) continue;
+      const w = bounded[parseInt(m.key, 10)] ?? null;
+      if (!w) continue;
       const cand = w.candidates.find((c: any) => c.eq.id === m.equipment_id);
       if (!cand) continue;
+      const lineKey = `${w.invoice.id}|${w.lineIndex}`;
+      if ((perLine[lineKey] || 0) >= 3) continue;
       const key = `${w.invoice.id}|${w.lineIndex}|${m.equipment_id}`;
       if (existingKeys.has(key)) continue;
+      const reason = m.confident ? m.reason : (m.reason || "Plusieurs unités identiques — choisir le bon contrat");
       const { error } = await supabase.from("supplier_invoice_matches").insert({
         company_id: companyId,
         supplier_invoice_id: w.invoice.id,
@@ -315,10 +366,10 @@ async function actionMatch(supabase: any, companyId: string, invoiceId?: string)
         line_description: w.line.description,
         amount: w.line.unit_price_excl,
         score: Math.max(0, Math.min(100, m.score)),
-        reason: m.reason,
+        reason,
         status: "suggested",
       });
-      if (!error) { suggestions++; existingKeys.add(key); }
+      if (!error) { suggestions++; existingKeys.add(key); perLine[lineKey] = (perLine[lineKey] || 0) + 1; }
     }
   }
 

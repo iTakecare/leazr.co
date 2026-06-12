@@ -14,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  RefreshCw, Sparkles, Link2, Search, FileText, ExternalLink, Check, X,
+  RefreshCw, Sparkles, Link2, Search, Search as SearchIcon, FileText, ExternalLink, Check, X,
 } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { toast } from "sonner";
@@ -30,15 +30,59 @@ import {
   getInvoiceMatches,
   confirmMatch,
   rejectMatch,
+  searchContractEquipment,
+  attachLineToEquipment,
+  EquipmentSearchResult,
 } from "@/services/supplierInvoiceService";
 
 const fmtEur = (n: number) =>
   (n || 0).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
 
 // Carte de matching : demande + client + comparaison prix prévu / réel saisi / Billit
-const MatchCard: React.FC<{ m: SupplierInvoiceMatch; onConfirm: () => void; onReject: () => void }> = ({ m, onConfirm, onReject }) => {
+const MatchCard: React.FC<{
+  m: SupplierInvoiceMatch;
+  invoice: SupplierInvoice;
+  companyId: string;
+  onConfirm: () => void;
+  onReject: () => void;
+  onChanged: () => void;
+}> = ({ m, invoice, companyId, onConfirm, onReject, onChanged }) => {
   const eq = m.contract_equipment;
   const c = eq?.contracts;
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<EquipmentSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  const doSearch = async (val: string) => {
+    setQ(val);
+    if (val.trim().length < 2) { setResults([]); return; }
+    setSearching(true);
+    try {
+      setResults(await searchContractEquipment(companyId, val));
+    } catch (e: any) {
+      toast.error(e.message || "Erreur de recherche");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const attach = async (equipmentId: string) => {
+    try {
+      await attachLineToEquipment(
+        companyId,
+        { id: invoice.id },
+        { line_index: m.line_index, line_description: m.line_description || "", amount: m.amount || 0 },
+        equipmentId,
+        invoice.invoice_date,
+      );
+      toast.success("Ligne attribuée au bon contrat — prix réel enregistré");
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur d'attribution");
+    }
+  };
+
   const planned = eq?.purchase_price || 0;        // prix prévu (offre/contrat)
   const real = eq?.actual_purchase_price;          // prix réel déjà saisi (Suivi des achats)
   const billit = m.amount || 0;                    // prix réellement facturé par le fournisseur (Billit)
@@ -99,6 +143,45 @@ const MatchCard: React.FC<{ m: SupplierInvoiceMatch; onConfirm: () => void; onRe
           {m.status === "suggested" && " — confirmer écrit le prix Billit comme prix réel"}
         </div>
         {m.reason && <div className="text-xs text-muted-foreground italic">{m.reason}</div>}
+
+        {/* Attribution manuelle : pas le bon contrat ? */}
+        <div className="pt-1 border-t">
+          <button className="text-xs text-blue-600 hover:underline flex items-center gap-1" onClick={() => setSearchOpen((s) => !s)}>
+            <SearchIcon className="h-3 w-3" /> {searchOpen ? "Fermer" : "Pas le bon ? Attribuer à un autre contrat / client"}
+          </button>
+          {searchOpen && (
+            <div className="mt-2 space-y-2">
+              <Input
+                placeholder="Chercher par client, n° contrat ou modèle (ex. FEBA)..."
+                value={q}
+                onChange={(e) => doSearch(e.target.value)}
+                className="h-8 text-xs"
+                autoFocus
+              />
+              {searching && <div className="text-xs text-muted-foreground">Recherche...</div>}
+              <ScrollArea className="max-h-48">
+                <div className="space-y-1">
+                  {results.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between gap-2 rounded border p-2 text-xs hover:bg-muted/50">
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{r.title}</div>
+                        <div className="text-muted-foreground truncate">
+                          {r.client_name} · contrat {r.contract_number || "?"} · prévu {fmtEur(r.purchase_price)}
+                          {r.actual_purchase_price != null && <span className="text-amber-600"> · déjà un prix réel</span>}
+                          {r.serial_number && <span> · SN {String(r.serial_number).slice(0, 14)}</span>}
+                        </div>
+                      </div>
+                      <Button size="sm" className="h-7 shrink-0" onClick={() => attach(r.id)}>Attribuer</Button>
+                    </div>
+                  ))}
+                  {q.trim().length >= 2 && !searching && !results.length && (
+                    <div className="text-xs text-muted-foreground py-2">Aucun équipement trouvé pour « {q} ».</div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -408,7 +491,7 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
           <ScrollArea className="max-h-[60vh]">
             <div className="space-y-3 pr-3">
               {dialogMatches.map((m) => (
-                <MatchCard key={m.id} m={m} onConfirm={() => handleConfirm(m)} onReject={() => handleReject(m)} />
+                <MatchCard key={m.id} m={m} invoice={matchDialogInvoice!} companyId={companyId!} onConfirm={() => handleConfirm(m)} onReject={() => handleReject(m)} onChanged={load} />
               ))}
               {!dialogMatches.length && (
                 <div className="text-center text-muted-foreground py-6">Aucune suggestion pour cette facture.</div>

@@ -169,12 +169,22 @@ export const getInvoiceMatches = async (companyId: string, supplierInvoiceId?: s
 };
 
 // Confirmer un match : renseigne le prix/la date d'achat réels sur l'équipement
+// et rejette les autres candidats de la même ligne de facture.
 export const confirmMatch = async (match: SupplierInvoiceMatch, invoiceDate: string | null) => {
   const { error: mErr } = await supabase
     .from("supplier_invoice_matches" as any)
     .update({ status: "confirmed", updated_at: new Date().toISOString() })
     .eq("id", match.id);
   if (mErr) throw mErr;
+
+  // Rejeter les autres suggestions de la même ligne
+  await supabase
+    .from("supplier_invoice_matches" as any)
+    .update({ status: "rejected", updated_at: new Date().toISOString() })
+    .eq("supplier_invoice_id", match.supplier_invoice_id)
+    .eq("line_index", match.line_index)
+    .neq("id", match.id)
+    .eq("status", "suggested");
 
   const update: Record<string, unknown> = { actual_purchase_price: match.amount };
   if (invoiceDate) update.actual_purchase_date = invoiceDate;
@@ -183,6 +193,84 @@ export const confirmMatch = async (match: SupplierInvoiceMatch, invoiceDate: str
     .update(update)
     .eq("id", match.contract_equipment_id);
   if (eErr) throw eErr;
+};
+
+// Recherche d'équipements de contrats pour attribution manuelle d'une ligne d'achat
+export interface EquipmentSearchResult {
+  id: string;
+  title: string;
+  purchase_price: number;
+  actual_purchase_price: number | null;
+  serial_number: string | null;
+  contract_id: string;
+  contract_number: string | null;
+  client_name: string | null;
+  offer_number: string | null;
+}
+
+export const searchContractEquipment = async (companyId: string, query: string): Promise<EquipmentSearchResult[]> => {
+  const term = query.trim();
+  if (term.length < 2) return [];
+  // On cherche par titre d'équipement OU par client/contrat via une requête large
+  const { data, error } = await supabase
+    .from("contract_equipment")
+    .select("id, title, purchase_price, actual_purchase_price, serial_number, contract_id, contracts!inner(contract_number, client_name, company_id, offers!contracts_offer_id_fkey(offer_number))")
+    .eq("contracts.company_id", companyId)
+    .or(`title.ilike.%${term}%,contracts.client_name.ilike.%${term}%,contracts.contract_number.ilike.%${term}%`)
+    .limit(40);
+  if (error) throw error;
+  return (data || []).map((e: any) => ({
+    id: e.id,
+    title: e.title,
+    purchase_price: e.purchase_price,
+    actual_purchase_price: e.actual_purchase_price,
+    serial_number: e.serial_number,
+    contract_id: e.contract_id,
+    contract_number: e.contracts?.contract_number || null,
+    client_name: e.contracts?.client_name || null,
+    offer_number: e.contracts?.offers?.offer_number || null,
+  }));
+};
+
+// Attribution manuelle : lie une ligne de facture d'achat à un équipement choisi,
+// rejette les autres suggestions de la même ligne, et écrit le prix réel.
+export const attachLineToEquipment = async (
+  companyId: string,
+  invoice: { id: string },
+  line: { line_index: number; line_description: string; amount: number },
+  equipmentId: string,
+  invoiceDate: string | null,
+) => {
+  // Rejeter les autres suggestions de cette ligne
+  await supabase
+    .from("supplier_invoice_matches" as any)
+    .update({ status: "rejected", updated_at: new Date().toISOString() })
+    .eq("supplier_invoice_id", invoice.id)
+    .eq("line_index", line.line_index)
+    .neq("contract_equipment_id", equipmentId);
+
+  // Upsert le match confirmé sur l'équipement choisi
+  const { error } = await supabase.from("supplier_invoice_matches" as any).upsert(
+    {
+      company_id: companyId,
+      supplier_invoice_id: invoice.id,
+      contract_equipment_id: equipmentId,
+      line_index: line.line_index,
+      line_description: line.line_description,
+      amount: line.amount,
+      score: 100,
+      reason: "Attribution manuelle",
+      status: "confirmed",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "supplier_invoice_id,line_index,contract_equipment_id" },
+  );
+  if (error) throw error;
+
+  // Écrire le prix/date d'achat réels sur l'équipement
+  const update: Record<string, unknown> = { actual_purchase_price: line.amount };
+  if (invoiceDate) update.actual_purchase_date = invoiceDate;
+  await supabase.from("contract_equipment").update(update).eq("id", equipmentId);
 };
 
 export const rejectMatch = async (matchId: string) => {
