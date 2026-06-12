@@ -8,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Wallet, LineChart, Bot, BookOpen, ShoppingCart, LayoutDashboard, Building2, Globe } from "lucide-react";
+import { Wallet, LineChart, Bot, BookOpen, ShoppingCart, LayoutDashboard, Building2, Globe, Megaphone } from "lucide-react";
 import OverviewTab from "@/components/gestion/OverviewTab";
 import ProfitabilityTab from "@/components/gestion/ProfitabilityTab";
 import CfoAiTab from "@/components/gestion/CfoAiTab";
+import CmoAiTab from "@/components/gestion/CmoAiTab";
 import YukiComptaTab from "@/components/gestion/YukiComptaTab";
 import SupplierInvoicesTab from "@/components/invoicing/SupplierInvoicesTab";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,9 @@ const CostManagementPage: React.FC = () => {
               <TabsTrigger value="cfo" className="flex items-center gap-2">
                 <Bot className="h-4 w-4" /> CFO IA
               </TabsTrigger>
+              <TabsTrigger value="cmo" className="flex items-center gap-2">
+                <Megaphone className="h-4 w-4" /> CMO IA
+              </TabsTrigger>
               <TabsTrigger value="compta" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" /> Comptabilité
               </TabsTrigger>
@@ -117,6 +121,9 @@ const CostManagementPage: React.FC = () => {
             </TabsContent>
             <TabsContent value="cfo" className="mt-4">
               <CfoAiTab />
+            </TabsContent>
+            <TabsContent value="cmo" className="mt-4">
+              <CmoAiTab />
             </TabsContent>
             <TabsContent value="compta" className="mt-4">
               <YukiComptaTab />

@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface AiReport {
   id: string;
-  kind: "cfo_report" | "cfo_alert" | "cmo_report";
+  kind: "cfo_report" | "cfo_alert" | "cmo_report" | "cmo_alert";
   period: string | null;
   title: string | null;
   content: string | null;
@@ -51,6 +51,34 @@ export const cfoChat = async (companyId: string, messages: ChatMessage[]) => {
   });
   if (error) throw new Error(error.message);
   if (!data?.success) throw new Error(data?.error || "Échec du chat CFO");
+  return data.answer as string;
+};
+
+// ---------- CMO IA (marketing) ----------
+export const generateCmoReport = async (companyId: string) => {
+  const { data, error } = await supabase.functions.invoke("cmo-ai", {
+    body: { companyId, action: "report" },
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error || "Échec de la génération du rapport");
+  return data.report as AiReport;
+};
+
+export const runCmoAlerts = async (companyId: string) => {
+  const { data, error } = await supabase.functions.invoke("cmo-ai", {
+    body: { companyId, action: "alerts" },
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error || "Échec des alertes");
+  return data as { alerts: number; skipped?: string };
+};
+
+export const cmoChat = async (companyId: string, messages: ChatMessage[]) => {
+  const { data, error } = await supabase.functions.invoke("cmo-ai", {
+    body: { companyId, action: "chat", messages },
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error || "Échec du chat CMO");
   return data.answer as string;
 };
 
