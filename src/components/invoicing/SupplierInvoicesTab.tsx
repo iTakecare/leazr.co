@@ -41,18 +41,33 @@ import {
 const fmtEur = (n: number) =>
   (n || 0).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
 
+// Prix réel UNITAIRE. PIÈGE Billit : le montant d'une ligne est souvent le TOTAL
+// (ex. 2 × 304,96 = 609,92) mais Billit l'enregistre en qté=1 → 609,92 pris pour un
+// prix unitaire. On déduit le nb d'unités via le prix prévu de l'équipement.
+const smartUnitPrice = (lineTotal: number, plannedUnit: number, billitQty: number): number => {
+  if (plannedUnit > 0 && lineTotal > 0) {
+    const k = Math.round(lineTotal / plannedUnit);
+    if (k >= 1 && Math.abs(lineTotal - k * plannedUnit) / lineTotal < 0.25) return lineTotal / k;
+  }
+  if (billitQty > 1) return lineTotal / billitQty;
+  return lineTotal;
+};
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
 // Recherche d'équipement + attribution d'une ligne d'achat (réutilisé partout).
 // Liste scrollable native (le ScrollArea Radix ne se contraint pas sous un simple max-h).
 const EquipmentSearchAttach: React.FC<{
   companyId: string;
   invoice: SupplierInvoice;
-  line: { line_index: number; line_description: string; amount: number };
+  line: { line_index: number; line_description: string; total: number; quantity: number };
   onAttached: () => void;
   autoFocus?: boolean;
 }> = ({ companyId, invoice, line, onAttached, autoFocus }) => {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<EquipmentSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [pending, setPending] = useState<EquipmentSearchResult | null>(null);
+  const [unit, setUnit] = useState("");
 
   const doSearch = async (val: string) => {
     setQ(val);
@@ -67,15 +82,52 @@ const EquipmentSearchAttach: React.FC<{
     }
   };
 
-  const attach = async (equipmentId: string) => {
+  // Choix d'un équipement -> on propose le prix réel UNITAIRE (défaut intelligent)
+  const pick = (r: EquipmentSearchResult) => {
+    setPending(r);
+    setUnit(String(round2(smartUnitPrice(line.total, r.purchase_price || 0, line.quantity))));
+  };
+
+  const confirmAttach = async () => {
+    if (!pending) return;
+    const unitPrice = round2(parseFloat(unit.replace(",", ".")) || 0);
     try {
-      await attachLineToEquipment(companyId, { id: invoice.id }, line, equipmentId, invoice.invoice_date);
-      toast.success("Ligne attribuée au bon contrat — prix réel enregistré");
+      await attachLineToEquipment(
+        companyId,
+        { id: invoice.id },
+        { line_index: line.line_index, line_description: line.line_description, amount: unitPrice },
+        pending.id,
+        invoice.invoice_date,
+      );
+      toast.success("Ligne attribuée — prix réel unitaire enregistré");
+      setPending(null);
       onAttached();
     } catch (e: any) {
       toast.error(e.message || "Erreur d'attribution");
     }
   };
+
+  const k = pending && pending.purchase_price ? Math.round(line.total / pending.purchase_price) : line.quantity;
+
+  if (pending) {
+    return (
+      <div className="space-y-2 rounded border border-blue-200 bg-blue-50/50 p-2">
+        <div className="text-xs font-medium truncate">{pending.title}</div>
+        <div className="text-xs text-muted-foreground">
+          {pending.client_name} · contrat {pending.contract_number || "?"} · prévu {fmtEur(pending.purchase_price)}/u
+        </div>
+        <div className="text-xs">Total ligne facturé : <span className="font-medium">{fmtEur(line.total)}</span>{k > 1 && <> · soit ≈ <span className="font-medium">{k} unités</span></>}</div>
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground">Prix réel unitaire (€)</label>
+            <Input value={unit} onChange={(e) => setUnit(e.target.value)} className="h-8 text-xs" inputMode="decimal" autoFocus />
+          </div>
+          <Button size="sm" className="h-8 bg-green-600 hover:bg-green-700" onClick={confirmAttach}>Attribuer</Button>
+          <Button size="sm" variant="ghost" className="h-8" onClick={() => setPending(null)}>Annuler</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -98,7 +150,7 @@ const EquipmentSearchAttach: React.FC<{
                 {r.serial_number && <span> · SN {String(r.serial_number).slice(0, 14)}</span>}
               </div>
             </div>
-            <Button size="sm" className="h-7 shrink-0" onClick={() => attach(r.id)}>Attribuer</Button>
+            <Button size="sm" className="h-7 shrink-0" onClick={() => pick(r)}>Attribuer</Button>
           </div>
         ))}
         {q.trim().length >= 2 && !searching && !results.length && (
@@ -128,7 +180,12 @@ const LineAttach: React.FC<{
           <EquipmentSearchAttach
             companyId={companyId}
             invoice={invoice}
-            line={{ line_index: lineIndex, line_description: line.description || "", amount: line.unit_price_excl || 0 }}
+            line={{
+              line_index: lineIndex,
+              line_description: line.description || "",
+              total: line.total_excl || line.unit_price_excl || 0,
+              quantity: line.quantity || 1,
+            }}
             onAttached={onChanged}
             autoFocus
           />
@@ -142,20 +199,27 @@ const LineAttach: React.FC<{
 const MatchCard: React.FC<{
   m: SupplierInvoiceMatch;
   invoice: SupplierInvoice;
+  line?: SupplierInvoiceLine;
   companyId: string;
-  onConfirm: () => void;
+  onConfirm: (unitPrice: number) => void;
   onReject: () => void;
   onChanged: () => void;
-}> = ({ m, invoice, companyId, onConfirm, onReject, onChanged }) => {
+}> = ({ m, invoice, line, companyId, onConfirm, onReject, onChanged }) => {
   const eq = m.contract_equipment;
   const c = eq?.contracts;
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const planned = eq?.purchase_price || 0;        // prix prévu (offre/contrat)
-  const real = eq?.actual_purchase_price;          // prix réel déjà saisi (Suivi des achats)
-  const billit = m.amount || 0;                    // prix réellement facturé par le fournisseur (Billit)
-  const refPrice = real ?? planned;                // référence de comparaison
-  const delta = billit - refPrice;                 // >0 = on a payé plus cher que prévu/saisi
+  const planned = eq?.purchase_price || 0;          // prix prévu (offre/contrat), unitaire
+  const real = eq?.actual_purchase_price;           // prix réel déjà saisi (Suivi des achats)
+  const lineTotal = line?.total_excl || line?.unit_price_excl || m.amount || 0; // TOTAL ligne facturé
+  const qty = line?.quantity || 1;
+  const defaultUnit = round2(smartUnitPrice(lineTotal, planned, qty)); // prix réel unitaire déduit
+  const units = planned > 0 ? Math.round(lineTotal / planned) : qty;   // nb d'unités estimé
+  const [unit, setUnit] = useState(String(defaultUnit));               // prix réel unitaire éditable
+  const unitNum = round2(parseFloat(unit.replace(",", ".")) || 0);
+
+  const refPrice = real ?? planned;                 // référence de comparaison (unitaire)
+  const delta = unitNum - refPrice;                 // >0 = payé plus cher que prévu/saisi (unitaire)
   const deltaColor = delta > 0.5 ? "text-red-600" : delta < -0.5 ? "text-green-600" : "text-muted-foreground";
   const scoreColor = (m.score || 0) >= 85 ? "bg-green-100 text-green-700" : (m.score || 0) >= 60 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
 
@@ -176,7 +240,7 @@ const MatchCard: React.FC<{
           <div className="flex gap-2 shrink-0">
             {m.status === "suggested" ? (
               <>
-                <Button size="sm" className="h-8 gap-1 bg-green-600 hover:bg-green-700" onClick={onConfirm}>
+                <Button size="sm" className="h-8 gap-1 bg-green-600 hover:bg-green-700" onClick={() => onConfirm(unitNum)}>
                   <Check className="h-3 w-3" /> Confirmer
                 </Button>
                 <Button size="sm" variant="outline" className="h-8 gap-1 text-red-600 border-red-200" onClick={onReject}>
@@ -191,24 +255,30 @@ const MatchCard: React.FC<{
           </div>
         </div>
 
-        {/* Comparaison de prix */}
-        <div className="grid grid-cols-3 gap-2 text-center">
+        {/* Comparaison de prix (UNITAIRE) */}
+        <div className="grid grid-cols-3 gap-2 text-center items-end">
           <div className="rounded-md bg-muted/60 p-2">
-            <div className="text-xs text-muted-foreground">Prix prévu</div>
+            <div className="text-xs text-muted-foreground">Prix prévu /u</div>
             <div className="font-medium text-sm">{fmtEur(planned)}</div>
           </div>
-          <div className="rounded-md bg-muted/60 p-2">
-            <div className="text-xs text-muted-foreground">Prix réel saisi</div>
-            <div className="font-medium text-sm">{real != null ? fmtEur(real) : <span className="text-amber-600">—</span>}</div>
+          <div className="rounded-md bg-amber-50 p-2 border border-amber-200">
+            <div className="text-xs text-amber-700">Prix réel /u {m.status === "suggested" ? "(modifiable)" : ""}</div>
+            {m.status === "suggested" ? (
+              <Input value={unit} onChange={(e) => setUnit(e.target.value)} className="h-7 text-sm text-center font-medium" inputMode="decimal" />
+            ) : (
+              <div className="font-medium text-sm">{real != null ? fmtEur(real) : fmtEur(unitNum)}</div>
+            )}
           </div>
           <div className="rounded-md bg-blue-50 p-2 border border-blue-200">
-            <div className="text-xs text-blue-700">Prix facturé (Billit)</div>
-            <div className="font-bold text-sm">{fmtEur(billit)}</div>
+            <div className="text-xs text-blue-700">Total facturé</div>
+            <div className="font-bold text-sm">{fmtEur(lineTotal)}</div>
+            {units > 1 && <div className="text-[10px] text-blue-600">≈ {units} u</div>}
           </div>
         </div>
         <div className={`text-xs text-right font-medium ${deltaColor}`}>
-          Écart vs {real != null ? "prix réel saisi" : "prix prévu"} : {delta > 0 ? "+" : ""}{delta.toFixed(2)} €
-          {m.status === "suggested" && " — confirmer écrit le prix Billit comme prix réel"}
+          {units > 1 && <span className="text-muted-foreground font-normal">Total {fmtEur(lineTotal)} ÷ {units} = {fmtEur(unitNum)}/u · </span>}
+          Écart /u vs {real != null ? "réel saisi" : "prévu"} : {delta > 0 ? "+" : ""}{delta.toFixed(2)} €
+          {m.status === "suggested" && " — confirmer écrit le prix réel unitaire"}
         </div>
         {m.reason && <div className="text-xs text-muted-foreground italic">{m.reason}</div>}
 
@@ -222,7 +292,7 @@ const MatchCard: React.FC<{
               <EquipmentSearchAttach
                 companyId={companyId}
                 invoice={invoice}
-                line={{ line_index: m.line_index, line_description: m.line_description || "", amount: m.amount || 0 }}
+                line={{ line_index: m.line_index, line_description: m.line_description || "", total: lineTotal, quantity: qty }}
                 onAttached={onChanged}
                 autoFocus
               />
@@ -396,10 +466,10 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
 
   const dialogMatches = matchDialogInvoice ? (matchesByInvoice.get(matchDialogInvoice.id) || []) : [];
 
-  const handleConfirm = async (m: SupplierInvoiceMatch) => {
+  const handleConfirm = async (m: SupplierInvoiceMatch, unitPrice?: number) => {
     try {
-      await confirmMatch(m, matchDialogInvoice?.invoice_date || null);
-      toast.success("Match confirmé — prix d'achat réel enregistré sur l'équipement");
+      await confirmMatch(m, matchDialogInvoice?.invoice_date || null, unitPrice);
+      toast.success("Match confirmé — prix d'achat réel unitaire enregistré sur l'équipement");
       await load();
     } catch (e: any) {
       toast.error(e.message || "Erreur");
@@ -620,7 +690,7 @@ const SupplierInvoicesTab: React.FC<{ costCenterId?: string | null }> = ({ costC
                       </div>
                     </div>
                     {lineMatches.map((m) => (
-                      <MatchCard key={m.id} m={m} invoice={matchDialogInvoice!} companyId={companyId!} onConfirm={() => handleConfirm(m)} onReject={() => handleReject(m)} onChanged={load} />
+                      <MatchCard key={m.id} m={m} invoice={matchDialogInvoice!} line={line} companyId={companyId!} onConfirm={(u) => handleConfirm(m, u)} onReject={() => handleReject(m)} onChanged={load} />
                     ))}
                     {/* Pas de suggestion confirmée -> attribution manuelle de la ligne */}
                     {!confirmed && (

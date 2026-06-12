@@ -185,10 +185,15 @@ export const getInvoiceMatches = async (companyId: string, supplierInvoiceId?: s
 
 // Confirmer un match : renseigne le prix/la date d'achat réels sur l'équipement
 // et rejette les autres candidats de la même ligne de facture.
-export const confirmMatch = async (match: SupplierInvoiceMatch, invoiceDate: string | null) => {
+export const confirmMatch = async (match: SupplierInvoiceMatch, invoiceDate: string | null, unitPrice?: number) => {
+  // Prix réel UNITAIRE à enregistrer : la valeur saisie/validée si fournie, sinon
+  // le montant du match (rétro-compat). Voir smartUnitPrice côté UI : le montant
+  // Billit est souvent le TOTAL ligne (qté>1) -> ne jamais l'écrire tel quel par unité.
+  const price = unitPrice != null ? unitPrice : (match.amount ?? 0);
+
   const { error: mErr } = await supabase
     .from("supplier_invoice_matches" as any)
-    .update({ status: "confirmed", updated_at: new Date().toISOString() })
+    .update({ status: "confirmed", amount: price, updated_at: new Date().toISOString() })
     .eq("id", match.id);
   if (mErr) throw mErr;
 
@@ -201,7 +206,7 @@ export const confirmMatch = async (match: SupplierInvoiceMatch, invoiceDate: str
     .neq("id", match.id)
     .eq("status", "suggested");
 
-  const update: Record<string, unknown> = { actual_purchase_price: match.amount };
+  const update: Record<string, unknown> = { actual_purchase_price: price };
   if (invoiceDate) update.actual_purchase_date = invoiceDate;
   const { error: eErr } = await supabase
     .from("contract_equipment")
