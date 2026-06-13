@@ -39,6 +39,16 @@ function isSerialCategory(name: string): boolean {
   const x = (name || "").toLowerCase().trim();
   return ["laptop", "desktop", "smartphone", "tablette", "tablet"].includes(x) || /ordinateur|portable/.test(x);
 }
+// category_id étant quasi jamais rempli en base, on déduit aussi la catégorie
+// "à n° de série" depuis le TITRE de l'équipement (mots-clés modèles).
+function titleNeedsSerial(title: string): boolean {
+  const x = (title || "").toLowerCase();
+  if (/(macbook|probook|elitebook|thinkpad|ideapad|latitude|inspiron|zenbook|vivobook|notebook|laptop|portable|\bgram\b|spectre|\benvy\b|pavilion|aspire|swift|nitro|\byoga\b|legion|surface laptop|surface book)/.test(x)) return true;
+  if (/(imac|mac mini|mac studio|mac pro|optiplex|thinkcentre|desktop|pc fixe|\btour\b|elitedesk|prodesk)/.test(x)) return true;
+  if (/(iphone|galaxy s\d|galaxy a\d|galaxy z|galaxy note|\bpixel\b|smartphone|xperia|oneplus|redmi|\bnord\b)/.test(x)) return true;
+  if (/(ipad|galaxy tab|tablette|\btablet\b|surface pro|surface go)/.test(x)) return true;
+  return false;
+}
 function isPlaceholderSN(s: string): boolean {
   const x = (s || "").trim().toLowerCase();
   return !x || x === "tbd" || x === "na" || x === "n/a" || x === "-" || /^0+$/.test(x);
@@ -215,12 +225,16 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
         if (isLast) lineTotal = round2(amount - allocated);
         else allocated = round2(allocated + lineTotal);
         let desc = `${q > 1 ? q + "× " : ""}${e.title || "Équipement"}`;
-        if (isSerialCategory(catById.get(e.category_id) || "")) {
-          const serials = parseSerials(e.serial_number, q);
+        const needsSN = isSerialCategory(catById.get(e.category_id) || "") || titleNeedsSerial(e.title || "");
+        const serials = parseSerials(e.serial_number, q);
+        const hasRealSerial = serials.some((s) => s);
+        if (needsSN || hasRealSerial) {
           const shown = serials.map((s) => s || "(n° manquant)");
           desc += ` — N° série : ${shown.join(", ")}`;
-          const missing = serials.filter((s) => !s).length;
-          if (missing) warnings.push(`${e.title} : ${missing}/${q} n° de série manquant(s) — obligatoire pour Grenke.`);
+          if (needsSN) {
+            const missing = serials.filter((s) => !s).length;
+            if (missing) warnings.push(`${e.title} : ${missing}/${q} n° de série manquant(s) — obligatoire pour Grenke.`);
+          }
         }
         return { Description: desc, Quantity: 1, UnitPriceExcl: lineTotal, VATPercentage: vatRate };
       });
