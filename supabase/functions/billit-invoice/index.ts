@@ -165,13 +165,14 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
 
   // Lignes selon la nature
   let lines: BuiltOrder["lines"] = [];
-  if (isLeaser && contract?.contract_equipment?.length) {
-    lines = contract.contract_equipment.map((e: any) => ({
-      Description: e.title || "Équipement",
-      Quantity: e.quantity || 1,
-      UnitPriceExcl: round2((e.purchase_price || 0) + (e.margin || 0)),
-      VATPercentage: vatRate,
-    }));
+  if (isLeaser) {
+    // Facture au bailleur = montant FINANCÉ (≠ somme prix+marge des équipements).
+    // Une ligne unique au montant financé, décrivant le matériel.
+    const titles = (contract?.contract_equipment || []).map((e: any) => e.title).filter(Boolean);
+    const desc = titles.length
+      ? `Financement — ${titles.slice(0, 3).join(", ")}${titles.length > 3 ? ` (+${titles.length - 3})` : ""} — contrat ${contract?.contract_number || ""}`.trim()
+      : `Financement contrat ${contract?.contract_number || invoice.invoice_number || ""}`.trim();
+    lines = [{ Description: desc, Quantity: 1, UnitPriceExcl: amount, VATPercentage: vatRate }];
   } else if (isSelf) {
     lines = [{ Description: `Loyer mensuel — contrat ${contract?.contract_number || ""}`.trim(), Quantity: 1, UnitPriceExcl: amount, VATPercentage: vatRate }];
   } else if (Array.isArray(bd.equipment) && bd.equipment.length) {
