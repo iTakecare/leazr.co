@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PostalCodeInput } from '@/components/form/PostalCodeInput';
 import { linkClientToAmbassador, getClientAmbassador, updateClientAmbassador } from '@/services/ambassador/ambassadorClients';
 import { createClient, getClientById, updateClient } from '@/services/clientService';
@@ -36,6 +37,7 @@ const ClientForm = () => {
     postal_code: '',
     country: '',
     vat_number: '',
+    invoice_delivery_method: 'peppol',
     notes: '',
     logo_url: ''
   });
@@ -97,6 +99,7 @@ const ClientForm = () => {
           postal_code: client.postal_code || '',
           country: client.country || '',
           vat_number: client.vat_number || '',
+          invoice_delivery_method: (client as any).invoice_delivery_method || 'peppol',
           notes: client.notes || '',
           logo_url: client.logo_url || ''
         });
@@ -347,7 +350,24 @@ const ClientForm = () => {
                     onChange={(e) => handleInputChange('vat_number', e.target.value)}
                   />
                 </div>
-                
+
+                <div>
+                  <Label htmlFor="invoice_delivery_method">Canal d'envoi des factures</Label>
+                  <Select
+                    value={formData.invoice_delivery_method}
+                    onValueChange={(v) => handleInputChange('invoice_delivery_method', v)}
+                  >
+                    <SelectTrigger id="invoice_delivery_method">
+                      <SelectValue placeholder="Choisir un canal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="peppol">📡 Peppol (e-facture, pros enregistrés)</SelectItem>
+                      <SelectItem value="email">✉️ Email (PDF)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">Via Billit. Peppol nécessite un n° de TVA ; repli mail automatique si le client n'est pas sur le réseau.</p>
+                </div>
+
                 <div className="md:col-span-2">
                   <Label htmlFor="notes">Notes</Label>
                   <Textarea

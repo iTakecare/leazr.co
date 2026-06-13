@@ -60,6 +60,9 @@ export interface Client {
   kyc_score_computed_at?: string | null;
   voice_consent_given_at?: string | null;
   company_id?: string;
+  // Canal d'envoi des factures via Billit : peppol (pros enregistrés) | email
+  invoice_delivery_method?: 'peppol' | 'email' | null;
+  peppol_identifier?: string | null;
 }
 
 export interface CreateClientData {

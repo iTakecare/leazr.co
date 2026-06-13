@@ -483,6 +483,43 @@ export const sendInvoiceToBillit = async (invoiceId: string) => {
   }
 };
 
+// ---- Nouveau moteur d'envoi (billit-invoice) : Peppol pour les pros / Grenke,
+// mail sinon. preview = aucune écriture ; create = brouillon Billit ; send = envoi.
+export interface BillitInvoiceRecap {
+  invoice_id: string;
+  invoice_number: string | null;
+  recipient: { kind: "leaser" | "client"; name: string; vat: string | null; email: string | null; address: string };
+  channel: "peppol" | "email";
+  lines: Array<{ description: string; quantity: number; unit_excl: number; vat: number }>;
+  total_excl: number;
+  warnings: string[];
+}
+
+const callBillitInvoice = async (companyId: string, action: "preview" | "create" | "send", invoiceId: string) => {
+  const { data, error } = await supabase.functions.invoke("billit-invoice", { body: { companyId, action, invoiceId } });
+  if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error || "Échec de l'opération Billit");
+  return data;
+};
+
+// Récap (destinataire + canal + lignes + total + warnings) SANS rien écrire
+export const previewBillitInvoice = async (companyId: string, invoiceId: string): Promise<BillitInvoiceRecap> => {
+  const data = await callBillitInvoice(companyId, "preview", invoiceId);
+  return data.preview as BillitInvoiceRecap;
+};
+
+// Crée la facture dans Billit en BROUILLON (rien n'est envoyé au client)
+export const createBillitInvoiceDraft = async (companyId: string, invoiceId: string) => {
+  const data = await callBillitInvoice(companyId, "create", invoiceId);
+  return data as { created?: boolean; already?: boolean; external_invoice_id: string; pdf_url?: string | null; recap?: BillitInvoiceRecap };
+};
+
+// Envoie le brouillon via le bon transport (Peppol/Email), repli mail si Peppol échoue
+export const sendBillitInvoiceNow = async (companyId: string, invoiceId: string) => {
+  const data = await callBillitInvoice(companyId, "send", invoiceId);
+  return data as { sent: boolean; channel: "peppol" | "email"; fallback: boolean };
+};
+
 // Tester l'intégration Billit
 export const testBillitIntegration = async (companyId: string) => {
   try {

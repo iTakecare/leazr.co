@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2, Pencil, Receipt, AlertTriangle, RefreshCw } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, downloadBillitInvoicePdf, updateInvoicePaidDate, updateInvoiceDate, updateInvoiceDueDate, recalculateInvoiceFromOffer, type Invoice } from "@/services/invoiceService";
+import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, downloadBillitInvoicePdf, updateInvoicePaidDate, updateInvoiceDate, updateInvoiceDueDate, recalculateInvoiceFromOffer, type Invoice } from "@/services/invoiceService";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import EditableBillingDataTable from "@/components/invoices/EditableBillingDataTable";
 import { CreateCreditNoteDialog } from "@/components/invoicing/CreateCreditNoteDialog";
 import LeaserDocumentSendCard from "@/components/invoicing/LeaserDocumentSendCard";
+import BillitInvoiceCard from "@/components/invoicing/BillitInvoiceCard";
 
 const InvoiceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,7 +32,6 @@ const InvoiceDetailPage = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
-  const [isSendingToBillit, setIsSendingToBillit] = useState(false);
   const [invoiceDate, setInvoiceDate] = useState<Date | undefined>(undefined);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [paidDate, setPaidDate] = useState<Date | undefined>(undefined);
@@ -148,29 +148,6 @@ const InvoiceDetailPage = () => {
       toast.error("Erreur lors du téléchargement du PDF");
     } finally {
       setIsGeneratingPdf(false);
-    }
-  };
-
-  const handleSendToBillit = async () => {
-    if (!invoice) return;
-
-    setIsSendingToBillit(true);
-    try {
-      const updatedInvoice = await sendInvoiceToBillit(invoice.id);
-      toast.success("Facture envoyée vers Billit avec succès !");
-      
-      // Mettre à jour la facture locale
-      setInvoice({ 
-        ...invoice, 
-        status: 'sent',
-        external_invoice_id: updatedInvoice.external_invoice_id,
-        sent_at: new Date().toISOString()
-      });
-    } catch (error: any) {
-      console.error("Erreur lors de l'envoi vers Billit:", error);
-      toast.error(error.message || "Erreur lors de l'envoi vers Billit");
-    } finally {
-      setIsSendingToBillit(false);
     }
   };
 
@@ -647,30 +624,15 @@ const InvoiceDetailPage = () => {
               )}
 
               {invoice.status === 'draft' && (
-                <>
-                  <Button 
-                    className="w-full" 
-                    onClick={handleSendToBillit}
-                    disabled={isSendingToBillit}
-                  >
-                    {isSendingToBillit ? (
-                      <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                    ) : (
-                      <Mail className="h-4 w-4 mr-2" />
-                    )}
-                    Envoyer vers Billit
-                  </Button>
-                  
-                  <Button 
-                    variant="outline"
-                    className="w-full" 
-                    onClick={() => handleStatusChange('sent')}
-                    disabled={isUpdatingStatus}
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Marquer manuellement comme envoyée
-                  </Button>
-                </>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleStatusChange('sent')}
+                  disabled={isUpdatingStatus}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Marquer manuellement comme envoyée
+                </Button>
               )}
               
               {invoice.status === 'sent' && (
@@ -737,6 +699,12 @@ const InvoiceDetailPage = () => {
               </AlertDialog>
             </CardContent>
           </Card>
+
+          {/* Envoi via Billit (Peppol pros/Grenke, mail sinon) — récap + brouillon + envoi 1-clic */}
+          <BillitInvoiceCard
+            invoice={invoice}
+            onUpdate={(patch) => setInvoice({ ...invoice, ...patch })}
+          />
 
           {/* Carte envoi bailleur — visible uniquement pour factures ITC-YYYY-NNNN */}
           <LeaserDocumentSendCard
