@@ -33,6 +33,32 @@ const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const addDaysISO = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
 
+// Catégories dont le n° de série est OBLIGATOIRE sur la facture Grenke
+// (ordinateur, ordinateur portable, smartphone, tablette).
+function isSerialCategory(name: string): boolean {
+  const x = (name || "").toLowerCase().trim();
+  return ["laptop", "desktop", "smartphone", "tablette", "tablet"].includes(x) || /ordinateur|portable/.test(x);
+}
+function isPlaceholderSN(s: string): boolean {
+  const x = (s || "").trim().toLowerCase();
+  return !x || x === "tbd" || x === "na" || x === "n/a" || x === "-" || /^0+$/.test(x);
+}
+// serial_number = tableau JSON (un par unité). Renvoie q entrées, null si manquant/placeholder.
+function parseSerials(raw: string | null, q: number): (string | null)[] {
+  let arr: string[] = [];
+  if (raw) {
+    try {
+      const p = JSON.parse(raw);
+      arr = Array.isArray(p) ? p.map((x) => String(x)) : [String(raw)];
+    } catch {
+      arr = String(raw).split(/[,;]+/).map((s) => s.trim());
+    }
+  }
+  const clean = arr.map((s) => (isPlaceholderSN(s) ? null : s.trim()));
+  while (clean.length < q) clean.push(null);
+  return clean.slice(0, q);
+}
+
 // En-tête Billit (PartyID, PAS ContextPartyID).
 function headers(apiKey: string, partyId?: string | null): Record<string, string> {
   const h: Record<string, string> = { ApiKey: apiKey, "Content-Type": "application/json", Accept: "application/json" };
@@ -81,12 +107,12 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   const vatRate = typeof bd.tva_rate === "number" ? bd.tva_rate : 21;
   const amount = round2(invoice.amount || 0);
 
-  // Contrat + offre liés
+  // Contrat + offre liés (avec serial_number + category_id pour les n° de série Grenke)
   let contract: any = null;
   if (invoice.contract_id) {
     const { data } = await supabase
       .from("contracts")
-      .select("id, client_id, leaser_id, leaser_name, contract_number, offer_id, contract_equipment(title, quantity, purchase_price, margin)")
+      .select("id, client_id, leaser_id, leaser_name, contract_number, offer_id, contract_equipment(title, quantity, purchase_price, margin, serial_number, category_id)")
       .eq("id", invoice.contract_id).maybeSingle();
     contract = data;
   }
@@ -166,13 +192,39 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   // Lignes selon la nature
   let lines: BuiltOrder["lines"] = [];
   if (isLeaser) {
-    // Facture au bailleur = montant FINANCÉ (≠ somme prix+marge des équipements).
-    // Une ligne unique au montant financé, décrivant le matériel.
-    const titles = (contract?.contract_equipment || []).map((e: any) => e.title).filter(Boolean);
-    const desc = titles.length
-      ? `Financement — ${titles.slice(0, 3).join(", ")}${titles.length > 3 ? ` (+${titles.length - 3})` : ""} — contrat ${contract?.contract_number || ""}`.trim()
-      : `Financement contrat ${contract?.contract_number || invoice.invoice_number || ""}`.trim();
-    lines = [{ Description: desc, Quantity: 1, UnitPriceExcl: amount, VATPercentage: vatRate }];
+    // Facture au bailleur (Grenke) = montant FINANCÉ (≠ somme prix+marge : coefficient
+    // leaser). On itémise par équipement et on répartit le montant financé au prorata
+    // de (prix+marge) ; le total reste EXACT (le dernier poste absorbe l'arrondi).
+    // Le n° de série est ajouté pour ordi/portable/smartphone/tablette (obligatoire Grenke).
+    const eqs: any[] = contract?.contract_equipment || [];
+    if (eqs.length) {
+      // catégories (id -> nom) pour savoir lesquelles exigent le n° de série
+      const catIds = [...new Set(eqs.map((e) => e.category_id).filter(Boolean))];
+      const catById = new Map<string, string>();
+      if (catIds.length) {
+        const { data: cats } = await supabase.from("categories").select("id, name").in("id", catIds);
+        for (const c of cats || []) catById.set(c.id, c.name);
+      }
+      const bases = eqs.map((e) => Math.max(0, (e.purchase_price || 0) + (e.margin || 0)) * (e.quantity || 1));
+      const sumBase = bases.reduce((s, x) => s + x, 0);
+      let allocated = 0;
+      lines = eqs.map((e, i) => {
+        const q = e.quantity || 1;
+        const isLast = i === eqs.length - 1;
+        let lineTotal = sumBase > 0 ? round2(amount * (bases[i] / sumBase)) : round2(amount / eqs.length);
+        if (isLast) lineTotal = round2(amount - allocated);
+        else allocated = round2(allocated + lineTotal);
+        let desc = `${q > 1 ? q + "× " : ""}${e.title || "Équipement"}`;
+        if (isSerialCategory(catById.get(e.category_id) || "")) {
+          const serials = parseSerials(e.serial_number, q);
+          const shown = serials.map((s) => s || "(n° manquant)");
+          desc += ` — N° série : ${shown.join(", ")}`;
+          const missing = serials.filter((s) => !s).length;
+          if (missing) warnings.push(`${e.title} : ${missing}/${q} n° de série manquant(s) — obligatoire pour Grenke.`);
+        }
+        return { Description: desc, Quantity: 1, UnitPriceExcl: lineTotal, VATPercentage: vatRate };
+      });
+    }
   } else if (isSelf) {
     lines = [{ Description: `Loyer mensuel — contrat ${contract?.contract_number || ""}`.trim(), Quantity: 1, UnitPriceExcl: amount, VATPercentage: vatRate }];
   } else if (Array.isArray(bd.equipment) && bd.equipment.length) {
