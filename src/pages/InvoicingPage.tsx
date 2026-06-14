@@ -3,7 +3,8 @@ import WaveLoader from "@/components/ui/WaveLoader";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3 } from "lucide-react";
+import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3, RefreshCw } from "lucide-react";
+import { importBillitSalesInvoices } from "@/services/invoiceService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -31,7 +32,22 @@ const InvoicingPage = () => {
   const { invoices, loading, fetchInvoices } = useInvoices();
   const { creditNotes, loading: creditNotesLoading, fetchCreditNotes } = useCreditNotes();
   const [searchTerm, setSearchTerm] = useState("");
+  const [syncingStatuses, setSyncingStatuses] = useState(false);
   const [sortBy, setSortBy] = useState<InvoiceSortBy>('invoice_number');
+
+  const handleSyncStatuses = async () => {
+    if (!companyId) return;
+    setSyncingStatuses(true);
+    try {
+      const r: any = await importBillitSalesInvoices(companyId, "2026-01-01");
+      toast.success(`Statuts synchronisés depuis Billit (${r?.linked ?? 0} facture(s) à jour)`);
+      await fetchInvoices();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur de synchronisation des statuts");
+    } finally {
+      setSyncingStatuses(false);
+    }
+  };
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -255,10 +271,16 @@ const InvoicingPage = () => {
                 <p className="text-muted-foreground">Gérez vos factures et notes de crédit</p>
               </div>
             </div>
-            <Button onClick={() => setNewInvoiceOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle facture
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleSyncStatuses} disabled={syncingStatuses}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncingStatuses ? "animate-spin" : ""}`} />
+                {syncingStatuses ? "Synchronisation..." : "Synchroniser les statuts (Billit)"}
+              </Button>
+              <Button onClick={() => setNewInvoiceOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle facture
+              </Button>
+            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={handleTabChange}>
