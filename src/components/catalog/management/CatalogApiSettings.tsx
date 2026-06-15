@@ -457,8 +457,8 @@ const CatalogApiSettings = () => {
     {
       method: 'POST',
       path: 'create-product-request (Edge Function)',
-      description: 'Créer une demande de devis/commande. Le champ reference_number (obtenu via next-reference) est utilisé comme numéro de dossier. Si absent, un numéro séquentiel est généré automatiquement. Le tableau optionnel external_services attache des services de prestataires externes (téléphonie, etc.) à la demande — leur prix est facturé directement par le prestataire et n\'est PAS ajouté au loyer mensuel. Ces services apparaissent dans une carte dédiée du PDF de l\'offre.',
-      body: '{\n  "products": [{ "product_id": "uuid", "variant_id": "uuid", "quantity": 2, "unit_price": 25.99 }],\n  "contact_info": { "first_name": "Jean", "last_name": "Dupont", "email": "jean@example.com" },\n  "company_info": { "company_name": "Acme SA", "vat_number": "BE0123456789" },\n  "reference_number": "ITC-2026-OFF-9976",\n  "partner_slug": "the-pod",\n  "partner_name": "The Pod",\n  "external_services": [\n    { "provider_name": "Proximus", "product_name": "Mobile Pro", "price_htva": 9.99, "billing_period": "monthly", "quantity": 1 }\n  ]\n}',
+      description: 'Créer une demande de devis/commande. Le champ reference_number (obtenu via next-reference) est utilisé comme numéro de dossier. Si absent, un numéro séquentiel est généré automatiquement. Le tableau optionnel external_services attache des services de prestataires externes (téléphonie, etc.) à la demande — leur prix est facturé directement par le prestataire et n\'est PAS ajouté au loyer mensuel. Ces services apparaissent dans une carte dédiée du PDF de l\'offre. Les champs optionnels voice_consent et messaging_consent (booléens, racine) captent le consentement RGPD du contact aux appels IA (Alex) et aux messages WhatsApp/SMS.',
+      body: '{\n  "products": [{ "product_id": "uuid", "variant_id": "uuid", "quantity": 2, "unit_price": 25.99 }],\n  "contact_info": { "first_name": "Jean", "last_name": "Dupont", "email": "jean@example.com" },\n  "company_info": { "company_name": "Acme SA", "vat_number": "BE0123456789" },\n  "reference_number": "ITC-2026-OFF-9976",\n  "partner_slug": "the-pod",\n  "partner_name": "The Pod",\n  "external_services": [\n    { "provider_name": "Proximus", "product_name": "Mobile Pro", "price_htva": 9.99, "billing_period": "monthly", "quantity": 1 }\n  ],\n  "voice_consent": true,\n  "messaging_consent": true\n}',
       example: '{ "success": true, "request_id": "uuid", "message": "Demande créée avec succès" }'
     }
   ];
@@ -740,6 +740,23 @@ const CatalogApiSettings = () => {
                 <div className="mt-2 bg-emerald-100 p-2 rounded text-xs font-mono text-emerald-900">
                   curl -X POST "{baseApiUrl}/partners/slug/next-reference" -H "x-api-key: VOTRE_CLE"<br/>
                   → {`{ "reference_number": "ITC-2026-OFF-9976" }`}
+                </div>
+              </div>
+
+              <div className="bg-rose-50 border border-rose-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-rose-900 mb-2">🔒 Consentement RGPD — contact IA / WhatsApp / SMS (v2026.7)</h4>
+                <p className="text-sm text-rose-700 mb-2">
+                  L'endpoint <code className="bg-rose-100 px-1 rounded">create-product-request</code> capte le consentement du contact à être recontacté. À envoyer à la <strong>racine</strong> de la requête, en booléen :
+                </p>
+                <ul className="text-sm text-rose-700 space-y-1">
+                  <li>• <code className="bg-rose-100 px-1 rounded">voice_consent</code> (boolean) — appels téléphone + <strong>assistant vocal IA (Alex)</strong></li>
+                  <li>• <code className="bg-rose-100 px-1 rounded">messaging_consent</code> (boolean) — <strong>WhatsApp / SMS</strong></li>
+                  <li>• Envoyer <code className="bg-rose-100 px-1 rounded">true</code> uniquement si la case de consentement est cochée (jamais pré-cochée — RGPD)</li>
+                  <li>• Horodatage <strong>unique</strong> côté Leazr (<code className="bg-rose-100 px-1 rounded">voice_consent_given_at</code>, <code className="bg-rose-100 px-1 rounded">messaging_opt_in_at</code>) ; la date d'origine est préservée et l'enregistrement ne bloque jamais la demande</li>
+                  <li>• Une seule case combinée OU deux cases distinctes (consentement granulaire) — l'API traite les deux indépendamment</li>
+                </ul>
+                <div className="mt-2 bg-rose-100 p-2 rounded text-xs font-mono text-rose-900">
+                  {`{ "contact_info": {...}, "products": [...], "voice_consent": true, "messaging_consent": true }`}
                 </div>
               </div>
             </CardHeader>
