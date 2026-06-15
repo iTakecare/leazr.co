@@ -577,8 +577,21 @@ async function findMatchingPack(
     console.log('[META IMPORT] No active packs found');
     return null;
   }
-  
-  console.log('[META IMPORT] Found', packs.length, 'active packs to check');
+
+  // Exclude packs assigned to partners: public Meta leads must only match public packs
+  // (a partner pack is client-specific and would otherwise steal a price/name match)
+  const { data: partnerPackRows } = await supabase
+    .from('partner_packs')
+    .select('pack_id');
+  const partnerPackIds = new Set((partnerPackRows || []).map((r: any) => r.pack_id));
+  const publicPacks = packs.filter((p: any) => !partnerPackIds.has(p.id));
+
+  if (publicPacks.length === 0) {
+    console.log('[META IMPORT] No public (non-partner) packs to match against');
+    return null;
+  }
+
+  console.log('[META IMPORT] Found', packs.length, 'active packs,', publicPacks.length, 'public (non-partner) to check');
   
   // Search terms from the parsed pack (main product keywords)
   const searchTerms = parsedPack.formattedProducts.map(p => {
@@ -596,7 +609,7 @@ async function findMatchingPack(
     console.log('[META IMPORT] Using price-based matching. Target:', targetPrice, '€');
     
     // Find packs matching the price
-    const priceMatchedPacks = packs.filter((pack: any) => {
+    const priceMatchedPacks = publicPacks.filter((pack: any) => {
       const effectivePrice = pack.promo_active && pack.pack_promo_price
         ? pack.pack_promo_price
         : (pack.pack_monthly_price || pack.total_monthly_price || 0);
@@ -647,8 +660,8 @@ async function findMatchingPack(
   
   let bestMatch: any = null;
   let bestScore = 0;
-  
-  for (const pack of packs) {
+
+  for (const pack of publicPacks) {
     const score = calculatePackScore(pack.name, searchTerms);
     const matchedTerms = countMatchedTerms(pack.name, searchTerms);
     
