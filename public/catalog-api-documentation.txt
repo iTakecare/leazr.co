@@ -48,6 +48,13 @@ EXEMPLE (payload create-product-request) :
 }
 ```
 
+TYPAGE (à ajouter à l'interface du payload, ex. ProductRequestData) :
+
+```ts
+voice_consent?: boolean;     // consentement appels téléphone + assistant vocal IA (Alex)
+messaging_consent?: boolean; // consentement WhatsApp / SMS
+```
+
 ===========================================
    NOUVEAUTES VERSION 2026.6
 ===========================================
