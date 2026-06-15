@@ -1,7 +1,7 @@
 # iTakecare - Documentation API Complète
 
-**Version :** 2025.7  
-**Dernière mise à jour :** 24 novembre 2025  
+**Version :** 2026.1  
+**Dernière mise à jour :** 14 juin 2026  
 **Base URL :** `https://cifbetjefyfocafanlhv.supabase.co/functions/v1`
 
 ---
@@ -14,6 +14,7 @@
 4. [API Product Request](#api-product-request)
    - [Identification du Type de Demande](#identification-du-type-de-demande-via-source)
    - [Packs Personnalisés](#packs-personnalisés)
+   - [Consentements RGPD (appel IA / WhatsApp / SMS)](#consentements-rgpd-voice_consent--messaging_consent)
 5. [API Environmental](#api-environmental)
 6. [Structures de Données](#structures-de-données)
 7. [Gestion des Erreurs](#gestion-des-erreurs)
@@ -687,7 +688,9 @@ Content-Type: application/json
   ],
   "create_client_account": true,
   "notes": "Demande urgente pour le département IT",
-  "company_id": "optional-company-uuid"
+  "company_id": "optional-company-uuid",
+  "voice_consent": true,
+  "messaging_consent": true
 }
 ```
 
@@ -721,6 +724,29 @@ Ce champ contient la **mensualité totale** pour le produit (pas unitaire). iTak
 - `create_client_account` : Créer un compte utilisateur (défaut: false)
 - `notes` : Remarques additionnelles
 - `delivery_info` : Adresse de livraison différente
+- `voice_consent` (boolean, défaut: false) : Consentement RGPD à être recontacté par **téléphone, y compris par l'assistant vocal IA (Alex)**
+- `messaging_consent` (boolean, défaut: false) : Consentement RGPD à être recontacté par **WhatsApp / SMS**
+
+### Consentements RGPD (`voice_consent` / `messaging_consent`)
+
+Ces deux champs **booléens à la racine de la requête** captent le consentement du contact à être recontacté, selon la finalité. Ils sont **optionnels** mais **recommandés** : sans consentement, iTakecare ne sollicitera pas le contact par le canal concerné.
+
+- Envoyer `true` **uniquement** si l'internaute a coché la case de consentement correspondante sur le formulaire. Ne jamais pré-cocher (RGPD : consentement libre et explicite).
+- `voice_consent: true` → autorise les **appels téléphoniques et l'agent vocal IA**.
+- `messaging_consent: true` → autorise les **messages WhatsApp et SMS**.
+- Les deux peuvent être regroupés sous une **seule case** côté site (« J'accepte d'être recontacté par téléphone, y compris assistant vocal, WhatsApp ou SMS ») ou présentés en **deux cases distinctes** pour un consentement granulaire.
+
+**Traitement côté iTakecare :** à la première demande où `true` est reçu, la date de consentement est **horodatée une seule fois** sur la fiche client (`voice_consent_given_at`, `messaging_opt_in_at`) — la date d'origine est préservée lors des demandes suivantes (la loi retient la date du **premier** consentement). L'absence ou l'échec d'enregistrement du consentement **ne bloque jamais** la création de la demande.
+
+```json
+{
+  "contact_info": { "first_name": "Jean", "last_name": "Dupont", "email": "jean.dupont@example.com", "phone": "+32 470 12 34 56" },
+  "company_info": { "company_name": "Ma Société SPRL" },
+  "products": [ { "product_id": "uuid", "quantity": 1, "unit_price": 49.99 } ],
+  "voice_consent": true,
+  "messaging_consent": true
+}
+```
 
 ### Calculs Financiers
 
@@ -1877,6 +1903,16 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3) {
 ---
 
 ## Changelog
+
+### Version 2026.1 - Consentement RGPD (appel IA + WhatsApp/SMS) - 14 juin 2026
+
+- **Nouveaux champs racine** `voice_consent` et `messaging_consent` (booléens, optionnels) sur l'API Product Request
+- `voice_consent` → consentement aux **appels téléphoniques et à l'assistant vocal IA (Alex)**
+- `messaging_consent` → consentement aux **messages WhatsApp / SMS**
+- Côté iTakecare : horodatage **unique** du consentement sur la fiche client (`voice_consent_given_at`, `messaging_opt_in_at`), la date d'origine étant préservée ; enregistrement **non bloquant** pour la création de la demande
+- Recommandation site : case(s) de consentement **non pré-cochée(s)** ; possibilité d'une case unique combinée ou de deux cases distinctes (consentement granulaire)
+
+---
 
 ### Version 2025.7 - Identification des Types de Demandes - 24 novembre 2025
 
