@@ -1,10 +1,52 @@
 ===========================================
-   DOCUMENTATION API CATALOG LOVABLE
+   DOCUMENTATION API CATALOG
 ===========================================
 
-VERSION : 2026.6
-DATE : 20 mai 2026 — Prestataires externes sur les pages produit du catalogue
+VERSION : 2026.7
+DATE : 15 juin 2026 — Consentement RGPD (appel IA + WhatsApp/SMS) au formulaire
 STATUT : Prêt pour production
+
+===========================================
+   NOUVEAUTES VERSION 2026.7
+===========================================
+
+Le formulaire public (create-product-request) capte le consentement RGPD du
+contact à être recontacté, par finalité.
+
+NOUVELLES FONCTIONNALITES :
+
+1. **Champs de consentement (create-product-request)**
+   - `voice_consent` (boolean, optionnel, racine) : autorise les appels
+     téléphoniques ET l'assistant vocal IA (Alex)
+   - `messaging_consent` (boolean, optionnel, racine) : autorise les messages
+     WhatsApp et SMS
+   - Envoyer `true` UNIQUEMENT si la case de consentement est cochée par
+     l'internaute (jamais pré-cochée — consentement libre et explicite, RGPD)
+
+2. **Une ou deux cases au choix côté site**
+   - Case unique combinée : "J'accepte d'être recontacté par téléphone (y
+     compris assistant vocal), WhatsApp ou SMS" → envoyer les deux champs à true
+   - OU deux cases distinctes pour un consentement granulaire — l'API traite
+     `voice_consent` et `messaging_consent` indépendamment
+
+3. **Traitement côté Leazr**
+   - Horodatage UNIQUE sur la fiche client : `voice_consent_given_at` et
+     `messaging_opt_in_at` (la date du PREMIER consentement est préservée)
+   - Enregistrement NON bloquant : une demande aboutit même si la capture du
+     consentement échoue
+   - Aucune migration ni champ obligatoire : rétro-compatible
+
+EXEMPLE (payload create-product-request) :
+
+```
+{
+  "contact_info": { "first_name": "Jean", "last_name": "Dupont", "email": "jean@example.com" },
+  "company_info": { "company_name": "Acme SA" },
+  "products": [ { "product_id": "uuid", "quantity": 1, "unit_price": 25.99 } ],
+  "voice_consent": true,
+  "messaging_consent": true
+}
+```
 
 ===========================================
    NOUVEAUTES VERSION 2026.6
@@ -1576,6 +1618,17 @@ CREATE TABLE mdm_commands (
    HISTORIQUE DES VERSIONS
 ===========================================
 
+## Version 2026.7 - 15 juin 2026
+**Consentement RGPD au formulaire public (appel IA + WhatsApp/SMS)**
+
+NOUVELLES FONCTIONNALITES :
+- ✅ Champ `voice_consent` (boolean) sur create-product-request : appels + agent vocal IA (Alex)
+- ✅ Champ `messaging_consent` (boolean) sur create-product-request : WhatsApp / SMS
+- ✅ Horodatage unique côté client (voice_consent_given_at, messaging_opt_in_at), non bloquant
+- ✅ Case unique combinée OU deux cases distinctes (consentement granulaire)
+- ✅ Rétro-compatible : champs optionnels, aucune migration
+
+
 ## Version 2026.5 - 16 mars 2026
 **Endpoints MDM complets pour intégration externe**
 
@@ -1666,6 +1719,7 @@ NOUVELLES FONCTIONNALITÉS :
 - Demandes partenaires : Operationnel (partner_slug, partner_name)
 - Services externes : Table offer_external_services active
 - MDM : Endpoints complets (appareils, logiciels, profils, enrôlement, commandes)
-- Documentation : A jour version 2026.5
+- Consentement RGPD : voice_consent + messaging_consent sur create-product-request
+- Documentation : A jour version 2026.7
 
-Documentation technique - Version 2026.5 (16 mars 2026)
+Documentation technique - Version 2026.7 (15 juin 2026)
