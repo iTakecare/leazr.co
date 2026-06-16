@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { ClientOffer } from "@/hooks/useClientOffers";
 
 interface ClientOffersTableLightProps {
@@ -40,7 +40,7 @@ const getStatusBadge = (status: string, workflowStatus?: string) => {
 };
 
 const ClientOffersTableLight: React.FC<ClientOffersTableLightProps> = ({ offers }) => {
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
 
   const formatDate = (date: string) => {
     try {
@@ -115,7 +115,7 @@ const ClientOffersTableLight: React.FC<ClientOffersTableLightProps> = ({ offers 
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate(`/offers/${offer.id}`)}
+                onClick={() => navigateToAdmin(`offers/${offer.id}`)}
               >
                 <Eye className="h-4 w-4" />
               </Button>

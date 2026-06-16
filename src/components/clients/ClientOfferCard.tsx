@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Calendar, Euro, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { ClientOffer } from "@/hooks/useClientOffers";
 
 interface ClientOfferCardProps {
@@ -35,7 +35,7 @@ const getStatusBadge = (status: string, workflowStatus?: string) => {
 };
 
 const ClientOfferCard: React.FC<ClientOfferCardProps> = ({ offer }) => {
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
 
   const formatDate = (date: string) => {
     try {
@@ -103,7 +103,7 @@ const ClientOfferCard: React.FC<ClientOfferCardProps> = ({ offer }) => {
           variant="outline" 
           size="sm" 
           className="w-full"
-          onClick={() => navigate(`/offers/${offer.id}`)}
+          onClick={() => navigateToAdmin(`offers/${offer.id}`)}
         >
           <Eye className="h-4 w-4 mr-2" />
           Voir la demande

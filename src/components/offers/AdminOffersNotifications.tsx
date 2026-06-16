@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { formatCurrency, formatDistanceToNow } from "@/utils/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const AdminOffersNotifications = () => {
+  const { companySlug } = useRoleNavigation();
   const [pendingOffers, setPendingOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -211,7 +213,7 @@ const AdminOffersNotifications = () => {
                     className="flex-1"
                     asChild
                   >
-                    <Link to={`/offers/${offer.id}`}>
+                    <Link to={companySlug ? `/${companySlug}/admin/offers/${offer.id}` : `/offers/${offer.id}`}>
                       <ExternalLink className="h-4 w-4 mr-1" />
                       Détails
                     </Link>

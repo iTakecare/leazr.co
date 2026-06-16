@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, Calendar, Euro, Eye, FileCheck } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { ClientOffer } from "@/hooks/useClientOffers";
 
 interface ClientDirectSaleCardProps {
@@ -31,7 +31,7 @@ const getStatusBadge = (status: string, workflowStatus?: string) => {
 };
 
 const ClientDirectSaleCard: React.FC<ClientDirectSaleCardProps> = ({ sale }) => {
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
 
   const formatDate = (date: string) => {
     try {
@@ -98,7 +98,7 @@ const ClientDirectSaleCard: React.FC<ClientDirectSaleCardProps> = ({ sale }) => 
           variant="outline" 
           size="sm" 
           className="w-full"
-          onClick={() => navigate(`/offers/${sale.id}`)}
+          onClick={() => navigateToAdmin(`offers/${sale.id}`)}
         >
           <Eye className="h-4 w-4 mr-2" />
           Voir la vente
