@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
 import { getWorkflowLogs, getOfferNotes, deleteOffer, generateSignatureLink } from "@/services/offerService";
+import { fetchOfferCompanyBranding } from "@/services/offers/offerCompanyBranding";
 import { useOfferDetail } from "@/hooks/offers/useOfferDetail";
 import { formatCurrency } from "@/utils/formatters";
 import { format, differenceInMonths } from "date-fns";
@@ -262,6 +263,9 @@ const AmbassadorOfferDetail = () => {
         return;
       }
 
+      // Branding white-label de l'entreprise émettrice (coordonnées par tenant).
+      const companyBranding = await fetchOfferCompanyBranding(offer.company_id);
+
       // Formater l'adresse de facturation complète
       const billingAddress = clientData ? 
         [
@@ -360,7 +364,13 @@ const AmbassadorOfferDetail = () => {
         clientCompany: offer.client_company || '',
         clientAddress: billingAddress,
         companyLogo: companyLogoBase64,
-        companyName: companyData?.name || 'iTakecare',
+        companyName: companyBranding.companyName || companyData?.name || '',
+        companyAddress: companyBranding.companyAddress,
+        companyCity: companyBranding.companyCity,
+        companyPostalCode: companyBranding.companyPostalCode,
+        companyEmail: companyBranding.companyEmail,
+        companyPhone: companyBranding.companyPhone,
+        companyVatNumber: companyBranding.companyVatNumber,
         showPrintButton: false,
         isPDFMode: true,
         isPurchase: isPurchase,

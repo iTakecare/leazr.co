@@ -12,6 +12,7 @@ import {
 import { Offer } from "./useFetchOffers";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchOfferCompanyBranding } from "@/services/offers/offerCompanyBranding";
 
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -194,14 +195,17 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         return;
       }
 
+      // Branding white-label de l'entreprise émettrice (coordonnées par tenant).
+      const companyBranding = await fetchOfferCompanyBranding(offer.company_id);
+
       // Formater l'adresse de facturation complète
-      const billingAddress = clientData ? 
+      const billingAddress = clientData ?
         [
           clientData.billing_address,
           clientData.billing_postal_code,
           clientData.billing_city,
           clientData.billing_country
-        ].filter(Boolean).join(', ') 
+        ].filter(Boolean).join(', ')
         : '';
 
       // Convertir le logo en Base64 pour compatibilité html2canvas
@@ -323,7 +327,13 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         clientCompany: (offer as any).client_company || '',
         clientAddress: billingAddress,
         companyLogo: companyLogoBase64,
-        companyName: companyData?.name || 'iTakecare',
+        companyName: companyBranding.companyName || companyData?.name || '',
+        companyAddress: companyBranding.companyAddress,
+        companyCity: companyBranding.companyCity,
+        companyPostalCode: companyBranding.companyPostalCode,
+        companyEmail: companyBranding.companyEmail,
+        companyPhone: companyBranding.companyPhone,
+        companyVatNumber: companyBranding.companyVatNumber,
         showPrintButton: false,
         isPDFMode: true,
         isPurchase: isPurchase,
