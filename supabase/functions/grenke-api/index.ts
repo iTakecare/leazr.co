@@ -76,6 +76,7 @@ interface GrenkeRequest {
     | "reconcile_grenke_requests"
     | "link_grenke_request"
     | "reconcile_grenke_contracts"
+    | "sync_contract_instalments"
     | "get_grenke_submissions";
   environment?: Environment;
   // future fields (calculate, submit_offer, …) live under `payload`
@@ -274,6 +275,9 @@ serve(async (req) => {
 
       case "get_contract_doc":
         return await handleGetContractDoc(adminSupabase, companyId, environment, creds, body.offer_id);
+
+      case "sync_contract_instalments":
+        return await handleSyncContractInstalments(adminSupabase, companyId, environment, creds, body.payload ?? {});
 
       default:
         return jsonResponse({ success: false, error: "unknown_action", action }, 400);
@@ -2913,6 +2917,87 @@ async function handleDebugGrenkeLookup(environment: Environment, creds: Credenti
     const pc = body?.PageCount ?? 1; if (page >= pc || items.length === 0) break; page++;
   }
   return jsonResponse({ success: true, query, contracts, requests }, 200);
+}
+
+// =====================================================================
+// sync_contract_instalments — corrige contracts.monthly_payment depuis le
+// TotalInstalment réel facturé par Grenke (source de vérité), en matchant par
+// contract_number = ContractId Grenke (180-xxxx). payload.apply=false → dry-run
+// (renvoie les écarts sans écrire) ; apply=true → applique. Tolérance 0,50 €.
+// =====================================================================
+async function handleSyncContractInstalments(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  payload: Record<string, unknown>,
+): Promise<Response> {
+  const apply = payload.apply === true;
+
+  // 1. Récupère tous les contrats Grenke (paginé, tous états).
+  const grenkeContracts: GrenkeContractItem[] = [];
+  for (const st of GRENKE_CONTRACT_FETCH_STATES) {
+    let page = 1;
+    for (let guard = 0; guard < 50; guard++) {
+      let resp: Response;
+      try {
+        resp = await grenkeFetch(environment, `/basic/v1/contracts?contractListParameter.page=${page}&contractListParameter.pageSize=100&contractListParameter.state=${st}`, { method: "GET" }, creds);
+      } catch (e) {
+        return jsonResponse({ success: false, error: "network_or_tls_error", message: e instanceof Error ? e.message : String(e) }, 502);
+      }
+      if (!resp.ok) break;
+      const body = (await resp.json().catch(() => null)) as { Items?: GrenkeContractItem[]; PageCount?: number } | null;
+      const items = body?.Items ?? [];
+      grenkeContracts.push(...items);
+      const pc = body?.PageCount ?? 1;
+      if (page >= pc || items.length === 0) break;
+      page++;
+    }
+  }
+
+  // map ContractId -> TotalInstalment (mensualité réelle Grenke)
+  const instByCid = new Map<string, number>();
+  for (const c of grenkeContracts) {
+    if (c.ContractId != null && typeof c.TotalInstalment === "number") {
+      instByCid.set(String(c.ContractId), c.TotalInstalment);
+    }
+  }
+
+  // 2. Contrats Leazr de la société ayant un numéro de contrat.
+  const { data: leazrRows, error: lcErr } = await adminSupabase
+    .from("contracts")
+    .select("id, contract_number, monthly_payment")
+    .eq("company_id", companyId)
+    .not("contract_number", "is", null);
+  if (lcErr) return jsonResponse({ success: false, error: "contract_lookup_failed", message: lcErr.message }, 500);
+
+  const changes: Array<{ contract_number: string; from: number; to: number }> = [];
+  let applied = 0;
+  for (const lc of ((leazrRows ?? []) as Array<{ id: string; contract_number: string; monthly_payment: number | null }>)) {
+    const inst = instByCid.get(String(lc.contract_number));
+    if (inst == null) continue;
+    const cur = lc.monthly_payment ?? 0;
+    if (Math.abs(cur - inst) > 0.5) {
+      const to = Math.round(inst * 100) / 100;
+      changes.push({ contract_number: lc.contract_number, from: cur, to });
+      if (apply) {
+        const { error: upErr } = await adminSupabase.from("contracts").update({ monthly_payment: to }).eq("id", lc.id);
+        if (!upErr) applied++;
+      }
+    }
+  }
+
+  changes.sort((a, b) => Math.abs(b.to - b.from) - Math.abs(a.to - a.from));
+  return jsonResponse({
+    success: true,
+    apply,
+    grenke_contracts: grenkeContracts.length,
+    grenke_with_instalment: instByCid.size,
+    leazr_contracts: (leazrRows ?? []).length,
+    changes_count: changes.length,
+    applied,
+    changes,
+  }, 200);
 }
 
 // Create a Leazr contract from an accepted Grenke contract when the matched
