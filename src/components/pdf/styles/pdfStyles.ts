@@ -3,6 +3,19 @@ import { StyleSheet, Font } from '@react-pdf/renderer';
 // Register fonts if needed (optional - uses Helvetica by default)
 // Font.register({ family: 'Roboto', src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5Q.ttf' });
 
+// Poppins (self-hébergé dans public/fonts) — utilisé par la page promo interfone
+// pour coller à leur charte (police arrondie). Enregistré ici car ce module est
+// importé avant tout rendu PDF. N'est chargé par react-pdf que s'il est référencé.
+Font.register({
+  family: 'Poppins',
+  fonts: [
+    { src: '/fonts/Poppins-Regular.ttf', fontWeight: 400 },
+    { src: '/fonts/Poppins-Medium.ttf', fontWeight: 500 },
+    { src: '/fonts/Poppins-SemiBold.ttf', fontWeight: 600 },
+    { src: '/fonts/Poppins-Bold.ttf', fontWeight: 700 },
+  ],
+});
+
 export const colors = {
   primary: '#33638e',      // Bleu foncé iTakecare
   primaryDark: '#1a2942',  // Bleu très foncé

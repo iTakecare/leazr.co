@@ -10,8 +10,8 @@ import type { ExternalProviderPDFLine } from './OfferPDFDocument';
  * le prestataire est interfone). Ces options sont facturées directement par interfone
  * et ne sont JAMAIS incluses dans la mensualité de location.
  *
- * Limitation : @react-pdf/renderer n'a pas de police arrondie type Poppins enregistrée ;
- * on utilise donc Helvetica/Helvetica-Bold (polices standard) pour rester fiable.
+ * Police : Poppins (self-hébergée dans public/fonts, enregistrée dans pdfStyles.ts)
+ * pour coller à la charte interfone (police arrondie).
  */
 
 // Palette interfone
@@ -44,7 +44,7 @@ const InterfoneWordmark: React.FC<{ size?: number; color?: string }> = ({
   size = 22,
   color = WHITE,
 }) => (
-  <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: size, color, letterSpacing: -0.5 }}>
+  <Text style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: size, color, letterSpacing: -0.5 }}>
     interfone
     <Text style={{ fontSize: size * 0.45 }}> ®</Text>
   </Text>
@@ -62,7 +62,7 @@ const PlusBadge: React.FC = () => (
         justifyContent: 'center',
       }}
     >
-      <Text style={{ color: WHITE, fontSize: 24, fontFamily: 'Helvetica-Bold', marginTop: -3 }}>
+      <Text style={{ color: WHITE, fontSize: 24, fontFamily: 'Poppins', fontWeight: 700, marginTop: -3 }}>
         +
       </Text>
     </View>
@@ -89,7 +89,7 @@ export const InterfonePromoPage: React.FC<InterfonePromoPageProps> = ({
         }}
       >
         <View style={{ flex: 1, paddingRight: 16 }}>
-          <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 21, color: WHITE, lineHeight: 1.2 }}>
+          <Text style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 21, color: WHITE, lineHeight: 1.2 }}>
             Transformez une bonne offre{'\n'}en une offre parfaite
           </Text>
         </View>
@@ -140,19 +140,19 @@ export const InterfonePromoPage: React.FC<InterfonePromoPageProps> = ({
                   maxWidth: '62%',
                 }}
               >
-                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 15, color: WHITE }}>
+                <Text style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 15, color: WHITE }}>
                   {name}
                   {qty}
                 </Text>
               </View>
-              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 16, color: MAGENTA, textAlign: 'right' }}>
+              <Text style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 16, color: MAGENTA, textAlign: 'right' }}>
                 {formatCurrency(line.price_htva)} HT {suffix}
               </Text>
             </View>
 
             {/* Description */}
             {description ? (
-              <Text style={{ fontFamily: 'Helvetica', fontSize: 10, color: BODY_GREY, lineHeight: 1.45 }}>
+              <Text style={{ fontFamily: 'Poppins', fontWeight: 400, fontSize: 10, color: BODY_GREY, lineHeight: 1.45 }}>
                 {description}
               </Text>
             ) : null}
@@ -169,7 +169,7 @@ export const InterfonePromoPage: React.FC<InterfonePromoPageProps> = ({
             <InterfoneWordmark size={18} />
           )}
         </View>
-        <Text style={{ fontFamily: 'Helvetica', fontSize: 8, color: FOOTNOTE, textAlign: 'center', lineHeight: 1.4 }}>
+        <Text style={{ fontFamily: 'Poppins', fontWeight: 400, fontSize: 8, color: FOOTNOTE, textAlign: 'center', lineHeight: 1.4 }}>
           Suggestions de nos prestataires pour compléter votre solution. Ces options sont facturées
           directement par chaque prestataire et ne sont pas incluses dans votre mensualité.
         </Text>
