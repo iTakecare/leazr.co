@@ -36,7 +36,7 @@ const ClientContractsPage = () => {
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
 
   const formatAmount = (amount: number) =>
-    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 0 }).format(amount || 0);
+    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
 
   const formatEquipmentDescription = (description?: string) => {
     if (!description) return "Équipement non spécifié";
@@ -64,11 +64,12 @@ const ClientContractsPage = () => {
     const effectiveStart = startDate || parseISO(contract.created_at);
     const now = new Date();
     const monthsElapsed = Math.max(0, differenceInMonths(now, effectiveStart));
+    const monthsElapsedDisplay = Math.min(monthsElapsed, duration); // jamais > durée à l'affichage
     const monthsRemaining = Math.max(0, duration - monthsElapsed);
     const progress = Math.min(100, Math.max(2, Math.round((monthsElapsed / duration) * 100)));
     const canRenew = monthsElapsed >= 18;
     const endDate = addMonths(effectiveStart, duration);
-    return { monthsElapsed, monthsRemaining, progress, duration, canRenew, startDate: effectiveStart, endDate };
+    return { monthsElapsed, monthsElapsedDisplay, monthsRemaining, progress, duration, canRenew, startDate: effectiveStart, endDate };
   };
 
   const showTimeline = (status: string) =>
@@ -184,7 +185,7 @@ const ClientContractsPage = () => {
                 </div>
 
                 {/* Info tiles */}
-                <div style={{ padding: "0 20px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+                <div style={{ padding: "0 20px 18px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
                   <div style={{ background: "#FAFBFC", border: "1px solid #EEF0F4", borderRadius: 12, padding: "12px 14px" }}>
                     <div style={{ fontSize: 11.5, color: clientColors.faint, fontWeight: 500 }}>Mensualité</div>
                     <div style={{ fontSize: 17, fontWeight: 800, marginTop: 2 }}>{formatAmount(contract.monthly_payment)}</div>
@@ -201,7 +202,7 @@ const ClientContractsPage = () => {
 
                 {/* Timeline */}
                 {showTimeline(contract.status) && (
-                  <div style={{ margin: "16px 20px 20px", padding: 18, borderRadius: 16, background: "linear-gradient(120deg,#F4F7FF,#F7F4FF)" }}>
+                  <div style={{ margin: "0 20px 20px", padding: 18, borderRadius: 16, background: "linear-gradient(120deg,#F4F7FF,#F7F4FF)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: clientColors.indigo }}>Parcours du contrat</span>
                       <span style={{ fontSize: 11.5, fontWeight: 700, color: "#1A2233", background: "#fff", padding: "4px 11px", borderRadius: 20, border: "1px solid #E6E9EF" }}>
@@ -215,7 +216,7 @@ const ClientContractsPage = () => {
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 9 }}>
                       <span style={{ fontSize: 11.5, color: clientColors.faint, fontWeight: 500 }}>{format(timeline.startDate, "MMM yyyy", { locale: fr })}</span>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: clientColors.indigo }}>{timeline.monthsElapsed}/{timeline.duration} mois · {timeline.progress}%</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: clientColors.indigo }}>{timeline.monthsElapsedDisplay}/{timeline.duration} mois · {timeline.progress}%</span>
                       <span style={{ fontSize: 11.5, color: clientColors.faint, fontWeight: 500 }}>{format(timeline.endDate, "MMM yyyy", { locale: fr })}</span>
                     </div>
                     {timeline.canRenew && (
