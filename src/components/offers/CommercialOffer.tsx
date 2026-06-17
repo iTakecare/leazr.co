@@ -295,7 +295,6 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   const interfoneOptions = [...externalServices, ...promoProducts].filter(isInterfoneOption);
   const externalServicesRest = externalServices.filter((s) => !isInterfoneOption(s));
   const promoProductsRest = promoProducts.filter((s) => !isInterfoneOption(s));
-  const interfoneLogo = interfoneOptions.find((s) => s.providerLogoUrl)?.providerLogoUrl || null;
   const INTERFONE_NAVY = '#16294C';
   const INTERFONE_MAGENTA = '#C4146B';
   // Police interfone = Arial Rounded MT Bold (Monotype, propriétaire). Présente
@@ -1276,18 +1275,9 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               }}>
                 Transformez une bonne offre en une offre parfaite
               </div>
-              {interfoneLogo ? (
-                <img
-                  src={interfoneLogo}
-                  alt="interfone"
-                  crossOrigin="anonymous"
-                  style={{ height: '30px', maxWidth: '150px', objectFit: 'contain' }}
-                />
-              ) : (
-                <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize.xl }}>
-                  interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
-                </div>
-              )}
+              <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize.xl, whiteSpace: 'nowrap' }}>
+                interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
+              </div>
             </div>
 
             {/* Cartes des options choisies */}
@@ -1299,24 +1289,26 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                 padding: isPDFMode ? '26px 24px 20px' : '1.5rem',
                 marginTop: i === 0 ? '24px' : '36px',
               }}>
-                {/* Badge + à cheval sur le bord supérieur, centré */}
+                {/* Badge + à cheval sur le bord supérieur, centré.
+                    Le « + » est dessiné (2 barres) pour un rendu net et épais. */}
                 <div style={{
                   position: 'absolute',
-                  top: '-21px',
+                  top: '-22px',
                   left: '50%',
-                  marginLeft: '-21px',
-                  width: '42px',
-                  height: '42px',
+                  marginLeft: '-22px',
+                  width: '44px',
+                  height: '44px',
                   borderRadius: '9999px',
                   backgroundColor: INTERFONE_MAGENTA,
-                  color: '#FFFFFF',
-                  fontSize: '30px',
-                  fontWeight: 700,
-                  lineHeight: 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                }}>+</div>
+                }}>
+                  <div style={{ position: 'relative', width: '22px', height: '22px' }}>
+                    <div style={{ position: 'absolute', top: '9px', left: '0', width: '22px', height: '4px', borderRadius: '2px', backgroundColor: '#FFFFFF' }} />
+                    <div style={{ position: 'absolute', left: '9px', top: '0', width: '4px', height: '22px', borderRadius: '2px', backgroundColor: '#FFFFFF' }} />
+                  </div>
+                </div>
 
                 {/* Ligne : (label + pill + spec) à gauche, prix à droite */}
                 <div style={{
@@ -1392,18 +1384,9 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             {/* Pied : gros logo interfone centré + disclaimer */}
             <div style={{ marginTop: styles.spacing['3xl'] }}>
               <div style={{ textAlign: 'center', marginBottom: styles.spacing.sm }}>
-                {interfoneLogo ? (
-                  <img
-                    src={interfoneLogo}
-                    alt="interfone"
-                    crossOrigin="anonymous"
-                    style={{ height: '36px', maxWidth: '220px', objectFit: 'contain' }}
-                  />
-                ) : (
-                  <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize['2xl'] }}>
-                    interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
-                  </span>
-                )}
+                <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize['3xl'] }}>
+                  interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
+                </span>
               </div>
               <div style={{
                 textAlign: 'center',
