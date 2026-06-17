@@ -79,7 +79,7 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
     // company-wide offer_external_services table.
     const { data: providerServicesData } = await supabase
       .from('offer_external_services')
-      .select('provider_name, product_name, price_htva, billing_period, quantity')
+      .select('provider_name, product_name, description, price_htva, billing_period, quantity')
       .eq('offer_id', offerId)
       .order('created_at');
 
@@ -104,6 +104,7 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       provider_name: row.provider_name || 'Prestataire',
       provider_logo_url: logoByName[row.provider_name] || undefined,
       product_name: row.product_name || 'Service',
+      description: row.description || undefined,
       price_htva: Number(row.price_htva || 0),
       billing_period: row.billing_period || 'monthly',
       quantity: row.quantity || 1,
@@ -114,7 +115,7 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
     // sur le logo courant du prestataire par nom si le snapshot est absent.
     const { data: promoData } = await supabase
       .from('offer_promo_products' as any)
-      .select('provider_name, provider_logo_url, product_name, price_htva, billing_period, quantity')
+      .select('provider_name, provider_logo_url, product_name, description, price_htva, billing_period, quantity')
       .eq('offer_id', offerId)
       .order('position');
 
@@ -122,6 +123,7 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       provider_name: row.provider_name || 'Prestataire',
       provider_logo_url: row.provider_logo_url || logoByName[row.provider_name] || undefined,
       product_name: row.product_name || 'Produit',
+      description: row.description || undefined,
       price_htva: Number(row.price_htva || 0),
       billing_period: row.billing_period || 'monthly',
       quantity: row.quantity || 1,

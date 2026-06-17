@@ -3,6 +3,7 @@ import { OfferCoverPage } from './OfferCoverPage';
 import { OfferEquipmentPage } from './OfferEquipmentPage';
 import { OfferConditionsPage } from './OfferConditionsPage';
 import { OfferValuesPage } from './OfferValuesPage';
+import { InterfonePromoPage, isInterfoneProvider } from './InterfonePromoPage';
 import { OfferEquipment } from '@/types/offerEquipment';
 import { createOfferPdfStyles } from '../styles/pdfStyles';
 
@@ -10,6 +11,7 @@ export interface ExternalProviderPDFLine {
   provider_name: string;
   provider_logo_url?: string;
   product_name: string;
+  description?: string;
   price_htva: number;
   billing_period: 'monthly' | 'yearly' | 'one_time' | string;
   quantity: number;
@@ -100,6 +102,20 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
     dark: '#1a2942',
   });
 
+  // Les options interfone choisies sont sorties des cartes génériques (bleue/jaune)
+  // pour être rendues sur leur propre page à l'identité visuelle interfone.
+  const allExternalLines = [
+    ...(offer.external_provider_products || []),
+    ...(offer.promo_products || []),
+  ];
+  const interfoneLines = allExternalLines.filter((l) => isInterfoneProvider(l.provider_name));
+  const externalProviderProducts = (offer.external_provider_products || []).filter(
+    (l) => !isInterfoneProvider(l.provider_name)
+  );
+  const promoProducts = (offer.promo_products || []).filter(
+    (l) => !isInterfoneProvider(l.provider_name)
+  );
+
   return (
     <Document>
       {/* Page 1: Cover */}
@@ -146,14 +162,23 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         discountValue={offer.discount_value}
         discountAmount={offer.discount_amount}
         monthlyPaymentBeforeDiscount={offer.monthly_payment_before_discount}
-        externalProviderProducts={offer.external_provider_products}
-        promoProducts={offer.promo_products}
+        externalProviderProducts={externalProviderProducts}
+        promoProducts={promoProducts}
         contentBlocks={{
           title: offer.content_blocks?.equipment_title,
           footer_note: offer.content_blocks?.equipment_footer_note,
         }}
         styles={styles}
       />
+
+      {/* Page promo interfone (uniquement si des options interfone sont choisies) */}
+      {interfoneLines.length > 0 && (
+        <InterfonePromoPage
+          lines={interfoneLines}
+          companyName={offer.company_name}
+          pageNumber={3}
+        />
+      )}
 
       {/* Page 3: Values (conditional) */}
       {(offer.values?.length > 0 || offer.metrics?.length > 0 || offer.partner_logos?.length > 0) && (
