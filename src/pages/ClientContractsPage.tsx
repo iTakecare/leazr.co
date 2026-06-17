@@ -159,8 +159,17 @@ const ClientContractsPage = () => {
               <ClientCard key={contract.id} radius={18} style={{ overflow: "hidden" }}>
                 {/* Header */}
                 <div style={{ padding: "18px 20px", display: "flex", alignItems: "flex-start", gap: 14 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 12, background: "#EAF0FF", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
-                    <FileText size={21} color={clientColors.indigo} />
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: contract.leaser_logo ? "#fff" : "#EAF0FF", border: contract.leaser_logo ? "1px solid #EEF0F4" : "none", display: "flex", alignItems: "center", justifyContent: "center", flex: "none", overflow: "hidden", padding: contract.leaser_logo ? 5 : 0 }}>
+                    {contract.leaser_logo ? (
+                      <img
+                        src={contract.leaser_logo}
+                        alt={contract.leaser_name || "Bailleur"}
+                        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
+                    ) : (
+                      <FileText size={21} color={clientColors.indigo} />
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
