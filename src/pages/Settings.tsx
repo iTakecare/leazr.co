@@ -19,6 +19,7 @@ import {
   FolderOpen,
   MessageCircle,
   Package,
+  Megaphone,
   Bell,
 } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
@@ -34,6 +35,7 @@ import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscrip
 import SoftwareCatalogManager from '@/components/settings/SoftwareCatalogManager';
 import MDMConfigSection from '@/components/settings/MDMConfigSection';
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
+import ClientPromotionsManager from '@/components/settings/ClientPromotionsManager';
 import PDFContentEditor from '@/pages/AdminPages/PDFContentEditor';
 import CompanyDocuments from '@/pages/CompanyDocuments';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -46,6 +48,7 @@ const NAV_ITEMS = [
   { id: "documents",     label: "Documents",       icon: FileText },
   { id: "communication", label: "Communication",   icon: Mail },
   { id: "automation",    label: "Automatisation",  icon: GitBranch },
+  { id: "client-space",  label: "Espace client",   icon: Megaphone },
   { id: "integrations",  label: "Intégrations",    icon: Zap },
   { id: "subscription",  label: "Abonnement",      icon: CreditCard },
 ];
@@ -183,6 +186,9 @@ const Settings: React.FC = () => {
 
           {/* Automatisation */}
           {activeTab === "automation" && <WorkflowManagement />}
+
+          {/* Espace client — publicités */}
+          {activeTab === "client-space" && <ClientPromotionsManager />}
 
           {/* Intégrations */}
           {activeTab === "integrations" && (

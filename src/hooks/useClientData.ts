@@ -111,24 +111,41 @@ export const useClientData = () => {
 
     const fetchClientStats = async (clientId: string) => {
       try {
-        // Active contracts + sum monthly payments
+        // Active financing contracts + sum monthly payments.
+        // NB: la colonne de fin de contrat est `contract_end_date` (pas `end_date`).
         const { data: activeContracts, error: contractsError } = await supabase
           .from('contracts')
-          .select('id, monthly_payment, end_date')
+          .select('id, monthly_payment, contract_end_date')
           .eq('client_id', clientId)
-          .in('status', ['active', 'signed', 'contract_sent', 'equipment_ordered', 'delivered']);
+          .in('status', ['active', 'signed', 'contract_signed', 'equipment_ordered', 'delivered']);
 
         if (contractsError) {
           console.error('Erreur requête contrats stats:', contractsError);
         }
 
-        const totalMonthly = (activeContracts || []).reduce((sum, c) => sum + (c.monthly_payment || 0), 0);
-        const activeEquipment = (activeContracts || []).length;
+        const contracts = activeContracts || [];
+        const totalMonthly = contracts.reduce((sum, c) => sum + (c.monthly_payment || 0), 0);
 
-        // Find next renewal
-        const futureEnds = (activeContracts || [])
-          .map(c => c.end_date)
-          .filter(Boolean)
+        // Équipements actifs : somme des quantités du matériel sous contrat actif.
+        let activeEquipment = 0;
+        if (contracts.length > 0) {
+          const { data: equipment, error: equipError } = await supabase
+            .from('contract_equipment')
+            .select('quantity, contract_id')
+            .in('contract_id', contracts.map(c => c.id));
+          if (equipError) {
+            console.error('Erreur requête équipements stats:', equipError);
+            activeEquipment = contracts.length;
+          } else {
+            activeEquipment = (equipment || []).reduce((sum, e) => sum + (e.quantity || 1), 0);
+          }
+        }
+
+        // Prochain renouvellement : la plus proche date de fin dans le futur.
+        const now = new Date();
+        const futureEnds = contracts
+          .map(c => c.contract_end_date)
+          .filter((d): d is string => !!d && new Date(d) > now)
           .sort();
         const nextRenewal = futureEnds.length > 0 ? futureEnds[0] : null;
 

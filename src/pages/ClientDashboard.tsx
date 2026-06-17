@@ -13,11 +13,15 @@ import DocumentAlertBanner from "@/components/client/DocumentAlertBanner";
 import {
   ClientPage, ClientCard, KpiCard, clientColors, badgeStyle,
 } from "@/components/client/clientUi";
+import { useClientPromotions } from "@/hooks/useClientPromotions";
+import { PromoTopBanner, PromoSidebarCard } from "@/components/client/ClientPromotions";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
   const { clientData, recentActivity, clientStats, notifications, loading, error } = useClientData();
   const { navigateToClient } = useRoleNavigation();
+  const { promotions: topPromos } = useClientPromotions("top");
+  const { promotions: sidePromos } = useClientPromotions("sidebar");
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -59,7 +63,11 @@ const ClientDashboard = () => {
     );
   }
 
-  const displayName = clientData?.name || user?.first_name || user?.email?.split("@")[0] || "";
+  const firstName =
+    (user?.first_name && user.first_name.trim()) ||
+    (clientData?.name || "").trim().split(/\s+/)[0] ||
+    user?.email?.split("@")[0] ||
+    "";
   const today = format(new Date(), "EEEE d MMMM yyyy", { locale: fr });
 
   const urgent = notifications.filter((n) => n.urgent);
@@ -108,6 +116,13 @@ const ClientDashboard = () => {
 
   return (
     <ClientPage>
+      {/* ── Bannières publicitaires (haut) — gérées côté admin ── */}
+      {topPromos.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 22 }}>
+          {topPromos.map((p) => <PromoTopBanner key={p.id} promo={p} />)}
+        </div>
+      )}
+
       {/* ── Welcome banner ── */}
       <div
         style={{
@@ -125,7 +140,7 @@ const ClientDashboard = () => {
         <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,.6)", fontWeight: 500, marginBottom: 6, textTransform: "capitalize" }}>
-              {getGreeting()} {displayName} 👋 · {today}
+              {getGreeting()} {firstName} 👋 · {today}
             </div>
             <div style={{ fontSize: 25, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.15 }}>
               {headline}
@@ -162,6 +177,12 @@ const ClientDashboard = () => {
         ))}
       </div>
 
+      {/* ── Zone basse : contenu principal + colonne pub droite ── */}
+      <div
+        style={{ display: "grid", gridTemplateColumns: sidePromos.length > 0 ? "1fr 300px" : "1fr", gap: 18, alignItems: "start" }}
+        className={sidePromos.length > 0 ? "max-lg:!grid-cols-1" : ""}
+      >
+        <div style={{ minWidth: 0 }}>
       {/* ── Bento: notifications + shortcuts ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18, marginBottom: 22 }} className="max-lg:!grid-cols-1">
         {/* Notifications */}
@@ -279,6 +300,18 @@ const ClientDashboard = () => {
           </div>
         )}
       </ClientCard>
+        </div>
+
+        {/* ── Colonne publicitaire droite (gérée côté admin) ── */}
+        {sidePromos.length > 0 && (
+          <div className="max-lg:hidden" style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: clientColors.faint, padding: "0 2px" }}>
+              Sponsorisé
+            </div>
+            {sidePromos.map((p) => <PromoSidebarCard key={p.id} promo={p} />)}
+          </div>
+        )}
+      </div>
     </ClientPage>
   );
 };
