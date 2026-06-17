@@ -136,7 +136,8 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
   }, [logout, navigate]);
 
   const companyName = settings?.company_name || "Leazr";
-  const logoUrl = settings?.logo_url || null;
+  // Tuile carrée : on privilégie la favicon (icône carrée), sinon le logo.
+  const tileImg = settings?.favicon_url || settings?.logo_url || null;
 
   const userInitials = useMemo(() => {
     if (user?.first_name && user?.last_name)
@@ -164,15 +165,15 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
-        background: logoUrl ? "#fff" : "linear-gradient(140deg,#3D6BFF,#2D55E5)",
+        background: tileImg ? "#fff" : "linear-gradient(140deg,#3D6BFF,#2D55E5)",
         boxShadow: "0 6px 16px rgba(45,85,229,.35)",
       }}
     >
-      {logoUrl ? (
+      {tileImg ? (
         <img
-          src={logoUrl}
+          src={tileImg}
           alt={companyName}
-          style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }}
+          style={{ width: "100%", height: "100%", objectFit: "contain", padding: 3 }}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}
