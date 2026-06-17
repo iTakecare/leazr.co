@@ -75,12 +75,16 @@ const ClientContractsPage = () => {
   const showTimeline = (status: string) =>
     ["active", "signed", "contract_signed", "equipment_ordered", "delivered", "extended"].includes(status);
 
-  const deliveryLabel = (contract: any) =>
-    contract.delivery_status
-      ? ({ en_attente: "En attente", expedie: "Expédié", livre: "Livré", delivered: "Livré" } as Record<string, string>)[contract.delivery_status] || contract.delivery_status
-      : contract.status === "active"
-        ? "Livré"
-        : "En attente";
+  const deliveryLabel = (contract: any) => {
+    // Le statut workflow + la date de livraison priment sur delivery_status
+    // (qui peut rester périmé à "en_attente" après une livraison effective).
+    const delivered = !!contract.delivery_date ||
+      ["delivered", "active", "extended", "completed"].includes(contract.status);
+    if (delivered) return "Livré";
+    const map: Record<string, string> = { en_attente: "En attente", expedie: "Expédié", livre: "Livré", delivered: "Livré" };
+    if (contract.delivery_status && map[contract.delivery_status]) return map[contract.delivery_status];
+    return "En attente";
+  };
 
   const handleDownloadPdf = async (contract: any) => {
     if (contract.signed_contract_pdf_url) {
