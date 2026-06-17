@@ -136,6 +136,11 @@ const ClientContractsPage = () => {
     );
   }
 
+  // Masquer les contrats annulés + trier du plus ancien au plus récent.
+  const visibleContracts = [...contracts]
+    .filter((c: any) => c.status !== "cancelled")
+    .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
   return (
     <ClientPage maxWidth={1080}>
       <ClientPageHeader
@@ -143,7 +148,7 @@ const ClientContractsPage = () => {
         subtitle="Suivez l'avancement et le renouvellement de vos financements."
       />
 
-      {contracts.length === 0 ? (
+      {visibleContracts.length === 0 ? (
         <ClientEmptyState
           icon={<FileText size={48} color={clientColors.faint} />}
           title="Aucun contrat"
@@ -151,7 +156,7 @@ const ClientContractsPage = () => {
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {contracts.map((contract: any) => {
+          {visibleContracts.map((contract: any) => {
             const timeline = getTimeline(contract);
             const title = [contract.leaser_name, contract.contract_number].filter(Boolean).join(" · ") || "Contrat";
             const isPdfLoading = pdfLoadingId === contract.id;
