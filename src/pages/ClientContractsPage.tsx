@@ -38,19 +38,31 @@ const ClientContractsPage = () => {
   const formatAmount = (amount: number) =>
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
 
+  // Lignes de frais / coûts à ne PAS compter comme de l'équipement.
+  const FEE_RX = /frais|transport|transaction|dossier|co[uû]t|setup/i;
+
   const formatEquipmentDescription = (description?: string) => {
     if (!description) return "Équipement non spécifié";
+    let titles: string[] = [];
     try {
       const data = JSON.parse(description);
-      if (Array.isArray(data) && data.length > 0) {
-        const titles = data.map((item) => item.title).filter(Boolean);
-        if (titles.length > 0)
-          return titles.length > 1 ? `${titles[0]} + ${titles.length - 1} autre(s) équipement(s)` : titles[0];
+      if (Array.isArray(data)) {
+        titles = data.map((item: any) => (typeof item === "string" ? item : item?.title)).filter(Boolean);
       }
     } catch {
-      return description;
+      /* pas du JSON */
     }
-    return description;
+    // Repli : chaîne libre séparée par des « | ».
+    if (titles.length === 0) titles = description.split("|").map((s) => s.trim()).filter(Boolean);
+
+    // Exclure les lignes de frais ; ne garder que le vrai matériel.
+    const equip = titles.filter((t) => !FEE_RX.test(t));
+    const list = equip.length > 0 ? equip : titles;
+    if (list.length === 0) return description;
+
+    // Nettoyer un éventuel préfixe quantité « 2x » du premier libellé.
+    const first = list[0].replace(/^\s*\d+\s*x\s*/i, "").trim();
+    return list.length > 1 ? `${first} + ${list.length - 1} autre(s) équipement(s)` : first;
   };
 
   const statusBadge = (status: string) => {
