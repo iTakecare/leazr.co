@@ -59,9 +59,11 @@ const ClientContractsPage = () => {
   };
 
   const getTimeline = (contract: any) => {
-    const startDate = contract.contract_start_date ? parseISO(contract.contract_start_date) : null;
+    // Le nombre de mois restants se calcule TOUJOURS sur la date de début de
+    // contrat. Sans elle, pas de parcours (on ne devine pas via created_at).
+    if (!contract.contract_start_date) return null;
+    const effectiveStart = parseISO(contract.contract_start_date);
     const duration = contract.contract_duration || 36;
-    const effectiveStart = startDate || parseISO(contract.created_at);
     const now = new Date();
     const monthsElapsed = Math.max(0, differenceInMonths(now, effectiveStart));
     const monthsElapsedDisplay = Math.min(monthsElapsed, duration); // jamais > durée à l'affichage
@@ -182,8 +184,10 @@ const ClientContractsPage = () => {
                       {statusBadge(contract.status)}
                     </div>
                     <div style={{ fontSize: 12.5, color: clientColors.muted, marginTop: 3 }}>
-                      {formatEquipmentDescription(contract.equipment_description)} · Créé le{" "}
-                      {new Date(contract.created_at).toLocaleDateString("fr-FR")}
+                      {formatEquipmentDescription(contract.equipment_description)} ·{" "}
+                      {contract.contract_start_date
+                        ? `Démarré le ${new Date(contract.contract_start_date).toLocaleDateString("fr-FR")}`
+                        : `Créé le ${new Date(contract.created_at).toLocaleDateString("fr-FR")}`}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flex: "none" }}>
@@ -219,7 +223,7 @@ const ClientContractsPage = () => {
                 </div>
 
                 {/* Timeline */}
-                {showTimeline(contract.status) && (
+                {timeline && showTimeline(contract.status) && (
                   <div style={{ margin: "0 20px 20px", padding: 18, borderRadius: 16, background: "linear-gradient(120deg,#F4F7FF,#F7F4FF)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: clientColors.indigo }}>Parcours du contrat</span>
