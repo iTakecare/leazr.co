@@ -42,11 +42,14 @@ export const PromoTopBanner: React.FC<{ promo: ClientPromotion }> = ({ promo }) 
       {promo.image_url && (
         <div
           style={{
-            width: 150,
+            width: 160,
             flex: "none",
+            background: "#fff",
             backgroundImage: `url(${promo.image_url})`,
-            backgroundSize: "cover",
+            backgroundSize: "contain",
+            backgroundRepeat: "no-repeat",
             backgroundPosition: "center",
+            borderRight: "1px solid rgba(0,0,0,.06)",
           }}
         />
       )}
@@ -94,7 +97,7 @@ export const PromoSidebarCard: React.FC<{ promo: ClientPromotion }> = ({ promo }
       onClick={clickable ? () => onClick(promo) : undefined}
     >
       {promo.image_url ? (
-        <div style={{ height: 116, backgroundImage: `url(${promo.image_url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+        <div style={{ height: 132, background: "#fff", backgroundImage: `url(${promo.image_url})`, backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center", borderBottom: "1px solid #EEF0F4" }} />
       ) : (
         <div style={{ height: 64, background: promo.background || "linear-gradient(120deg,#2D55E5,#7C3AED)", display: "flex", alignItems: "center", padding: "0 16px" }}>
           <Megaphone size={20} color="#fff" />
