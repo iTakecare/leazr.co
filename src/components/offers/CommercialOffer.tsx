@@ -1330,14 +1330,17 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         {s.tagline}
                       </div>
                     ) : null}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: styles.spacing.sm, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: styles.spacing.sm, flexWrap: 'wrap' }}>
                       <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
                         backgroundColor: INTERFONE_MAGENTA,
                         color: '#FFFFFF',
                         fontWeight: 700,
                         fontSize: styles.fontSize.lg,
+                        lineHeight: 1,
                         borderRadius: styles.borderRadius.md,
-                        padding: '6px 14px',
+                        padding: '8px 14px',
                       }}>
                         {s.productName}{s.quantity > 1 ? ` × ${s.quantity}` : ''}
                       </span>
