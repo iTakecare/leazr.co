@@ -232,13 +232,15 @@ const MailboxPage: React.FC<MailboxPageProps> = ({ onManageAccounts }) => {
     enabled: accounts.length > 0,
   });
 
-  // Compteurs de non-lus par dossier
+  // Compteurs de non-lus par dossier — restreints à MES comptes uniquement
+  // (la RLS de synced_emails est partagée par société, donc on filtre côté requête).
   const { data: unreadCounts = {} } = useQuery({
-    queryKey: ["mail-unread"],
+    queryKey: ["mail-unread", accounts.map((a) => a.id).join(",")],
     queryFn: async (): Promise<Record<string, number>> => {
       const { data, error } = await supabase
         .from("synced_emails")
         .select("account_id, folder_path")
+        .in("account_id", accounts.map((a) => a.id))
         .eq("is_read", false)
         .eq("is_hidden", false);
       if (error) throw error;
@@ -249,6 +251,7 @@ const MailboxPage: React.FC<MailboxPageProps> = ({ onManageAccounts }) => {
       }
       return counts;
     },
+    enabled: accounts.length > 0,
   });
 
   const accountById = useMemo(() => {
@@ -312,7 +315,7 @@ const MailboxPage: React.FC<MailboxPageProps> = ({ onManageAccounts }) => {
 
   // Liste des emails
   const { data: emailsResult, isLoading: emailsLoading } = useQuery({
-    queryKey: ["mail-emails", selection, search, limit],
+    queryKey: ["mail-emails", selection, search, limit, accounts.map((a) => a.id).join(",")],
     queryFn: async (): Promise<{ emails: SyncedEmail[]; hasMore: boolean }> => {
       let query = supabase
         .from("synced_emails")
@@ -326,7 +329,10 @@ const MailboxPage: React.FC<MailboxPageProps> = ({ onManageAccounts }) => {
           .eq("account_id", selection.accountId)
           .eq("folder_path", selection.folderPath);
       } else {
-        query = query.in("folder_path", inboxPaths);
+        // Vue unifiée : INBOX de MES comptes uniquement (pas toute la société).
+        query = query
+          .in("account_id", accounts.map((a) => a.id))
+          .in("folder_path", inboxPaths);
       }
 
       const term = search.trim().replace(/[,()]/g, " ").trim();
