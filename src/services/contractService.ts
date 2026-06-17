@@ -180,20 +180,26 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       return null;
     }
 
-    // Calculer la mensualité réelle depuis les équipements
-    // monthly_payment en DB est DÉJÀ le total pour chaque équipement (pas unitaire)
-    const calculatedMonthlyPayment = data.contract_equipment?.reduce(
+    // Mensualité du contrat = contracts.monthly_payment (= TotalInstalment réel
+    // facturé par Grenke, source de vérité, sync au cron). La somme des
+    // contract_equipment.monthly_payment n'est PAS fiable (parfois gonflée) et
+    // ferait diverger le détail de la liste — on ne s'en sert qu'en dernier
+    // recours quand la mensualité stockée est absente.
+    const equipmentMonthlySum = data.contract_equipment?.reduce(
       (sum: number, eq: any) => sum + (Number(eq.monthly_payment) || 0),
       0
     ) || 0;
+    const baseMonthlyPayment = Number(data.monthly_payment) > 0
+      ? Number(data.monthly_payment)
+      : equipmentMonthlySum;
 
     // Calculer la mensualité ajustée si acompte et self-leasing
     const downPayment = Number(data.offers?.down_payment) || 0;
     const coefficient = Number(data.offers?.coefficient) || 0;
     const financedAmount = Number(data.offers?.financed_amount) || 0;
     const isSelfLeasing = data.is_self_leasing === true;
-    
-    let adjustedMonthlyPayment = calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : data.monthly_payment;
+
+    let adjustedMonthlyPayment = baseMonthlyPayment;
     if (downPayment > 0 && coefficient > 0 && isSelfLeasing) {
       adjustedMonthlyPayment = Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100;
     }
@@ -210,8 +216,8 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       down_payment: downPayment,
       coefficient: coefficient,
       financed_amount: financedAmount,
-      // Utiliser le montant calculé s'il y a des équipements, sinon garder la valeur stockée
-      monthly_payment: calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : data.monthly_payment,
+      // Vérité = mensualité stockée (TotalInstalment Grenke) ; somme équipements en repli seulement
+      monthly_payment: baseMonthlyPayment,
       adjusted_monthly_payment: adjustedMonthlyPayment
     };
 
