@@ -1,7 +1,7 @@
 import React, { useState, memo, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useSiteSettingsByCompanyId } from "@/hooks/useSiteSettings";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useClientRequestsCount } from "@/hooks/useClientRequests";
@@ -43,7 +43,7 @@ const COLLAPSE_KEY = "leazr_client_sidebar_collapsed";
 const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
   const { user, logout } = useAuth();
   const { companyId } = useMultiTenant();
-  const { settings } = useSiteSettings();
+  const { settings } = useSiteSettingsByCompanyId(companyId);
   const location = useLocation();
   const navigate = useNavigate();
   const { navigateToClient, companySlug } = useRoleNavigation();
