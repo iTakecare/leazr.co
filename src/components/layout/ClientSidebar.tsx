@@ -179,9 +179,9 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
           }}
         />
       ) : (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16M4 12h11M4 18h7" />
-        </svg>
+        <span style={{ color: "#fff", fontWeight: 800, fontSize: 16, lineHeight: 1 }}>
+          {companyName?.[0]?.toUpperCase() || "L"}
+        </span>
       )}
     </div>
   );
@@ -363,10 +363,11 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
 
   return (
     <>
-      {/* Mobile toggle */}
+      {/* Mobile toggle — flex/centrage via classes (PAS en inline, sinon
+          le display écrase le lg:hidden et le bouton reste visible sur desktop). */}
       <button
         onClick={() => setIsMobileOpen((v) => !v)}
-        className="lg:hidden"
+        className="lg:hidden flex items-center justify-center"
         style={{
           position: "fixed",
           top: 14,
@@ -379,9 +380,6 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
           backdropFilter: "blur(6px)",
           border: "1px solid #E6E9EF",
           boxShadow: "0 4px 12px rgba(16,24,40,.12)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
         }}
       >
         {isMobileOpen ? <X size={20} color="#334155" /> : <Menu size={20} color="#334155" />}
