@@ -1228,141 +1228,149 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
         </div>
       )}
 
-      {/* Page promo interfone — identité visuelle interfone, options choisies uniquement */}
+      {/* Carte promo interfone — sur la même page que les autres services, identité interfone */}
       {interfoneOptions.length > 0 && (
         <div
           className="page page-interfone"
           style={{
             pageBreakBefore: 'always',
             pageBreakInside: 'avoid',
-            backgroundColor: INTERFONE_NAVY,
+            backgroundColor: '#FFFFFF',
             width: '100%',
             minHeight: isPDFMode ? '1123px' : 'auto',
             boxSizing: 'border-box',
             padding: isPDFMode ? '40px' : '2.5rem',
-            fontFamily: "'Poppins', sans-serif",
-            display: 'flex',
-            flexDirection: 'column',
           }}
         >
-          {/* En-tête : slogan + logo interfone */}
+          {/* La carte interfone : navy arrondie, contenue sur la page blanche */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: styles.spacing.lg,
-            marginBottom: styles.spacing['2xl'],
+            backgroundColor: INTERFONE_NAVY,
+            borderRadius: styles.borderRadius.xl,
+            padding: isPDFMode ? '36px 40px 30px' : '2rem',
+            fontFamily: "'Poppins', sans-serif",
           }}>
+            {/* En-tête : slogan + logo interfone */}
             <div style={{
-              color: '#FFFFFF',
-              fontWeight: 700,
-              fontSize: styles.fontSize['2xl'],
-              lineHeight: 1.2,
-              maxWidth: '62%',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: styles.spacing.lg,
+              marginBottom: styles.spacing['3xl'],
             }}>
-              Transformez une bonne offre en une offre parfaite
-            </div>
-            {interfoneLogo ? (
-              <img
-                src={interfoneLogo}
-                alt="interfone"
-                crossOrigin="anonymous"
-                style={{ height: '34px', maxWidth: '160px', objectFit: 'contain' }}
-              />
-            ) : (
-              <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize.xl }}>
-                interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
+              <div style={{
+                color: '#FFFFFF',
+                fontWeight: 700,
+                fontSize: styles.fontSize['2xl'],
+                lineHeight: 1.2,
+                maxWidth: '60%',
+              }}>
+                Transformez une bonne offre en une offre parfaite
               </div>
-            )}
-          </div>
+              {interfoneLogo ? (
+                <img
+                  src={interfoneLogo}
+                  alt="interfone"
+                  crossOrigin="anonymous"
+                  style={{ height: '30px', maxWidth: '150px', objectFit: 'contain' }}
+                />
+              ) : (
+                <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize.xl }}>
+                  interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
+                </div>
+              )}
+            </div>
 
-          {/* Cartes des options choisies */}
-          {interfoneOptions.map((s, i) => (
-            <div key={i} style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: styles.borderRadius.xl,
-              padding: styles.spacing.lg,
-              marginBottom: styles.spacing.lg,
-            }}>
-              {/* Badge + */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: styles.spacing.sm }}>
+            {/* Cartes des options choisies */}
+            {interfoneOptions.map((s, i) => (
+              <div key={i} style={{
+                position: 'relative',
+                backgroundColor: '#FFFFFF',
+                borderRadius: styles.borderRadius.xl,
+                padding: isPDFMode ? '26px 24px 20px' : '1.5rem',
+                marginTop: i === 0 ? '24px' : '36px',
+              }}>
+                {/* Badge + à cheval sur le bord supérieur, centré */}
                 <div style={{
-                  width: '34px',
-                  height: '34px',
+                  position: 'absolute',
+                  top: '-21px',
+                  left: '50%',
+                  marginLeft: '-21px',
+                  width: '42px',
+                  height: '42px',
                   borderRadius: '9999px',
                   backgroundColor: INTERFONE_MAGENTA,
                   color: '#FFFFFF',
-                  fontSize: '24px',
+                  fontSize: '30px',
                   fontWeight: 700,
                   lineHeight: 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>+</div>
-              </div>
 
-              {/* Pill nom produit + prix */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: styles.spacing.md,
-                marginBottom: s.description ? styles.spacing.sm : 0,
-              }}>
-                <span style={{
-                  backgroundColor: INTERFONE_MAGENTA,
-                  color: '#FFFFFF',
-                  fontWeight: 700,
-                  fontSize: styles.fontSize.md,
-                  borderRadius: styles.borderRadius.md,
-                  padding: '6px 12px',
+                {/* Pill nom produit + prix */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: styles.spacing.md,
+                  marginBottom: s.description ? styles.spacing.sm : 0,
                 }}>
-                  {s.productName}{s.quantity > 1 ? ` × ${s.quantity}` : ''}
-                </span>
-                <span style={{
-                  color: INTERFONE_MAGENTA,
-                  fontWeight: 700,
-                  fontSize: styles.fontSize.lg,
-                  whiteSpace: 'nowrap',
-                  textAlign: 'right',
-                }}>
-                  {formatCurrency(s.priceHtva)} HT {interfonePeriodLabel(s.billingPeriod)}
-                </span>
-              </div>
-
-              {/* Description */}
-              {s.description ? (
-                <div style={{ color: '#2C3A4F', fontSize: styles.fontSize.sm, lineHeight: 1.45 }}>
-                  {s.description}
+                  <span style={{
+                    backgroundColor: INTERFONE_MAGENTA,
+                    color: '#FFFFFF',
+                    fontWeight: 700,
+                    fontSize: styles.fontSize.lg,
+                    borderRadius: styles.borderRadius.md,
+                    padding: '6px 14px',
+                  }}>
+                    {s.productName}{s.quantity > 1 ? ` × ${s.quantity}` : ''}
+                  </span>
+                  <span style={{
+                    color: INTERFONE_MAGENTA,
+                    fontWeight: 700,
+                    fontSize: styles.fontSize.xl,
+                    whiteSpace: 'nowrap',
+                    textAlign: 'right',
+                  }}>
+                    {formatCurrency(s.priceHtva)} HT{interfonePeriodLabel(s.billingPeriod)}
+                  </span>
                 </div>
-              ) : null}
-            </div>
-          ))}
 
-          {/* Pied de page : logo + disclaimer */}
-          <div style={{ marginTop: 'auto', paddingTop: styles.spacing.lg }}>
-            <div style={{ textAlign: 'center', marginBottom: styles.spacing.xs }}>
-              {interfoneLogo ? (
-                <img
-                  src={interfoneLogo}
-                  alt="interfone"
-                  crossOrigin="anonymous"
-                  style={{ height: '28px', maxWidth: '160px', objectFit: 'contain' }}
-                />
-              ) : (
-                <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize.lg }}>
-                  interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
-                </span>
-              )}
-            </div>
-            <div style={{
-              textAlign: 'center',
-              color: '#AEB9CC',
-              fontSize: styles.fontSize.xs,
-              lineHeight: 1.4,
-            }}>
-              Suggestions de nos prestataires pour compléter votre solution. Ces options sont
-              facturées directement par chaque prestataire et ne sont pas incluses dans votre mensualité.
+                {/* Description */}
+                {s.description ? (
+                  <div style={{ color: '#2C3A4F', fontSize: styles.fontSize.sm, lineHeight: 1.45 }}>
+                    {s.description}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+
+            {/* Pied : gros logo interfone centré + disclaimer */}
+            <div style={{ marginTop: styles.spacing['3xl'] }}>
+              <div style={{ textAlign: 'center', marginBottom: styles.spacing.sm }}>
+                {interfoneLogo ? (
+                  <img
+                    src={interfoneLogo}
+                    alt="interfone"
+                    crossOrigin="anonymous"
+                    style={{ height: '36px', maxWidth: '220px', objectFit: 'contain' }}
+                  />
+                ) : (
+                  <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize['2xl'] }}>
+                    interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
+                  </span>
+                )}
+              </div>
+              <div style={{
+                textAlign: 'center',
+                color: '#AEB9CC',
+                fontSize: styles.fontSize.xs,
+                lineHeight: 1.4,
+              }}>
+                Suggestions de nos prestataires pour compléter votre solution. Ces options sont
+                facturées directement par chaque prestataire et ne sont pas incluses dans votre mensualité.
+              </div>
             </div>
           </div>
         </div>
