@@ -20,6 +20,8 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -36,6 +38,7 @@ type NavItem = {
 type NavGroup = { title: string; items: NavItem[] };
 
 const NAV = "#0E1A30";
+const COLLAPSE_KEY = "leazr_client_sidebar_collapsed";
 
 const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
   const { user, logout } = useAuth();
@@ -45,6 +48,9 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
   const navigate = useNavigate();
   const { navigateToClient, companySlug } = useRoleNavigation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try { return localStorage.getItem(COLLAPSE_KEY) === "1"; } catch { return false; }
+  });
   const { count: requestsCount } = useClientRequestsCount();
   const { clientData } = useClientData();
   const { unreadCount: supportUnreadCount } = useTicketReplyNotifications({
@@ -102,6 +108,14 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
 
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
 
+  const toggleCollapsed = useCallback(() => {
+    setIsCollapsed((v) => {
+      const nv = !v;
+      try { localStorage.setItem(COLLAPSE_KEY, nv ? "1" : "0"); } catch { /* */ }
+      return nv;
+    });
+  }, []);
+
   const handleNavigation = useCallback(
     (href: string) => {
       navigateToClient(href);
@@ -122,6 +136,7 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
   }, [logout, navigate]);
 
   const companyName = settings?.company_name || "Leazr";
+  const logoUrl = settings?.logo_url || null;
 
   const userInitials = useMemo(() => {
     if (user?.first_name && user?.last_name)
@@ -137,65 +152,100 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
 
   if (!user || !companyId) return null;
 
+  // Pastille logo de la société (vrai logo si dispo, sinon tuile dégradée).
+  const LogoTile = (
+    <div
+      style={{
+        width: 38,
+        height: 38,
+        borderRadius: 10,
+        flex: "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        background: logoUrl ? "#fff" : "linear-gradient(140deg,#3D6BFF,#2D55E5)",
+        boxShadow: "0 6px 16px rgba(45,85,229,.35)",
+      }}
+    >
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt={companyName}
+          style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16M4 12h11M4 18h7" />
+        </svg>
+      )}
+    </div>
+  );
+
   const Content = (
     <aside
       style={{
-        width: 256,
+        width: isCollapsed ? 76 : 256,
         flex: "none",
         height: "100%",
         background: NAV,
         display: "flex",
         flexDirection: "column",
         borderRight: "1px solid rgba(255,255,255,.06)",
+        transition: "width .2s ease",
       }}
     >
       {/* Header */}
-      <div style={{ padding: "20px 18px 18px", borderBottom: "1px solid rgba(255,255,255,.07)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: "linear-gradient(140deg,#3D6BFF,#2D55E5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 6px 16px rgba(45,85,229,.45)",
-              flex: "none",
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 6h16M4 12h11M4 18h7" />
-            </svg>
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-.02em", color: "#fff", lineHeight: 1.1 }}>
-              {companyName.toLowerCase()}
-            </div>
-            <div style={{ fontSize: 11, color: "#7E8CA6", fontWeight: 500, marginTop: 1 }}>
-              Espace client{clientData?.name ? ` · ${clientData.name}` : ""}
-            </div>
-          </div>
+      <div style={{ padding: isCollapsed ? "18px 0" : "20px 18px 18px", borderBottom: "1px solid rgba(255,255,255,.07)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, justifyContent: isCollapsed ? "center" : "flex-start" }}>
+          {LogoTile}
+          {!isCollapsed && (
+            <>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.02em", color: "#fff", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {companyName}
+                </div>
+                <div style={{ fontSize: 11, color: "#7E8CA6", fontWeight: 500, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  Espace client{clientData?.name ? ` · ${clientData.name}` : ""}
+                </div>
+              </div>
+              <button
+                onClick={toggleCollapsed}
+                title="Réduire le menu"
+                className="hidden lg:flex"
+                style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.05)", alignItems: "center", justifyContent: "center", cursor: "pointer", flex: "none" }}
+              >
+                <ChevronLeft size={15} color="#9AA7BD" />
+              </button>
+            </>
+          )}
         </div>
+        {isCollapsed && (
+          <button
+            onClick={toggleCollapsed}
+            title="Agrandir le menu"
+            className="hidden lg:flex"
+            style={{ width: 30, height: 26, margin: "12px auto 0", borderRadius: 7, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.05)", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+          >
+            <ChevronRight size={15} color="#9AA7BD" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
-      <nav className="lzr-scroll" style={{ flex: 1, overflowY: "auto", padding: "14px 12px" }}>
+      <nav className="lzr-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: isCollapsed ? "12px 10px" : "14px 12px" }}>
         {groups.map((group) => (
           <React.Fragment key={group.title}>
-            <div
-              style={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                letterSpacing: ".09em",
-                textTransform: "uppercase",
-                color: "#5B687F",
-                padding: "6px 10px 8px",
-              }}
-            >
-              {group.title}
-            </div>
+            {isCollapsed ? (
+              <div style={{ height: 1, background: "rgba(255,255,255,.06)", margin: "10px 6px" }} />
+            ) : (
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: "#5B687F", padding: "6px 10px 8px" }}>
+                {group.title}
+              </div>
+            )}
             {group.items.map((item) => {
               const active = isActive(item.href);
               const Icon = item.icon;
@@ -203,12 +253,15 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
                 <button
                   key={item.href}
                   onClick={() => handleNavigation(item.href)}
+                  title={isCollapsed ? item.label : undefined}
                   style={{
+                    position: "relative",
                     display: "flex",
                     alignItems: "center",
-                    gap: 12,
+                    gap: isCollapsed ? 0 : 12,
+                    justifyContent: isCollapsed ? "center" : "flex-start",
                     width: "100%",
-                    padding: "9px 11px",
+                    padding: isCollapsed ? "10px 0" : "9px 11px",
                     border: 0,
                     borderRadius: 10,
                     cursor: "pointer",
@@ -226,21 +279,22 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
                   }}
                 >
                   <Icon size={18} style={{ flex: "none" }} />
-                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {!isCollapsed && <span style={{ flex: 1 }}>{item.label}</span>}
                   {item.badge && (
                     <span
                       style={{
-                        minWidth: 18,
-                        height: 18,
-                        padding: "0 6px",
+                        ...(isCollapsed
+                          ? { position: "absolute" as const, top: 4, right: 10, minWidth: 16, height: 16, padding: "0 4px" }
+                          : { minWidth: 18, height: 18, padding: "0 6px" }),
                         borderRadius: 20,
                         background: "#EA580C",
                         color: "#fff",
-                        fontSize: 10.5,
+                        fontSize: 10,
                         fontWeight: 700,
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        border: isCollapsed ? `2px solid ${NAV}` : "0",
                       }}
                     >
                       {item.badge}
@@ -254,18 +308,20 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
       </nav>
 
       {/* User */}
-      <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,.07)" }}>
+      <div style={{ padding: isCollapsed ? "10px 8px" : 12, borderTop: "1px solid rgba(255,255,255,.07)" }}>
         <div
           style={{
             display: "flex",
+            flexDirection: isCollapsed ? "column" : "row",
             alignItems: "center",
-            gap: 11,
-            padding: "9px 10px",
+            gap: isCollapsed ? 8 : 11,
+            padding: isCollapsed ? "8px 0" : "9px 10px",
             borderRadius: 12,
             background: "rgba(255,255,255,.04)",
           }}
         >
           <div
+            title={isCollapsed ? userName : undefined}
             style={{
               width: 34,
               height: 34,
@@ -282,47 +338,20 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
           >
             {userInitials}
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#EAEFF7",
-                lineHeight: 1.2,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {userName}
+          {!isCollapsed && (
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#EAEFF7", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {userName}
+              </div>
+              <div style={{ fontSize: 11, color: "#7E8CA6", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {(user as any)?.role === "client" ? "Client" : user?.email}
+              </div>
             </div>
-            <div
-              style={{
-                fontSize: 11,
-                color: "#7E8CA6",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {(user as any)?.role === "client" ? "Client" : user?.email}
-            </div>
-          </div>
+          )}
           <button
             onClick={handleLogout}
             title="Se déconnecter"
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 8,
-              border: 0,
-              background: "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              flex: "none",
-            }}
+            style={{ width: 30, height: 30, borderRadius: 8, border: 0, background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flex: "none" }}
           >
             <LogOut size={16} color="#7E8CA6" />
           </button>
