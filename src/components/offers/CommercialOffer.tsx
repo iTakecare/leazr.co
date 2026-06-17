@@ -42,6 +42,9 @@ interface CommercialOfferProps {
     providerLogoUrl?: string | null;
     productName: string;
     description?: string;
+    tagline?: string;
+    spec?: string;
+    footnote?: string;
     priceHtva: number;
     billingPeriod: 'monthly' | 'yearly' | 'one_time' | string;
     quantity: number;
@@ -54,6 +57,9 @@ interface CommercialOfferProps {
     providerLogoUrl?: string | null;
     productName: string;
     description?: string;
+    tagline?: string;
+    spec?: string;
+    footnote?: string;
     priceHtva: number;
     billingPeriod: 'monthly' | 'yearly' | 'one_time' | string;
     quantity: number;
@@ -1312,7 +1318,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   justifyContent: 'center',
                 }}>+</div>
 
-                {/* Pill nom produit + prix */}
+                {/* Ligne : (label + pill + spec) à gauche, prix à droite */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -1320,16 +1326,36 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   gap: styles.spacing.md,
                   marginBottom: s.description ? styles.spacing.sm : 0,
                 }}>
-                  <span style={{
-                    backgroundColor: INTERFONE_MAGENTA,
-                    color: '#FFFFFF',
-                    fontWeight: 700,
-                    fontSize: styles.fontSize.lg,
-                    borderRadius: styles.borderRadius.md,
-                    padding: '6px 14px',
-                  }}>
-                    {s.productName}{s.quantity > 1 ? ` × ${s.quantity}` : ''}
-                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    {s.tagline ? (
+                      <div style={{
+                        color: '#5B6B7F',
+                        fontWeight: 700,
+                        fontSize: styles.fontSize.sm,
+                        marginBottom: '6px',
+                        marginLeft: '4px',
+                      }}>
+                        {s.tagline}
+                      </div>
+                    ) : null}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: styles.spacing.sm, flexWrap: 'wrap' }}>
+                      <span style={{
+                        backgroundColor: INTERFONE_MAGENTA,
+                        color: '#FFFFFF',
+                        fontWeight: 700,
+                        fontSize: styles.fontSize.lg,
+                        borderRadius: styles.borderRadius.md,
+                        padding: '6px 14px',
+                      }}>
+                        {s.productName}{s.quantity > 1 ? ` × ${s.quantity}` : ''}
+                      </span>
+                      {s.spec ? (
+                        <span style={{ color: INTERFONE_NAVY, fontWeight: 700, fontSize: styles.fontSize.lg }}>
+                          {s.spec}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
                   <span style={{
                     color: INTERFONE_MAGENTA,
                     fontWeight: 700,
@@ -1345,6 +1371,19 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                 {s.description ? (
                   <div style={{ color: '#2C3A4F', fontSize: styles.fontSize.sm, lineHeight: 1.45 }}>
                     {s.description}
+                  </div>
+                ) : null}
+
+                {/* Note bas de carte (ex: * voir conditions) */}
+                {s.footnote ? (
+                  <div style={{
+                    textAlign: 'right',
+                    color: '#94A3B8',
+                    fontSize: styles.fontSize.xs,
+                    fontStyle: 'italic',
+                    marginTop: styles.spacing.xs,
+                  }}>
+                    {s.footnote}
                   </div>
                 ) : null}
               </div>

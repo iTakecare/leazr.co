@@ -18,6 +18,9 @@ export interface SelectableExternalService {
   product_id: string;
   product_name: string;
   description?: string;
+  tagline?: string;
+  spec?: string;
+  footnote?: string;
   price_htva: number;
   billing_period: "monthly" | "yearly" | "one_time" | string;
   quantity: number;
@@ -217,6 +220,9 @@ const ProviderCard: React.FC<ProviderCardProps> = ({
                         product_id: product.id,
                         product_name: product.name,
                         description: product.description,
+                        tagline: product.tagline,
+                        spec: product.spec,
+                        footnote: product.footnote,
                         price_htva: product.price_htva,
                         billing_period: product.billing_period,
                         quantity: 1,

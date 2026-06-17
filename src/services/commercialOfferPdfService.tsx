@@ -42,6 +42,9 @@ interface CommercialOfferData {
     providerName: string;
     productName: string;
     description?: string;
+    tagline?: string;
+    spec?: string;
+    footnote?: string;
     priceHtva: number;
     billingPeriod: string;
     quantity: number;
@@ -51,6 +54,9 @@ interface CommercialOfferData {
     providerLogoUrl?: string | null;
     productName: string;
     description?: string;
+    tagline?: string;
+    spec?: string;
+    footnote?: string;
     priceHtva: number;
     billingPeriod: string;
     quantity: number;
@@ -141,7 +147,7 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
     // Services prestataires externes (facturés directement, NON inclus dans le total)
     const { data: externalServicesData } = await supabase
       .from('offer_external_services' as any)
-      .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+      .select('*')
       .eq('offer_id', offerId)
       .order('created_at', { ascending: true });
 
@@ -154,7 +160,7 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
     // Produits promo (carte "Avez-vous pensé à...?", NON inclus dans le total)
     const { data: promoData } = await supabase
       .from('offer_promo_products' as any)
-      .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+      .select('*')
       .eq('offer_id', offerId)
       .order('position', { ascending: true });
 

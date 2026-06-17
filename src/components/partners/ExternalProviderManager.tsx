@@ -59,6 +59,9 @@ const ExternalProviderManager: React.FC = () => {
   const [productForm, setProductForm] = useState<Omit<CreateExternalProviderProductData, 'provider_id'>>({
     name: "",
     description: "",
+    tagline: "",
+    spec: "",
+    footnote: "",
     price_htva: 0,
     billing_period: "monthly",
     is_active: true,
@@ -206,7 +209,7 @@ const ExternalProviderManager: React.FC = () => {
   const openCreateProduct = (providerId: string) => {
     setCurrentProviderId(providerId);
     setEditingProduct(null);
-    setProductForm({ name: "", description: "", price_htva: 0, billing_period: "monthly", is_active: true, position: 0 });
+    setProductForm({ name: "", description: "", tagline: "", spec: "", footnote: "", price_htva: 0, billing_period: "monthly", is_active: true, position: 0 });
     setProductDialogOpen(true);
   };
 
@@ -216,6 +219,9 @@ const ExternalProviderManager: React.FC = () => {
     setProductForm({
       name: product.name,
       description: product.description || "",
+      tagline: product.tagline || "",
+      spec: product.spec || "",
+      footnote: product.footnote || "",
       price_htva: product.price_htva,
       billing_period: product.billing_period,
       is_active: product.is_active,
@@ -356,6 +362,9 @@ const ExternalProviderManager: React.FC = () => {
                                       provider_id: product.provider_id,
                                       name: `${product.name} (copie)`,
                                       description: product.description,
+                                      tagline: product.tagline,
+                                      spec: product.spec,
+                                      footnote: product.footnote,
                                       price_htva: product.price_htva,
                                       billing_period: product.billing_period,
                                       position: product.position,
@@ -508,6 +517,25 @@ const ExternalProviderManager: React.FC = () => {
             <div>
               <Label>Description</Label>
               <Textarea value={productForm.description || ""} onChange={(e) => setProductForm(p => ({ ...p, description: e.target.value }))} rows={2} />
+            </div>
+            <div className="rounded-md border border-dashed p-3 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Champs optionnels pour la carte promo PDF (ex: interfone). Laissez vide si non utilisés.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Label (au-dessus du nom)</Label>
+                  <Input value={productForm.tagline || ""} onChange={(e) => setProductForm(p => ({ ...p, tagline: e.target.value }))} placeholder="Ex: Smile 2, v4, PRO" />
+                </div>
+                <div>
+                  <Label>Spec (à côté du nom)</Label>
+                  <Input value={productForm.spec || ""} onChange={(e) => setProductForm(p => ({ ...p, spec: e.target.value }))} placeholder="Ex: 10 GB, Boost IA" />
+                </div>
+              </div>
+              <div>
+                <Label>Note de bas de carte</Label>
+                <Input value={productForm.footnote || ""} onChange={(e) => setProductForm(p => ({ ...p, footnote: e.target.value }))} placeholder="Ex: * voir conditions" />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

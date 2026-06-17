@@ -388,7 +388,7 @@ const [notesLoading, setNotesLoading] = useState(false);
       // Produits promo (carte "Avez-vous pensé à...?", NON inclus dans le total)
       const { data: promoData } = await supabase
         .from('offer_promo_products' as any)
-        .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+        .select('*')
         .eq('offer_id', offer.id)
         .order('position', { ascending: true });
       const enrichedPromoProducts = await enrichExternalServicesWithLogos(

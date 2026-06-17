@@ -119,6 +119,9 @@ const CreateOffer = () => {
     product_id: string;
     product_name: string;
     description?: string;
+    tagline?: string;
+    spec?: string;
+    footnote?: string;
     price_htva: number;
     billing_period: string;
     quantity: number;
@@ -132,6 +135,9 @@ const CreateOffer = () => {
     product_id: string;
     product_name: string;
     description?: string;
+    tagline?: string;
+    spec?: string;
+    footnote?: string;
     price_htva: number;
     billing_period: string;
     quantity: number;
@@ -501,7 +507,7 @@ const CreateOffer = () => {
             try {
               const { data: externalSvc } = await supabase
                 .from('offer_external_services' as any)
-                .select('provider_name, product_name, description, price_htva, billing_period, quantity')
+                .select('*')
                 .eq('offer_id', offer.id)
                 .order('created_at', { ascending: true });
               if (externalSvc && externalSvc.length > 0) {
@@ -513,6 +519,9 @@ const CreateOffer = () => {
                     product_id: `${s.provider_name}-${s.product_name}-${Math.random().toString(36).slice(2, 8)}`,
                     product_name: s.product_name,
                     description: s.description || undefined,
+                    tagline: s.tagline || undefined,
+                    spec: s.spec || undefined,
+                    footnote: s.footnote || undefined,
                     price_htva: Number(s.price_htva || 0),
                     billing_period: s.billing_period || 'monthly',
                     quantity: Number(s.quantity || 1),
@@ -539,6 +548,9 @@ const CreateOffer = () => {
                     product_id: p.product_id || `${p.provider_name}-${p.product_name}-${Math.random().toString(36).slice(2, 8)}`,
                     product_name: p.product_name,
                     description: p.description || undefined,
+                    tagline: p.tagline || undefined,
+                    spec: p.spec || undefined,
+                    footnote: p.footnote || undefined,
                     price_htva: Number(p.price_htva || 0),
                     billing_period: p.billing_period || 'monthly',
                     quantity: Number(p.quantity || 1),
@@ -801,6 +813,9 @@ const CreateOffer = () => {
     product_id: string;
     product_name: string;
     description?: string;
+    tagline?: string;
+    spec?: string;
+    footnote?: string;
     price_htva: number;
     billing_period: string;
     quantity: number;
@@ -836,6 +851,9 @@ const CreateOffer = () => {
     product_id: string;
     product_name: string;
     description?: string;
+    tagline?: string;
+    spec?: string;
+    footnote?: string;
     price_htva: number;
     billing_period: string;
     quantity: number;
@@ -1145,6 +1163,9 @@ const CreateOffer = () => {
               provider_name: s.provider_name,
               product_name: s.product_name,
               description: s.description || null,
+              tagline: s.tagline || null,
+              spec: s.spec || null,
+              footnote: s.footnote || null,
               price_htva: s.price_htva,
               billing_period: s.billing_period,
               quantity: s.quantity,
@@ -1182,6 +1203,9 @@ const CreateOffer = () => {
               product_id: s.product_id || null,
               product_name: s.product_name,
               description: s.description || null,
+              tagline: s.tagline || null,
+              spec: s.spec || null,
+              footnote: s.footnote || null,
               price_htva: s.price_htva,
               billing_period: s.billing_period,
               quantity: s.quantity,

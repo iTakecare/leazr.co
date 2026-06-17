@@ -4,6 +4,9 @@ interface RawExternalService {
   provider_name: string;
   product_name: string;
   description?: string | null;
+  tagline?: string | null;
+  spec?: string | null;
+  footnote?: string | null;
   price_htva: number | string;
   billing_period: string;
   quantity: number;
@@ -14,6 +17,9 @@ export interface EnrichedExternalService {
   providerLogoUrl?: string | null;
   productName: string;
   description?: string;
+  tagline?: string;
+  spec?: string;
+  footnote?: string;
   priceHtva: number;
   billingPeriod: string;
   quantity: number;
@@ -76,6 +82,9 @@ export async function enrichExternalServicesWithLogos(
     providerLogoUrl: logoByName[s.provider_name] || null,
     productName: s.product_name,
     description: s.description || undefined,
+    tagline: s.tagline || undefined,
+    spec: s.spec || undefined,
+    footnote: s.footnote || undefined,
     priceHtva: Number(s.price_htva || 0),
     billingPeriod: s.billing_period || "monthly",
     quantity: s.quantity || 1,

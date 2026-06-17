@@ -71,7 +71,7 @@ export const fetchProviderProducts = async (providerId: string): Promise<Externa
 export const createProviderProduct = async (product: CreateExternalProviderProductData): Promise<ExternalProviderProduct> => {
   const { data, error } = await supabase
     .from("external_provider_products")
-    .insert(product)
+    .insert(product as any)
     .select()
     .single();
 
@@ -82,7 +82,7 @@ export const createProviderProduct = async (product: CreateExternalProviderProdu
 export const updateProviderProduct = async (id: string, updates: Partial<CreateExternalProviderProductData>): Promise<ExternalProviderProduct> => {
   const { data, error } = await supabase
     .from("external_provider_products")
-    .update(updates)
+    .update(updates as any)
     .eq("id", id)
     .select()
     .single();
@@ -151,12 +151,16 @@ export const saveOfferExternalProviderProducts = async (
     offer_id: offerId,
     provider_name: s.provider_name,
     product_name: s.product_name,
+    description: (s as any).description ?? null,
+    tagline: s.tagline ?? null,
+    spec: s.spec ?? null,
+    footnote: s.footnote ?? null,
     price_htva: s.price_htva,
     billing_period: s.billing_period,
     quantity: s.quantity,
   }));
 
-  const { error } = await supabase.from("offer_external_services").insert(rows);
+  const { error } = await supabase.from("offer_external_services").insert(rows as any);
   if (error) throw error;
 };
 
@@ -210,6 +214,9 @@ export const addOfferPromoProduct = async (
       product_id: selection.product_id,
       product_name: selection.product_name,
       description: (selection as any).description ?? null,
+      tagline: selection.tagline ?? null,
+      spec: selection.spec ?? null,
+      footnote: selection.footnote ?? null,
       price_htva: selection.price_htva,
       billing_period: selection.billing_period,
       quantity: selection.quantity,
@@ -246,6 +253,9 @@ export const saveOfferPromoProducts = async (
     product_id: s.product_id,
     product_name: s.product_name,
     description: (s as any).description ?? null,
+    tagline: s.tagline ?? null,
+    spec: s.spec ?? null,
+    footnote: s.footnote ?? null,
     price_htva: s.price_htva,
     billing_period: s.billing_period,
     quantity: s.quantity,

@@ -75,6 +75,10 @@ export interface ExternalProviderProduct {
   provider_id: string;
   name: string;
   description?: string;
+  // Champs marketing optionnels (rendu fidèle des cartes promo, ex: interfone)
+  tagline?: string; // petit label au-dessus du nom (ex: "Smile 2", "v4", "PRO")
+  spec?: string; // précision à côté du nom (ex: "10 GB", "Boost IA")
+  footnote?: string; // note bas de carte (ex: "* voir conditions")
   price_htva: number;
   billing_period: 'monthly' | 'yearly' | 'one_time';
   is_active: boolean;
@@ -132,6 +136,10 @@ export interface SelectedExternalProviderProduct {
   provider_logo_url?: string;
   product_id: string;
   product_name: string;
+  description?: string;
+  tagline?: string;
+  spec?: string;
+  footnote?: string;
   price_htva: number;
   billing_period: 'monthly' | 'yearly' | 'one_time';
   quantity: number;
@@ -144,6 +152,9 @@ export interface OfferExternalProviderProduct {
   provider_name: string;
   product_name: string;
   description?: string;
+  tagline?: string;
+  spec?: string;
+  footnote?: string;
   price_htva: number;
   billing_period: string;
   quantity: number;
@@ -162,6 +173,9 @@ export interface OfferPromoProduct {
   product_id?: string;
   product_name: string;
   description?: string;
+  tagline?: string;
+  spec?: string;
+  footnote?: string;
   price_htva: number;
   billing_period: string;
   quantity: number;
@@ -173,6 +187,9 @@ export interface CreateExternalProviderProductData {
   provider_id: string;
   name: string;
   description?: string;
+  tagline?: string;
+  spec?: string;
+  footnote?: string;
   price_htva: number;
   billing_period: 'monthly' | 'yearly' | 'one_time';
   is_active?: boolean;
