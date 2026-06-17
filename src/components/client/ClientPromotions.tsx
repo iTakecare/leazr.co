@@ -42,16 +42,18 @@ export const PromoTopBanner: React.FC<{ promo: ClientPromotion }> = ({ promo }) 
       {promo.image_url && (
         <div
           style={{
-            width: 160,
+            width: 150,
             flex: "none",
             background: "#fff",
-            backgroundImage: `url(${promo.image_url})`,
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 12,
             borderRight: "1px solid rgba(0,0,0,.06)",
           }}
-        />
+        >
+          <img src={promo.image_url} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+        </div>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 16, padding: promo.image_url ? "16px 22px" : 0, flex: 1, minWidth: 0 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -97,7 +99,9 @@ export const PromoSidebarCard: React.FC<{ promo: ClientPromotion }> = ({ promo }
       onClick={clickable ? () => onClick(promo) : undefined}
     >
       {promo.image_url ? (
-        <div style={{ height: 132, background: "#fff", backgroundImage: `url(${promo.image_url})`, backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center", borderBottom: "1px solid #EEF0F4" }} />
+        <div style={{ height: 140, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, borderBottom: "1px solid #EEF0F4" }}>
+          <img src={promo.image_url} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+        </div>
       ) : (
         <div style={{ height: 64, background: promo.background || "linear-gradient(120deg,#2D55E5,#7C3AED)", display: "flex", alignItems: "center", padding: "0 16px" }}>
           <Megaphone size={20} color="#fff" />
