@@ -1,24 +1,30 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, AlertCircle, RefreshCw, Calendar, Rocket, PartyPopper, Clock, CheckCircle2, Sparkles, Timer } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FileText, Download, Eye, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useClientContracts } from "@/hooks/useClientContracts";
 import { useClientData } from "@/hooks/useClientData";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
-import { motion } from "framer-motion";
 import { differenceInMonths, parseISO, format, addMonths } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 import RenewalRequestModal from "@/components/client/RenewalRequestModal";
+import {
+  ClientPage, ClientPageHeader, ClientCard, ClientEmptyState,
+  clientColors, ghostBtnStyle, badgeStyle,
+} from "@/components/client/clientUi";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
+  active: { label: "Actif", bg: "#E7F6F0", fg: "#047857" },
+  completed: { label: "Terminé", bg: "#EEF0F4", fg: "#667085" },
+  contract_sent: { label: "Contrat à signer", bg: "#FEF3C7", fg: "#B45309" },
+  contract_signed: { label: "Signé", bg: "#F2EBFE", fg: "#6D28D9" },
+  signed: { label: "Signé", bg: "#F2EBFE", fg: "#6D28D9" },
+  equipment_ordered: { label: "Équipement commandé", bg: "#E8EBFD", fg: "#4338CA" },
+  delivered: { label: "Livré", bg: "#EAF0FF", fg: "#1D4ED8" },
+  extended: { label: "Prolongé", bg: "#EAF0FF", fg: "#1D4ED8" },
+  cancelled: { label: "Annulé", bg: "#FEEFEF", fg: "#B91C1C" },
+  pending: { label: "En attente", bg: "#FFF0E6", fg: "#C2540B" },
 };
 
 const ClientContractsPage = () => {
@@ -27,26 +33,19 @@ const ClientContractsPage = () => {
   const { clientData } = useClientData();
   const { contracts, loading, error } = useClientContracts(user?.email, clientData?.id);
   const [renewalContract, setRenewalContract] = useState<any>(null);
+  const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+  const formatAmount = (amount: number) =>
+    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 0 }).format(amount || 0);
 
   const formatEquipmentDescription = (description?: string) => {
-    if (!description) return 'Équipement non spécifié';
+    if (!description) return "Équipement non spécifié";
     try {
-      const equipmentData = JSON.parse(description);
-      if (Array.isArray(equipmentData) && equipmentData.length > 0) {
-        const titles = equipmentData.map(item => item.title).filter(Boolean);
-        if (titles.length > 0) {
-          return titles.length > 1
-            ? `${titles[0]} et ${titles.length - 1} autre(s) équipement(s)`
-            : titles[0];
-        }
+      const data = JSON.parse(description);
+      if (Array.isArray(data) && data.length > 0) {
+        const titles = data.map((item) => item.title).filter(Boolean);
+        if (titles.length > 0)
+          return titles.length > 1 ? `${titles[0]} + ${titles.length - 1} autre(s) équipement(s)` : titles[0];
       }
     } catch {
       return description;
@@ -54,332 +53,206 @@ const ClientContractsPage = () => {
     return description;
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-emerald-100 text-emerald-700 border-0 rounded-full">Actif</Badge>;
-      case 'completed':
-        return <Badge variant="secondary" className="rounded-full">Terminé</Badge>;
-      case 'contract_sent':
-        return <Badge className="bg-blue-100 text-blue-700 border-0 rounded-full">Contrat envoyé</Badge>;
-      case 'contract_signed':
-        return <Badge className="bg-violet-100 text-violet-700 border-0 rounded-full">✍️ Signé</Badge>;
-      case 'signed':
-        return <Badge className="bg-violet-100 text-violet-700 border-0 rounded-full">✍️ Signé</Badge>;
-      case 'equipment_ordered':
-        return <Badge className="bg-violet-100 text-violet-700 border-0 rounded-full">Équipement commandé</Badge>;
-      case 'pending':
-        return <Badge className="bg-orange-100 text-orange-700 border-0 rounded-full">En attente</Badge>;
-      default:
-        return <Badge variant="secondary" className="rounded-full">{status}</Badge>;
-    }
+  const statusBadge = (status: string) => {
+    const m = STATUS_META[status] || { label: status, bg: "#EEF0F4", fg: "#667085" };
+    return <span style={badgeStyle(m.bg, m.fg)}>{m.label}</span>;
   };
 
-  const getContractTimeline = (contract: any) => {
+  const getTimeline = (contract: any) => {
     const startDate = contract.contract_start_date ? parseISO(contract.contract_start_date) : null;
     const duration = contract.contract_duration || 36;
-
-    // For signed contracts without start date, use created_at as reference
     const effectiveStart = startDate || parseISO(contract.created_at);
     const now = new Date();
-    const monthsElapsed = differenceInMonths(now, effectiveStart);
+    const monthsElapsed = Math.max(0, differenceInMonths(now, effectiveStart));
     const monthsRemaining = Math.max(0, duration - monthsElapsed);
-    const progress = Math.min(100, Math.max(0, Math.round((monthsElapsed / duration) * 100)));
+    const progress = Math.min(100, Math.max(2, Math.round((monthsElapsed / duration) * 100)));
     const canRenew = monthsElapsed >= 18;
     const endDate = addMonths(effectiveStart, duration);
-
     return { monthsElapsed, monthsRemaining, progress, duration, canRenew, startDate: effectiveStart, endDate };
   };
 
-  // Milestones on the timeline
-  const getMilestones = (duration: number) => [
-    { at: 0, emoji: "🚀", label: "Début" },
-    { at: Math.round(duration * 0.25), emoji: "📦", label: `${Math.round(duration * 0.25)} mois` },
-    { at: 18, emoji: "🔄", label: "Renouvellement possible" },
-    { at: Math.round(duration * 0.75), emoji: "⏳", label: `${Math.round(duration * 0.75)} mois` },
-    { at: duration, emoji: "🎉", label: "Fin" },
-  ];
-
   const showTimeline = (status: string) =>
-    ['active', 'signed', 'contract_signed', 'equipment_ordered'].includes(status);
+    ["active", "signed", "contract_signed", "equipment_ordered", "delivered", "extended"].includes(status);
+
+  const deliveryLabel = (contract: any) =>
+    contract.delivery_status
+      ? ({ en_attente: "En attente", expedie: "Expédié", livre: "Livré", delivered: "Livré" } as Record<string, string>)[contract.delivery_status] || contract.delivery_status
+      : contract.status === "active"
+        ? "Livré"
+        : "En attente";
+
+  const handleDownloadPdf = async (contract: any) => {
+    if (contract.signed_contract_pdf_url) {
+      window.open(contract.signed_contract_pdf_url, "_blank");
+      return;
+    }
+    if (!contract.offer_id) {
+      toast.info("Le PDF signé n'est pas encore disponible pour ce contrat.");
+      return;
+    }
+    setPdfLoadingId(contract.id);
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error: invokeError } = await supabase.functions.invoke("grenke-api", {
+        body: { action: "get_contract_doc", offer_id: contract.offer_id },
+      });
+      if (invokeError || !data?.success || !data?.signed_contract_pdf_url) {
+        toast.error(data?.message || "Le contrat signé n'est pas encore disponible. Réessayez une fois le dossier finalisé.");
+        return;
+      }
+      window.open(data.signed_contract_pdf_url, "_blank");
+      toast.success("Contrat signé récupéré ✓");
+    } catch {
+      toast.error("Erreur lors de la récupération du contrat signé.");
+    } finally {
+      setPdfLoadingId(null);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded-2xl w-1/3" />
-          <div className="h-4 bg-muted rounded-2xl w-1/2" />
-          <div className="space-y-4">
-            {[1, 2].map(i => <div key={i} className="h-48 bg-muted rounded-2xl" />)}
-          </div>
+      <ClientPage maxWidth={1080}>
+        <div className="animate-pulse" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ height: 30, width: "33%", background: "#E6E9EF", borderRadius: 12 }} />
+          {[1, 2].map((i) => <div key={i} style={{ height: 190, background: "#E6E9EF", borderRadius: 18 }} />)}
         </div>
-      </div>
+      </ClientPage>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
-        <Card className="border-destructive/30 bg-destructive/5 rounded-2xl">
-          <CardContent className="pt-6 flex items-center gap-3 text-destructive">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p className="text-sm">Erreur lors du chargement des contrats : {error}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <ClientPage maxWidth={1080}>
+        <ClientCard pad={20} style={{ border: "1px solid #F5C2C2", background: "#FEF2F2", display: "flex", alignItems: "center", gap: 12, color: "#B91C1C" }}>
+          <AlertCircle size={20} />
+          <p style={{ fontSize: 13, margin: 0 }}>Erreur lors du chargement des contrats : {error}</p>
+        </ClientCard>
+      </ClientPage>
     );
   }
 
   return (
-    <motion.div
-      className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.div variants={itemVariants}>
-        <h1 className="text-3xl font-bold tracking-tight">Mes Contrats</h1>
-        <p className="text-muted-foreground">
-          Consultez et gérez vos contrats de financement
-        </p>
-      </motion.div>
+    <ClientPage maxWidth={1080}>
+      <ClientPageHeader
+        title="Mes contrats"
+        subtitle="Suivez l'avancement et le renouvellement de vos financements."
+      />
 
-      <div className="grid gap-4">
-        {contracts.map((contract) => {
-          const timeline = getContractTimeline(contract);
-          const milestones = getMilestones(timeline.duration);
-          return (
-            <motion.div key={contract.id} variants={itemVariants}>
-              <Card className="border-0 shadow-sm rounded-2xl hover:shadow-md transition-shadow overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/40">
-                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">
-                          {[contract.leaser_name, contract.contract_number].filter(Boolean).join(' - ') || 'Contrat'}
-                        </CardTitle>
-                        <CardDescription>
-                          {formatEquipmentDescription(contract.equipment_description)}
-                          {' · '}Créé le {new Date(contract.created_at).toLocaleDateString('fr-FR')}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    {getStatusBadge(contract.status)}
+      {contracts.length === 0 ? (
+        <ClientEmptyState
+          icon={<FileText size={48} color={clientColors.faint} />}
+          title="Aucun contrat"
+          description="Vous n'avez pas encore de contrats de financement."
+        />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {contracts.map((contract: any) => {
+            const timeline = getTimeline(contract);
+            const title = [contract.leaser_name, contract.contract_number].filter(Boolean).join(" · ") || "Contrat";
+            const isPdfLoading = pdfLoadingId === contract.id;
+            return (
+              <ClientCard key={contract.id} radius={18} style={{ overflow: "hidden" }}>
+                {/* Header */}
+                <div style={{ padding: "18px 20px", display: "flex", alignItems: "flex-start", gap: 14 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: "#EAF0FF", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+                    <FileText size={21} color={clientColors.indigo} />
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="p-3 rounded-xl bg-muted/50">
-                      <p className="text-xs font-medium text-muted-foreground">Mensualité</p>
-                      <p className="text-lg font-semibold">{formatAmount(contract.monthly_payment)}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 15.5, fontWeight: 700 }}>{title}</span>
+                      {statusBadge(contract.status)}
                     </div>
-                    <div className="p-3 rounded-xl bg-muted/50">
-                      <p className="text-xs font-medium text-muted-foreground">Bailleur</p>
-                      <p className="text-sm font-medium">{contract.leaser_name || 'Non spécifié'}</p>
-                    </div>
-                    <div className="p-3 rounded-xl bg-muted/50">
-                      <p className="text-xs font-medium text-muted-foreground">Statut livraison</p>
-                      <p className="text-sm font-medium">
-                        {contract.delivery_status 
-                          ? ({ en_attente: 'En attente', expedie: 'Expédié', livre: 'Livré', delivered: 'Livré' }[contract.delivery_status] || contract.delivery_status)
-                          : (contract.status === 'active' ? 'Livré' : 'En attente')}
-                      </p>
-                    </div>
-                    <div className="flex items-end space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2 rounded-xl"
-                        onClick={() => navigateToClient(`contracts/${contract.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                        Voir
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-2 rounded-xl">
-                        <Download className="h-4 w-4" />
-                        PDF
-                      </Button>
+                    <div style={{ fontSize: 12.5, color: clientColors.muted, marginTop: 3 }}>
+                      {formatEquipmentDescription(contract.equipment_description)} · Créé le{" "}
+                      {new Date(contract.created_at).toLocaleDateString("fr-FR")}
                     </div>
                   </div>
-
-                  {/* 🎯 Fun Contract Timeline */}
-                  {timeline && showTimeline(contract.status) && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2, duration: 0.4 }}
-                      className="relative p-5 rounded-2xl bg-gradient-to-br from-blue-50 via-violet-50 to-pink-50 dark:from-blue-950/30 dark:via-violet-950/30 dark:to-pink-950/30 border border-blue-100/60 dark:border-blue-800/30 space-y-4"
+                  <div style={{ display: "flex", gap: 8, flex: "none" }}>
+                    <button style={ghostBtnStyle} onClick={() => navigateToClient(`contracts/${contract.id}`)}>
+                      <Eye size={15} /> Détails
+                    </button>
+                    <button
+                      style={{ ...ghostBtnStyle, opacity: isPdfLoading ? 0.6 : 1 }}
+                      disabled={isPdfLoading}
+                      onClick={() => handleDownloadPdf(contract)}
+                      title={contract.signed_contract_pdf_url ? "Télécharger le contrat signé" : "Récupérer le contrat signé"}
                     >
-                      {/* Header */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <motion.div
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                          >
-                            <Rocket className="h-5 w-5 text-violet-500" />
-                          </motion.div>
-                          <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                            Votre parcours contrat
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-white/10 border border-white/50">
-                          <Timer className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-xs font-bold text-foreground">
-                            {timeline.monthsRemaining} mois restant{timeline.monthsRemaining > 1 ? "s" : ""}
-                          </span>
-                        </div>
-                      </div>
+                      {isPdfLoading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                      PDF
+                    </button>
+                  </div>
+                </div>
 
-                      {/* Timeline track */}
-                      <div className="relative pt-6 pb-2">
-                        {/* Milestone markers */}
-                        <div className="absolute top-0 left-0 right-0 flex justify-between px-1">
-                          {milestones.map((m, i) => {
-                            const pos = (m.at / timeline.duration) * 100;
-                            const isPast = timeline.monthsElapsed >= m.at;
-                            const isCurrent = Math.abs(timeline.monthsElapsed - m.at) <= 1;
-                            return (
-                              <motion.div
-                                key={i}
-                                className="flex flex-col items-center"
-                                style={{ position: 'absolute', left: `${pos}%`, transform: 'translateX(-50%)' }}
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ delay: 0.3 + i * 0.1, type: "spring", stiffness: 200 }}
-                              >
-                                <motion.span
-                                  className="text-lg"
-                                  animate={isCurrent ? { scale: [1, 1.3, 1] } : {}}
-                                  transition={{ repeat: Infinity, duration: 1.5 }}
-                                >
-                                  {m.emoji}
-                                </motion.span>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
+                {/* Info tiles */}
+                <div style={{ padding: "0 20px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+                  <div style={{ background: "#FAFBFC", border: "1px solid #EEF0F4", borderRadius: 12, padding: "12px 14px" }}>
+                    <div style={{ fontSize: 11.5, color: clientColors.faint, fontWeight: 500 }}>Mensualité</div>
+                    <div style={{ fontSize: 17, fontWeight: 800, marginTop: 2 }}>{formatAmount(contract.monthly_payment)}</div>
+                  </div>
+                  <div style={{ background: "#FAFBFC", border: "1px solid #EEF0F4", borderRadius: 12, padding: "12px 14px" }}>
+                    <div style={{ fontSize: 11.5, color: clientColors.faint, fontWeight: 500 }}>Bailleur</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{contract.leaser_name || "Non spécifié"}</div>
+                  </div>
+                  <div style={{ background: "#FAFBFC", border: "1px solid #EEF0F4", borderRadius: 12, padding: "12px 14px" }}>
+                    <div style={{ fontSize: 11.5, color: clientColors.faint, fontWeight: 500 }}>Livraison</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{deliveryLabel(contract)}</div>
+                  </div>
+                </div>
 
-                        {/* Track background */}
-                        <div className="h-3 bg-white/60 dark:bg-white/10 rounded-full overflow-hidden shadow-inner">
-                          <motion.div
-                            className="h-full rounded-full bg-gradient-to-r from-blue-500 via-violet-500 to-pink-500 relative"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${timeline.progress}%` }}
-                            transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
-                          >
-                            {/* Shine effect */}
-                            <motion.div
-                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                              animate={{ x: ['-100%', '200%'] }}
-                              transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut", repeatDelay: 3 }}
-                            />
-                          </motion.div>
-                        </div>
-
-                        {/* Current position indicator */}
-                        <motion.div
-                          className="absolute top-[18px]"
-                          style={{ left: `${timeline.progress}%`, transform: 'translateX(-50%)' }}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 1, type: "spring" }}
-                        >
-                          <motion.div
-                            className="w-5 h-5 rounded-full bg-white border-[3px] border-violet-500 shadow-lg shadow-violet-500/30"
-                            animate={{ boxShadow: ['0 0 0 0 rgba(139,92,246,0.3)', '0 0 0 8px rgba(139,92,246,0)', '0 0 0 0 rgba(139,92,246,0.3)'] }}
-                            transition={{ repeat: Infinity, duration: 2 }}
-                          />
-                        </motion.div>
-
-                        {/* Date labels */}
-                        <div className="flex justify-between mt-3 px-0.5">
-                          <span className="text-[11px] font-medium text-muted-foreground">
-                            {format(timeline.startDate, "MMM yyyy", { locale: fr })}
-                          </span>
-                          <motion.span
-                            className="text-[11px] font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent"
-                            animate={{ opacity: [0.7, 1, 0.7] }}
-                            transition={{ repeat: Infinity, duration: 2 }}
-                          >
-                            {timeline.monthsElapsed}/{timeline.duration} mois · {timeline.progress}%
-                          </motion.span>
-                          <span className="text-[11px] font-medium text-muted-foreground">
-                            {format(timeline.endDate, "MMM yyyy", { locale: fr })}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Renewal section */}
-                      {timeline.canRenew && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.2 }}
-                        >
-                          <Button
-                            size="sm"
-                            className="w-full gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-violet-600 to-pink-600 hover:from-blue-700 hover:via-violet-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-violet-500/20 h-10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRenewalContract(contract);
-                            }}
-                          >
-                            <motion.div animate={{ rotate: [0, 360] }} transition={{ repeat: Infinity, duration: 4, ease: "linear" }}>
-                              <RefreshCw className="h-4 w-4" />
-                            </motion.div>
-                            <span className="font-semibold">Renouveler mon matériel</span>
-                            <Sparkles className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                      )}
-
-                      {/* Pre-renewal hint */}
-                      {!timeline.canRenew && timeline.monthsElapsed >= 12 && (
-                        <p className="text-[11px] text-center text-muted-foreground">
-                          🔓 Renouvellement disponible dans {18 - timeline.monthsElapsed} mois
-                        </p>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {contract.tracking_number && (
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                      <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                        Numéro de suivi : {contract.tracking_number}
-                      </p>
-                      {contract.delivery_carrier && (
-                        <p className="text-sm text-blue-600 dark:text-blue-400">
-                          Transporteur : {contract.delivery_carrier}
-                        </p>
-                      )}
+                {/* Timeline */}
+                {showTimeline(contract.status) && (
+                  <div style={{ margin: "16px 20px 20px", padding: 18, borderRadius: 16, background: "linear-gradient(120deg,#F4F7FF,#F7F4FF)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: clientColors.indigo }}>Parcours du contrat</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "#1A2233", background: "#fff", padding: "4px 11px", borderRadius: 20, border: "1px solid #E6E9EF" }}>
+                        {timeline.monthsRemaining} mois restant{timeline.monthsRemaining > 1 ? "s" : ""}
+                      </span>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
+                    <div style={{ position: "relative", height: 10, background: "#fff", borderRadius: 10, overflow: "hidden", boxShadow: "inset 0 1px 2px rgba(16,24,40,.08)" }}>
+                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${timeline.progress}%`, borderRadius: 10, background: "linear-gradient(90deg,#3D6BFF,#7C3AED)", overflow: "hidden" }}>
+                        <span style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent)", animation: "lzrShine 3s ease-in-out infinite" }} />
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 9 }}>
+                      <span style={{ fontSize: 11.5, color: clientColors.faint, fontWeight: 500 }}>{format(timeline.startDate, "MMM yyyy", { locale: fr })}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: clientColors.indigo }}>{timeline.monthsElapsed}/{timeline.duration} mois · {timeline.progress}%</span>
+                      <span style={{ fontSize: 11.5, color: clientColors.faint, fontWeight: 500 }}>{format(timeline.endDate, "MMM yyyy", { locale: fr })}</span>
+                    </div>
+                    {timeline.canRenew && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setRenewalContract(contract); }}
+                        style={{ marginTop: 16, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, height: 42, border: 0, borderRadius: 12, background: "linear-gradient(135deg,#3D6BFF,#7C3AED)", color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", boxShadow: "0 6px 16px rgba(91,60,200,.3)" }}
+                      >
+                        <RefreshCw size={16} /> Renouveler mon matériel
+                      </button>
+                    )}
+                    {!timeline.canRenew && timeline.monthsElapsed >= 12 && (
+                      <p style={{ fontSize: 11.5, textAlign: "center", color: clientColors.faint, margin: "12px 0 0" }}>
+                        🔓 Renouvellement disponible dans {18 - timeline.monthsElapsed} mois
+                      </p>
+                    )}
+                  </div>
+                )}
 
-      {contracts.length === 0 && (
-        <motion.div variants={itemVariants}>
-          <Card className="border-0 shadow-sm rounded-2xl">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4 opacity-40" />
-              <h3 className="text-lg font-semibold mb-2">Aucun contrat</h3>
-              <p className="text-muted-foreground text-center text-sm">
-                Vous n'avez pas encore de contrats de financement.
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+                {/* Tracking */}
+                {contract.tracking_number && (
+                  <div style={{ margin: "0 20px 20px", padding: 12, background: "#F0F4FF", borderRadius: 12 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#1D4ED8", margin: 0 }}>
+                      Numéro de suivi : {contract.tracking_number}
+                    </p>
+                    {contract.delivery_carrier && (
+                      <p style={{ fontSize: 12.5, color: clientColors.indigo, margin: "2px 0 0" }}>
+                        Transporteur : {contract.delivery_carrier}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </ClientCard>
+            );
+          })}
+        </div>
       )}
 
-      {/* Renewal Modal */}
       {renewalContract && clientData && (
         <RenewalRequestModal
           open={!!renewalContract}
@@ -389,7 +262,7 @@ const ClientContractsPage = () => {
           companyId={(clientData as any).company_id || ""}
         />
       )}
-    </motion.div>
+    </ClientPage>
   );
 };
 

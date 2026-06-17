@@ -1,13 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { HelpCircle, Mail, Phone, MessageSquare, FileText, Plus, Send, Clock, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Paperclip, Download, User, Shield } from "lucide-react";
+import { Mail, Phone, MessageSquare, FileText, Plus, Send, Clock, Loader2, ArrowLeft, Paperclip, Download, User, Shield, ChevronRight, ChevronDown, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
@@ -16,15 +12,17 @@ import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
-};
+import {
+  clientColors,
+  CLIENT_GRADIENT,
+  ClientPage,
+  ClientPageHeader,
+  ClientCard,
+  StatusBadge,
+  primaryBtnStyle,
+  ghostBtnStyle,
+  ClientEmptyState,
+} from "@/components/client/clientUi";
 
 const TICKET_CATEGORIES = [
   { value: "technical", label: "Problème technique" },
@@ -33,12 +31,72 @@ const TICKET_CATEGORIES = [
   { value: "other", label: "Autre" },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  open: { label: "Ouvert", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300", icon: Clock },
-  in_progress: { label: "En cours", color: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300", icon: Loader2 },
-  resolved: { label: "Résolu", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300", icon: CheckCircle2 },
-  closed: { label: "Fermé", color: "bg-muted text-muted-foreground", icon: CheckCircle2 },
+const STATUS_LABELS: Record<string, string> = {
+  open: "Ouvert",
+  in_progress: "En cours",
+  resolved: "Résolu",
+  closed: "Fermé",
 };
+
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: 12.5,
+  fontWeight: 700,
+  letterSpacing: ".04em",
+  textTransform: "uppercase",
+  color: clientColors.muted,
+  margin: "0 0 12px",
+};
+
+/* ────────────────────────────  Bandeau contacts  ──────────────────────────── */
+
+const CONTACT_ITEMS = [
+  { icon: Phone, label: "Téléphone", value: "+32 (0)71 49 16 85" },
+  { icon: Mail, label: "E-mail", value: "support@itakecare.be" },
+  { icon: Clock, label: "Horaires", value: "Lun - Ven : 9h - 18h" },
+];
+
+const ContactsBanner = () => (
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 14,
+      padding: "16px 18px",
+      borderRadius: 14,
+      background: "#F0F4FF",
+      border: "1px solid #DCE5FB",
+      marginBottom: 26,
+    }}
+  >
+    {CONTACT_ITEMS.map(({ icon: Icon, label, value }) => (
+      <div key={label} style={{ display: "flex", alignItems: "center", gap: 11, flex: "1 1 200px", minWidth: 0 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            boxShadow: "0 1px 2px rgba(16,24,40,.05)",
+          }}
+        >
+          <Icon size={17} color={clientColors.indigo} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: clientColors.faint, textTransform: "uppercase", letterSpacing: ".03em" }}>
+            {label}
+          </div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: clientColors.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {value}
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 const ClientSupportPage = () => {
   const queryClient = useQueryClient();
@@ -46,6 +104,7 @@ const ClientSupportPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [form, setForm] = useState({ subject: "", category: "technical", description: "" });
+  const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -133,200 +192,185 @@ const ClientSupportPage = () => {
   }
 
   return (
-    <motion.div
-      className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.div variants={itemVariants}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <HelpCircle className="h-8 w-8 text-primary" />
-              Support Client
-            </h1>
-            <p className="text-muted-foreground">
-              Nous sommes là pour vous aider. Créez un ticket ou consultez notre FAQ.
-            </p>
-          </div>
-          <Button onClick={() => setShowForm(!showForm)} className="gap-2 rounded-xl">
-            <Plus className="h-4 w-4" />
+    <ClientPage maxWidth={920}>
+      <ClientPageHeader
+        title="Support"
+        subtitle="Une question, une panne ? Notre équipe vous répond sous 24h."
+        action={
+          <button style={primaryBtnStyle} onClick={() => setShowForm((v) => !v)}>
+            <Plus size={16} />
             Ouvrir un ticket
-          </Button>
-        </div>
-      </motion.div>
+          </button>
+        }
+      />
 
-      {/* Contact rapide - bandeau visible */}
-      <motion.div variants={itemVariants}>
-        <div className="flex flex-wrap items-center gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/10">
-          <div className="flex items-center gap-2 text-sm">
-            <div className="p-1.5 rounded-lg bg-primary/10">
-              <Phone className="h-4 w-4 text-primary" />
-            </div>
-            <span className="font-medium">+32 (0)71 49 16 85</span>
-          </div>
-          <div className="h-5 w-px bg-border hidden sm:block" />
-          <div className="flex items-center gap-2 text-sm">
-            <div className="p-1.5 rounded-lg bg-primary/10">
-              <Mail className="h-4 w-4 text-primary" />
-            </div>
-            <span className="font-medium">support@itakecare.be</span>
-          </div>
-          <div className="h-5 w-px bg-border hidden sm:block" />
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="p-1.5 rounded-lg bg-primary/10">
-              <Clock className="h-4 w-4 text-primary" />
-            </div>
-            <span>Lun - Ven : 9h - 18h</span>
-          </div>
-        </div>
-      </motion.div>
+      {/* Bandeau contacts */}
+      <ContactsBanner />
 
-      {/* Ticket creation form */}
+      {/* Formulaire de création */}
       {showForm && (
-        <motion.div variants={itemVariants}>
-          <Card className="border-0 shadow-sm rounded-2xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Nouveau ticket</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Sujet</label>
-                  <Input
-                    value={form.subject}
-                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                    placeholder="Décrivez brièvement votre problème"
-                    className="rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Catégorie</label>
-                  <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TICKET_CATEGORIES.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ marginBottom: 26 }}
+        >
+          <ClientCard pad={20}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: clientColors.ink, margin: "0 0 16px" }}>
+              Nouveau ticket
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description</label>
-                <Textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Décrivez votre problème en détail..."
-                  rows={4}
+                <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 6 }}>
+                  Sujet
+                </label>
+                <Input
+                  value={form.subject}
+                  onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                  placeholder="Décrivez brièvement votre problème"
                   className="rounded-xl"
                 />
               </div>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-xl">Annuler</Button>
-                <Button
-                  onClick={() => createTicket.mutate()}
-                  disabled={!form.subject || !form.description || createTicket.isPending}
-                  className="gap-2 rounded-xl"
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 6 }}>
+                  Catégorie
+                </label>
+                <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TICKET_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 6 }}>
+                Description
+              </label>
+              <Textarea
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Décrivez votre problème en détail..."
+                rows={4}
+                className="rounded-xl"
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button style={ghostBtnStyle} onClick={() => setShowForm(false)}>Annuler</button>
+              <button
+                style={{ ...primaryBtnStyle, opacity: !form.subject || !form.description || createTicket.isPending ? 0.55 : 1 }}
+                onClick={() => createTicket.mutate()}
+                disabled={!form.subject || !form.description || createTicket.isPending}
+              >
+                {createTicket.isPending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                Envoyer
+              </button>
+            </div>
+          </ClientCard>
+        </motion.div>
+      )}
+
+      {/* Mes tickets */}
+      <div style={{ marginBottom: 30 }}>
+        <p style={sectionLabelStyle}>Mes tickets ({tickets.length})</p>
+        {ticketsLoading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[1, 2].map((i) => (
+              <div key={i} style={{ height: 70, borderRadius: 16, background: clientColors.borderSoft }} className="animate-pulse" />
+            ))}
+          </div>
+        ) : tickets.length === 0 ? (
+          <ClientEmptyState
+            icon={<FileText size={40} color={clientColors.faint} />}
+            title="Aucun ticket pour le moment"
+            description="Ouvrez un ticket pour contacter notre équipe support."
+          />
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {tickets.map((ticket: any) => {
+              const replyCount = typeof ticket.reply_count === "number" ? ticket.reply_count : null;
+              const catLabel = TICKET_CATEGORIES.find((c) => c.value === ticket.category)?.label || ticket.category;
+              return (
+                <ClientCard
+                  key={ticket.id}
+                  pad="14px 16px"
+                  onClick={() => setSelectedTicketId(ticket.id)}
+                  className="ticket-row"
+                  style={{ cursor: "pointer", transition: "border-color .15s" }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "#C9D2E4")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = clientColors.border)}
                 >
-                  <Send className="h-4 w-4" /> Envoyer
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      {/* Tickets list */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-0 shadow-sm rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <FileText className="h-4 w-4 text-primary" />
-              Mes tickets ({tickets.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {ticketsLoading ? (
-              <div className="space-y-3">
-                {[1, 2].map((i) => <div key={i} className="h-16 bg-muted rounded-xl animate-pulse" />)}
-              </div>
-            ) : tickets.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
-                <p className="text-sm text-muted-foreground">Aucun ticket pour le moment</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {tickets.map((ticket: any) => {
-                  const statusConf = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.open;
-                  const StatusIcon = statusConf.icon;
-                  return (
-                    <div
-                      key={ticket.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer"
-                      onClick={() => setSelectedTicketId(ticket.id)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium text-sm truncate">{ticket.subject}</h4>
-                          <Badge className={`text-xs ${statusConf.color} border-0`}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {statusConf.label}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>{TICKET_CATEGORIES.find((c) => c.value === ticket.category)?.label || ticket.category}</span>
-                          <span>·</span>
-                          <span>{new Date(ticket.created_at).toLocaleDateString("fr-FR")}</span>
-                        </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: clientColors.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {ticket.subject}
+                        </span>
+                        <StatusBadge status={ticket.status} label={STATUS_LABELS[ticket.status] || ticket.status} />
                       </div>
-                      <ArrowLeft className="h-4 w-4 text-muted-foreground rotate-180" />
+                      <div style={{ fontSize: 12.5, color: clientColors.muted }}>
+                        {catLabel} · {new Date(ticket.created_at).toLocaleDateString("fr-FR")}
+                        {replyCount !== null && ` · ${replyCount} message${replyCount > 1 ? "s" : ""}`}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+                    <ChevronRight size={18} color={clientColors.faint} style={{ flexShrink: 0 }} />
+                  </div>
+                </ClientCard>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-      {/* FAQ dynamique */}
+      {/* Questions fréquentes */}
       {faqArticles.length > 0 && (
-        <motion.div variants={itemVariants}>
-          <Card className="border-0 shadow-sm rounded-2xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <HelpCircle className="h-4 w-4 text-primary" />
-                Questions Fréquentes
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Trouvez rapidement des réponses aux questions les plus courantes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                {faqArticles.map((article: any) => (
-                  <AccordionItem key={article.id} value={article.id}>
-                    <AccordionTrigger className="text-sm font-medium hover:no-underline">
-                      <div className="flex items-center gap-2 text-left">
-                        {article.title}
-                        <Badge variant="outline" className="text-xs shrink-0">{article.category}</Badge>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="text-xs text-muted-foreground whitespace-pre-line">
+        <div>
+          <p style={sectionLabelStyle}>Questions fréquentes</p>
+          <ClientCard pad={0}>
+            {faqArticles.map((article: any, idx: number) => {
+              const isOpen = openFaq === article.id;
+              return (
+                <div
+                  key={article.id}
+                  style={{ borderTop: idx === 0 ? "none" : `1px solid ${clientColors.borderSoft}` }}
+                >
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : article.id)}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      padding: "15px 18px",
+                      background: "transparent",
+                      border: 0,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: clientColors.ink }}>
+                      {article.title}
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      color={clientColors.faint}
+                      style={{ flexShrink: 0, transition: "transform .2s", transform: isOpen ? "rotate(180deg)" : "none" }}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div style={{ padding: "0 18px 16px", fontSize: 13, color: clientColors.muted, whiteSpace: "pre-line", lineHeight: 1.55 }}>
                       {article.content}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </CardContent>
-          </Card>
-        </motion.div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </ClientCard>
+        </div>
       )}
-
-    </motion.div>
+    </ClientPage>
   );
 };
 
@@ -350,9 +394,6 @@ const ClientTicketDetail = ({ ticket, onBack, clientName }: ClientTicketDetailPr
   useEffect(() => {
     markRepliesAsRead(ticket.id);
   }, [ticket.id, markRepliesAsRead]);
-
-  const statusConf = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.open;
-  const StatusIcon = statusConf.icon;
 
   const { data: replies = [], isLoading: repliesLoading } = useQuery({
     queryKey: ["ticket-replies", ticket.id],
@@ -437,167 +478,211 @@ const ClientTicketDetail = ({ ticket, onBack, clientName }: ClientTicketDetailPr
   const isClosed = ticket.status === "closed" || ticket.status === "resolved";
 
   return (
-    <motion.div
-      className="p-6 md:p-8 space-y-6 max-w-4xl mx-auto"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.div variants={itemVariants}>
-        <Button variant="ghost" onClick={onBack} className="gap-2 mb-2">
-          <ArrowLeft className="h-4 w-4" />
-          Retour aux tickets
-        </Button>
+    <ClientPage maxWidth={920}>
+      {/* Back */}
+      <button
+        style={{ ...ghostBtnStyle, border: 0, background: "transparent", padding: 0, height: "auto", marginBottom: 16 }}
+        onClick={onBack}
+      >
+        <ArrowLeft size={16} />
+        Retour aux tickets
+      </button>
 
-        <Card className="border-0 shadow-sm rounded-2xl">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-lg">{ticket.subject}</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Créé le {format(new Date(ticket.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
-                </p>
-              </div>
-              <Badge className={`${statusConf.color} border-0`}>
-                <StatusIcon className="h-3 w-3 mr-1" />
-                {statusConf.label}
-              </Badge>
-            </div>
-          </CardHeader>
-          {ticket.description && (
-            <CardContent>
-              <div className="p-3 rounded-xl bg-muted/50 text-sm whitespace-pre-wrap">{ticket.description}</div>
-            </CardContent>
-          )}
-        </Card>
-      </motion.div>
+      {/* En-tête du ticket */}
+      <ClientCard pad={20} style={{ marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-.01em", color: clientColors.ink, margin: 0 }}>
+              {ticket.subject}
+            </h2>
+            <p style={{ fontSize: 12.5, color: clientColors.muted, margin: "6px 0 0" }}>
+              Ouvert le {format(new Date(ticket.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+            </p>
+          </div>
+          <StatusBadge status={ticket.status} label={STATUS_LABELS[ticket.status] || ticket.status} />
+        </div>
+        {ticket.description && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: 14,
+              borderRadius: 12,
+              background: clientColors.surface,
+              border: `1px solid ${clientColors.borderSoft}`,
+              fontSize: 13.5,
+              color: clientColors.ink,
+              whiteSpace: "pre-wrap",
+              lineHeight: 1.55,
+            }}
+          >
+            {ticket.description}
+          </div>
+        )}
+      </ClientCard>
 
       {/* Conversation */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-0 shadow-sm rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              Conversation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {repliesLoading ? (
-              <div className="flex justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : replies.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Aucune réponse pour le moment. L'équipe support va vous répondre prochainement.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {replies.map((reply: any) => {
-                  const isAdmin = reply.sender_type === "admin";
-                  const replyAttachments = (reply.attachments || []) as { name: string; path: string; size: number }[];
-                  return (
+      <ClientCard pad={0}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "16px 18px", borderBottom: `1px solid ${clientColors.borderSoft}` }}>
+          <MessageSquare size={16} color={clientColors.indigo} />
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: clientColors.ink }}>Conversation</span>
+        </div>
+
+        {/* Fil de discussion */}
+        <div style={{ background: clientColors.surface, padding: 18 }}>
+          {repliesLoading ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
+              <Loader2 size={20} className="animate-spin" color={clientColors.faint} />
+            </div>
+          ) : replies.length === 0 ? (
+            <p style={{ fontSize: 13, color: clientColors.muted, textAlign: "center", padding: "18px 0", margin: 0 }}>
+              Aucune réponse pour le moment. L'équipe support va vous répondre prochainement.
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {replies.map((reply: any) => {
+                const isAdmin = reply.sender_type === "admin";
+                const replyAttachments = (reply.attachments || []) as { name: string; path: string; size: number }[];
+                return (
+                  <div
+                    key={reply.id}
+                    style={{ display: "flex", justifyContent: isAdmin ? "flex-start" : "flex-end" }}
+                  >
                     <div
-                      key={reply.id}
-                      className={`p-4 rounded-xl border ${isAdmin ? "bg-primary/5 border-primary/20 mr-4" : "bg-muted/50 border-border ml-4"}`}
+                      style={{
+                        maxWidth: "82%",
+                        padding: "11px 14px",
+                        borderRadius: 14,
+                        background: isAdmin ? "#fff" : clientColors.indigo,
+                        border: isAdmin ? `1px solid ${clientColors.border}` : "none",
+                        color: isAdmin ? clientColors.ink : "#fff",
+                        boxShadow: isAdmin ? "0 1px 2px rgba(16,24,40,.04)" : "0 4px 12px rgba(45,85,229,.22)",
+                      }}
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className={`p-1 rounded-full ${isAdmin ? "bg-primary/10" : "bg-muted"}`}>
-                          {isAdmin ? <Shield className="h-3 w-3 text-primary" /> : <User className="h-3 w-3 text-muted-foreground" />}
-                        </div>
-                        <span className="text-sm font-medium">{reply.sender_name}</span>
-                        <Badge variant="outline" className="text-xs">{isAdmin ? "Support" : "Vous"}</Badge>
-                        <span className="text-xs text-muted-foreground ml-auto">
-                          {format(new Date(reply.created_at), "dd MMM yyyy à HH:mm", { locale: fr })}
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
+                        {isAdmin ? (
+                          <Shield size={12} color={clientColors.indigo} />
+                        ) : (
+                          <User size={12} color="rgba(255,255,255,.85)" />
+                        )}
+                        <span style={{ fontSize: 12, fontWeight: 700 }}>{reply.sender_name}</span>
+                        <span style={{ fontSize: 11, opacity: isAdmin ? 0.55 : 0.8 }}>
+                          · {isAdmin ? "Support" : "Vous"}
+                        </span>
+                        <span style={{ fontSize: 11, marginLeft: "auto", opacity: isAdmin ? 0.5 : 0.75 }}>
+                          {format(new Date(reply.created_at), "dd MMM à HH:mm", { locale: fr })}
                         </span>
                       </div>
-                      <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
+                      <p style={{ fontSize: 13.5, whiteSpace: "pre-wrap", margin: 0, lineHeight: 1.5 }}>{reply.message}</p>
                       {replyAttachments.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
                           {replyAttachments.map((att, i) => (
-                            <Button
+                            <button
                               key={i}
-                              variant="outline"
-                              size="sm"
-                              className="text-xs h-7 gap-1"
                               onClick={() => downloadAttachment(att.path, att.name)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                padding: "4px 9px",
+                                borderRadius: 8,
+                                cursor: "pointer",
+                                border: isAdmin ? `1px solid ${clientColors.border}` : "1px solid rgba(255,255,255,.4)",
+                                background: isAdmin ? "#fff" : "rgba(255,255,255,.15)",
+                                color: isAdmin ? clientColors.ink : "#fff",
+                              }}
                             >
-                              <Download className="h-3 w-3" />
+                              <Download size={12} />
                               {att.name}
-                            </Button>
+                            </button>
                           ))}
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Reply form - only if not closed */}
-            {!isClosed ? (
-              <div className="border-t pt-4 space-y-3">
-                <Textarea
-                  value={replyMessage}
-                  onChange={(e) => setReplyMessage(e.target.value)}
-                  placeholder="Rédigez votre réponse..."
-                  rows={3}
-                  className="resize-none rounded-xl"
-                />
-
-                {attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {attachments.map((file, i) => (
-                      <Badge key={i} variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeAttachment(i)}>
-                        <Paperclip className="h-3 w-3" />
-                        {file.name}
-                        <span className="text-xs opacity-60">✕</span>
-                      </Badge>
-                    ))}
                   </div>
-                )}
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      className="hidden"
-                      onChange={handleFileSelect}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Paperclip className="h-4 w-4 mr-2" />
-                      Joindre un fichier
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={() => sendReply.mutate()}
-                    disabled={!replyMessage.trim() || uploading || sendReply.isPending}
-                    className="gap-2 rounded-xl"
+        {/* Zone de réponse */}
+        {!isClosed ? (
+          <div style={{ padding: 18, borderTop: `1px solid ${clientColors.borderSoft}` }}>
+            <Textarea
+              value={replyMessage}
+              onChange={(e) => setReplyMessage(e.target.value)}
+              placeholder="Rédigez votre réponse..."
+              rows={3}
+              className="resize-none rounded-xl"
+            />
+
+            {attachments.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                {attachments.map((file, i) => (
+                  <button
+                    key={i}
+                    onClick={() => removeAttachment(i)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: "4px 9px",
+                      borderRadius: 8,
+                      border: `1px solid ${clientColors.border}`,
+                      background: clientColors.surface,
+                      color: clientColors.ink,
+                      cursor: "pointer",
+                    }}
                   >
-                    {(uploading || sendReply.isPending) ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                    Répondre
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="border-t pt-4 text-center">
-                <p className="text-sm text-muted-foreground">Ce ticket est fermé. Ouvrez un nouveau ticket si nécessaire.</p>
+                    <Paperclip size={12} />
+                    {file.name}
+                    <X size={12} style={{ opacity: 0.6 }} />
+                  </button>
+                ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </motion.div>
-    </motion.div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <button style={ghostBtnStyle} onClick={() => fileInputRef.current?.click()}>
+                  <Paperclip size={15} />
+                  Joindre un fichier
+                </button>
+              </div>
+              <button
+                onClick={() => sendReply.mutate()}
+                disabled={!replyMessage.trim() || uploading || sendReply.isPending}
+                style={{ ...primaryBtnStyle, opacity: !replyMessage.trim() || uploading || sendReply.isPending ? 0.55 : 1 }}
+              >
+                {(uploading || sendReply.isPending) ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Send size={16} />
+                )}
+                Répondre
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: 18, borderTop: `1px solid ${clientColors.borderSoft}`, textAlign: "center" }}>
+            <p style={{ fontSize: 13, color: clientColors.muted, margin: 0 }}>
+              Ce ticket est fermé. Ouvrez un nouveau ticket si nécessaire.
+            </p>
+          </div>
+        )}
+      </ClientCard>
+    </ClientPage>
   );
 };
 

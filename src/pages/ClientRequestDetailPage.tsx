@@ -1,27 +1,16 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
-  XCircle, 
-  FileText, 
-  Calendar,
-  User,
-  Mail,
-  Building,
-  Download,
+import {
+  AlertCircle,
+  FileText,
+  Check,
+  ArrowLeft,
   MessageSquare,
-  Bell
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useClientOffers } from "@/hooks/useClientOffers";
-import { RequestHeroSection } from "@/components/client/RequestHeroSection";
-import ClientWorkflowStepper from "@/components/client/ClientWorkflowStepper";
 
 import { DetailedEquipmentSection } from "@/components/client/DetailedEquipmentSection";
 import { DocumentUploadSection } from "@/components/client/DocumentUploadSection";
@@ -29,6 +18,13 @@ import { ContractSignatureSection } from "@/components/client/ContractSignatureS
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { useOfferDocuments } from "@/hooks/useOfferDocuments";
 import { mapWorkflowStatusToClientStatus } from "@/utils/statusMapping";
+import {
+  ClientPage,
+  ClientCard,
+  StatusBadge,
+  clientColors,
+  ghostBtnStyle,
+} from "@/components/client/clientUi";
 
 const getOfferTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
@@ -43,14 +39,71 @@ const getOfferTypeLabel = (type: string) => {
   return labels[type] || type;
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: "En attente de validation",
+  approved: "Demande validée",
+  rejected: "Demande refusée",
+  sent: "Offre transmise",
+};
+
+const STATUS_TONE_FALLBACK: Record<string, { bg: string; fg: string }> = {
+  rejected: { bg: "#FEEFEF", fg: "#B91C1C" },
+  sent: { bg: "#EAF0FF", fg: "#1D4ED8" },
+};
+
+/** 5 étapes du suivi d'une demande (maquette). */
+const TRACKER_STEPS = [
+  "Demande soumise",
+  "En cours d'analyse",
+  "Demande validée",
+  "Contrat à signer",
+  "Matériel commandé",
+];
+
+/**
+ * Détermine l'index de l'étape "courante" du tracker à partir du statut
+ * workflow réel et du statut client mappé. Les étapes < index sont "done".
+ */
+const resolveTrackerStep = (
+  workflowStatus?: string | null,
+  mappedStatus?: string,
+  signedAt?: string | null,
+): number => {
+  switch (workflowStatus) {
+    case 'equipment_ordered':
+    case 'delivered':
+    case 'active':
+      return 4;
+    case 'signed':
+    case 'contract_signed':
+      return signedAt ? 4 : 3;
+    case 'contract_sent':
+    case 'financed':
+      return 3;
+    case 'leaser_approved':
+    case 'internal_approved':
+      return 2;
+    case 'pending':
+    case 'draft':
+    case 'info_requested':
+      return 1;
+    default:
+      break;
+  }
+  // Repli sur le statut client mappé
+  if (mappedStatus === 'approved') return 2;
+  if (mappedStatus === 'rejected') return 1;
+  return 1;
+};
+
 const ClientRequestDetailPage = () => {
   const { id, slug } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { offers, loading, error } = useClientOffers(user?.email);
-  
+
   const offer = offers.find(o => o.id === id);
-  
+
   // Additional hooks for detailed data
   const { equipment, loading: equipmentLoading } = useOfferEquipment(id);
   const { documents, uploadLinks, loading: documentsLoading } = useOfferDocuments(id);
@@ -65,7 +118,7 @@ const ClientRequestDetailPage = () => {
 
   const formatEquipmentDescription = (description?: string) => {
     if (!description) return 'Équipement non spécifié';
-    
+
     try {
       const equipmentData = JSON.parse(description);
       if (Array.isArray(equipmentData) && equipmentData.length > 0) {
@@ -77,288 +130,256 @@ const ClientRequestDetailPage = () => {
     return [description];
   };
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return {
-          badge: <Badge variant="outline" className="border-orange-300 text-orange-600 bg-orange-50/80">En attente de validation</Badge>,
-          icon: <Clock className="h-6 w-6 text-orange-500" />
-        };
-      case 'approved':
-        return {
-          badge: <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Demande approuvée</Badge>,
-          icon: <CheckCircle className="h-6 w-6 text-emerald-500" />
-        };
-      case 'rejected':
-        return {
-          badge: <Badge variant="destructive" className="bg-red-500 hover:bg-red-600">Demande refusée</Badge>,
-          icon: <XCircle className="h-6 w-6 text-red-500" />
-        };
-      case 'sent':
-        return {
-          badge: <Badge variant="outline" className="border-blue-300 text-blue-600 bg-blue-50/80">Offre transmise</Badge>,
-          icon: <AlertCircle className="h-6 w-6 text-blue-500" />
-        };
-      default:
-        return {
-          badge: <Badge variant="secondary">{status}</Badge>,
-          icon: <Clock className="h-6 w-6 text-muted-foreground" />
-        };
-    }
-  };
-
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-32 bg-muted/50 rounded-2xl"></div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-              <div className="h-64 bg-muted/50 rounded-xl"></div>
-              <div className="h-48 bg-muted/50 rounded-xl"></div>
-            </div>
-            <div className="space-y-4">
-              <div className="h-32 bg-muted/50 rounded-xl"></div>
-              <div className="h-48 bg-muted/50 rounded-xl"></div>
-            </div>
-          </div>
+      <ClientPage maxWidth={1040}>
+        <div className="animate-pulse" style={{ display: "grid", gap: 20 }}>
+          <div style={{ height: 36, width: 120, background: clientColors.borderSoft, borderRadius: 10 }} />
+          <div style={{ height: 140, background: clientColors.borderSoft, borderRadius: 16 }} />
+          <div style={{ height: 320, background: clientColors.borderSoft, borderRadius: 16 }} />
         </div>
-      </div>
+      </ClientPage>
     );
   }
 
   if (error || !offer) {
     return (
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-6"
-      >
-        <Card className="border-destructive/20 bg-destructive/5">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              <div>
-                <p className="font-medium">Erreur de chargement</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {error || "La demande demandée est introuvable"}
-                </p>
-              </div>
+      <ClientPage maxWidth={1040}>
+        <ClientCard pad={20} style={{ borderColor: "#FBD5D5", background: "#FEF6F6" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#B91C1C" }}>
+            <AlertCircle size={18} />
+            <div>
+              <p style={{ fontWeight: 600, margin: 0, fontSize: 14 }}>Erreur de chargement</p>
+              <p style={{ fontSize: 13, color: clientColors.muted, margin: "4px 0 0" }}>
+                {error || "La demande demandée est introuvable"}
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+          </div>
+        </ClientCard>
+      </ClientPage>
     );
   }
 
   const mappedStatus = mapWorkflowStatusToClientStatus(offer.workflow_status, offer.status);
-  const statusInfo = getStatusInfo(mappedStatus);
+  const statusLabel = STATUS_LABELS[mappedStatus] || getOfferTypeLabel(mappedStatus);
+  const toneFallback = STATUS_TONE_FALLBACK[mappedStatus];
   const equipmentList = formatEquipmentDescription(offer.equipment_description);
+  const title = Array.isArray(equipmentList) ? equipmentList[0] : equipmentList;
+  const extraCount = Array.isArray(equipmentList) ? equipmentList.length - 1 : 0;
+  const ref = offer.dossier_number || offer.id.slice(0, 8).toUpperCase();
+  const currentStep = resolveTrackerStep(offer.workflow_status, mappedStatus, offer.signed_at);
+  const createdDate = new Date(offer.created_at).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-background"
-    >
-      <div className="p-6 space-y-8 max-w-7xl mx-auto">
-        {/* Hero Section */}
-        <RequestHeroSection 
-          offer={offer}
-          statusInfo={statusInfo}
-          formatAmount={formatAmount}
-        />
+    <ClientPage maxWidth={1040}>
+      {/* Retour */}
+      <button
+        type="button"
+        style={{ ...ghostBtnStyle, marginBottom: 18 }}
+        onClick={() => navigate(-1)}
+      >
+        <ArrowLeft size={15} />
+        Retour
+      </button>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Status Timeline */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <ClientWorkflowStepper
-                currentStatus={offer.workflow_status || offer.status || 'draft'}
-                offerType={offer.type}
-                workflowTemplateId={offer.workflow_template_id}
-                companyId={offer.company_id}
-              />
-            </motion.div>
-
-
-            {/* Detailed Equipment Section */}
-            {equipment.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <DetailedEquipmentSection 
-                  equipment={equipment}
-                  loading={equipmentLoading}
-                />
-              </motion.div>
-            )}
-
-            {/* Document Upload Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <DocumentUploadSection 
-                documents={documents}
-                uploadLinks={uploadLinks}
-                loading={documentsLoading}
-              />
-            </motion.div>
-
-            {/* Contract Signature Section */}
-            {(offer.status === 'sent' || offer.signed_at) && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <ContractSignatureSection 
-                  offer={offer}
-                  onViewContract={() => window.open(`/client/offer/${offer.id}`, '_blank')}
-                  onSignContract={() => window.open(`/client/offer/${offer.id}/sign`, '_blank')}
-                />
-              </motion.div>
-            )}
-
-          </div>
-
-          {/* Right Column - Information Panel */}
-          <div className="space-y-6">
-            {/* Contact Information */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
-                    Informations contact
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">{offer.client_name}</p>
-                      <p className="text-xs text-muted-foreground">Demandeur</p>
-                    </div>
-                  </div>
-                  
-                  {offer.client_email && (
-                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">{offer.client_email}</p>
-                        <p className="text-xs text-muted-foreground">Email de contact</p>
-                      </div>
-                    </div>
+      {/* Carte en-tête */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <ClientCard pad={22} style={{ marginBottom: 22 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 18, flexWrap: "wrap" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <h1 style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.02em", margin: 0, color: clientColors.ink }}>
+                  {title}
+                  {extraCount > 0 && (
+                    <span style={{ fontWeight: 600, color: clientColors.muted }}> et {extraCount} autre(s)</span>
                   )}
-                  
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        {new Date(offer.created_at).toLocaleDateString('fr-FR', {
-                          day: '2-digit',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Date de soumission</p>
+                </h1>
+                <StatusBadge status={mappedStatus} label={statusLabel} tone={toneFallback} />
+              </div>
+              <div style={{ fontSize: 13, color: clientColors.muted, marginTop: 6 }}>
+                {ref} · {getOfferTypeLabel(offer.type)} · Soumise le {createdDate}
+              </div>
+            </div>
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div style={{ fontSize: 12, color: clientColors.faint }}>Mensualité estimée</div>
+              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: clientColors.indigo }}>
+                {formatAmount(offer.monthly_payment)}
+                <span style={{ fontSize: 13, fontWeight: 600, color: clientColors.muted }}> / mois</span>
+              </div>
+            </div>
+          </div>
+        </ClientCard>
+      </motion.div>
+
+      {/* Suivi de la demande — tracker 5 étapes */}
+      {mappedStatus !== 'rejected' && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <ClientCard pad={22} style={{ marginBottom: 22 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 18px", color: clientColors.ink }}>
+              Suivi de la demande
+            </h2>
+            <div style={{ position: "relative" }}>
+              {TRACKER_STEPS.map((label, idx) => {
+                const done = idx < currentStep;
+                const current = idx === currentStep;
+                const isLast = idx === TRACKER_STEPS.length - 1;
+
+                const circleBg = done
+                  ? clientColors.emerald
+                  : current
+                  ? clientColors.indigo
+                  : "#EEF0F4";
+                const circleColor = done || current ? "#fff" : clientColors.faint;
+
+                return (
+                  <div key={label} style={{ display: "flex", gap: 14, position: "relative" }}>
+                    {/* Colonne pastille + ligne */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          background: circleBg,
+                          color: circleColor,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          boxShadow: current ? `0 0 0 4px ${clientColors.indigo}22` : "none",
+                          zIndex: 1,
+                        }}
+                      >
+                        {done ? <Check size={15} strokeWidth={3} /> : idx + 1}
+                      </div>
+                      {!isLast && (
+                        <div
+                          style={{
+                            width: 2,
+                            flex: 1,
+                            minHeight: 24,
+                            background: idx < currentStep ? clientColors.emerald : "#EEF0F4",
+                          }}
+                        />
+                      )}
+                    </div>
+                    {/* Libellé */}
+                    <div style={{ paddingBottom: isLast ? 0 : 18, paddingTop: 4 }}>
+                      <div
+                        style={{
+                          fontSize: 13.5,
+                          fontWeight: done || current ? 700 : 500,
+                          color: done || current ? clientColors.ink : clientColors.faint,
+                        }}
+                      >
+                        {label}
+                      </div>
+                      {current && (
+                        <div style={{ fontSize: 12, color: clientColors.muted, marginTop: 2 }}>
+                          Étape en cours
+                        </div>
+                      )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                );
+              })}
+            </div>
+          </ClientCard>
+        </motion.div>
+      )}
 
-            {/* Technical Details */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    Détails techniques
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm text-muted-foreground">Référence</span>
-                    <span className="text-sm font-mono">{offer.dossier_number || offer.id.slice(0, 8)}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm text-muted-foreground">Type</span>
-                    <span className="text-sm">
-                      {getOfferTypeLabel(offer.type)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-muted-foreground">Statut workflow</span>
-                    <Badge variant="outline" className="text-xs">
-                      {offer.workflow_status || 'Initial'}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+      {/* Équipement détaillé */}
+      {equipment.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+          style={{ marginBottom: 22 }}
+        >
+          <DetailedEquipmentSection
+            equipment={equipment}
+            loading={equipmentLoading}
+          />
+        </motion.div>
+      )}
 
-            {/* Support */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <Card className="border-muted-foreground/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <MessageSquare className="h-4 w-4" />
-                    Besoin d'aide ?
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Notre équipe est là pour vous accompagner dans votre demande de financement.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => {
-                      const ref = offer?.dossier_number || offer?.id?.slice(0, 8) || '';
-                      const params = new URLSearchParams({
-                        subject: `Demande d'information - Offre ${ref}`,
-                        category: 'other',
-                        description: `Bonjour, je voudrais avoir des informations au sujet de mon offre ${ref}`,
-                      });
-                      navigate(`/${slug}/client/support?${params.toString()}`);
-                    }}
-                  >
-                    Contacter le support
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
+      {/* Documents */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        style={{ marginBottom: 22 }}
+      >
+        <DocumentUploadSection
+          documents={documents}
+          uploadLinks={uploadLinks}
+          loading={documentsLoading}
+        />
+      </motion.div>
+
+      {/* Signature contrat */}
+      {(offer.status === 'sent' || offer.signed_at) && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.25 }}
+          style={{ marginBottom: 22 }}
+        >
+          <ContractSignatureSection
+            offer={offer}
+            onViewContract={() => window.open(`/client/offer/${offer.id}`, '_blank')}
+            onSignContract={() => window.open(`/client/offer/${offer.id}/sign`, '_blank')}
+          />
+        </motion.div>
+      )}
+
+      {/* Support */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+      >
+        <ClientCard pad={20}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <MessageSquare size={16} color={clientColors.muted} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: clientColors.ink }}>Besoin d'aide ?</span>
           </div>
-        </div>
-      </div>
-    </motion.div>
+          <p style={{ fontSize: 12.5, color: clientColors.muted, margin: "0 0 14px" }}>
+            Notre équipe est là pour vous accompagner dans votre demande de financement.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const supportRef = offer?.dossier_number || offer?.id?.slice(0, 8) || '';
+              const params = new URLSearchParams({
+                subject: `Demande d'information - Offre ${supportRef}`,
+                category: 'other',
+                description: `Bonjour, je voudrais avoir des informations au sujet de mon offre ${supportRef}`,
+              });
+              navigate(`/${slug}/client/support?${params.toString()}`);
+            }}
+          >
+            <FileText size={15} className="mr-1.5" />
+            Contacter le support
+          </Button>
+        </ClientCard>
+      </motion.div>
+    </ClientPage>
   );
 };
 

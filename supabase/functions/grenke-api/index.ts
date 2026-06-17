@@ -23,7 +23,7 @@
 // See: docs/grenke-api/INTEGRATION.md
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { encode as base64Encode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
+import { encode as base64Encode, decode as base64Decode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -273,12 +273,7 @@ serve(async (req) => {
         return await handleGetGrenkeSubmissions(adminSupabase, companyId, body.offer_id);
 
       case "get_contract_doc":
-        return jsonResponse({
-          success: false,
-          error: "not_implemented",
-          action,
-          message: "Action will ship in a later phase. See docs/grenke-api/INTEGRATION.md.",
-        }, 501);
+        return await handleGetContractDoc(adminSupabase, companyId, environment, creds, body.offer_id);
 
       default:
         return jsonResponse({ success: false, error: "unknown_action", action }, 400);
@@ -1859,6 +1854,11 @@ async function handlePollGrenkeContracts(
     if (!creds) { skipped++; continue; }
     try {
       await handleReconcileGrenkeContracts(adminSupabase, companyId, "production", creds, { auto: true });
+      // Best-effort: pull the signed DocuSign PDF for newly-contracted dossiers
+      // so the client space can offer it for download. Never fails the poll.
+      await backfillGrenkeSignedPdfs(adminSupabase, companyId, "production", creds).catch((e) =>
+        console.warn("[grenke-api] backfillGrenkeSignedPdfs failed for company", companyId, e instanceof Error ? e.message : String(e)),
+      );
       processed++;
     } catch (e) {
       console.error("[grenke-api] poll_grenke_contracts error for company", companyId, e instanceof Error ? e.message : String(e));
@@ -1971,6 +1971,181 @@ async function handleGetESignatureConfig(
     documents_pending: pendingDocs,
     can_send: pendingDocs.length === 0,
   }, 200);
+}
+
+// =====================================================================
+// get_contract_doc — retrieve the SIGNED contract PDF from Grenke and store it.
+//
+// Grenke fronts the DocuSign envelope server-side; once the dossier is signed
+// (Contracted / ApplicationSettled / RunningContract …) the combined signed PDF
+// is available at GET /basic/v1/requests/{financingId}/contractdocument.
+// The endpoint returns the PDF (raw bytes or a base64 string per Grenke's JSON
+// content type). We decode it, push it to the public `signed-contracts` bucket
+// (same bucket the Leazr-generated signed PDFs use) and persist the public URL
+// on contracts.signed_contract_pdf_url so the client space can offer it for
+// download.
+// =====================================================================
+
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]; // %PDF
+
+function startsWithPdfMagic(b: Uint8Array): boolean {
+  return b.length >= 4 && PDF_MAGIC.every((v, i) => b[i] === v);
+}
+
+async function pdfBytesFromGrenkeContractDoc(response: Response): Promise<Uint8Array> {
+  const raw = new Uint8Array(await response.arrayBuffer());
+  if (startsWithPdfMagic(raw)) return raw; // already a raw PDF body
+
+  // Otherwise the body is a (possibly JSON-quoted / data-URI-prefixed) base64
+  // string. Normalise then decode.
+  let text = new TextDecoder().decode(raw).trim();
+  if (text.startsWith('"') && text.endsWith('"')) {
+    try { text = JSON.parse(text) as string; } catch { text = text.slice(1, -1); }
+  }
+  // Some payloads wrap the base64 in a JSON object — pull the first long base64 field.
+  if (text.startsWith("{")) {
+    try {
+      const obj = JSON.parse(text) as Record<string, unknown>;
+      const cand = Object.values(obj).find((v) => typeof v === "string" && (v as string).length > 100);
+      if (typeof cand === "string") text = cand;
+    } catch { /* fall through */ }
+  }
+  const comma = text.indexOf("base64,");
+  if (comma >= 0) text = text.slice(comma + 7);
+  text = text.replace(/\s+/g, "");
+  const decoded = base64Decode(text);
+  if (!startsWithPdfMagic(decoded)) {
+    throw new Error("Grenke contractdocument did not yield a valid PDF (no %PDF header)");
+  }
+  return decoded;
+}
+
+type StorePdfResult =
+  | { ok: true; url: string }
+  | { ok: false; status: number; error: string; message: string };
+
+async function fetchAndStoreGrenkeContractPdf(
+  admin: ReturnType<typeof createClient>,
+  environment: Environment,
+  creds: Credentials,
+  financingId: string,
+  contractId: string,
+): Promise<StorePdfResult> {
+  let response: Response;
+  try {
+    response = await grenkeFetch(
+      environment,
+      `/basic/v1/requests/${financingId}/contractdocument`,
+      { method: "GET" },
+      creds,
+    );
+  } catch (e) {
+    return { ok: false, status: 502, error: "network_or_tls_error", message: e instanceof Error ? e.message : String(e) };
+  }
+  if (!response.ok) {
+    const t = await response.text().catch(() => "");
+    return {
+      ok: false,
+      status: response.status >= 500 ? 502 : response.status,
+      error: "grenke_error",
+      message: `contractdocument ${response.status}: ${t.slice(0, 200)}`,
+    };
+  }
+
+  let bytes: Uint8Array;
+  try {
+    bytes = await pdfBytesFromGrenkeContractDoc(response);
+  } catch (e) {
+    return { ok: false, status: 502, error: "invalid_pdf", message: e instanceof Error ? e.message : String(e) };
+  }
+
+  const fileName = `grenke-${contractId}-signed.pdf`;
+  const { error: upErr } = await admin.storage
+    .from("signed-contracts")
+    .upload(fileName, bytes, { contentType: "application/pdf", upsert: true });
+  if (upErr) {
+    return { ok: false, status: 500, error: "storage_upload_failed", message: upErr.message };
+  }
+  const { data: urlData } = admin.storage.from("signed-contracts").getPublicUrl(fileName);
+  const publicUrl = urlData?.publicUrl;
+  if (!publicUrl) {
+    return { ok: false, status: 500, error: "public_url_failed", message: "Impossible de générer l'URL publique" };
+  }
+  const cacheBusted = `${publicUrl}?v=${Date.now()}`;
+
+  await admin.from("contracts").update({ signed_contract_pdf_url: cacheBusted }).eq("id", contractId);
+  // Stamp the signature timestamp only if it was empty (don't clobber a real one).
+  await admin
+    .from("contracts")
+    .update({ contract_signed_at: new Date().toISOString() })
+    .eq("id", contractId)
+    .is("contract_signed_at", null);
+
+  return { ok: true, url: cacheBusted };
+}
+
+async function handleGetContractDoc(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  offerId: string | undefined,
+): Promise<Response> {
+  const loaded = await loadOfferForESign(adminSupabase, companyId, offerId);
+  if (!loaded.ok) return jsonResponse({ success: false, error: loaded.error, message: loaded.message }, loaded.status);
+  const offer = loaded.offer;
+  const env = (offer.grenke_environment as Environment) || environment;
+
+  const { data: contract } = await adminSupabase
+    .from("contracts")
+    .select("id")
+    .eq("offer_id", offerId)
+    .maybeSingle();
+  if (!contract) {
+    return jsonResponse({ success: false, error: "no_contract", message: "Aucun contrat Leazr lié à cette offre (pas encore contractualisé)." }, 404);
+  }
+  const contractId = (contract as { id: string }).id;
+
+  const result = await fetchAndStoreGrenkeContractPdf(adminSupabase, env, creds, offer.grenke_financing_id as string, contractId);
+  if (!result.ok) return jsonResponse({ success: false, error: result.error, message: result.message }, result.status);
+  return jsonResponse({ success: true, signed_contract_pdf_url: result.url, contract_id: contractId }, 200);
+}
+
+// Best-effort backfill: pull the signed PDF for any contracted Grenke contract
+// that doesn't have one yet. Capped per run so the 15-min poll never balloons
+// into dozens of Grenke calls. Each contract is fetched at most once (the
+// signed_contract_pdf_url IS NULL filter skips the ones already stored).
+const GRENKE_SIGNED_STATES = ["ApplicationSettled", "Paid", "RunningContract", "ProlongedContract", "Contracted"];
+
+async function backfillGrenkeSignedPdfs(
+  admin: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+): Promise<number> {
+  const { data: rows } = await admin
+    .from("contracts")
+    .select("id, grenke_state, offers:offer_id ( grenke_financing_id, grenke_environment )")
+    .eq("company_id", companyId)
+    .in("grenke_state", GRENKE_SIGNED_STATES)
+    .is("signed_contract_pdf_url", null)
+    .not("offer_id", "is", null)
+    .limit(8);
+
+  let done = 0;
+  for (const r of ((rows ?? []) as Array<{ id: string; offers?: { grenke_financing_id?: string | null; grenke_environment?: string | null } | null }>)) {
+    const fid = r.offers?.grenke_financing_id;
+    if (!fid) continue;
+    const env = (r.offers?.grenke_environment as Environment) || environment;
+    try {
+      const res = await fetchAndStoreGrenkeContractPdf(admin, env, creds, fid, r.id);
+      if (res.ok) done++;
+    } catch (e) {
+      console.warn("[grenke-api] backfill signed pdf failed for contract", r.id, e instanceof Error ? e.message : String(e));
+    }
+  }
+  if (done > 0) console.log(`[grenke-api] backfilled ${done} signed contract PDF(s) for company ${companyId}`);
+  return done;
 }
 
 async function handleStartESignature(

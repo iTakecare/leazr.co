@@ -1,25 +1,161 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
-import { User, Shield } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  User,
+  Shield,
+  Building2,
+  Mail,
+  Phone,
+  MapPin,
+  Receipt,
+  UserCog,
+  Users,
+  Plus,
+  MoreHorizontal,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { updateClientFromProfile } from "@/services/clientService";
 import { useClientData } from "@/hooks/useClientData";
-import { motion } from "framer-motion";
+import {
+  clientColors,
+  ClientPage,
+  ClientPageHeader,
+  ClientCard,
+  ClientEmptyState,
+  primaryBtnStyle,
+  ghostBtnStyle,
+} from "@/components/client/clientUi";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+/* ────────────────────────────  Primitives locales (présentation)  ──────────────────────────── */
+
+const fieldLabelStyle: React.CSSProperties = {
+  fontSize: 12.5,
+  fontWeight: 600,
+  color: clientColors.muted,
+  marginBottom: 6,
+  display: "block",
 };
-const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  height: 40,
+  padding: "0 12px",
+  fontSize: 13.5,
+  color: clientColors.ink,
+  background: "#fff",
+  border: `1px solid ${clientColors.border}`,
+  borderRadius: 10,
+  outline: "none",
+  fontFamily: "Inter, sans-serif",
 };
+
+const Field: React.FC<{
+  id: string;
+  label: string;
+  type?: string;
+  value: string;
+  onChange?: (v: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  hint?: string;
+}> = ({ id, label, type = "text", value, onChange, placeholder, disabled, hint }) => (
+  <div>
+    <label htmlFor={id} style={fieldLabelStyle}>
+      {label}
+    </label>
+    <input
+      id={id}
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      disabled={disabled}
+      onChange={(e) => onChange?.(e.target.value)}
+      style={{
+        ...inputStyle,
+        background: disabled ? clientColors.surface : "#fff",
+        color: disabled ? clientColors.faint : clientColors.ink,
+        cursor: disabled ? "not-allowed" : "text",
+      }}
+    />
+    {hint && (
+      <p style={{ fontSize: 11.5, color: clientColors.faint, margin: "5px 0 0" }}>{hint}</p>
+    )}
+  </div>
+);
+
+/** Tuile d'information lecture seule (maquette : fond surface, bord doux). */
+const InfoTile: React.FC<{
+  icon: React.ReactNode;
+  title: string;
+  lines: (string | undefined)[];
+}> = ({ icon, title, lines }) => {
+  const shown = lines.filter((l) => l && l.trim());
+  return (
+    <div
+      style={{
+        background: clientColors.surface,
+        border: `1px solid ${clientColors.borderSoft}`,
+        borderRadius: 12,
+        padding: 14,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span style={{ color: clientColors.indigo, display: "inline-flex" }}>{icon}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: clientColors.ink }}>{title}</span>
+      </div>
+      {shown.length ? (
+        shown.map((l, i) => (
+          <div
+            key={i}
+            style={{ fontSize: 12.5, color: i === 0 ? clientColors.ink : clientColors.muted, lineHeight: 1.5 }}
+          >
+            {l}
+          </div>
+        ))
+      ) : (
+        <div style={{ fontSize: 12.5, color: clientColors.faint }}>Non renseigné</div>
+      )}
+    </div>
+  );
+};
+
+const cardTitleStyle: React.CSSProperties = {
+  fontSize: 16,
+  fontWeight: 700,
+  color: clientColors.ink,
+  margin: 0,
+};
+
+const cardSubStyle: React.CSSProperties = {
+  fontSize: 12.5,
+  color: clientColors.muted,
+  margin: "2px 0 0",
+};
+
+/* avatars collaborateurs : couleurs stables d'après l'initiale */
+const AVATAR_PALETTE = [
+  "#2D55E5",
+  "#7C3AED",
+  "#DB2777",
+  "#0891B2",
+  "#059669",
+  "#EA580C",
+];
+const avatarColor = (key: string) => {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+};
+const initials = (name?: string) =>
+  (name || "?")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() || "")
+    .join("") || "?";
+
+/* ────────────────────────────  Page  ──────────────────────────── */
 
 const ClientSettingsPage = () => {
   const { user } = useAuth();
@@ -65,27 +201,27 @@ const ClientSettingsPage = () => {
         data: {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          phone: phone.trim()
-        }
+          phone: phone.trim(),
+        },
       });
 
       if (updateError) throw updateError;
 
       if (user?.id) {
         const { error: profileError } = await supabase
-          .from('profiles')
+          .from("profiles")
           .update({
             first_name: firstName.trim(),
             last_name: lastName.trim(),
-            phone: phone.trim()
+            phone: phone.trim(),
           })
-          .eq('id', user.id);
+          .eq("id", user.id);
 
         if (profileError) console.warn("Erreur profil:", profileError);
 
         if (clientData?.id) {
           const { error: clientErr } = await supabase
-            .from('clients')
+            .from("clients")
             .update({
               name: `${firstName.trim()} ${lastName.trim()}`,
               company: company.trim(),
@@ -94,9 +230,9 @@ const ClientSettingsPage = () => {
               city: city.trim(),
               postal_code: postalCode.trim(),
               country: country.trim(),
-              vat_number: vatNumber.trim()
+              vat_number: vatNumber.trim(),
             })
-            .eq('id', clientData.id);
+            .eq("id", clientData.id);
 
           if (clientErr) console.warn("Erreur client:", clientErr);
         } else {
@@ -143,136 +279,341 @@ const ClientSettingsPage = () => {
     }
   };
 
+  // Données société réelles (jamais inventées)
+  const collaborators = clientData?.collaborators ?? [];
+  const cityLine = [postalCode, city].filter(Boolean).join(" ");
+  const vatCityLine = [vatNumber, cityLine].filter(Boolean).join(" · ");
+  const fullName = `${firstName} ${lastName}`.trim();
+
   return (
-    <motion.div
-      className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.div variants={itemVariants}>
-        <h1 className="text-3xl font-bold tracking-tight">Paramètres</h1>
-        <p className="text-muted-foreground">
-          Gérez vos préférences de compte et vos informations personnelles
-        </p>
-      </motion.div>
+    <ClientPage maxWidth={920}>
+      <ClientPageHeader
+        title="Paramètres"
+        subtitle="Gérez votre entreprise et vos collaborateurs."
+      />
 
-      <motion.div variants={itemVariants}>
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 rounded-xl">
-            <TabsTrigger value="profile" className="flex items-center gap-2 rounded-lg">
-              <User className="h-4 w-4" />
-              Mon Profil
-            </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2 rounded-lg">
-              <Shield className="h-4 w-4" />
-              Sécurité
-            </TabsTrigger>
-          </TabsList>
+      {clientError && (
+        <ClientCard pad={16} style={{ marginBottom: 18, borderColor: "#FECACA", background: "#FEF2F2" }}>
+          <span style={{ fontSize: 13, color: "#B91C1C" }}>
+            Impossible de charger les informations de votre entreprise.
+          </span>
+        </ClientCard>
+      )}
 
-          <TabsContent value="profile">
-            <Card className="border-0 shadow-sm rounded-2xl">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <User className="h-4 w-4 text-blue-500" />
-                  Informations personnelles
-                </CardTitle>
-                <CardDescription className="text-xs">Gérez vos informations de profil</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName">Prénom</Label>
-                      <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="rounded-xl" />
+      {/* ──────────  Entreprise  ────────── */}
+      <ClientCard pad={20} style={{ marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          {/* Logo / tuile */}
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 14,
+              flexShrink: 0,
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: clientData?.logo_url ? "#fff" : "linear-gradient(135deg,#16243F,#0E1A30)",
+              border: clientData?.logo_url ? `1px solid ${clientColors.border}` : "none",
+            }}
+          >
+            {clientData?.logo_url ? (
+              <img
+                src={clientData.logo_url}
+                alt={company || "Logo"}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            ) : (
+              <Building2 size={26} color="#fff" />
+            )}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: clientColors.ink }}>
+              {company || "Votre entreprise"}
+            </div>
+            <div style={{ fontSize: 12.5, color: clientColors.muted, marginTop: 2 }}>
+              {vatCityLine || "TVA & adresse à compléter"}
+            </div>
+          </div>
+
+          <button
+            style={ghostBtnStyle}
+            onClick={() =>
+              document.getElementById("company")?.scrollIntoView({ behavior: "smooth", block: "center" })
+            }
+          >
+            <UserCog size={15} />
+            Modifier
+          </button>
+        </div>
+
+        {/* Grille tuiles info (données réelles) */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+            marginTop: 18,
+          }}
+        >
+          <InfoTile
+            icon={<Receipt size={15} />}
+            title="Contact facturation"
+            lines={[fullName, user?.email, phone]}
+          />
+          <InfoTile
+            icon={<MapPin size={15} />}
+            title="Adresse"
+            lines={[address, cityLine, country]}
+          />
+        </div>
+
+        {/* Édition des champs société (préserve les handlers existants) */}
+        <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${clientColors.border}` }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+            <Field id="company" label="Société" value={company} onChange={setCompany} placeholder="Nom de votre société" />
+            <Field id="vatNumber" label="Numéro de TVA / SIRET" value={vatNumber} onChange={setVatNumber} placeholder="BE 0123 456 789" />
+            <Field id="address" label="Adresse" value={address} onChange={setAddress} placeholder="123 rue de la Paix" />
+            <Field id="city" label="Ville" value={city} onChange={setCity} placeholder="Bruxelles" />
+            <Field id="postalCode" label="Code postal" value={postalCode} onChange={setPostalCode} placeholder="1000" />
+            <Field id="country" label="Pays" value={country} onChange={setCountry} placeholder="Belgique" />
+          </div>
+        </div>
+      </ClientCard>
+
+      {/* ──────────  Informations personnelles  ────────── */}
+      <ClientCard pad={20} style={{ marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <User size={17} color={clientColors.indigo} />
+          <div>
+            <h2 style={cardTitleStyle}>Informations personnelles</h2>
+            <p style={cardSubStyle}>Gérez les informations de votre profil.</p>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+          <Field id="firstName" label="Prénom" value={firstName} onChange={setFirstName} />
+          <Field id="lastName" label="Nom" value={lastName} onChange={setLastName} />
+          <Field
+            id="email"
+            label="Email"
+            type="email"
+            value={user?.email || ""}
+            disabled
+            hint="L'email ne peut pas être modifié."
+          />
+          <Field id="phone" label="Téléphone" value={phone} onChange={setPhone} placeholder="+32 1 23 45 67 89" />
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <button
+            style={{ ...primaryBtnStyle, opacity: personalInfoLoading ? 0.7 : 1 }}
+            onClick={handleSavePersonalInfo}
+            disabled={personalInfoLoading}
+          >
+            {personalInfoLoading ? "Enregistrement…" : "Enregistrer les modifications"}
+          </button>
+        </div>
+      </ClientCard>
+
+      {/* ──────────  Collaborateurs  ────────── */}
+      <ClientCard pad={20} style={{ marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Users size={17} color={clientColors.indigo} />
+            <div>
+              <h2 style={cardTitleStyle}>Collaborateurs</h2>
+              <p style={cardSubStyle}>Les personnes rattachées à votre entreprise.</p>
+            </div>
+          </div>
+          <button
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              height: 36,
+              padding: "0 13px",
+              border: "none",
+              borderRadius: 10,
+              background: "#F0F4FF",
+              color: clientColors.indigo,
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "Inter, sans-serif",
+            }}
+            onClick={() =>
+              toast.info("L'invitation de collaborateurs sera bientôt disponible. Contactez votre conseiller Leazr.")
+            }
+          >
+            <Plus size={15} />
+            Inviter
+          </button>
+        </div>
+
+        {clientLoading ? (
+          <div style={{ fontSize: 13, color: clientColors.muted }}>Chargement…</div>
+        ) : collaborators.length === 0 ? (
+          <ClientEmptyState
+            icon={<Users size={28} color={clientColors.faint} />}
+            title="Aucun collaborateur"
+            description="Invitez les membres de votre équipe pour partager l'accès à votre espace."
+          />
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {collaborators.map((c, i) => {
+              const color = avatarColor(c.email || c.name || String(i));
+              return (
+                <div
+                  key={c.id || i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "12px 0",
+                    borderTop: i === 0 ? "none" : `1px solid ${clientColors.borderSoft}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: "50%",
+                      flexShrink: 0,
+                      background: `${color}18`,
+                      color,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {initials(c.name)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        color: clientColors.ink,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {c.name}
+                      {c.is_primary && (
+                        <span
+                          style={{
+                            marginLeft: 8,
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            color: clientColors.indigo,
+                            background: "#F0F4FF",
+                            padding: "2px 7px",
+                            borderRadius: 20,
+                          }}
+                        >
+                          Principal
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <Label htmlFor="lastName">Nom</Label>
-                      <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="rounded-xl" />
+                    <div style={{ fontSize: 12, color: clientColors.faint, marginTop: 1 }}>
+                      {c.role || "Collaborateur"}
+                      {c.department ? ` · ${c.department}` : ""}
                     </div>
                   </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" defaultValue={user?.email || ""} type="email" disabled className="bg-muted rounded-xl" />
-                    <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié</p>
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Téléphone</Label>
-                    <Input id="phone" placeholder="+33 1 23 45 67 89" value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-xl" />
-                  </div>
-
-                  <div className="pt-4 border-t border-border/40 space-y-4">
-                    <div>
-                      <Label htmlFor="company">Société</Label>
-                      <Input id="company" placeholder="Nom de votre société" value={company} onChange={(e) => setCompany(e.target.value)} className="rounded-xl" />
+                  <div style={{ fontSize: 12.5, color: clientColors.muted, display: "none" }} />
+                  {c.email && (
+                    <div
+                      style={{
+                        fontSize: 12.5,
+                        color: clientColors.muted,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <Mail size={13} color={clientColors.faint} />
+                      <span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {c.email}
+                      </span>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="address">Adresse</Label>
-                        <Input id="address" placeholder="123 rue de la Paix" value={address} onChange={(e) => setAddress(e.target.value)} className="rounded-xl" />
-                      </div>
-                      <div>
-                        <Label htmlFor="city">Ville</Label>
-                        <Input id="city" placeholder="Paris" value={city} onChange={(e) => setCity(e.target.value)} className="rounded-xl" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="postalCode">Code postal</Label>
-                        <Input id="postalCode" placeholder="75001" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} className="rounded-xl" />
-                      </div>
-                      <div>
-                        <Label htmlFor="country">Pays</Label>
-                        <Input id="country" placeholder="France" value={country} onChange={(e) => setCountry(e.target.value)} className="rounded-xl" />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="vatNumber">Numéro de TVA / SIRET</Label>
-                      <Input id="vatNumber" placeholder="FR 12 345 678 901" value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} className="rounded-xl" />
-                    </div>
-                  </div>
-
-                  <Button onClick={handleSavePersonalInfo} disabled={personalInfoLoading} className="mt-6 rounded-xl">
-                    {personalInfoLoading ? "Enregistrement..." : "Enregistrer les modifications"}
-                  </Button>
+                  )}
+                  <button
+                    aria-label="Options"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      flexShrink: 0,
+                      border: "none",
+                      background: "transparent",
+                      borderRadius: 8,
+                      color: clientColors.faint,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    onClick={() => toast.info("Options du collaborateur bientôt disponibles.")}
+                  >
+                    <MoreHorizontal size={17} />
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              );
+            })}
+          </div>
+        )}
+      </ClientCard>
 
-          <TabsContent value="security">
-            <Card className="border-0 shadow-sm rounded-2xl">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Shield className="h-4 w-4 text-orange-500" />
-                  Sécurité
-                </CardTitle>
-                <CardDescription className="text-xs">Modifiez votre mot de passe et gérez la sécurité</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="currentPassword">Mot de passe actuel</Label>
-                    <Input id="currentPassword" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="rounded-xl" />
-                  </div>
-                  <div>
-                    <Label htmlFor="newPassword">Nouveau mot de passe</Label>
-                    <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="rounded-xl" />
-                  </div>
-                  <div>
-                    <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
-                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="rounded-xl" />
-                  </div>
-                  <Button onClick={handleChangePassword} disabled={passwordLoading} className="rounded-xl">
-                    {passwordLoading ? "Modification..." : "Changer le mot de passe"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </motion.div>
-    </motion.div>
+      {/* ──────────  Sécurité  ────────── */}
+      <ClientCard pad={20}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <Shield size={17} color={clientColors.indigo} />
+          <div>
+            <h2 style={cardTitleStyle}>Sécurité</h2>
+            <p style={cardSubStyle}>Modifiez votre mot de passe.</p>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+          <Field
+            id="currentPassword"
+            label="Mot de passe actuel"
+            type="password"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+          />
+          <Field
+            id="newPassword"
+            label="Nouveau mot de passe"
+            type="password"
+            value={newPassword}
+            onChange={setNewPassword}
+          />
+          <Field
+            id="confirmPassword"
+            label="Confirmer le mot de passe"
+            type="password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+          />
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <button
+            style={{ ...primaryBtnStyle, opacity: passwordLoading ? 0.7 : 1 }}
+            onClick={handleChangePassword}
+            disabled={passwordLoading}
+          >
+            {passwordLoading ? "Modification…" : "Changer le mot de passe"}
+          </button>
+        </div>
+      </ClientCard>
+    </ClientPage>
   );
 };
 

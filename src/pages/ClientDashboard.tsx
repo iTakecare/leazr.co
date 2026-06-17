@@ -1,37 +1,23 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useClientData } from "@/hooks/useClientData";
 import {
   CreditCard, Package, FileText, Clock, Settings, Eye,
-  AlertCircle, Bell, ArrowRight, Plus, Headphones,
-  CalendarClock,
+  AlertCircle, Bell, ChevronRight, Plus, Headphones, CalendarClock,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import MiniWorkflowStepper from "@/components/client/MiniWorkflowStepper";
 import DocumentAlertBanner from "@/components/client/DocumentAlertBanner";
-
-
-
+import {
+  ClientPage, ClientCard, KpiCard, clientColors, badgeStyle,
+} from "@/components/client/clientUi";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
   const { clientData, recentActivity, clientStats, notifications, loading, error } = useClientData();
   const { navigateToClient } = useRoleNavigation();
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
-  };
-  const itemVariants = {
-    hidden: { opacity: 0, y: 16 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
-  };
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -47,269 +33,253 @@ const ClientDashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
-        <div className="animate-pulse space-y-6">
-          <div className="h-36 rounded-2xl bg-muted" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-2xl bg-muted" />)}
+      <ClientPage>
+        <div className="animate-pulse" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+          <div style={{ height: 130, borderRadius: 20, background: "#E6E9EF" }} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+            {[1, 2, 3, 4].map((i) => <div key={i} style={{ height: 110, borderRadius: 16, background: "#E6E9EF" }} />)}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-48 rounded-2xl bg-muted" />
-            <div className="h-48 rounded-2xl bg-muted" />
+          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18 }}>
+            <div style={{ height: 200, borderRadius: 16, background: "#E6E9EF" }} />
+            <div style={{ height: 200, borderRadius: 16, background: "#E6E9EF" }} />
           </div>
         </div>
-      </div>
+      </ClientPage>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
-        <Card className="border-destructive/30 bg-destructive/5 rounded-2xl">
-          <CardContent className="pt-6 flex items-center gap-3 text-destructive">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p className="text-sm">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <ClientPage>
+        <ClientCard pad={20} style={{ border: "1px solid #F5C2C2", background: "#FEF2F2", display: "flex", alignItems: "center", gap: 12, color: "#B91C1C" }}>
+          <AlertCircle size={20} />
+          <p style={{ fontSize: 13, margin: 0 }}>{error}</p>
+        </ClientCard>
+      </ClientPage>
     );
   }
 
   const displayName = clientData?.name || user?.first_name || user?.email?.split("@")[0] || "";
+  const today = format(new Date(), "EEEE d MMMM yyyy", { locale: fr });
+
+  const urgent = notifications.filter((n) => n.urgent);
+  const headline = urgent.length > 0
+    ? urgent[0].title
+    : clientStats.pendingRequests > 0
+      ? `${clientStats.pendingRequests} demande${clientStats.pendingRequests > 1 ? "s" : ""} en cours de traitement.`
+      : "Votre parc est à jour.";
 
   const kpis = [
-    { label: "Mensualité totale", value: `${clientStats.totalMonthly.toFixed(0)} €/mois`, icon: CreditCard, color: "text-blue-600 bg-blue-100 dark:bg-blue-900/40 dark:text-blue-400" },
-    { label: "Équipements actifs", value: clientStats.activeEquipment.toString(), icon: Package, color: "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-400" },
-    { label: "Demandes en attente", value: clientStats.pendingRequests.toString(), icon: Clock, color: "text-orange-600 bg-orange-100 dark:bg-orange-900/40 dark:text-orange-400" },
-    { label: "Prochain renouvellement", value: clientStats.nextRenewal ? formatDate(clientStats.nextRenewal) : "—", icon: CalendarClock, color: "text-violet-600 bg-violet-100 dark:bg-violet-900/40 dark:text-violet-400" },
+    { label: "Mensualité totale", value: <>{clientStats.totalMonthly.toFixed(0)} €<span style={{ fontSize: 13, fontWeight: 600, color: clientColors.faint }}>/mois</span></>, icon: <CreditCard size={19} color={clientColors.indigo} />, iconBg: "#EAF0FF" },
+    { label: "Équipements actifs", value: clientStats.activeEquipment, icon: <Package size={19} color={clientColors.emerald} />, iconBg: "#E7F6F0" },
+    { label: "Demandes en cours", value: clientStats.pendingRequests, icon: <Clock size={19} color={clientColors.orange} />, iconBg: "#FFF0E6" },
+    { label: "Prochain renouvellement", value: clientStats.nextRenewal ? formatDate(clientStats.nextRenewal) : "—", icon: <CalendarClock size={19} color={clientColors.violet} />, iconBg: "#F2EBFE" },
   ];
 
   const shortcuts = [
-    { title: "Mon Équipement", icon: Package, href: "equipment", color: "text-blue-600" },
-    { title: "Mes Contrats", icon: FileText, href: "contracts", color: "text-emerald-600" },
-    { title: "Catalogue", icon: Eye, href: "products", color: "text-violet-600" },
-    { title: "Paramètres", icon: Settings, href: "settings", color: "text-muted-foreground" },
+    { title: "Mon équipement", icon: Package, href: "equipment", color: clientColors.indigo, hover: "#F5F8FF", border: clientColors.indigo },
+    { title: "Voir mes contrats", icon: FileText, href: "contracts", color: clientColors.emerald, hover: "#F2FBF7", border: clientColors.emerald },
+    { title: "Parcourir le catalogue", icon: Eye, href: "products", color: clientColors.violet, hover: "#F8F5FF", border: clientColors.violet },
+    { title: "Contacter le support", icon: Headphones, href: "support", color: clientColors.pink, hover: "#FEF4F9", border: clientColors.pink },
   ];
 
-  // Build request timeline from pending offers
-  const pendingOffers = recentActivity.filter(a => a.type === "offer" && a.status && ["pending", "sent", "approved"].includes(a.status));
+  const pendingOffers = recentActivity.filter((a) => a.type === "offer" && a.status && ["pending", "sent", "approved"].includes(a.status));
 
   const statusBadge = (status?: string) => {
-    const map: Record<string, { label: string; cls: string }> = {
-      pending: { label: "⏳ En attente", cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
-      approved: { label: "✅ Approuvée", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
-      rejected: { label: "❌ Refusée", cls: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
-      sent: { label: "📤 Envoyée", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
-      active: { label: "🔥 Actif", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
-      completed: { label: "✔️ Terminé", cls: "bg-muted text-muted-foreground" },
-      contract_sent: { label: "📝 À signer", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
-      equipment_ordered: { label: "📦 Commandé", cls: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" },
+    const map: Record<string, { label: string; bg: string; fg: string }> = {
+      pending: { label: "En attente", bg: "#FFF0E6", fg: "#C2540B" },
+      approved: { label: "Approuvée", bg: "#E7F6F0", fg: "#047857" },
+      rejected: { label: "Refusée", bg: "#FEEFEF", fg: "#B91C1C" },
+      sent: { label: "Envoyée", bg: "#EAF0FF", fg: "#1D4ED8" },
+      active: { label: "Actif", bg: "#E7F6F0", fg: "#047857" },
+      completed: { label: "Terminé", bg: "#EEF0F4", fg: "#667085" },
+      contract_sent: { label: "À signer", bg: "#FEF3C7", fg: "#B45309" },
+      equipment_ordered: { label: "Commandé", bg: "#E8EBFD", fg: "#4338CA" },
     };
     const m = map[status || ""];
     if (!m) return null;
-    return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${m.cls}`}>{m.label}</span>;
+    return <span style={badgeStyle(m.bg, m.fg)}>{m.label}</span>;
+  };
+
+  const activityTone = (type: string, status?: string) => {
+    if (type === "offer") return status === "approved" ? clientColors.emerald : clientColors.orange;
+    return clientColors.indigo;
   };
 
   return (
-    <motion.div
-      className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* ── Welcome Banner ── */}
-      <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-blue-900 p-6 md:p-8 text-white">
-          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-blue-500/20 blur-2xl" />
-          <div className="absolute -left-8 -bottom-8 h-32 w-32 rounded-full bg-violet-500/15 blur-xl" />
-          <div className="absolute right-8 bottom-4 h-24 w-24 rounded-full bg-emerald-500/10 blur-lg" />
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white">{getGreeting()}, {displayName} 👋</h1>
-              <p className="mt-1 text-white/70 text-sm md:text-base">
-                Bienvenue dans l'espace de gestion de vos contrats
-              </p>
+    <ClientPage>
+      {/* ── Welcome banner ── */}
+      <div
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: 20,
+          background: "linear-gradient(125deg,#16243F 0%,#101B30 45%,#1A2C5C 100%)",
+          padding: "30px 32px",
+          color: "#fff",
+          marginBottom: 22,
+        }}
+      >
+        <div style={{ position: "absolute", right: -40, top: -50, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle,rgba(61,107,255,.45),transparent 70%)", filter: "blur(8px)" }} />
+        <div style={{ position: "absolute", right: 120, bottom: -60, width: 160, height: 160, borderRadius: "50%", background: "radial-gradient(circle,rgba(124,58,237,.32),transparent 70%)" }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,.6)", fontWeight: 500, marginBottom: 6, textTransform: "capitalize" }}>
+              {getGreeting()} {displayName} 👋 · {today}
             </div>
-            <div className="flex gap-3">
-              <Button
-                size="sm"
-                className="gap-2 rounded-xl bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
-                onClick={() => navigateToClient("catalog")}
-              >
-                <Plus className="h-4 w-4" /> Nouvelle demande
-              </Button>
-              <Button
-                size="sm"
-                className="gap-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border-0 backdrop-blur-sm"
-                onClick={() => navigateToClient("support")}
-              >
-                <Headphones className="h-4 w-4" /> Support
-              </Button>
+            <div style={{ fontSize: 25, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.15 }}>
+              {headline}
             </div>
           </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={() => navigateToClient("products")}
+              style={{ display: "flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px", border: 0, borderRadius: 12, background: "#fff", color: "#16243F", fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}
+            >
+              <Plus size={16} /> Nouvelle demande
+            </button>
+            <button
+              onClick={() => navigateToClient("support")}
+              style={{ display: "flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px", border: "1px solid rgba(255,255,255,.22)", borderRadius: 12, background: "rgba(255,255,255,.08)", color: "#fff", fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}
+            >
+              <Headphones size={16} /> Support
+            </button>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* ── Document Alert Banners ── */}
-      {notifications.filter(n => n.urgent).length > 0 && (
-        <motion.div variants={itemVariants}>
-          <DocumentAlertBanner
-            alerts={notifications.filter(n => n.urgent)}
-            onNavigate={navigateToClient}
-          />
-        </motion.div>
+      {/* ── Document alert banners ── */}
+      {urgent.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <DocumentAlertBanner alerts={urgent} onNavigate={navigateToClient} />
+        </div>
       )}
 
       {/* ── KPIs ── */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 22 }} className="max-md:!grid-cols-2">
         {kpis.map((kpi) => (
-          <Card key={kpi.label} className="border-0 shadow-sm rounded-2xl hover:shadow-md transition-shadow">
-            <CardContent className="p-5 flex items-start gap-4">
-              <div className={`p-2.5 rounded-xl ${kpi.color}`}>
-                <kpi.icon className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">{kpi.label}</p>
-                <p className="text-xl font-semibold mt-0.5 truncate">{kpi.value}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <KpiCard key={kpi.label} icon={kpi.icon} iconBg={kpi.iconBg} value={kpi.value} label={kpi.label} />
         ))}
-      </motion.div>
-
-      {/* ── Bento: Notifications + Shortcuts ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Notifications */}
-        <motion.div variants={itemVariants} className="lg:col-span-3">
-          <Card className="border-0 shadow-sm rounded-2xl h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Bell className="h-4 w-4 text-orange-500" />
-                Notifications
-                {notifications.length > 0 && (
-                  <Badge variant="destructive" className="ml-auto text-[10px] h-5 px-1.5 rounded-full">
-                    {notifications.length}
-                  </Badge>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {notifications.length > 0 ? notifications.map((n) => (
-                <div
-                  key={n.id}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer"
-                  onClick={() => n.actionHref && navigateToClient(n.actionHref)}
-                >
-                  <div className={`mt-0.5 shrink-0 h-2 w-2 rounded-full ${n.type === "action" ? "bg-orange-500" : n.type === "warning" ? "bg-amber-500" : "bg-blue-500"}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{n.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{n.description}</p>
-                  </div>
-                  {n.actionLabel && <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
-                </div>
-              )) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="h-10 w-10 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Aucune notification</p>
-                  <p className="text-xs mt-1">Tout est à jour !</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Shortcuts */}
-        <motion.div variants={itemVariants} className="lg:col-span-2">
-          <Card className="border-0 shadow-sm rounded-2xl h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Accès rapides</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {shortcuts.map((s) => (
-                  <button
-                    key={s.href}
-                    onClick={() => navigateToClient(s.href)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
-                  >
-                    <s.icon className={`h-6 w-6 ${s.color} group-hover:scale-110 transition-transform`} />
-                    <span className="text-xs font-medium text-center">{s.title}</span>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
       </div>
 
-      {/* ── Detailed Workflow Stepper ── */}
-      {pendingOffers.length > 0 && (
-        <motion.div variants={itemVariants}>
-          <Card className="border-0 shadow-sm rounded-2xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Suivi détaillé de vos demandes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {pendingOffers.slice(0, 3).map((offer) => (
-                  <div key={offer.id} className="p-4 rounded-xl bg-muted/40">
-                    <p className="text-sm font-medium mb-4 truncate">{offer.description}</p>
-                    <MiniWorkflowStepper
-                      currentStatus={offer.workflow_status || offer.status || 'draft'}
-                      offerType={offer.offer_type}
-                      workflowTemplateId={offer.workflow_template_id}
-                      companyId={offer.company_id}
-                    />
-                  </div>
-                ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      {/* ── Recent Activity ── */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-0 shadow-sm rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Activité récente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentActivity.length > 0 ? (
-              <div className="relative space-y-0">
-                <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" />
-                {recentActivity.map((activity) => {
-                  const Icon = activity.type === "offer" ? Clock : FileText;
-                  return (
-                    <div
-                      key={activity.id}
-                      className="relative flex items-start gap-4 py-3 pl-2 cursor-pointer hover:bg-muted/40 rounded-lg transition-colors -mx-2 px-2"
-                      onClick={() => navigateToClient(activity.type === "offer" ? "requests" : "contracts")}
-                    >
-                      <div className="relative z-10 shrink-0 h-8 w-8 rounded-full bg-card border-2 border-border flex items-center justify-center">
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0 pt-0.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium">{activity.title}</p>
-                          {statusBadge(activity.status)}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1 truncate">{activity.description}</p>
-                        <p className="text-[11px] text-muted-foreground/60 mt-1">{formatDate(activity.date)}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-10 text-muted-foreground">
-                <Package className="h-10 w-10 mx-auto mb-2 opacity-40" />
-                <p className="text-sm font-medium">Vous n'avez pas encore d'activité</p>
-                <p className="text-xs mt-1">Vos contrats et demandes apparaîtront ici.</p>
+      {/* ── Bento: notifications + shortcuts ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18, marginBottom: 22 }} className="max-lg:!grid-cols-1">
+        {/* Notifications */}
+        <ClientCard style={{ overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "16px 18px 12px" }}>
+            <Bell size={17} color={clientColors.orange} />
+            <span style={{ fontSize: 14, fontWeight: 700 }}>Notifications</span>
+            {notifications.length > 0 && (
+              <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "#fff", background: clientColors.orange, padding: "2px 8px", borderRadius: 20 }}>
+                {notifications.length}
+              </span>
+            )}
+          </div>
+          <div style={{ padding: "0 12px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+            {notifications.length > 0 ? notifications.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => n.actionHref && navigateToClient(n.actionHref)}
+                style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 12px", border: 0, background: "transparent", borderRadius: 12, cursor: "pointer", textAlign: "left", width: "100%" }}
+              >
+                <span style={{ marginTop: 5, width: 8, height: 8, borderRadius: "50%", flex: "none", background: n.type === "action" ? clientColors.orange : n.type === "warning" ? "#D97706" : clientColors.indigo }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, color: "#1A2233" }}>{n.title}</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: clientColors.muted, marginTop: 1 }}>{n.description}</span>
+                </span>
+                {n.actionLabel && <ChevronRight size={15} color="#C2C9D6" style={{ marginTop: 3, flex: "none" }} />}
+              </button>
+            )) : (
+              <div style={{ textAlign: "center", padding: "32px 12px", color: clientColors.faint }}>
+                <AlertCircle size={36} style={{ marginBottom: 8, opacity: 0.4 }} />
+                <p style={{ fontSize: 13, margin: 0 }}>Aucune notification</p>
+                <p style={{ fontSize: 12, marginTop: 4 }}>Tout est à jour !</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </motion.div>
-    </motion.div>
+          </div>
+        </ClientCard>
+
+        {/* Shortcuts */}
+        <ClientCard pad="16px 18px">
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Accès rapides</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {shortcuts.map((s) => {
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.href}
+                  onClick={() => navigateToClient(s.href)}
+                  style={{ display: "flex", flexDirection: "column", gap: 9, padding: 15, border: "1px solid #EEF0F4", background: "#FAFBFC", borderRadius: 13, cursor: "pointer", textAlign: "left" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = s.border; e.currentTarget.style.background = s.hover; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#EEF0F4"; e.currentTarget.style.background = "#FAFBFC"; }}
+                >
+                  <Icon size={20} color={s.color} />
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: "#1A2233" }}>{s.title}</span>
+                </button>
+              );
+            })}
+          </div>
+        </ClientCard>
+      </div>
+
+      {/* ── Detailed workflow stepper ── */}
+      {pendingOffers.length > 0 && (
+        <ClientCard pad={18} style={{ marginBottom: 22 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Suivi détaillé de vos demandes</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {pendingOffers.slice(0, 3).map((offer) => (
+              <div key={offer.id} style={{ padding: 16, borderRadius: 12, background: "#FAFBFC", border: "1px solid #EEF0F4" }}>
+                <p style={{ fontSize: 13.5, fontWeight: 600, margin: "0 0 14px" }}>{offer.description}</p>
+                <MiniWorkflowStepper
+                  currentStatus={offer.workflow_status || offer.status || "draft"}
+                  offerType={offer.offer_type}
+                  workflowTemplateId={offer.workflow_template_id}
+                  companyId={offer.company_id}
+                />
+              </div>
+            ))}
+          </div>
+        </ClientCard>
+      )}
+
+      {/* ── Recent activity ── */}
+      <ClientCard pad={18}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Activité récente</div>
+        {recentActivity.length > 0 ? (
+          <div style={{ position: "relative", paddingLeft: 6 }}>
+            <div style={{ position: "absolute", left: 21, top: 14, bottom: 14, width: 2, background: "#EEF0F4" }} />
+            {recentActivity.map((activity) => {
+              const Icon = activity.type === "offer" ? Clock : FileText;
+              return (
+                <div
+                  key={activity.id}
+                  onClick={() => navigateToClient(activity.type === "offer" ? "requests" : "contracts")}
+                  style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 14, padding: "11px 4px", cursor: "pointer", borderRadius: 8 }}
+                >
+                  <div style={{ position: "relative", zIndex: 1, width: 32, height: 32, borderRadius: "50%", background: "#fff", border: "2px solid #EAECF1", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+                    <span style={{ width: 9, height: 9, borderRadius: "50%", background: activityTone(activity.type, activity.status) }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: "#1A2233" }}>{activity.title}</span>
+                      {statusBadge(activity.status)}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: clientColors.muted, marginTop: 2 }}>{activity.description}</div>
+                    <div style={{ fontSize: 11.5, color: "#9AA4B4", marginTop: 3 }}>{formatDate(activity.date)}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "40px 12px", color: clientColors.faint }}>
+            <Package size={40} style={{ marginBottom: 8, opacity: 0.4 }} />
+            <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>Vous n'avez pas encore d'activité</p>
+            <p style={{ fontSize: 12, marginTop: 4 }}>Vos contrats et demandes apparaîtront ici.</p>
+          </div>
+        )}
+      </ClientCard>
+    </ClientPage>
   );
 };
 

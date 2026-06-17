@@ -1,10 +1,8 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download, Filter } from "lucide-react";
+import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download, Filter, Laptop } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
@@ -14,6 +12,14 @@ import ClientSoftwareTab from "@/components/equipment/ClientSoftwareTab";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  clientColors,
+  ClientPage,
+  ClientPageHeader,
+  ClientCard,
+  equipChipStyle,
+  ClientEmptyState,
+} from "@/components/client/clientUi";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -24,8 +30,79 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
+/* ── Groupe d'onglets pilule segmentée (maquette) ── */
+const SEG_TABS = [
+  { value: "assign", label: "Assignation", icon: Users },
+  { value: "by-contract", label: "Par contrat", icon: FileText },
+  { value: "by-equipment", label: "Liste complète", icon: Cpu },
+  { value: "locations", label: "Emplacements", icon: MapPin },
+  { value: "software", label: "Logiciels", icon: Download },
+] as const;
+
+const SegmentedTabs: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => (
+  <div
+    style={{
+      display: "inline-flex",
+      gap: 2,
+      background: "#ECEEF2",
+      borderRadius: 13,
+      padding: 4,
+      marginBottom: 22,
+      flexWrap: "wrap",
+    }}
+  >
+    {SEG_TABS.map((t) => {
+      const active = value === t.value;
+      const Icon = t.icon;
+      return (
+        <button
+          key={t.value}
+          type="button"
+          onClick={() => onChange(t.value)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            height: 34,
+            padding: "0 14px",
+            border: 0,
+            borderRadius: 10,
+            background: active ? "#fff" : "transparent",
+            boxShadow: active ? "0 1px 3px rgba(16,24,40,.1)" : "none",
+            color: active ? clientColors.ink : clientColors.muted,
+            fontSize: 13,
+            fontWeight: 600,
+            fontFamily: "Inter, sans-serif",
+            cursor: "pointer",
+            transition: "background .15s, color .15s",
+          }}
+        >
+          <Icon style={{ width: 15, height: 15 }} />
+          {t.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+/* ── Pastille catégorie (mappe les clés internes vers les libellés clientUi) ── */
+const CHIP_LABEL: Record<string, string> = {
+  informatique: "Informatique",
+  telephonie: "Téléphonie",
+  ecrans: "Écrans",
+  impression: "Accessoires",
+  tablettes: "Tablettes",
+  autre: "Accessoires",
+};
+
+const CategoryChip: React.FC<{ category: string }> = ({ category }) => {
+  const label = CHIP_LABEL[category] || "Accessoires";
+  return <span style={equipChipStyle(label)}>{label}</span>;
+};
+
 const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: string }) => {
   const { clientData, loading, error } = useClientData();
+  const [activeTab, setActiveTab] = useState<string>(defaultTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [deployWizardOpen, setDeployWizardOpen] = useState(false);
@@ -76,46 +153,40 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+      <ClientPage>
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded-2xl w-1/3" />
-          <div className="h-4 bg-muted rounded-2xl w-1/2" />
+          <div className="h-8 rounded-2xl w-1/3" style={{ background: clientColors.borderSoft }} />
+          <div className="h-4 rounded-2xl w-1/2" style={{ background: clientColors.borderSoft }} />
           <div className="space-y-6">
-            {[1, 2, 3].map(i => <div key={i} className="h-32 bg-muted rounded-2xl" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-32 rounded-2xl" style={{ background: clientColors.borderSoft }} />)}
           </div>
         </div>
-      </div>
+      </ClientPage>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
-        <Card className="border-destructive/30 bg-destructive/5 rounded-2xl">
-          <CardContent className="pt-6 flex items-center gap-3 text-destructive">
+      <ClientPage>
+        <ClientCard pad={20} style={{ borderColor: "#FECACA", background: "#FEF2F2" }}>
+          <div className="flex items-center gap-3" style={{ color: "#B91C1C" }}>
             <AlertCircle className="h-5 w-5 shrink-0" />
             <p className="text-sm">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </ClientCard>
+      </ClientPage>
     );
   }
 
   if (!clientData) {
     return (
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
-        <Card className="border-0 shadow-sm rounded-2xl">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-40" />
-              <p className="text-muted-foreground mb-2">Aucune information client trouvée</p>
-              <p className="text-sm text-muted-foreground">
-                Veuillez contacter l'administrateur pour créer votre fiche client.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ClientPage>
+        <ClientEmptyState
+          icon={<Package style={{ width: 48, height: 48, color: clientColors.faint }} />}
+          title="Aucune information client trouvée"
+          description="Veuillez contacter l'administrateur pour créer votre fiche client."
+        />
+      </ClientPage>
     );
   }
 
@@ -169,262 +240,270 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
        e.contractRef.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const fmtEur = (n: number | null | undefined) =>
+    n != null ? `${Number(n).toFixed(2)} €/mois` : "—";
+
   return (
-    <motion.div
-      className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.div variants={itemVariants}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Package className="h-8 w-8 text-primary" />
-              Gestion des Équipements
-            </h1>
-            <p className="text-muted-foreground">
-              Gérez l'assignation de vos équipements aux collaborateurs et emplacements
-            </p>
-          </div>
-        </div>
-      </motion.div>
+    <ClientPage>
+      <motion.div variants={containerVariants} initial="hidden" animate="visible">
+        <motion.div variants={itemVariants}>
+          <ClientPageHeader
+            title="Gestion des équipements"
+            subtitle="Assignez votre matériel à vos collaborateurs et suivez le parc."
+          />
+        </motion.div>
 
-      <motion.div variants={itemVariants}>
-        <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="by-contract" className="gap-2">
-              <FileText className="h-4 w-4" />
-              Par contrat
-            </TabsTrigger>
-            <TabsTrigger value="by-equipment" className="gap-2">
-              <Cpu className="h-4 w-4" />
-              Par équipement
-            </TabsTrigger>
-            <TabsTrigger value="assign" className="gap-2">
-              <Users className="h-4 w-4" />
-              Assignation
-            </TabsTrigger>
-            <TabsTrigger value="locations" className="gap-2">
-              <MapPin className="h-4 w-4" />
-              Emplacements
-            </TabsTrigger>
-            <TabsTrigger value="software" className="gap-2">
-              <Download className="h-4 w-4" />
-              Logiciels
-            </TabsTrigger>
-          </TabsList>
+        <motion.div variants={itemVariants}>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <SegmentedTabs value={activeTab} onChange={setActiveTab} />
 
-          {/* By Contract View */}
-          <TabsContent value="by-contract">
-            <div className="space-y-4">
-              {contracts.length === 0 ? (
-                <Card className="border-0 shadow-sm rounded-2xl">
-                  <CardContent className="py-12 text-center">
-                    <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
-                    <p className="text-sm text-muted-foreground">Aucun contrat actif</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                contracts.map((contract) => {
-                  const items = contract.items;
-                  return (
-                    <Card key={contract.id} className="border-0 shadow-sm rounded-2xl">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-primary" />
-                            Contrat {contract.contract_number || contract.id.slice(0, 8)}
-                          </CardTitle>
-                          <Badge variant="outline" className="text-xs">
-                            {contract.monthly_payment ? `${contract.monthly_payment.toFixed(2)} €/mois` : "—"}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {items.length > 0 ? (
-                          <div className="space-y-2">
-                            {items.map((item: any) => (
-                              <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-                                <div className="flex items-center gap-3">
-                                  <Cpu className="h-4 w-4 text-muted-foreground" />
-                                  <div>
-                                    <p className="text-sm font-medium">{item.title || "Équipement"}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {item.serial_number ? `S/N: ${item.serial_number}` : "Pas de N° de série"}
-                                      {item.quantity > 1 && ` · Qté: ${item.quantity}`}
-                                    </p>
-                                  </div>
-                                </div>
-                                {item.monthly_payment && (
-                                  <span className="text-xs text-muted-foreground">{Number(item.monthly_payment).toFixed(2)} €/mois</span>
-                                )}
-                                {canInstallSoftware(item.title || "") && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="gap-1 text-xs"
-                                    onClick={() => {
-                                      setSelectedEquipment({
-                                        id: item.id,
-                                        name: item.title || "Équipement",
-                                        contractRef: contract.contract_number || contract.id.slice(0, 8),
-                                      });
-                                      setDeployWizardOpen(true);
-                                    }}
-                                  >
-                                    <Download className="h-3 w-3" /> Installer
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Aucun équipement assigné</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          </TabsContent>
-
-          {/* By Equipment View */}
-          <TabsContent value="by-equipment">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative max-w-sm flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher un équipement..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 rounded-xl"
-                  />
+            {/* ── Assignation (drag-drop collaborateurs / non assignés) ── */}
+            <TabsContent value="assign">
+              <ClientCard pad={16}>
+                <div style={{ marginBottom: 14 }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: clientColors.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                    <Users style={{ width: 18, height: 18, color: clientColors.indigo }} />
+                    Assignation aux collaborateurs
+                  </h2>
+                  <p style={{ fontSize: 12.5, color: clientColors.muted, margin: "4px 0 0" }}>
+                    Glissez-déposez votre matériel contractuel vers un collaborateur ou vers « Non assignés ».
+                  </p>
                 </div>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-[200px] rounded-xl gap-2">
-                    <Filter className="h-4 w-4 text-muted-foreground" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{categoryLabels.all}</SelectItem>
-                    {presentCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {categoryLabels[cat] || cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <EquipmentDragDropManager clientId={clientData.id} readOnly={false} />
+              </ClientCard>
+            </TabsContent>
 
-              {filteredEquipment.length === 0 ? (
-                <Card className="border-0 shadow-sm rounded-2xl">
-                  <CardContent className="py-12 text-center">
-                    <Cpu className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
-                    <p className="text-sm text-muted-foreground">Aucun équipement trouvé</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b bg-muted/30">
-                          <th className="text-left text-xs font-medium text-muted-foreground p-3">Équipement</th>
-                          <th className="text-left text-xs font-medium text-muted-foreground p-3">N° Série</th>
-                          <th className="text-left text-xs font-medium text-muted-foreground p-3">Contrat</th>
-                          <th className="text-left text-xs font-medium text-muted-foreground p-3">Qté</th>
-                          <th className="text-left text-xs font-medium text-muted-foreground p-3">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredEquipment.map((eq) => (
-                          <tr key={eq.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                            <td className="p-3">
-                              <div className="flex items-center gap-2">
-                                <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-medium truncate max-w-[250px]">{eq.name}</span>
-                              </div>
-                            </td>
-                            <td className="p-3 text-sm text-muted-foreground">{eq.serial}</td>
-                            <td className="p-3">
-                              <Badge variant="outline" className="text-xs">{eq.contractRef}</Badge>
-                            </td>
-                            <td className="p-3 text-sm text-muted-foreground">{eq.quantity}</td>
-                            <td className="p-3">
-                              {canInstallSoftware(eq.name) ? (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="gap-1 text-xs"
-                                  onClick={() => {
-                                    setSelectedEquipment({ id: eq.id, name: eq.name, contractRef: eq.contractRef });
-                                    setDeployWizardOpen(true);
+            {/* ── Par contrat ── */}
+            <TabsContent value="by-contract">
+              <div className="space-y-4">
+                {contracts.length === 0 ? (
+                  <ClientEmptyState
+                    icon={<FileText style={{ width: 40, height: 40, color: clientColors.faint }} />}
+                    title="Aucun contrat actif"
+                  />
+                ) : (
+                  contracts.map((contract) => {
+                    const items = contract.items;
+                    return (
+                      <ClientCard key={contract.id} pad={18}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <FileText style={{ width: 16, height: 16, color: clientColors.indigo }} />
+                            <span style={{ fontSize: 14, fontWeight: 700, color: clientColors.ink }}>
+                              Contrat {contract.contract_number || contract.id.slice(0, 8)}
+                            </span>
+                            <span style={{ fontSize: 12.5, color: clientColors.muted }}>
+                              · {items.length} équipement{items.length > 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: clientColors.ink }}>
+                            {fmtEur(contract.monthly_payment)}
+                          </span>
+                        </div>
+                        {items.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {items.map((item: any) => {
+                              const cat = detectCategory(item.title || "");
+                              return (
+                                <div
+                                  key={item.id}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: 12,
+                                    padding: "11px 13px",
+                                    borderRadius: 12,
+                                    background: clientColors.surface,
+                                    border: `1px solid ${clientColors.borderSoft}`,
                                   }}
                                 >
-                                  <Download className="h-3 w-3" /> Installer
-                                </Button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
+                                    <Laptop style={{ width: 17, height: 17, color: clientColors.faint, flexShrink: 0 }} />
+                                    <div style={{ minWidth: 0 }}>
+                                      <p style={{ fontSize: 13.5, fontWeight: 600, color: clientColors.ink, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        {item.title || "Équipement"}
+                                      </p>
+                                      <p style={{ fontSize: 11.5, color: clientColors.muted, margin: "2px 0 0" }}>
+                                        {item.serial_number ? `S/N ${item.serial_number}` : "Sans N° de série"}
+                                        {item.quantity > 1 && ` · Qté ${item.quantity}`}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                                    <CategoryChip category={cat} />
+                                    {item.monthly_payment != null && (
+                                      <span style={{ fontSize: 12, color: clientColors.muted }}>{fmtEur(item.monthly_payment)}</span>
+                                    )}
+                                    {canInstallSoftware(item.title || "") && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="gap-1 text-xs h-8"
+                                        style={{ color: clientColors.indigo }}
+                                        onClick={() => {
+                                          setSelectedEquipment({
+                                            id: item.id,
+                                            name: item.title || "Équipement",
+                                            contractRef: contract.contract_number || contract.id.slice(0, 8),
+                                          });
+                                          setDeployWizardOpen(true);
+                                        }}
+                                      >
+                                        <Download className="h-3 w-3" /> Installer
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p style={{ fontSize: 13, color: clientColors.muted, margin: 0 }}>Aucun équipement assigné</p>
+                        )}
+                      </ClientCard>
+                    );
+                  })
+                )}
+              </div>
+            </TabsContent>
+
+            {/* ── Liste complète ── */}
+            <TabsContent value="by-equipment">
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative max-w-sm flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: clientColors.faint }} />
+                    <Input
+                      placeholder="Rechercher un équipement..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 rounded-xl"
+                    />
                   </div>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[200px] rounded-xl gap-2">
+                      <Filter className="h-4 w-4" style={{ color: clientColors.faint }} />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{categoryLabels.all}</SelectItem>
+                      {presentCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {categoryLabels[cat] || cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          {/* Assignment View (existing drag-drop) */}
-          <TabsContent value="assign">
-            <Card className="border-0 shadow-sm rounded-2xl">
-              <CardHeader className="bg-muted/30 border-b rounded-t-2xl">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Users className="h-5 w-5 text-primary" />
-                  Assignation aux collaborateurs
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Assignez vos équipements contractuels à vos collaborateurs par glisser-déposer.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <EquipmentDragDropManager clientId={clientData.id} readOnly={false} />
-              </CardContent>
-            </Card>
-          </TabsContent>
+                {filteredEquipment.length === 0 ? (
+                  <ClientEmptyState
+                    icon={<Cpu style={{ width: 40, height: 40, color: clientColors.faint }} />}
+                    title="Aucun équipement trouvé"
+                  />
+                ) : (
+                  <ClientCard pad={0} style={{ overflow: "hidden" }}>
+                    {/* En-tête grille */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1.6fr 1fr 0.9fr 1fr 0.7fr 90px",
+                        gap: 12,
+                        padding: "12px 18px",
+                        borderBottom: `1px solid ${clientColors.border}`,
+                        background: clientColors.surface,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: ".03em",
+                        color: clientColors.faint,
+                      }}
+                    >
+                      <span>Équipement</span>
+                      <span>N° de série</span>
+                      <span>Contrat</span>
+                      <span>Catégorie</span>
+                      <span style={{ textAlign: "right" }}>€/mois</span>
+                      <span />
+                    </div>
+                    {filteredEquipment.map((eq) => (
+                      <div
+                        key={eq.id}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1.6fr 1fr 0.9fr 1fr 0.7fr 90px",
+                          gap: 12,
+                          padding: "12px 18px",
+                          borderBottom: `1px solid ${clientColors.borderSoft}`,
+                          alignItems: "center",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                          <Laptop style={{ width: 16, height: 16, color: clientColors.faint, flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: clientColors.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {eq.name}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: 12.5, color: clientColors.muted, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {eq.serial}
+                        </span>
+                        <span style={{ fontSize: 12.5, color: clientColors.muted }}>{eq.contractRef}</span>
+                        <span><CategoryChip category={eq.category} /></span>
+                        <span style={{ fontSize: 12.5, color: clientColors.muted, textAlign: "right" }}>
+                          {eq.monthlyPayment != null ? `${Number(eq.monthlyPayment).toFixed(2)} €` : "—"}
+                        </span>
+                        <span style={{ textAlign: "right" }}>
+                          {canInstallSoftware(eq.name) ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs h-8"
+                              style={{ color: clientColors.indigo }}
+                              onClick={() => {
+                                setSelectedEquipment({ id: eq.id, name: eq.name, contractRef: eq.contractRef });
+                                setDeployWizardOpen(true);
+                              }}
+                            >
+                              <Download className="h-3 w-3" /> Installer
+                            </Button>
+                          ) : (
+                            <span style={{ fontSize: 12, color: clientColors.faint }}>—</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </ClientCard>
+                )}
+              </div>
+            </TabsContent>
 
-          {/* Locations View */}
-          <TabsContent value="locations">
-            <Card className="border-0 shadow-sm rounded-2xl">
-              <CardHeader className="bg-muted/30 border-b rounded-t-2xl">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  Gestion des emplacements
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Définissez vos sites et emplacements pour organiser vos équipements.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
+            {/* ── Emplacements ── */}
+            <TabsContent value="locations">
+              <ClientCard pad={16}>
+                <div style={{ marginBottom: 14 }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: clientColors.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                    <MapPin style={{ width: 18, height: 18, color: clientColors.indigo }} />
+                    Gestion des emplacements
+                  </h2>
+                  <p style={{ fontSize: 12.5, color: clientColors.muted, margin: "4px 0 0" }}>
+                    Définissez vos sites et emplacements pour organiser vos équipements.
+                  </p>
+                </div>
                 <LocationManager clientId={clientData.id} companyId={(clientData as any).company_id} />
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </ClientCard>
+            </TabsContent>
 
-          {/* Software Tab */}
-          <TabsContent value="software">
-            <ClientSoftwareTab
-              clientId={clientData.id}
-              companyId={(clientData as any).company_id}
-              equipment={allEquipment}
-            />
-          </TabsContent>
-        </Tabs>
+            {/* ── Logiciels (préservé via defaultTab="software") ── */}
+            <TabsContent value="software">
+              <ClientSoftwareTab
+                clientId={clientData.id}
+                companyId={(clientData as any).company_id}
+                equipment={allEquipment}
+              />
+            </TabsContent>
+          </Tabs>
+        </motion.div>
       </motion.div>
 
       {selectedEquipment && (
@@ -434,7 +513,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
           equipment={selectedEquipment}
         />
       )}
-    </motion.div>
+    </ClientPage>
   );
 };
 

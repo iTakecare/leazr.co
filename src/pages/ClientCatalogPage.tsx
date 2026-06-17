@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
-import WaveLoader from "@/components/ui/WaveLoader";
 import { useClientData } from '@/hooks/useClientData';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ClientCatalogAnonymous from '@/components/catalog/client/ClientCatalogAnonymous';
-import { Loader2, AlertCircle, Crown, Sparkles } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { AlertCircle, Crown, Sparkles, Leaf } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import UsageConfiguratorDialog from '@/components/offer/UsageConfiguratorDialog';
 import type { EquipmentSuggestion } from '@/services/offers/suggestEquipmentFromUsage';
 import type { Product } from '@/types/catalog';
+import {
+  clientColors,
+  CLIENT_GRADIENT,
+  ClientPage,
+  ClientPageHeader,
+  ClientCard,
+  ClientEmptyState,
+  primaryBtnStyle,
+} from '@/components/client/clientUi';
 
 // Durée de location par défaut pour les articles ajoutés au panier via l'assistant.
 const DEFAULT_CART_DURATION = 36;
@@ -96,34 +101,64 @@ const ClientCatalogPage: React.FC = () => {
 
   if (clientLoading || isLoadingCompany) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <WaveLoader message="Chargement du catalogue..." />
-          </div>
+      <ClientPage maxWidth={1240}>
+        <ClientPageHeader
+          title="Catalogue"
+          subtitle="Composez votre demande de leasing. Matériel reconditionné & neuf, impact CO₂ affiché."
+        />
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 14,
+          }}
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ClientCard key={i} pad={0} style={{ overflow: 'hidden' }}>
+              <div
+                className="animate-pulse"
+                style={{ height: 120, background: clientColors.surface }}
+              />
+              <div style={{ padding: 14 }}>
+                <div
+                  className="animate-pulse"
+                  style={{ height: 10, width: '40%', borderRadius: 6, background: clientColors.borderSoft }}
+                />
+                <div
+                  className="animate-pulse"
+                  style={{ height: 13, width: '80%', borderRadius: 6, background: clientColors.borderSoft, marginTop: 10 }}
+                />
+                <div
+                  className="animate-pulse"
+                  style={{ height: 18, width: '50%', borderRadius: 6, background: clientColors.borderSoft, marginTop: 14 }}
+                />
+              </div>
+            </ClientCard>
+          ))}
         </div>
-      </div>
+      </ClientPage>
     );
   }
 
   if (clientError || companyError || !company) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {clientError || 'Erreur lors du chargement du catalogue.'}
-              {companyError && (
-                <>
-                  <br />
-                  <small>Erreur entreprise: {companyError.message}</small>
-                </>
-              )}
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
+      <ClientPage maxWidth={1240}>
+        <ClientPageHeader
+          title="Catalogue"
+          subtitle="Composez votre demande de leasing. Matériel reconditionné & neuf, impact CO₂ affiché."
+        />
+        <ClientEmptyState
+          icon={<AlertCircle size={34} style={{ color: clientColors.faint }} />}
+          title="Catalogue indisponible"
+          description={
+            clientError
+              ? String(clientError)
+              : companyError
+                ? `Erreur entreprise : ${companyError.message}`
+                : 'Erreur lors du chargement du catalogue.'
+          }
+        />
+      </ClientPage>
     );
   }
 
@@ -135,26 +170,67 @@ const ClientCatalogPage: React.FC = () => {
     <div className="relative">
       {isAdmin && (
         <div className="fixed top-4 right-4 z-50">
-          <Badge variant="secondary" className="bg-primary/10 text-primary border border-primary/20">
-            <Crown className="h-3 w-3 mr-1" />
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '5px 11px',
+              borderRadius: 20,
+              background: '#E8EBFD',
+              color: clientColors.indigo,
+              border: `1px solid ${clientColors.indigo}22`,
+            }}
+          >
+            <Crown size={13} />
             Prévisualisation Admin
-          </Badge>
+          </span>
         </div>
       )}
+
+      <ClientPage maxWidth={1240} style={{ paddingBottom: 96 }}>
+        <ClientPageHeader
+          title="Catalogue"
+          subtitle="Composez votre demande de leasing. Matériel reconditionné & neuf, impact CO₂ affiché."
+          action={
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                padding: '6px 12px',
+                borderRadius: 20,
+                background: '#E7F6F0',
+                border: '1px solid #C7EBDA',
+                color: '#047857',
+              }}
+            >
+              <Leaf size={13} />
+              Leasing circulaire
+            </span>
+          }
+        />
+
+        {/* Grille produits / panier — logique existante préservée (filtres, navigation, panier). */}
+        <ClientCatalogAnonymous company={company} clientData={clientData} />
+      </ClientPage>
 
       {/* Assistant de configuration — réservé aux clients connectés (pas le catalogue public) */}
       {clientData && (
         <>
-          <div className="fixed bottom-6 right-6 z-40">
-            <Button
-              size="lg"
-              className="shadow-lg"
-              onClick={() => setIsWizardOpen(true)}
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Configurer avec l'assistant
-            </Button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsWizardOpen(true)}
+            className="fixed bottom-6 right-6 z-40 transition-transform hover:-translate-y-0.5"
+            style={{ ...primaryBtnStyle, height: 48, padding: '0 20px', borderRadius: 14, background: CLIENT_GRADIENT }}
+          >
+            <Sparkles size={16} />
+            Configurer avec l'assistant
+          </button>
           <UsageConfiguratorDialog
             open={isWizardOpen}
             onOpenChange={setIsWizardOpen}
@@ -163,8 +239,6 @@ const ClientCatalogPage: React.FC = () => {
           />
         </>
       )}
-
-      <ClientCatalogAnonymous company={company} clientData={clientData} />
     </div>
   );
 };

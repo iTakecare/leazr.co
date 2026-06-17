@@ -1,210 +1,379 @@
 import React, { useState, memo, useMemo, useCallback } from "react";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useClientRequestsCount } from "@/hooks/useClientRequests";
 import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
 import { useClientData } from "@/hooks/useClientData";
-import { 
+import { toast } from "sonner";
+import {
   LayoutDashboard,
   FileText,
   Laptop,
   Clock,
   Package,
   Download,
-  Menu, 
+  Menu,
   X,
-  ChevronRight,
   Settings,
-  HelpCircle
+  HelpCircle,
+  LogOut,
 } from "lucide-react";
-import CompanyLogo from "./CompanyLogo";
-import SidebarUserSection from "./SidebarUserSection";
-import SidebarMenuItem from "./SidebarMenuItem";
 
 interface SidebarProps {
-  className?: string;
   onLinkClick?: () => void;
 }
 
-const ClientSidebar = memo(({ className, onLinkClick }: SidebarProps) => {
-  const { user } = useAuth();
+type NavItem = {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+  badge?: string;
+};
+
+type NavGroup = { title: string; items: NavItem[] };
+
+const NAV = "#0E1A30";
+
+const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
+  const { user, logout } = useAuth();
   const { companyId } = useMultiTenant();
-  const { settings, loading: settingsLoading } = useSiteSettings();
+  const { settings } = useSiteSettings();
   const location = useLocation();
+  const navigate = useNavigate();
   const { navigateToClient, companySlug } = useRoleNavigation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { count: requestsCount } = useClientRequestsCount();
   const { clientData } = useClientData();
-  const { unreadCount: supportUnreadCount } = useTicketReplyNotifications({ role: "client", clientId: clientData?.id });
+  const { unreadCount: supportUnreadCount } = useTicketReplyNotifications({
+    role: "client",
+    clientId: clientData?.id,
+  });
 
-  // Mémoriser les éléments de menu
-  const menuItems = useMemo(() => [
-    { icon: LayoutDashboard, label: "Tableau de bord", href: "dashboard", color: "blue" },
-    { icon: Laptop, label: "Équipements", href: "equipment", color: "slate" },
-    { icon: FileText, label: "Contrats", href: "contracts", color: "emerald" },
-    { 
-      icon: Clock, 
-      label: "Demandes", 
-      href: "requests", 
-      color: "orange", 
-      badge: requestsCount > 0 ? requestsCount.toString() : undefined 
+  const groups: NavGroup[] = useMemo(
+    () => [
+      {
+        title: "Pilotage",
+        items: [
+          { icon: LayoutDashboard, label: "Tableau de bord", href: "dashboard" },
+          { icon: FileText, label: "Contrats", href: "contracts" },
+          { icon: Laptop, label: "Équipements", href: "equipment" },
+        ],
+      },
+      {
+        title: "Demandes",
+        items: [
+          { icon: Package, label: "Catalogue", href: "products" },
+          { icon: Download, label: "Logiciels", href: "software" },
+          {
+            icon: Clock,
+            label: "Mes demandes",
+            href: "requests",
+            badge: requestsCount > 0 ? String(requestsCount) : undefined,
+          },
+        ],
+      },
+      {
+        title: "Assistance",
+        items: [
+          {
+            icon: HelpCircle,
+            label: "Support",
+            href: "support",
+            badge: supportUnreadCount > 0 ? String(supportUnreadCount) : undefined,
+          },
+          { icon: Settings, label: "Paramètres", href: "settings" },
+        ],
+      },
+    ],
+    [requestsCount, supportUnreadCount]
+  );
+
+  const isActive = useCallback(
+    (href: string) => {
+      if (!companySlug) return false;
+      const base = `/${companySlug}/client/${href}`;
+      return location.pathname === base || location.pathname.startsWith(base + "/");
     },
-    { icon: Package, label: "Catalogue", href: "products", color: "violet" },
-    { icon: Download, label: "Logiciels", href: "software", color: "cyan" },
-    { icon: HelpCircle, label: "Support", href: "support", color: "pink", badge: supportUnreadCount > 0 ? supportUnreadCount.toString() : undefined },
-    { icon: Settings, label: "Paramètres", href: "settings", color: "gray" },
-  ], [requestsCount, supportUnreadCount]);
+    [location.pathname, companySlug]
+  );
 
-  // Mémoriser la fonction isActive
-  const isActive = useCallback((href: string) => {
-    if (!companySlug) return false;
-    const fullPath = `/${companySlug}/client/${href}`;
-    return location.pathname === fullPath;
-  }, [location.pathname, companySlug]);
-
-  // Mémoriser les handlers
-  const toggleCollapsed = useCallback(() => setIsCollapsed(prev => !prev), []);
-  const toggleMobile = useCallback(() => setIsMobileOpen(prev => !prev), []);
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
 
-  // Mémoriser le handler de navigation
-  const handleNavigation = useCallback((href: string) => {
-    console.log("🚀 CLIENT SIDEBAR - Navigation vers:", href, "depuis:", location.pathname);
-    navigateToClient(href);
-    onLinkClick?.();
-    closeMobile();
-  }, [navigateToClient, onLinkClick, closeMobile, location.pathname]);
+  const handleNavigation = useCallback(
+    (href: string) => {
+      navigateToClient(href);
+      onLinkClick?.();
+      closeMobile();
+    },
+    [navigateToClient, onLinkClick, closeMobile]
+  );
 
-  // Mémoriser le nom de l'entreprise
-  const companyName = useMemo(() => settings?.company_name || "Leazr", [settings?.company_name]);
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout();
+      toast.success("Déconnexion réussie");
+      navigate("/login");
+    } catch {
+      toast.error("Erreur lors de la déconnexion");
+    }
+  }, [logout, navigate]);
+
+  const companyName = settings?.company_name || "Leazr";
+
+  const userInitials = useMemo(() => {
+    if (user?.first_name && user?.last_name)
+      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+    return user?.email?.[0]?.toUpperCase() || "U";
+  }, [user]);
+
+  const userName = useMemo(() => {
+    if (user?.first_name || user?.last_name)
+      return [user?.first_name, user?.last_name].filter(Boolean).join(" ");
+    return user?.email || "";
+  }, [user]);
 
   if (!user || !companyId) return null;
 
-  const SidebarContent = memo(() => (
-    <div className="flex flex-col h-full bg-white/95 backdrop-blur-xl border-r border-gray-200/60 shadow-xl">
-      {/* Header avec logo - layout adapté pour collapsed */}
-      <div className={cn(
-        "border-b border-gray-200/60 bg-gradient-to-r from-blue-50/80 to-purple-50/80",
-        isCollapsed ? "p-2" : "p-4"
-      )}>
-        {isCollapsed ? (
-          // Mode collapsed : logo + nom de l'entreprise en compact
-          <div className="flex flex-col items-start gap-1">
-            <CompanyLogo 
-              logoSize="sm"
-              className="transition-all duration-300 w-8 h-8"
-            />
-            {!settingsLoading && companyName && (
-              <div className="text-left">
-                <p className="text-xs font-bold text-gray-900 truncate max-w-12 leading-tight">
-                  {companyName}
-                </p>
-              </div>
-            )}
+  const Content = (
+    <aside
+      style={{
+        width: 256,
+        flex: "none",
+        height: "100%",
+        background: NAV,
+        display: "flex",
+        flexDirection: "column",
+        borderRight: "1px solid rgba(255,255,255,.06)",
+      }}
+    >
+      {/* Header */}
+      <div style={{ padding: "20px 18px 18px", borderBottom: "1px solid rgba(255,255,255,.07)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: "linear-gradient(140deg,#3D6BFF,#2D55E5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 6px 16px rgba(45,85,229,.45)",
+              flex: "none",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 6h16M4 12h11M4 18h7" />
+            </svg>
           </div>
-        ) : (
-          // Mode étendu : layout complet avec logo d'entreprise
-          <div className="flex items-center gap-3">
-            <CompanyLogo 
-              logoSize="sm"
-              className="transition-all duration-300"
-            />
-            <div className="min-w-0 flex-1">
-              {!settingsLoading && (
-                <>
-                  <h1 className="text-lg font-bold text-gray-900 truncate">{companyName}</h1>
-                  <p className="text-xs text-gray-600 truncate font-medium">Espace Client</p>
-                </>
-              )}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-.02em", color: "#fff", lineHeight: 1.1 }}>
+              {companyName.toLowerCase()}
             </div>
-            <button
-              onClick={toggleCollapsed}
-              className="hidden lg:flex p-1.5 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
-            >
-              <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200 rotate-180" />
-            </button>
+            <div style={{ fontSize: 11, color: "#7E8CA6", fontWeight: 500, marginTop: 1 }}>
+              Espace client{clientData?.name ? ` · ${clientData.name}` : ""}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Navigation avec espacement adapté */}
-      <nav className={cn(
-        "flex-1 overflow-y-auto",
-        isCollapsed ? "px-1 py-2" : "p-4"
-      )}>
-        <ul className={cn("space-y-1", isCollapsed ? "" : "space-y-2")}>
-          {menuItems.map((item) => (
-            <SidebarMenuItem
-              key={item.href}
-              item={item}
-              isActive={(href) => isActive(href)}
-              collapsed={isCollapsed}
-              onLinkClick={() => handleNavigation(item.href)}
-              variant="light"
-            />
-          ))}
-        </ul>
+      {/* Nav */}
+      <nav className="lzr-scroll" style={{ flex: 1, overflowY: "auto", padding: "14px 12px" }}>
+        {groups.map((group) => (
+          <React.Fragment key={group.title}>
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                letterSpacing: ".09em",
+                textTransform: "uppercase",
+                color: "#5B687F",
+                padding: "6px 10px 8px",
+              }}
+            >
+              {group.title}
+            </div>
+            {group.items.map((item) => {
+              const active = isActive(item.href);
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.href}
+                  onClick={() => handleNavigation(item.href)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    width: "100%",
+                    padding: "9px 11px",
+                    border: 0,
+                    borderRadius: 10,
+                    cursor: "pointer",
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    marginBottom: 3,
+                    textAlign: "left",
+                    transition: "background .14s, color .14s",
+                    background: active
+                      ? "linear-gradient(100deg,rgba(61,107,255,.22),rgba(45,85,229,.12))"
+                      : "transparent",
+                    color: active ? "#FFFFFF" : "#9AA7BD",
+                    boxShadow: active ? "inset 0 0 0 1px rgba(91,130,255,.25)" : "none",
+                  }}
+                >
+                  <Icon size={18} style={{ flex: "none" }} />
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {item.badge && (
+                    <span
+                      style={{
+                        minWidth: 18,
+                        height: 18,
+                        padding: "0 6px",
+                        borderRadius: 20,
+                        background: "#EA580C",
+                        color: "#fff",
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </React.Fragment>
+        ))}
       </nav>
 
-      {/* Bouton de collapse en bas en mode collapsed */}
-      {isCollapsed && (
-        <div className="p-2 border-t border-gray-200/60">
-          <button
-            onClick={toggleCollapsed}
-            className="hidden lg:flex w-full justify-center p-2 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
+      {/* User */}
+      <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,.07)" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 11,
+            padding: "9px 10px",
+            borderRadius: 12,
+            background: "rgba(255,255,255,.04)",
+          }}
+        >
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              background: "linear-gradient(140deg,#7C3AED,#2D55E5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 13,
+              flex: "none",
+            }}
           >
-            <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200" />
+            {userInitials}
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#EAEFF7",
+                lineHeight: 1.2,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {userName}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: "#7E8CA6",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {(user as any)?.role === "client" ? "Client" : user?.email}
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Se déconnecter"
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              border: 0,
+              background: "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flex: "none",
+            }}
+          >
+            <LogOut size={16} color="#7E8CA6" />
           </button>
         </div>
-      )}
-
-      {/* User Section avec meilleur contraste */}
-      <div className="border-t border-gray-200/60 bg-gradient-to-r from-gray-50/80 to-blue-50/80">
-        <SidebarUserSection collapsed={isCollapsed} />
       </div>
-    </div>
-  ));
+    </aside>
+  );
 
   return (
     <>
-      {/* Mobile Toggle Button */}
+      {/* Mobile toggle */}
       <button
-        onClick={toggleMobile}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-all duration-200"
+        onClick={() => setIsMobileOpen((v) => !v)}
+        className="lg:hidden"
+        style={{
+          position: "fixed",
+          top: 14,
+          left: 14,
+          zIndex: 50,
+          width: 42,
+          height: 42,
+          borderRadius: 12,
+          background: "rgba(255,255,255,.95)",
+          backdropFilter: "blur(6px)",
+          border: "1px solid #E6E9EF",
+          boxShadow: "0 4px 12px rgba(16,24,40,.12)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        {isMobileOpen ? <X className="h-5 w-5 text-gray-700" /> : <Menu className="h-5 w-5 text-gray-700" />}
+        {isMobileOpen ? <X size={20} color="#334155" /> : <Menu size={20} color="#334155" />}
       </button>
 
-      {/* Desktop Sidebar avec largeurs fixes */}
-      <div className={cn(
-        "hidden lg:flex flex-col transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "w-64",
-        className
-      )}>
-        <SidebarContent />
-      </div>
+      {/* Desktop */}
+      <div className="hidden lg:flex">{Content}</div>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile drawer */}
       {isMobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
-          <div 
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        <div className="lg:hidden" style={{ position: "fixed", inset: 0, zIndex: 40 }}>
+          <div
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.35)", backdropFilter: "blur(2px)" }}
             onClick={closeMobile}
           />
-          <div className="absolute left-0 top-0 bottom-0 w-64 transform transition-transform duration-300">
-            <SidebarContent />
-          </div>
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0 }}>{Content}</div>
         </div>
       )}
     </>
   );
 });
 
-ClientSidebar.displayName = 'ClientSidebar';
+ClientSidebar.displayName = "ClientSidebar";
 
 export default ClientSidebar;
