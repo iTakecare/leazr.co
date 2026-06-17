@@ -178,6 +178,22 @@ export const InterfonePromoPage: React.FC<InterfonePromoPageProps> = ({
   );
 };
 
-/** Détecte si une ligne prestataire correspond à interfone (par nom). */
+/**
+ * Détecte si une ligne prestataire correspond à interfone. On ne se fie pas
+ * uniquement au provider_name (qui peut varier selon comment le prestataire a été
+ * nommé en base) : on regarde aussi l'URL du logo et le nom produit (gamme « Magic »
+ * propre à interfone : MagicSIM, Magic IP/IPv4, Magic Surf).
+ */
+export const isInterfoneLine = (line: {
+  provider_name?: string;
+  provider_logo_url?: string;
+  product_name?: string;
+}): boolean => {
+  const hay = `${line.provider_name || ''} ${line.provider_logo_url || ''}`.toLowerCase();
+  if (hay.includes('interfone')) return true;
+  return /magic\s?(sim|ip|surf|line|fix|cloud)/i.test(line.product_name || '');
+};
+
+/** @deprecated utiliser isInterfoneLine. Conservé pour compat. */
 export const isInterfoneProvider = (name?: string): boolean =>
   !!name && name.toLowerCase().includes('interfone');

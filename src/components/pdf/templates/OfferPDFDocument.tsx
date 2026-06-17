@@ -3,7 +3,7 @@ import { OfferCoverPage } from './OfferCoverPage';
 import { OfferEquipmentPage } from './OfferEquipmentPage';
 import { OfferConditionsPage } from './OfferConditionsPage';
 import { OfferValuesPage } from './OfferValuesPage';
-import { InterfonePromoPage, isInterfoneProvider } from './InterfonePromoPage';
+import { InterfonePromoPage, isInterfoneLine } from './InterfonePromoPage';
 import { OfferEquipment } from '@/types/offerEquipment';
 import { createOfferPdfStyles } from '../styles/pdfStyles';
 
@@ -108,13 +108,11 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
     ...(offer.external_provider_products || []),
     ...(offer.promo_products || []),
   ];
-  const interfoneLines = allExternalLines.filter((l) => isInterfoneProvider(l.provider_name));
+  const interfoneLines = allExternalLines.filter(isInterfoneLine);
   const externalProviderProducts = (offer.external_provider_products || []).filter(
-    (l) => !isInterfoneProvider(l.provider_name)
+    (l) => !isInterfoneLine(l)
   );
-  const promoProducts = (offer.promo_products || []).filter(
-    (l) => !isInterfoneProvider(l.provider_name)
-  );
+  const promoProducts = (offer.promo_products || []).filter((l) => !isInterfoneLine(l));
 
   return (
     <Document>
