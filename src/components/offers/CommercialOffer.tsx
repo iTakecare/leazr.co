@@ -292,6 +292,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   const interfoneLogo = interfoneOptions.find((s) => s.providerLogoUrl)?.providerLogoUrl || null;
   const INTERFONE_NAVY = '#16294C';
   const INTERFONE_MAGENTA = '#C4146B';
+  // Police interfone = Arial Rounded MT Bold (Monotype, propriétaire). Présente
+  // nativement sur macOS ; comme le PDF est rasterisé côté navigateur (html2canvas),
+  // elle est utilisée telle quelle si le générateur est sur Mac. Repli arrondi sinon.
+  const INTERFONE_FONT = "'Arial Rounded MT Bold', 'M PLUS Rounded 1c', 'Varela Round', 'Poppins', sans-serif";
   const interfonePeriodLabel = (p: string) =>
     p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
 
@@ -1247,7 +1251,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             backgroundColor: INTERFONE_NAVY,
             borderRadius: styles.borderRadius.xl,
             padding: isPDFMode ? '36px 40px 30px' : '2rem',
-            fontFamily: "'Poppins', sans-serif",
+            fontFamily: INTERFONE_FONT,
           }}>
             {/* En-tête : slogan + logo interfone */}
             <div style={{

@@ -2,6 +2,10 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+/* Polices arrondies de repli pour la carte interfone (la vraie police interfone,
+   Arial Rounded MT Bold, est propriétaire mais présente nativement sur macOS — voir
+   la chaîne font-family de la carte). Sur générateur non-Mac, on retombe ici. */
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Varela+Round&display=swap');
 
 * {
   margin: 0;
