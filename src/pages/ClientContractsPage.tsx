@@ -136,10 +136,10 @@ const ClientContractsPage = () => {
     );
   }
 
-  // Masquer les contrats annulés + trier du plus ancien au plus récent.
+  // Masquer les contrats annulés + trier du plus récent (haut) au plus ancien (bas).
   const visibleContracts = [...contracts]
     .filter((c: any) => c.status !== "cancelled")
-    .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return (
     <ClientPage maxWidth={1080}>
