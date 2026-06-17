@@ -3174,6 +3174,13 @@ async function handleReconcileGrenkeContracts(
       upd.grenke_state_updated_at = new Date().toISOString();
       cc.grenke_state = c.State;
     }
+    // Auto-heal de la mensualité : TotalInstalment Grenke = vérité (ce qui est
+    // facturé). Corrige les monthly_payment désync (cf. sync_contract_instalments).
+    if (typeof c.TotalInstalment === "number" && Math.abs((cc.monthly_payment ?? 0) - c.TotalInstalment) > 0.5) {
+      const m = Math.round(c.TotalInstalment * 100) / 100;
+      upd.monthly_payment = m;
+      cc.monthly_payment = m;
+    }
     if (Object.keys(upd).length === 0) return;
     await adminSupabase.from("contracts").update(upd).eq("id", cc.id);
   };
