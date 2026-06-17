@@ -273,7 +273,28 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   isPurchase = false // Par défaut, mode leasing
 }) => {
   const styles = getResponsiveStyle(isPDFMode);
-  
+
+  // Détection des options interfone (par nom prestataire, URL du logo, ou gamme
+  // produit « Magic » : MagicSIM, Magic IP/IPv4, Magic Surf...). Ces options sont
+  // sorties des cartes génériques (bleue/jaune) pour être rendues sur une page
+  // dédiée à l'identité visuelle interfone.
+  const isInterfoneOption = (s: {
+    providerName?: string;
+    providerLogoUrl?: string | null;
+    productName?: string;
+  }) => {
+    const hay = `${s.providerName || ''} ${s.providerLogoUrl || ''}`.toLowerCase();
+    return hay.includes('interfone') || /magic\s?(sim|ip|surf|line|fix|cloud)/i.test(s.productName || '');
+  };
+  const interfoneOptions = [...externalServices, ...promoProducts].filter(isInterfoneOption);
+  const externalServicesRest = externalServices.filter((s) => !isInterfoneOption(s));
+  const promoProductsRest = promoProducts.filter((s) => !isInterfoneOption(s));
+  const interfoneLogo = interfoneOptions.find((s) => s.providerLogoUrl)?.providerLogoUrl || null;
+  const INTERFONE_NAVY = '#16294C';
+  const INTERFONE_MAGENTA = '#C4146B';
+  const interfonePeriodLabel = (p: string) =>
+    p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
+
   const handlePrintPDF = () => {
     window.print();
   };
@@ -984,16 +1005,16 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
       })()}
 
       {/* Page dédiée : Services partenaires + Carte promo "Avez-vous pensé à...?" */}
-      {((externalServices && externalServices.length > 0) || (promoProducts && promoProducts.length > 0)) && (
+      {((externalServicesRest && externalServicesRest.length > 0) || (promoProductsRest && promoProductsRest.length > 0)) && (
         <div
           className="page page-2"
           style={{ pageBreakBefore: 'always', pageBreakInside: 'avoid' }}
         >
-          {externalServices && externalServices.length > 0 && (() => {
+          {externalServicesRest && externalServicesRest.length > 0 && (() => {
             const periodLabel = (p: string) =>
               p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
 
-            const grouped = externalServices.reduce<Record<string, typeof externalServices>>((acc, s) => {
+            const grouped = externalServicesRest.reduce<Record<string, typeof externalServicesRest>>((acc, s) => {
               if (!acc[s.providerName]) acc[s.providerName] = [];
               acc[s.providerName].push(s);
               return acc;
@@ -1097,11 +1118,11 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             );
           })()}
 
-          {promoProducts && promoProducts.length > 0 && (() => {
+          {promoProductsRest && promoProductsRest.length > 0 && (() => {
             const periodLabel = (p: string) =>
               p === 'monthly' ? '/mois' : p === 'yearly' ? '/an' : p === 'one_time' ? 'paiement unique' : p;
 
-            const grouped = promoProducts.reduce<Record<string, typeof promoProducts>>((acc, s) => {
+            const grouped = promoProductsRest.reduce<Record<string, typeof promoProductsRest>>((acc, s) => {
               if (!acc[s.providerName]) acc[s.providerName] = [];
               acc[s.providerName].push(s);
               return acc;
@@ -1204,6 +1225,146 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* Page promo interfone — identité visuelle interfone, options choisies uniquement */}
+      {interfoneOptions.length > 0 && (
+        <div
+          className="page page-interfone"
+          style={{
+            pageBreakBefore: 'always',
+            pageBreakInside: 'avoid',
+            backgroundColor: INTERFONE_NAVY,
+            width: '100%',
+            minHeight: isPDFMode ? '1123px' : 'auto',
+            boxSizing: 'border-box',
+            padding: isPDFMode ? '40px' : '2.5rem',
+            fontFamily: "'Poppins', sans-serif",
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* En-tête : slogan + logo interfone */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: styles.spacing.lg,
+            marginBottom: styles.spacing['2xl'],
+          }}>
+            <div style={{
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: styles.fontSize['2xl'],
+              lineHeight: 1.2,
+              maxWidth: '62%',
+            }}>
+              Transformez une bonne offre en une offre parfaite
+            </div>
+            {interfoneLogo ? (
+              <img
+                src={interfoneLogo}
+                alt="interfone"
+                crossOrigin="anonymous"
+                style={{ height: '34px', maxWidth: '160px', objectFit: 'contain' }}
+              />
+            ) : (
+              <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize.xl }}>
+                interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
+              </div>
+            )}
+          </div>
+
+          {/* Cartes des options choisies */}
+          {interfoneOptions.map((s, i) => (
+            <div key={i} style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: styles.borderRadius.xl,
+              padding: styles.spacing.lg,
+              marginBottom: styles.spacing.lg,
+            }}>
+              {/* Badge + */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: styles.spacing.sm }}>
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '9999px',
+                  backgroundColor: INTERFONE_MAGENTA,
+                  color: '#FFFFFF',
+                  fontSize: '24px',
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>+</div>
+              </div>
+
+              {/* Pill nom produit + prix */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: styles.spacing.md,
+                marginBottom: s.description ? styles.spacing.sm : 0,
+              }}>
+                <span style={{
+                  backgroundColor: INTERFONE_MAGENTA,
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: styles.fontSize.md,
+                  borderRadius: styles.borderRadius.md,
+                  padding: '6px 12px',
+                }}>
+                  {s.productName}{s.quantity > 1 ? ` × ${s.quantity}` : ''}
+                </span>
+                <span style={{
+                  color: INTERFONE_MAGENTA,
+                  fontWeight: 700,
+                  fontSize: styles.fontSize.lg,
+                  whiteSpace: 'nowrap',
+                  textAlign: 'right',
+                }}>
+                  {formatCurrency(s.priceHtva)} HT {interfonePeriodLabel(s.billingPeriod)}
+                </span>
+              </div>
+
+              {/* Description */}
+              {s.description ? (
+                <div style={{ color: '#2C3A4F', fontSize: styles.fontSize.sm, lineHeight: 1.45 }}>
+                  {s.description}
+                </div>
+              ) : null}
+            </div>
+          ))}
+
+          {/* Pied de page : logo + disclaimer */}
+          <div style={{ marginTop: 'auto', paddingTop: styles.spacing.lg }}>
+            <div style={{ textAlign: 'center', marginBottom: styles.spacing.xs }}>
+              {interfoneLogo ? (
+                <img
+                  src={interfoneLogo}
+                  alt="interfone"
+                  crossOrigin="anonymous"
+                  style={{ height: '28px', maxWidth: '160px', objectFit: 'contain' }}
+                />
+              ) : (
+                <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: styles.fontSize.lg }}>
+                  interfone<sup style={{ fontSize: '0.5em' }}>®</sup>
+                </span>
+              )}
+            </div>
+            <div style={{
+              textAlign: 'center',
+              color: '#AEB9CC',
+              fontSize: styles.fontSize.xs,
+              lineHeight: 1.4,
+            }}>
+              Suggestions de nos prestataires pour compléter votre solution. Ces options sont
+              facturées directement par chaque prestataire et ne sont pas incluses dans votre mensualité.
+            </div>
+          </div>
         </div>
       )}
 
