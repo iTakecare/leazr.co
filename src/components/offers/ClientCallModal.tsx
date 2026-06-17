@@ -380,11 +380,40 @@ const ClientCallModal: React.FC<ClientCallModalProps> = ({
             missing_docs: missingDocs ?? "",
           },
         });
-        if (error) throw error;
+        if (error) {
+          // supabase-js masque le corps de la réponse non-2xx dans error.context
+          // (un objet Response) → on l'extrait pour connaître la vraie cause.
+          let serverMsg = "";
+          let status: number | undefined;
+          try {
+            const ctx = (error as { context?: Response }).context;
+            if (ctx && typeof ctx.json === "function") {
+              status = ctx.status;
+              const body = await ctx.json();
+              serverMsg = body?.error ?? "";
+            }
+          } catch {
+            /* corps non-JSON, on retombe sur error.message */
+          }
+          throw Object.assign(new Error(serverMsg || (error as Error).message), { status });
+        }
         toast.success("Alex (agent IA) va rappeler le client");
       } catch (e) {
         console.error("voice-call-start error", e);
-        toast.info("Agent vocal IA à configurer (ElevenLabs)");
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/consent/i.test(msg)) {
+          toast.error(
+            "Le client n'a pas donné son consentement aux appels IA (RGPD). Activez-le dans la fiche client."
+          );
+        } else if (/phone|numéro/i.test(msg)) {
+          toast.error("Le client n'a pas de numéro de téléphone valide.");
+        } else if (/not configured|env var/i.test(msg)) {
+          toast.info("Agent vocal IA à configurer (ElevenLabs).");
+        } else if (/rate.?limit|too many|429/i.test(msg)) {
+          toast.error("Trop d'appels Alex aujourd'hui (limite atteinte). Réessayez demain.");
+        } else {
+          toast.error(`Échec de l'appel Alex : ${msg}`);
+        }
       }
     },
     [clientId]
