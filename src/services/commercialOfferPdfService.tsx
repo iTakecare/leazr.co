@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { supabase } from '@/integrations/supabase/client';
 import CommercialOffer from '@/components/offers/CommercialOffer';
+import { fetchOfferCompanyBranding } from '@/services/offers/offerCompanyBranding';
 
 /**
  * Service unifié pour générer des PDF d'offres commerciales
@@ -256,20 +257,26 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
 
     const isPurchase = (offerData as any)?.is_purchase === true;
 
-    // Branding white-label de l'entreprise émettrice (coordonnées par tenant).
-    const { data: companyCustom } = await supabase
-      .from('company_customizations')
-      .select('company_name, company_address, company_city, company_postal_code, company_email, company_phone, company_vat_number')
-      .eq('company_id', offerData.companies?.id)
-      .maybeSingle();
+    // Branding white-label via le helper partagé (même source que la page offre).
+    const companyBranding = await fetchOfferCompanyBranding(offerData.company_id);
 
-    // Acompte et mensualité ajustée
-    const downPayment = offerData.down_payment || 0;
-    const coefficient = offerData.coefficient || 0;
-    const financedAmountAfterDownPayment = Math.max(0, totalSellingPrice - downPayment);
+    // totalSellingPrice canonique (priorité financed_amount en mode achat)
+    const totalSellingPriceCanonical = isPurchase && offerData.financed_amount
+      ? Number(offerData.financed_amount)
+      : totalSellingPrice;
+
+    // Acompte et mensualité ajustée (formule canonique alignée sur la page offre)
+    const downPayment = Number(offerData.down_payment) || 0;
+    const coefficient = Number(offerData.coefficient) || 0;
+    const baseFinancedAmount = totalSellingPriceCanonical > 0
+      ? totalSellingPriceCanonical
+      : (coefficient > 0 && (Number(offerData.monthly_payment) || 0) > 0
+          ? ((Number(offerData.monthly_payment) || 0) * 100) / coefficient
+          : Number(offerData.financed_amount) || Number(offerData.amount) || 0);
+    const financedAmountAfterDownPayment = Math.max(0, baseFinancedAmount - downPayment);
     const adjustedMonthlyPayment = downPayment > 0 && coefficient > 0
       ? Math.round((financedAmountAfterDownPayment * coefficient) / 100 * 100) / 100
-      : computedTotalMonthly;
+      : (Number(offerData.monthly_payment) || 0);
 
     return {
       offerNumber: offerData.dossier_number || `OFF-${Date.now().toString().slice(-6)}`,
@@ -280,21 +287,22 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
       clientCompany: (offerData as any).client_company || '',
       clientAddress: billingAddress,
       companyLogo: companyLogoBase64,
-      companyName: companyCustom?.company_name || offerData.companies?.name || '',
-      companyAddress: companyCustom?.company_address || '',
-      companyCity: companyCustom?.company_city || '',
-      companyPostalCode: companyCustom?.company_postal_code || '',
-      companyEmail: companyCustom?.company_email || '',
-      companyPhone: companyCustom?.company_phone || '',
-      companyVatNumber: companyCustom?.company_vat_number || '',
+      companyName: companyBranding.companyName || offerData.companies?.name || '',
+      companyAddress: companyBranding.companyAddress || '',
+      companyCity: companyBranding.companyCity || '',
+      companyPostalCode: companyBranding.companyPostalCode || '',
+      companyEmail: companyBranding.companyEmail || '',
+      companyPhone: companyBranding.companyPhone || '',
+      companyVatNumber: companyBranding.companyVatNumber || '',
       showPrintButton: false,
       isPDFMode: true,
       isPurchase: isPurchase,
+      totalSellingPrice: totalSellingPriceCanonical,
       equipment: equipmentData.map((eq: any) => ({
         id: eq.id,
         title: eq.title,
         quantity: eq.quantity || 1,
-        monthlyPayment: eq.monthly_payment || 0,
+        monthlyPayment: isPurchase ? 0 : (eq.monthly_payment || 0),
         sellingPrice: eq.selling_price || 0,
         imageUrl: eq.image_url || eq.product?.image_urls?.[0] || eq.product?.image_url || null,
         attributes: eq.attributes?.reduce((acc: any, attr: any) => {
@@ -308,8 +316,7 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
       })),
       externalServices: enrichedExternalServices,
       promoProducts: enrichedPromoProducts,
-      totalMonthly: isPurchase ? 0 : computedTotalMonthly,
-      totalSellingPrice: totalSellingPrice,
+      totalMonthly: isPurchase ? 0 : (Number(offerData.monthly_payment) || 0),
       contractDuration: Number(offerData.duration) || 36,
       fileFee: isPurchase ? 0 : Number(offerData.file_fee) || 0,
       insuranceCost: isPurchase ? 0 : Number(offerData.annual_insurance) || 0,
@@ -334,16 +341,18 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
       contentBlocks: {
         cover: {
           greeting: contentBlocksMap['cover']?.['greeting'] || '<p>Madame, Monsieur,</p>',
-          introduction: contentBlocksMap['cover']?.['introduction'] || '<p>Nous avons le plaisir de vous présenter notre offre commerciale.</p>',
+          introduction: isPurchase
+            ? (contentBlocksMap['cover']?.['introduction_purchase'] || '<p>Nous avons le plaisir de vous présenter notre offre d\'achat.</p>')
+            : (contentBlocksMap['cover']?.['introduction'] || '<p>Nous avons le plaisir de vous présenter notre offre commerciale.</p>'),
           validity: contentBlocksMap['cover']?.['validity'] || '<p>Cette offre est valable 30 jours.</p>',
         },
         equipment: {
-          title: 'Votre sélection d\'équipements professionnels',
+          title: contentBlocksMap['equipment']?.['title'] || 'Détail de l\'équipement',
           footer_note: contentBlocksMap['equipment']?.['footer_note'] || 'Tous nos équipements sont garantis.',
         },
         conditions: {
           general_conditions: contentBlocksMap['conditions']?.['general_conditions'] || '<h3>Conditions générales</h3>',
-          sale_general_conditions: contentBlocksMap['conditions']?.['sale_general_conditions'] || '<h3>Conditions de vente</h3>',
+          sale_general_conditions: contentBlocksMap['conditions']?.['sale_general_conditions'] || '',
           additional_info: contentBlocksMap['conditions']?.['additional_info'] || '',
           contact_info: contentBlocksMap['conditions']?.['contact_info'] || 'Contactez-nous pour plus d\'informations.',
         },
@@ -454,6 +463,37 @@ export async function generateCommercialOfferPDF(offerId: string): Promise<Blob>
 
   console.log('[COMMERCIAL-OFFER-PDF] PDF generated successfully, size:', pdfBlob.size);
   return pdfBlob;
+}
+
+/**
+ * Génère ET télécharge le PDF d'offre (moteur unique). Nom de fichier canonique
+ * identique à celui de la page offre : Offre_<numéro>_<Client>_<date>.pdf
+ */
+export async function downloadCommercialOfferPDF(offerId: string): Promise<void> {
+  const blob = await generateCommercialOfferPDF(offerId);
+
+  const { data: o } = await supabase
+    .from('offers')
+    .select('dossier_number, client_name, client_company')
+    .eq('id', offerId)
+    .single();
+
+  const date = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
+  const offerNumber = o?.dossier_number || `OFF-${offerId.slice(0, 6)}`;
+  const clientName = ((o as any)?.client_company || o?.client_name || 'Client')
+    .replace(/[^a-zA-Z0-9\s]/g, '')
+    .replace(/\s+/g, '_')
+    .substring(0, 30);
+  const filename = `Offre_${offerNumber}_${clientName}_${date}.pdf`;
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 /**
