@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, CheckCircle2, AlertCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Save, CheckCircle2, AlertCircle, MinusCircle } from "lucide-react";
 import { toast } from "sonner";
-import { getContractEquipment, updateEquipmentSerialNumber, ContractEquipment } from "@/services/contractService";
+import { getContractEquipment, updateEquipmentSerialNumber, updateEquipmentNotSerializable, ContractEquipment } from "@/services/contractService";
 
 interface ContractEquipmentSerialManagerProps {
   contractId: string;
@@ -20,6 +21,8 @@ const ContractEquipmentSerialManager: React.FC<ContractEquipmentSerialManagerPro
   const [loading, setLoading] = useState(true);
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
   const [editedSerials, setEditedSerials] = useState<Map<string, string[]>>(new Map());
+  const [notSerializable, setNotSerializable] = useState<Map<string, boolean>>(new Map());
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchEquipment();
@@ -33,11 +36,14 @@ const ContractEquipmentSerialManager: React.FC<ContractEquipmentSerialManagerPro
       
       // Initialiser les numéros de série édités
       const initialSerials = new Map<string, string[]>();
+      const initialNotSerializable = new Map<string, boolean>();
       data.forEach(item => {
         const serials = parseSerialNumbers(item.serial_number || '', item.quantity);
         initialSerials.set(item.id, serials);
+        initialNotSerializable.set(item.id, !!item.not_serializable);
       });
       setEditedSerials(initialSerials);
+      setNotSerializable(initialNotSerializable);
     } catch (error) {
       console.error('Erreur lors de la récupération des équipements:', error);
       toast.error('Erreur lors du chargement des équipements');
@@ -129,7 +135,38 @@ const ContractEquipmentSerialManager: React.FC<ContractEquipmentSerialManagerPro
     }
   };
 
+  const handleToggleNotSerializable = async (equipmentId: string, checked: boolean) => {
+    // MAJ optimiste de l'UI
+    setNotSerializable(prev => new Map(prev).set(equipmentId, checked));
+    setTogglingIds(prev => new Set(prev).add(equipmentId));
+
+    const success = await updateEquipmentNotSerializable(equipmentId, checked);
+
+    if (success) {
+      toast.success(checked ? 'Équipement marqué non sérialisé' : 'Sérialisation réactivée');
+      // Si on a vidé les numéros côté serveur, refléter localement
+      if (checked) {
+        const item = equipment.find(e => e.id === equipmentId);
+        if (item) {
+          setEditedSerials(prev => new Map(prev).set(equipmentId, Array(item.quantity).fill('')));
+        }
+      }
+      onUpdate?.();
+    } else {
+      // Rollback
+      setNotSerializable(prev => new Map(prev).set(equipmentId, !checked));
+      toast.error("Erreur lors de la mise à jour");
+    }
+
+    setTogglingIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(equipmentId);
+      return newSet;
+    });
+  };
+
   const isSerialComplete = (equipmentId: string): boolean => {
+    if (notSerializable.get(equipmentId)) return true;
     const serials = editedSerials.get(equipmentId) || [];
     return serials.every(s => s.trim() !== '');
   };
@@ -173,16 +210,23 @@ const ContractEquipmentSerialManager: React.FC<ContractEquipmentSerialManagerPro
       <CardContent className="space-y-4">
         {equipment.map((item) => {
           const serials = editedSerials.get(item.id) || [];
+          const isNotSerializable = !!notSerializable.get(item.id);
           const isComplete = isSerialComplete(item.id);
           const isSaving = savingIds.has(item.id);
+          const isToggling = togglingIds.has(item.id);
 
           return (
             <div key={item.id} className="border rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-medium">{item.title}</h4>
-                    {isComplete ? (
+                    {isNotSerializable ? (
+                      <Badge variant="secondary" className="gap-1">
+                        <MinusCircle className="h-3 w-3" />
+                        Non sérialisé
+                      </Badge>
+                    ) : isComplete ? (
                       <Badge variant="default" className="gap-1">
                         <CheckCircle2 className="h-3 w-3" />
                         Complet
@@ -198,50 +242,68 @@ const ContractEquipmentSerialManager: React.FC<ContractEquipmentSerialManagerPro
                 </div>
               </div>
 
-              <div className="space-y-2">
-                {item.quantity === 1 ? (
-                  <div>
-                    <label className="text-sm font-medium">Numéro de série</label>
-                    <Input
-                      value={serials[0] || ''}
-                      onChange={(e) => handleSerialChange(item.id, 0, e.target.value)}
-                      placeholder="Entrez le numéro de série"
-                      className="mt-1"
-                    />
-                  </div>
-                ) : (
-                  serials.map((serial, index) => (
-                    <div key={index}>
-                      <label className="text-sm font-medium">Unité {index + 1}</label>
-                      <Input
-                        value={serial}
-                        onChange={(e) => handleSerialChange(item.id, index, e.target.value)}
-                        placeholder={`Numéro de série de l'unité ${index + 1}`}
-                        className="mt-1"
-                      />
-                    </div>
-                  ))
-                )}
-              </div>
+              {/* Case à cocher non sérialisé (câbles, écrans, accessoires...) */}
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <Checkbox
+                  checked={isNotSerializable}
+                  disabled={isToggling}
+                  onCheckedChange={(checked) => handleToggleNotSerializable(item.id, checked === true)}
+                />
+                <span className="text-muted-foreground">
+                  Équipement non sérialisé (câble, écran, clavier, souris, accessoire…)
+                </span>
+                {isToggling && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+              </label>
 
-              <Button
-                onClick={() => handleSave(item.id)}
-                disabled={isSaving}
-                size="sm"
-                className="w-full sm:w-auto"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Enregistrer
-                  </>
-                )}
-              </Button>
+              {/* Lignes de numéros de série — repliées et grisées si non sérialisé */}
+              {!isNotSerializable && (
+                <>
+                  <div className="space-y-2">
+                    {item.quantity === 1 ? (
+                      <div>
+                        <label className="text-sm font-medium">Numéro de série</label>
+                        <Input
+                          value={serials[0] || ''}
+                          onChange={(e) => handleSerialChange(item.id, 0, e.target.value)}
+                          placeholder="Entrez le numéro de série"
+                          className="mt-1"
+                        />
+                      </div>
+                    ) : (
+                      serials.map((serial, index) => (
+                        <div key={index}>
+                          <label className="text-sm font-medium">Unité {index + 1}</label>
+                          <Input
+                            value={serial}
+                            onChange={(e) => handleSerialChange(item.id, index, e.target.value)}
+                            placeholder={`Numéro de série de l'unité ${index + 1}`}
+                            className="mt-1"
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <Button
+                    onClick={() => handleSave(item.id)}
+                    disabled={isSaving}
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Enregistrement...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Enregistrer
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             </div>
           );
         })}

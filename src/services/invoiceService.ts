@@ -55,9 +55,9 @@ export const getBillitIntegration = async (companyId: string): Promise<CompanyIn
 export const areAllSerialNumbersComplete = (equipment: any[]): boolean => {
   if (!equipment || equipment.length === 0) return false;
   
-  return equipment.every(item => 
-    item.serial_number && 
-    item.serial_number.trim() !== ''
+  return equipment.every(item =>
+    item.not_serializable ||
+    (item.serial_number && item.serial_number.trim() !== '')
   );
 };
 
@@ -280,8 +280,9 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
     }
 
     // Vérifier que tous les équipements ont des numéros de série
+    // (les équipements non sérialisés — câbles, écrans, accessoires... — sont exemptés)
     const missingSerialNumbers = (contractEquipment || []).filter(
-      item => !item.serial_number || item.serial_number.trim() === ''
+      item => !item.not_serializable && (!item.serial_number || item.serial_number.trim() === '')
     );
     
     if (missingSerialNumbers.length > 0) {

@@ -73,31 +73,47 @@ const ClientContractEquipmentSection: React.FC<ClientContractEquipmentSectionPro
                 <StatusBadge status="active" label="Actif" />
               </div>
 
-              {/* Numéros de série */}
-              <div style={{ marginTop: 14 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted }}>Numéros de série</span>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
-                  {getSerialNumbers(item).map((serial, serialIndex) => (
-                    <div key={serialIndex} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 11.5, color: clientColors.faint, minWidth: 58 }}>
-                        Unité {serialIndex + 1}
-                      </span>
-                      <div style={{
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        padding: "4px 10px",
-                        borderRadius: 9,
-                        flex: 1,
-                        ...(serial
-                          ? { background: "#E7F6F0", color: "#047857" }
-                          : { background: "#FFF0E6", color: "#C2540B" }),
-                      }}>
-                        {serial || "En attente de livraison"}
-                      </div>
-                    </div>
-                  ))}
+              {/* Numéros de série — masqués pour les équipements non sérialisés (câbles, écrans, accessoires...) */}
+              {item.not_serializable ? (
+                <div style={{ marginTop: 14 }}>
+                  <span style={{
+                    display: "inline-block",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: "4px 10px",
+                    borderRadius: 9,
+                    background: "#F1F5F9",
+                    color: clientColors.muted,
+                  }}>
+                    Équipement non sérialisé
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div style={{ marginTop: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted }}>Numéros de série</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                    {getSerialNumbers(item).map((serial, serialIndex) => (
+                      <div key={serialIndex} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 11.5, color: clientColors.faint, minWidth: 58 }}>
+                          Unité {serialIndex + 1}
+                        </span>
+                        <div style={{
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          padding: "4px 10px",
+                          borderRadius: 9,
+                          flex: 1,
+                          ...(serial
+                            ? { background: "#E7F6F0", color: "#047857" }
+                            : { background: "#FFF0E6", color: "#C2540B" }),
+                        }}>
+                          {serial || "En attente de livraison"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Attributs */}
               {item.attributes && item.attributes.length > 0 && (

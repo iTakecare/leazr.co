@@ -99,6 +99,7 @@ export interface ContractEquipment {
   margin: number;
   monthly_payment?: number;
   serial_number?: string;
+  not_serializable?: boolean;
   attributes: Array<{ key: string; value: string }>;
   specifications: Array<{ key: string; value: string }>;
   // Delivery information fields
@@ -515,6 +516,41 @@ export const updateEquipmentSerialNumber = async (
     return true;
   } catch (error) {
     console.error("❌ Exception lors de la mise à jour du numéro de série:", error);
+    return false;
+  }
+};
+
+// Marquer un équipement comme non sérialisé (câbles, écrans, accessoires...)
+export const updateEquipmentNotSerializable = async (
+  equipmentId: string,
+  notSerializable: boolean
+): Promise<boolean> => {
+  try {
+    console.log("🔧 Mise à jour 'non sérialisé':", { equipmentId, notSerializable });
+
+    const updates: { not_serializable: boolean; updated_at: string; serial_number?: string } = {
+      not_serializable: notSerializable,
+      updated_at: new Date().toISOString(),
+    };
+    // Si on marque non sérialisé, on vide les numéros de série éventuels
+    if (notSerializable) {
+      updates.serial_number = '';
+    }
+
+    const { error } = await supabase
+      .from('contract_equipment')
+      .update(updates)
+      .eq('id', equipmentId);
+
+    if (error) {
+      console.error("❌ Erreur lors de la mise à jour 'non sérialisé':", error);
+      return false;
+    }
+
+    console.log("✅ 'Non sérialisé' mis à jour avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception lors de la mise à jour 'non sérialisé':", error);
     return false;
   }
 };
