@@ -13,33 +13,59 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.0.0";
+export const ADMIN_VERSION = "1.1.0";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.0.0",
+    version: "1.1.0",
     date: "2026-06-18",
-    title: "Espace client enrichi : documents, multi-utilisateurs & demande de factures",
+    title: "Demande de factures, contrats & centre d'aide",
     items: [
-      "Centre de documents dans l'espace client : vos clients retrouvent leurs contrats signés et tous les documents liés à leurs contrats.",
-      "Multi-utilisateurs par client : un client peut donner accès à son espace à plusieurs de ses collaborateurs.",
-      "Demande de factures au bailleur depuis un contrat, avec un éditeur d'e-mail complet modifiable avant l'envoi.",
+      "Demande de factures au bailleur depuis un contrat, avec un éditeur d'e-mail enrichi (gras, souligné, listes) modifiable avant l'envoi.",
+      "Contrats : case « équipement non sérialisé » qui replie et grise les numéros de série lorsqu'ils ne s'appliquent pas.",
+      "Grenke : la remise commerciale est désormais correctement répercutée sur les montants envoyés au bailleur.",
+      "Assignation d'équipement : une seule unité est assignée à la fois (au lieu de toute la ligne).",
+      "Nouveau centre d'aide par module avec historique des versions, et popup « Nouveautés » à chaque déploiement.",
+    ],
+  },
+  {
+    version: "1.0.0",
+    date: "2026-06-17",
+    title: "Espace client enrichi, PDF d'offre & Grenke",
+    items: [
+      "Espace client : centre de documents (contrats signés + documents de contrat), multi-utilisateurs par client, notifications et recherche.",
+      "PDF d'offre : moteur de rendu unifié et carte promo « prestataire » avec champs marketing par produit (accroche, spécificité, mention).",
+      "Grenke : récupération de la mensualité réelle (TotalInstalment) avec synchronisation et auto-réparation au cron.",
+      "Renforcement de la sécurité et de la confidentialité des données entre clients (isolation RLS).",
     ],
   },
 ];
 
 // ────────────────────────── CLIENT (espace /client) ──────────────────────────
-export const CLIENT_VERSION = "1.0.0";
+export const CLIENT_VERSION = "1.1.0";
 
 export const CLIENT_CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.0.0",
+    version: "1.1.0",
     date: "2026-06-18",
-    title: "Votre espace client s'enrichit",
+    title: "Documents, factures & multi-accès",
     items: [
       "Nouveau centre de documents : retrouvez vos contrats signés et tous les documents liés à vos contrats en un seul endroit.",
-      "Plusieurs accès pour votre société : invitez vos collaborateurs à accéder à votre espace client.",
       "Demandez vos factures directement depuis un contrat, avec un e-mail pré-rempli que vous pouvez relire avant l'envoi.",
+      "Plusieurs accès pour votre société : invitez vos collaborateurs à accéder à votre espace client.",
+      "Une cloche de notifications et une recherche pour retrouver rapidement vos contrats et documents.",
+      "Un nouveau centre d'aide dédié à votre espace, avec l'historique des nouveautés.",
+    ],
+  },
+  {
+    version: "1.0.0",
+    date: "2026-06-17",
+    title: "Un espace client tout neuf",
+    items: [
+      "Refonte complète de l'interface de votre espace client, plus claire et plus moderne.",
+      "Le logo de votre bailleur apparaît désormais sur chaque contrat.",
+      "Vos contrats sont mieux présentés : tri par date, statut de livraison à jour, contrats annulés masqués.",
+      "Affichage de la date de début de contrat et du descriptif d'équipement simplifié.",
     ],
   },
 ];
