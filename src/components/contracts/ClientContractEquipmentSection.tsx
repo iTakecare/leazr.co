@@ -1,16 +1,15 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Package } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import { ContractEquipment } from "@/services/contractService";
+import { ClientCard, StatusBadge, clientColors, equipChipStyle } from "@/components/client/clientUi";
 
 interface ClientContractEquipmentSectionProps {
   equipment: ContractEquipment[];
 }
 
-const ClientContractEquipmentSection: React.FC<ClientContractEquipmentSectionProps> = ({ 
-  equipment 
+const ClientContractEquipmentSection: React.FC<ClientContractEquipmentSectionProps> = ({
+  equipment
 }) => {
   const getSerialNumbers = (item: ContractEquipment): string[] => {
     if (!item.serial_number) return Array(item.quantity).fill('');
@@ -31,106 +30,108 @@ const ClientContractEquipmentSection: React.FC<ClientContractEquipmentSectionPro
     return Array(item.quantity).fill('');
   };
 
+  const SectionTitle = (
+    <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16 }}>
+      <div style={{ width: 34, height: 34, borderRadius: 10, background: "#EAF0FF", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+        <Package size={17} color={clientColors.indigo} />
+      </div>
+      <span style={{ fontSize: 15, fontWeight: 700, color: clientColors.ink }}>
+        Équipements{equipment.length > 0 ? ` (${equipment.length})` : ""}
+      </span>
+    </div>
+  );
+
   if (equipment.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Équipements
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Aucun équipement trouvé pour ce contrat.</p>
-        </CardContent>
-      </Card>
+      <ClientCard pad={20}>
+        {SectionTitle}
+        <p style={{ fontSize: 13, color: clientColors.muted, margin: 0 }}>
+          Aucun équipement trouvé pour ce contrat.
+        </p>
+      </ClientCard>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package className="h-5 w-5" />
-          Équipements ({equipment.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {equipment.map((item, index) => (
-          <div key={item.id} className="border rounded-lg p-4 space-y-4">
-            <div>
-              <h4 className="font-semibold text-lg">{item.title}</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Quantité:</span>
-                  <div className="font-medium">{item.quantity}</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Statut:</span>
-                  <div className="font-medium">
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      Actif
-                    </Badge>
+    <ClientCard pad={20}>
+      {SectionTitle}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {equipment.map((item) => {
+          const monthly = Number(item.monthly_payment) || 0;
+          return (
+            <div key={item.id} style={{ border: `1px solid ${clientColors.borderSoft}`, borderRadius: 14, padding: 16, background: clientColors.surface }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ minWidth: 0 }}>
+                  <h4 style={{ fontSize: 15, fontWeight: 700, color: clientColors.ink, margin: 0 }}>{item.title}</h4>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 6, fontSize: 12.5, color: clientColors.muted }}>
+                    <span>Quantité : <strong style={{ color: clientColors.ink }}>{item.quantity}</strong></span>
+                    {monthly > 0 && (
+                      <span>Mensualité : <strong style={{ color: clientColors.ink }}>{formatCurrency(monthly)}</strong></span>
+                    )}
                   </div>
                 </div>
+                <StatusBadge status="active" label="Actif" />
               </div>
-            </div>
 
-            {/* Numéros de série */}
-            <div className="space-y-2">
-              <span className="text-sm text-muted-foreground">Numéros de série:</span>
-              <div className="space-y-2">
-                {getSerialNumbers(item).map((serial, serialIndex) => (
-                  <div key={serialIndex} className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground min-w-[60px]">
-                      Unité {serialIndex + 1}:
-                    </span>
-                    <div className={`text-sm px-2 py-1 rounded-md flex-1 ${
-                      serial 
-                        ? 'bg-green-50 text-green-700 border border-green-200' 
-                        : 'bg-orange-50 text-orange-700 border border-orange-200'
-                    }`}>
-                      {serial || "En attente de livraison"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Attributs */}
-            {item.attributes && item.attributes.length > 0 && (
-              <div>
-                <h5 className="font-medium mb-2">Caractéristiques</h5>
-                <div className="flex flex-wrap gap-2">
-                  {item.attributes.map((attr, attrIndex) => (
-                    <Badge key={attrIndex} variant="secondary">
-                      {attr.key}: {attr.value}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Spécifications */}
-            {item.specifications && item.specifications.length > 0 && (
-              <div>
-                <h5 className="font-medium mb-2">Spécifications techniques</h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                  {item.specifications.map((spec, specIndex) => (
-                    <div key={specIndex} className="flex justify-between">
-                      <span className="text-muted-foreground">{spec.key}:</span>
-                      <span className="font-medium">{spec.value}</span>
+              {/* Numéros de série */}
+              <div style={{ marginTop: 14 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted }}>Numéros de série</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                  {getSerialNumbers(item).map((serial, serialIndex) => (
+                    <div key={serialIndex} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 11.5, color: clientColors.faint, minWidth: 58 }}>
+                        Unité {serialIndex + 1}
+                      </span>
+                      <div style={{
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        padding: "4px 10px",
+                        borderRadius: 9,
+                        flex: 1,
+                        ...(serial
+                          ? { background: "#E7F6F0", color: "#047857" }
+                          : { background: "#FFF0E6", color: "#C2540B" }),
+                      }}>
+                        {serial || "En attente de livraison"}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
 
-            {index < equipment.length - 1 && <Separator />}
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+              {/* Attributs */}
+              {item.attributes && item.attributes.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted }}>Caractéristiques</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                    {item.attributes.map((attr, attrIndex) => (
+                      <span key={attrIndex} style={equipChipStyle()}>
+                        {attr.key} : {attr.value}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Spécifications */}
+              {item.specifications && item.specifications.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted }}>Spécifications techniques</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: "4px 18px", marginTop: 6 }}>
+                    {item.specifications.map((spec, specIndex) => (
+                      <div key={specIndex} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 12.5 }}>
+                        <span style={{ color: clientColors.muted }}>{spec.key}</span>
+                        <span style={{ fontWeight: 600, color: clientColors.ink, textAlign: "right" }}>{spec.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </ClientCard>
   );
 };
 

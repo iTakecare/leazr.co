@@ -2,18 +2,19 @@ import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useClientData } from "@/hooks/useClientData";
-import PageTransition from "@/components/layout/PageTransition";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import ClientContractDetailHeader from "@/components/contracts/ClientContractDetailHeader";
 import ClientContractEquipmentSection from "@/components/contracts/ClientContractEquipmentSection";
 import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
 import ContractHistoryPanel from "@/components/contracts/ContractHistoryPanel";
 
 import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileSignature, Download, Loader2, ShieldCheck } from "lucide-react";
+import { FileSignature, Download, Loader2, ShieldCheck, ChevronLeft, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import {
+  ClientPage, ClientCard, clientColors, primaryBtnStyle, ghostBtnStyle,
+} from "@/components/client/clientUi";
 
 /** Carte de téléchargement du contrat signé (DocuSign via Grenke). */
 const SignedContractCard: React.FC<{ contract: any }> = ({ contract }) => {
@@ -51,117 +52,114 @@ const SignedContractCard: React.FC<{ contract: any }> = ({ contract }) => {
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <FileSignature className="h-4 w-4 text-violet-600" />
-          Contrat signé
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          {signedAt
-            ? `Signé électroniquement (DocuSign) le ${signedAt}.`
-            : "Document de contrat signé électroniquement via DocuSign."}
-        </p>
-        <Button onClick={handleDownload} disabled={loading} className="w-full gap-2">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          {contract.signed_contract_pdf_url ? "Télécharger le contrat signé" : "Récupérer le contrat signé"}
-        </Button>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-          Signature qualifiée DocuSign · valeur probante
+    <ClientCard pad={20}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: "#F2EBFE", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+          <FileSignature size={17} color={clientColors.violet} />
         </div>
-      </CardContent>
-    </Card>
+        <span style={{ fontSize: 14.5, fontWeight: 700, color: clientColors.ink }}>Contrat signé</span>
+      </div>
+      <p style={{ fontSize: 13, color: clientColors.muted, margin: "0 0 14px" }}>
+        {signedAt
+          ? `Signé électroniquement (DocuSign) le ${signedAt}.`
+          : "Document de contrat signé électroniquement via DocuSign."}
+      </p>
+      <button
+        onClick={handleDownload}
+        disabled={loading}
+        style={{ ...primaryBtnStyle, width: "100%", opacity: loading ? 0.7 : 1 }}
+      >
+        {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+        {contract.signed_contract_pdf_url ? "Télécharger le contrat signé" : "Récupérer le contrat signé"}
+      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, fontSize: 11.5, color: clientColors.faint }}>
+        <ShieldCheck size={14} color={clientColors.emerald} />
+        Signature qualifiée DocuSign · valeur probante
+      </div>
+    </ClientCard>
   );
 };
 
 const ClientContractDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { clientData } = useClientData();
-  const { 
-    contract, 
-    equipment, 
-    documents, 
-    logs, 
-    loading, 
-    error, 
-    refetch 
+  const { navigateToClient } = useRoleNavigation();
+  const {
+    contract,
+    equipment,
+    documents,
+    logs,
+    loading,
+    error,
+    refetch
   } = useContractDetail(id || "");
-  
+
   if (loading) {
     return (
-      <PageTransition>
-        <div className="flex justify-center items-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <ClientPage maxWidth={1180}>
+        <div className="animate-pulse" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ height: 30, width: "40%", background: "#E6E9EF", borderRadius: 12 }} />
+          <div style={{ height: 150, background: "#E6E9EF", borderRadius: 18 }} />
+          <div style={{ height: 280, background: "#E6E9EF", borderRadius: 18 }} />
         </div>
-      </PageTransition>
+      </ClientPage>
     );
   }
-  
+
   if (error || !contract) {
     return (
-      <PageTransition>
-        <div className="container mx-auto p-6">
-          <div className="flex flex-col items-center justify-center h-96 gap-4">
-            <div className="text-destructive font-medium">{error || "Le contrat n'a pas été trouvé."}</div>
-          </div>
-        </div>
-      </PageTransition>
+      <ClientPage maxWidth={1180}>
+        <ClientCard pad={20} style={{ border: "1px solid #F5C2C2", background: "#FEF2F2", display: "flex", alignItems: "center", gap: 12, color: "#B91C1C" }}>
+          <AlertCircle size={20} />
+          <p style={{ fontSize: 13, margin: 0 }}>{error || "Le contrat n'a pas été trouvé."}</p>
+        </ClientCard>
+      </ClientPage>
     );
   }
-  
+
   return (
-    <PageTransition>
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <ClientContractDetailHeader contract={contract} />
-        
-        <div className="container mx-auto p-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Colonne principale */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Section Équipements */}
-              <ClientContractEquipmentSection 
-                equipment={equipment} 
-              />
+    <ClientPage maxWidth={1180}>
+      {/* Back */}
+      <button
+        onClick={() => navigateToClient("contracts")}
+        style={{ ...ghostBtnStyle, marginBottom: 16, height: 34 }}
+      >
+        <ChevronLeft size={16} /> Mes contrats
+      </button>
 
-              {/* Section Documents */}
-              <ContractDocumentsSection 
-                contractId={contract.id}
-                documents={documents}
-                onRefresh={refetch}
-              />
+      {/* Header + KPI */}
+      <ClientContractDetailHeader contract={contract} />
 
-            </div>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr)", gap: 18, alignItems: "start", marginTop: 18 }} className="lzr-detail-grid">
+        {/* Colonne principale */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
+          <ClientContractEquipmentSection equipment={equipment} />
+          <ContractDocumentsSection
+            contractId={contract.id}
+            documents={documents}
+            onRefresh={refetch}
+          />
+        </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Contrat signé (DocuSign) */}
-              <SignedContractCard contract={contract} />
-
-              {/* Historique */}
-              <ContractHistoryPanel logs={logs} />
-
-              {/* Détails additionnels */}
-              {contract.equipment_description && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Résumé des équipements</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      {formatEquipmentForClient(contract.equipment_description)}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
+        {/* Sidebar */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
+          <SignedContractCard contract={contract} />
+          <ContractHistoryPanel logs={logs} />
+          {contract.equipment_description && (
+            <ClientCard pad={20}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: clientColors.ink, marginBottom: 8 }}>
+                Résumé des équipements
+              </div>
+              <p style={{ fontSize: 13, color: clientColors.muted, margin: 0 }}>
+                {formatEquipmentForClient(contract.equipment_description)}
+              </p>
+            </ClientCard>
+          )}
         </div>
       </div>
-    </PageTransition>
+
+      <style>{`@media (max-width: 880px){ .lzr-detail-grid{ grid-template-columns: 1fr !important; } }`}</style>
+    </ClientPage>
   );
 };
 

@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
@@ -18,6 +15,20 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Check, User, Mail, Building, Package, Euro, Loader2, Send, Monitor } from 'lucide-react';
 import SelectedExternalProvidersList from '@/components/cart/SelectedExternalProvidersList';
+import { clientColors, ClientCard, primaryBtnStyle } from '@/components/client/clientUi';
+
+/* Style d'input thématisé (espace client Leazr) */
+const themedInput =
+  'w-full rounded-[11px] border bg-white text-[#0F172A] placeholder:text-[#94A0B4] ' +
+  'focus-visible:ring-2 focus-visible:ring-[#2D55E5]/30 focus-visible:border-[#2D55E5] ' +
+  'border-[#E2E5EC] transition-colors';
+
+const cardTitle: React.CSSProperties = {
+  fontSize: 16,
+  fontWeight: 700,
+  color: clientColors.ink,
+  margin: 0,
+};
 
 const ClientRequestSummary: React.FC = () => {
   const { navigateToClient } = useRoleNavigation();
@@ -201,288 +212,376 @@ const ClientRequestSummary: React.FC = () => {
   
   if (clientLoading) {
     return (
-      <div className="bg-card rounded-lg border p-6">
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
-          <span>Chargement de vos informations...</span>
+      <ClientCard pad={28}>
+        <div className="flex items-center justify-center py-8" style={{ color: clientColors.muted }}>
+          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          <span style={{ fontSize: 13.5 }}>Chargement de vos informations...</span>
         </div>
-      </div>
+      </ClientCard>
     );
   }
-  
+
   if (!clientData) {
     return (
-      <div className="bg-card rounded-lg border p-6">
+      <ClientCard pad={28}>
         <div className="text-center py-8">
-          <p className="text-destructive">Impossible de charger vos informations client.</p>
-          <Button onClick={() => navigateToClient('dashboard')} className="mt-4">
+          <p style={{ color: '#DC2626', fontSize: 13.5 }}>
+            Impossible de charger vos informations client.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigateToClient('dashboard')}
+            style={{ ...primaryBtnStyle, marginTop: 16 }}
+          >
             Retour au tableau de bord
-          </Button>
+          </button>
         </div>
-      </div>
+      </ClientCard>
     );
   }
   
   return (
-    <div className="max-w-4xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div>
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Client Information Summary */}
-        <div className="bg-card rounded-lg border overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <User className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-semibold">Vos informations</h2>
-              <Badge variant="outline" className="text-emerald-600 border-emerald-600">
-                <Check className="h-3 w-3 mr-1" />
-                Confirmées
-              </Badge>
+        <ClientCard pad={22}>
+          <div className="flex items-center gap-2 mb-5">
+            <User className="h-5 w-5" style={{ color: clientColors.indigo }} />
+            <h2 style={cardTitle}>Vos informations</h2>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '3px 9px',
+                borderRadius: 20,
+                background: '#E7F6F0',
+                color: '#047857',
+              }}
+            >
+              <Check className="h-3 w-3" />
+              Confirmées
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3">
+              <User className="h-4 w-4" style={{ color: clientColors.faint }} />
+              <div>
+                <p style={{ fontSize: 12, color: clientColors.muted, margin: 0 }}>Nom</p>
+                <p style={{ fontWeight: 600, color: clientColors.ink, margin: 0 }}>{clientData.name}</p>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Nom</p>
-                  <p className="font-medium">{clientData.name}</p>
-                </div>
+
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4" style={{ color: clientColors.faint }} />
+              <div>
+                <p style={{ fontSize: 12, color: clientColors.muted, margin: 0 }}>Email</p>
+                <p style={{ fontWeight: 600, color: clientColors.ink, margin: 0 }}>
+                  {clientData.email || 'Non renseigné'}
+                </p>
               </div>
-              
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{clientData.email || 'Non renseigné'}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Building className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Entreprise</p>
-                  <p className="font-medium">{clientData.company || 'Non renseigné'}</p>
-                </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Building className="h-4 w-4" style={{ color: clientColors.faint }} />
+              <div>
+                <p style={{ fontSize: 12, color: clientColors.muted, margin: 0 }}>Entreprise</p>
+                <p style={{ fontWeight: 600, color: clientColors.ink, margin: 0 }}>
+                  {clientData.company || 'Non renseigné'}
+                </p>
               </div>
             </div>
           </div>
-        </div>
-        
+        </ClientCard>
+
         {/* Products Summary */}
-        <div className="bg-card rounded-lg border overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Package className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-semibold">Produits demandés</h2>
-              <Badge variant="secondary">
-                {items.length} produit{items.length > 1 ? 's' : ''}
-              </Badge>
-            </div>
-            
-            <div className="space-y-4">
-              {items.map((item) => {
-                const price = getProductPrice(item.product, item.selectedOptions);
-                return (
-                  <div key={item.product.id} className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
-                    <div className="w-16 h-16 bg-background rounded-md overflow-hidden flex-shrink-0 border">
-                      <img 
-                        src={item.product.image_url || '/placeholder.svg'} 
-                        alt={item.product.name}
-                        className="w-full h-full object-contain p-1"
-                      />
-                    </div>
-                    
-                    <div className="flex-1">
-                      <h3 className="font-medium">{item.product.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {item.product.brand && `${item.product.brand} • `}
-                        Quantité: {item.quantity} • Durée: {item.duration} mois
-                      </p>
-                      
-                      {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          Options: {Object.entries(item.selectedOptions).map(([key, value], index, arr) => (
-                            <span key={key}>
-                              {key}: {value}
-                              {index < arr.length - 1 ? ' | ' : ''}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="text-right">
-                      <p className="font-medium text-primary">
-                        {formatCurrency(price.monthlyPrice * item.quantity)} / mois
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <Separator className="my-6" />
-            
-            <div className="flex justify-between items-center text-lg">
-              <div className="flex items-center gap-2">
-                <Euro className="h-5 w-5 text-primary" />
-                <span className="font-semibold">Total mensuel</span>
-              </div>
-              <span className="font-bold text-primary text-xl">
-                {formatCurrency(cartTotal)}
-              </span>
-            </div>
-            
-            <p className="text-sm text-muted-foreground mt-2">
-              Prix HT • Engagement sur 36 mois par défaut
-            </p>
+        <ClientCard pad={22}>
+          <div className="flex items-center gap-2 mb-5">
+            <Package className="h-5 w-5" style={{ color: clientColors.indigo }} />
+            <h2 style={cardTitle}>Produits demandés</h2>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '3px 9px',
+                borderRadius: 20,
+                background: '#EEF0F4',
+                color: clientColors.muted,
+              }}
+            >
+              {items.length} produit{items.length > 1 ? 's' : ''}
+            </span>
           </div>
-        </div>
+
+          <div className="space-y-3">
+            {items.map((item) => {
+              const price = getProductPrice(item.product, item.selectedOptions);
+              return (
+                <div
+                  key={item.product.id}
+                  className="flex items-center gap-4 p-3"
+                  style={{
+                    border: `1px solid ${clientColors.border}`,
+                    borderRadius: 12,
+                    background: clientColors.surface,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      flexShrink: 0,
+                      borderRadius: 10,
+                      background: '#fff',
+                      border: `1px solid ${clientColors.border}`,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src={item.product.image_url || '/placeholder.svg'}
+                      alt={item.product.name}
+                      className="w-full h-full object-contain p-1"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h3 style={{ fontWeight: 700, fontSize: 14, color: clientColors.ink, margin: 0 }}>
+                      {item.product.name}
+                    </h3>
+                    <p style={{ fontSize: 12.5, color: clientColors.muted, margin: '2px 0 0' }}>
+                      {item.product.brand && `${item.product.brand} • `}
+                      Quantité: {item.quantity} • Durée: {item.duration} mois
+                    </p>
+
+                    {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                      <div style={{ marginTop: 3, fontSize: 11.5, color: clientColors.faint }}>
+                        Options:{' '}
+                        {Object.entries(item.selectedOptions).map(([key, value], index, arr) => (
+                          <span key={key}>
+                            {key}: {value}
+                            {index < arr.length - 1 ? ' | ' : ''}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-right">
+                    <p style={{ fontWeight: 800, color: clientColors.indigo, margin: 0, fontSize: 14 }}>
+                      {formatCurrency(price.monthlyPrice * item.quantity)}
+                      <span style={{ fontSize: 11, fontWeight: 600, color: clientColors.muted }}> / mois</span>
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ height: 1, background: clientColors.border, margin: '20px 0' }} />
+
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Euro className="h-5 w-5" style={{ color: clientColors.indigo }} />
+              <span style={{ fontWeight: 700, fontSize: 15, color: clientColors.ink }}>Total mensuel</span>
+            </div>
+            <span style={{ fontWeight: 800, fontSize: 20, color: clientColors.indigo }}>
+              {formatCurrency(cartTotal)}
+            </span>
+          </div>
+
+          <p style={{ fontSize: 12, color: clientColors.faint, margin: '6px 0 0' }}>
+            Prix HT • Engagement sur 36 mois par défaut
+          </p>
+        </ClientCard>
 
         {/* External Provider Products */}
         <SelectedExternalProvidersList variant="card" />
 
         {/* Software Selection Section */}
         {softwareCatalog.length > 0 && (
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <Monitor className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-semibold">Logiciels souhaités</h2>
-                {selectedSoftwareIds.length > 0 && (
-                  <Badge variant="secondary">
-                    {selectedSoftwareIds.length} sélectionné{selectedSoftwareIds.length > 1 ? 's' : ''}
-                  </Badge>
-                )}
-              </div>
-              
-              <p className="text-sm text-muted-foreground mb-4">
-                Sélectionnez les logiciels que vous souhaitez installer sur vos équipements.
-              </p>
-              
-              <div className="space-y-4">
-                {Object.entries(softwareByCategory).map(([category, softwares]: [string, any[]]) => (
-                  <div key={category}>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2">{category}</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                      {softwares.map((sw: any) => (
+          <ClientCard pad={22}>
+            <div className="flex items-center gap-2 mb-4">
+              <Monitor className="h-5 w-5" style={{ color: clientColors.indigo }} />
+              <h2 style={cardTitle}>Logiciels souhaités</h2>
+              {selectedSoftwareIds.length > 0 && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '3px 9px',
+                    borderRadius: 20,
+                    background: '#EEF0F4',
+                    color: clientColors.muted,
+                  }}
+                >
+                  {selectedSoftwareIds.length} sélectionné{selectedSoftwareIds.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+
+            <p style={{ fontSize: 13, color: clientColors.muted, margin: '0 0 14px' }}>
+              Sélectionnez les logiciels que vous souhaitez installer sur vos équipements.
+            </p>
+
+            <div className="space-y-4">
+              {Object.entries(softwareByCategory).map(([category, softwares]: [string, any[]]) => (
+                <div key={category}>
+                  <h3
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      color: clientColors.muted,
+                      margin: '0 0 8px',
+                    }}
+                  >
+                    {category}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {softwares.map((sw: any) => {
+                      const active = selectedSoftwareIds.includes(sw.id);
+                      return (
                         <label
                           key={sw.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                            selectedSoftwareIds.includes(sw.id)
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:bg-muted/50'
-                          }`}
+                          className="flex items-center gap-3 p-3 cursor-pointer transition-colors"
+                          style={{
+                            borderRadius: 11,
+                            border: `1px solid ${active ? clientColors.indigo : clientColors.border}`,
+                            background: active ? 'rgba(45,85,229,.05)' : '#fff',
+                          }}
                         >
                           <Checkbox
-                            checked={selectedSoftwareIds.includes(sw.id)}
+                            checked={active}
                             onCheckedChange={() => toggleSoftware(sw.id)}
                           />
                           <div className="flex items-center gap-2 min-w-0">
                             {sw.icon_url && (
                               <img src={sw.icon_url} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
                             )}
-                            <span className="text-sm font-medium truncate">{sw.name}</span>
+                            <span
+                              className="truncate"
+                              style={{ fontSize: 13, fontWeight: 600, color: clientColors.ink }}
+                            >
+                              {sw.name}
+                            </span>
                           </div>
                         </label>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-              
-              <Separator className="my-4" />
-              
-              <div className="space-y-2">
-                <Label htmlFor="other-software">Autres logiciels souhaités</Label>
-                <Input
-                  id="other-software"
-                  placeholder="Ex: Antivirus Kaspersky, AutoCAD, Adobe Photoshop..."
-                  value={otherSoftware}
-                  onChange={(e) => setOtherSoftware(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Indiquez ici les logiciels non listés que vous souhaitez installer.
-                </p>
-              </div>
+                </div>
+              ))}
             </div>
-          </div>
+
+            <div style={{ height: 1, background: clientColors.border, margin: '16px 0' }} />
+
+            <div className="space-y-2">
+              <Label htmlFor="other-software">Autres logiciels souhaités</Label>
+              <Input
+                id="other-software"
+                className={themedInput}
+                placeholder="Ex: Antivirus Kaspersky, AutoCAD, Adobe Photoshop..."
+                value={otherSoftware}
+                onChange={(e) => setOtherSoftware(e.target.value)}
+              />
+              <p style={{ fontSize: 11.5, color: clientColors.faint, margin: 0 }}>
+                Indiquez ici les logiciels non listés que vous souhaitez installer.
+              </p>
+            </div>
+          </ClientCard>
         )}
 
         {/* Free-text software input when no catalog */}
         {softwareCatalog.length === 0 && (
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Monitor className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-semibold">Logiciels souhaités</h2>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="other-software-free">Logiciels à installer sur vos équipements</Label>
-                <Input
-                  id="other-software-free"
-                  placeholder="Ex: Microsoft Office, Chrome, Slack, Antivirus..."
-                  value={otherSoftware}
-                  onChange={(e) => setOtherSoftware(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Indiquez les logiciels que vous souhaitez installer sur vos équipements.
-                </p>
-              </div>
+          <ClientCard pad={22}>
+            <div className="flex items-center gap-2 mb-4">
+              <Monitor className="h-5 w-5" style={{ color: clientColors.indigo }} />
+              <h2 style={cardTitle}>Logiciels souhaités</h2>
             </div>
-          </div>
-        )}
-        {/* Message Section */}
-        <div className="bg-card rounded-lg border overflow-hidden">
-          <div className="p-6">
             <div className="space-y-2">
-              <Label htmlFor="message">Message complémentaire (optionnel)</Label>
-              <Textarea
-                id="message"
-                placeholder="Ajoutez ici des informations complémentaires concernant votre demande..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={4}
+              <Label htmlFor="other-software-free">Logiciels à installer sur vos équipements</Label>
+              <Input
+                id="other-software-free"
+                className={themedInput}
+                placeholder="Ex: Microsoft Office, Chrome, Slack, Antivirus..."
+                value={otherSoftware}
+                onChange={(e) => setOtherSoftware(e.target.value)}
               />
+              <p style={{ fontSize: 11.5, color: clientColors.faint, margin: 0 }}>
+                Indiquez les logiciels que vous souhaitez installer sur vos équipements.
+              </p>
             </div>
+          </ClientCard>
+        )}
+
+        {/* Message Section */}
+        <ClientCard pad={22}>
+          <div className="space-y-2">
+            <Label htmlFor="message">Message complémentaire (optionnel)</Label>
+            <Textarea
+              id="message"
+              className={themedInput}
+              placeholder="Ajoutez ici des informations complémentaires concernant votre demande..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+            />
           </div>
-        </div>
-        
+        </ClientCard>
+
         {/* Submit Section */}
-        <div className="bg-card rounded-lg border overflow-hidden">
-          <div className="p-6">
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
-                <p className="font-medium mb-2">Que se passe-t-il après l'envoi ?</p>
-                <ul className="space-y-1 text-xs">
-                  <li>• Votre demande sera transmise à notre équipe commerciale</li>
-                  <li>• Vous recevrez un accusé de réception par email</li>
-                  <li>• Un conseiller vous contactera sous 24-48h pour finaliser votre offre</li>
-                  <li>• Vous pourrez suivre l'avancement dans votre espace client</li>
-                </ul>
-              </div>
-              
-              <div className="flex justify-end">
-                <Button 
-                  type="submit" 
-                  size="lg"
-                  disabled={isSubmitting || items.length === 0}
-                  className="min-w-[200px]"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Envoi en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="mr-2 h-4 w-4" />
-                      Envoyer ma demande
-                    </>
-                  )}
-                </Button>
-              </div>
+        <ClientCard pad={22}>
+          <div className="space-y-4">
+            <div
+              style={{
+                fontSize: 13,
+                color: clientColors.muted,
+                background: clientColors.surface,
+                border: `1px solid ${clientColors.border}`,
+                padding: 16,
+                borderRadius: 12,
+              }}
+            >
+              <p style={{ fontWeight: 700, color: clientColors.ink, margin: '0 0 8px' }}>
+                Que se passe-t-il après l'envoi ?
+              </p>
+              <ul className="space-y-1" style={{ fontSize: 12, margin: 0, paddingLeft: 0, listStyle: 'none' }}>
+                <li>• Votre demande sera transmise à notre équipe commerciale</li>
+                <li>• Vous recevrez un accusé de réception par email</li>
+                <li>• Un conseiller vous contactera sous 24-48h pour finaliser votre offre</li>
+                <li>• Vous pourrez suivre l'avancement dans votre espace client</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isSubmitting || items.length === 0}
+                style={{
+                  ...primaryBtnStyle,
+                  height: 44,
+                  minWidth: 200,
+                  opacity: isSubmitting || items.length === 0 ? 0.6 : 1,
+                  cursor: isSubmitting || items.length === 0 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Envoi en cours...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Envoyer ma demande
+                  </>
+                )}
+              </button>
             </div>
           </div>
-        </div>
+        </ClientCard>
       </form>
     </div>
   );

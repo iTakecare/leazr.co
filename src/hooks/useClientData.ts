@@ -310,6 +310,17 @@ export const useClientData = () => {
     };
 
     fetchClientData();
+
+    // Rafraîchir au retour sur l'onglet (throttle 10s) pour éviter les données périmées.
+    let lastFocus = Date.now();
+    const onFocus = () => {
+      const now = Date.now();
+      if (now - lastFocus < 10000) return;
+      lastFocus = now;
+      fetchClientData();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [user?.id]);
 
   return { clientData, recentActivity, clientStats, notifications, loading, error };

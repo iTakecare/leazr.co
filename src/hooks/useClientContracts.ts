@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { useMultiTenant } from "./useMultiTenant";
 
@@ -120,6 +120,21 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
 
   useEffect(() => {
     fetchContracts();
+  }, [clientEmail, clientId]);
+
+  // Rafraîchir quand l'utilisateur revient sur l'onglet (évite les rendus
+  // périmés si la donnée a changé ailleurs). Throttlé à 10s.
+  const focusThrottle = useRef(0);
+  useEffect(() => {
+    const onFocus = () => {
+      const now = Date.now();
+      if (now - focusThrottle.current < 10000) return;
+      focusThrottle.current = now;
+      fetchContracts();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientEmail, clientId]);
 
   const refresh = (specificClientId?: string) => {

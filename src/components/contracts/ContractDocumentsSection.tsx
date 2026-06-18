@@ -1,13 +1,11 @@
 
 import React, { useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Upload, Download, Trash2 } from "lucide-react";
+import { FileText, Upload, Download, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ContractDocument, uploadContractDocument } from "@/services/contractService";
 import { toast } from "sonner";
+import { ClientCard, StatusBadge, clientColors, primaryBtnStyle, ghostBtnStyle } from "@/components/client/clientUi";
 
 interface ContractDocumentsSectionProps {
   contractId: string;
@@ -28,21 +26,21 @@ const getDocumentTypeLabel = (type: string) => {
   return docType ? docType.label : type;
 };
 
-const getStatusBadgeVariant = (status: string) => {
+const docStatusMeta = (status: string): { label: string; tone: { bg: string; fg: string } } => {
   switch (status) {
-    case 'approved':
-      return 'default';
-    case 'rejected':
-      return 'destructive';
+    case "approved":
+      return { label: "Approuvé", tone: { bg: "#E7F6F0", fg: "#047857" } };
+    case "rejected":
+      return { label: "Rejeté", tone: { bg: "#FEEFEF", fg: "#B91C1C" } };
     default:
-      return 'secondary';
+      return { label: "En attente", tone: { bg: "#FFF0E6", fg: "#C2540B" } };
   }
 };
 
-const ContractDocumentsSection: React.FC<ContractDocumentsSectionProps> = ({ 
-  contractId, 
-  documents, 
-  onRefresh 
+const ContractDocumentsSection: React.FC<ContractDocumentsSectionProps> = ({
+  contractId,
+  documents,
+  onRefresh
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>("facture");
@@ -56,10 +54,9 @@ const ContractDocumentsSection: React.FC<ContractDocumentsSectionProps> = ({
 
     try {
       const success = await uploadContractDocument(contractId, file, selectedDocumentType);
-      
+
       if (success) {
         onRefresh();
-        // Reset le file input
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -77,10 +74,8 @@ const ContractDocumentsSection: React.FC<ContractDocumentsSectionProps> = ({
 
   const handleDownload = async (document: ContractDocument) => {
     try {
-      // Ici, vous pourriez implémenter le téléchargement depuis Supabase Storage
       toast.info("Téléchargement en cours...");
       // const { data } = await supabase.storage.from('company-assets').download(document.file_path);
-      // ... logique de téléchargement
     } catch (error) {
       console.error("Erreur lors du téléchargement:", error);
       toast.error("Erreur lors du téléchargement");
@@ -88,92 +83,85 @@ const ContractDocumentsSection: React.FC<ContractDocumentsSectionProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Documents ({documents.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Section d'upload */}
-        <div className="border-2 border-dashed rounded-lg p-4 space-y-4">
-          <h4 className="font-medium">Ajouter un document</h4>
-          <div className="flex items-center gap-4">
-            <Select value={selectedDocumentType} onValueChange={setSelectedDocumentType}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {documentTypes.map(type => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Button 
-              onClick={handleUploadClick}
-              disabled={uploading}
-              className="flex items-center gap-2"
-            >
-              <Upload className="h-4 w-4" />
-              {uploading ? "Upload en cours..." : "Choisir un fichier"}
-            </Button>
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileUpload}
-              className="hidden"
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            />
-          </div>
+    <ClientCard pad={20}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: "#EAF0FF", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+          <FileText size={17} color={clientColors.indigo} />
         </div>
+        <span style={{ fontSize: 15, fontWeight: 700, color: clientColors.ink }}>
+          Documents ({documents.length})
+        </span>
+      </div>
 
-        {/* Liste des documents */}
-        {documents.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">
-            Aucun document uploadé pour ce contrat.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">{doc.file_name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {getDocumentTypeLabel(doc.document_type)} • 
-                      {(doc.file_size / 1024 / 1024).toFixed(2)} MB • 
-                      {formatDate(doc.uploaded_at)}
+      {/* Upload */}
+      <div style={{ border: `1.5px dashed ${clientColors.border}`, borderRadius: 14, padding: 16, background: clientColors.surface }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: clientColors.ink, marginBottom: 12 }}>Ajouter un document</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <Select value={selectedDocumentType} onValueChange={setSelectedDocumentType}>
+            <SelectTrigger className="w-48 bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {documentTypes.map(type => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <button
+            onClick={handleUploadClick}
+            disabled={uploading}
+            style={{ ...primaryBtnStyle, opacity: uploading ? 0.7 : 1 }}
+          >
+            {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+            {uploading ? "Upload en cours..." : "Choisir un fichier"}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileUpload}
+            className="hidden"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+          />
+        </div>
+      </div>
+
+      {/* Liste */}
+      {documents.length === 0 ? (
+        <p style={{ fontSize: 13, color: clientColors.muted, textAlign: "center", padding: "28px 0 8px", margin: 0 }}>
+          Aucun document uploadé pour ce contrat.
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+          {documents.map((doc) => {
+            const meta = docStatusMeta(doc.status);
+            return (
+              <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", border: `1px solid ${clientColors.borderSoft}`, borderRadius: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                  <FileText size={18} color={clientColors.faint} style={{ flex: "none" }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: clientColors.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.file_name}</div>
+                    <div style={{ fontSize: 12, color: clientColors.muted, marginTop: 2 }}>
+                      {getDocumentTypeLabel(doc.document_type)} · {(doc.file_size / 1024 / 1024).toFixed(2)} MB · {formatDate(doc.uploaded_at)}
                     </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <Badge variant={getStatusBadgeVariant(doc.status)}>
-                    {doc.status === 'pending' ? 'En attente' : 
-                     doc.status === 'approved' ? 'Approuvé' : 
-                     doc.status === 'rejected' ? 'Rejeté' : doc.status}
-                  </Badge>
-                  
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDownload(doc)}
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
+                  <StatusBadge status={doc.status} label={meta.label} tone={meta.tone} />
+                  <button style={{ ...ghostBtnStyle, height: 32, padding: "0 10px" }} onClick={() => handleDownload(doc)} title="Télécharger">
+                    <Download size={15} />
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            );
+          })}
+        </div>
+      )}
+    </ClientCard>
   );
 };
 
