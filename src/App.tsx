@@ -1,6 +1,8 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { toast } from "sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import ChangelogModal from "@/components/shared/ChangelogModal";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -407,8 +409,44 @@ const AppRoutes = () => {
   );
 };
 
+// Détecte un nouveau déploiement (changement du hash du bundle principal) et
+// propose à l'utilisateur de recharger pour obtenir la nouvelle version.
+function useAppUpdateCheck() {
+  useEffect(() => {
+    const cur = Array.from(document.querySelectorAll("script[src]"))
+      .map((s) => (s as HTMLScriptElement).src)
+      .find((s) => /\/assets\/index-.*\.js$/.test(s));
+    if (!cur) return;
+    let notified = false;
+    async function check() {
+      if (notified || document.hidden) return;
+      try {
+        const html = await fetch("/", { cache: "no-store" }).then((r) => r.text());
+        const m = html.match(/\/assets\/index-[A-Za-z0-9_-]+\.js/);
+        if (m && cur && !cur.endsWith(m[0])) {
+          notified = true;
+          toast("Nouvelle version disponible", {
+            description: "Rechargez pour mettre à jour Leazr.",
+            action: { label: "Recharger", onClick: () => window.location.reload() },
+            duration: Infinity,
+          });
+        }
+      } catch {
+        /* hors-ligne : on réessaiera */
+      }
+    }
+    const iv = setInterval(check, 60000);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, []);
+}
+
 function App() {
   console.log('🚀 App component rendering...');
+  useAppUpdateCheck();
   
   // Handle storage errors globally
   const handleStorageError = () => {
@@ -440,6 +478,7 @@ function App() {
               </BrowserRouter>
               <Toaster />
               <Sonner />
+              <ChangelogModal />
             </TooltipProvider>
           </ThemeProvider>
         </QueryClientProvider>
