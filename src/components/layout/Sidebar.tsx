@@ -25,7 +25,8 @@ import {
   FolderOpen,
   Sparkles,
   Phone,
-  Wallet
+  Wallet,
+  HelpCircle
 } from "lucide-react";
 import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
@@ -215,10 +216,18 @@ const Sidebar = memo(({ className }: SidebarProps) => {
           ))}
         </div>
 
-        {/* Paramètres en bas de la nav */}
+        {/* Aide & Paramètres en bas de la nav */}
         <div className={cn(isCollapsed ? "mt-3" : "mt-4")}>
           {!isCollapsed && <div className="h-px bg-sidebar-border/50 mb-3" />}
           {isCollapsed && <div className="h-px bg-sidebar-border/40 my-2" />}
+          <ul className="space-y-0.5">
+            <SidebarMenuItem
+              item={{ icon: HelpCircle, label: "Aide", href: `${companySlug ? `/${companySlug}` : ''}/admin/aide`, moduleSlug: "help", alwaysVisible: true }}
+              isActive={isActive}
+              collapsed={isCollapsed}
+              onLinkClick={closeMobile}
+            />
+          </ul>
           <SidebarMenuItem
             item={{ icon: Settings, label: "Paramètres", href: `${companySlug ? `/${companySlug}` : ''}/admin/settings`, moduleSlug: "settings", alwaysVisible: true }}
             isActive={isActive}

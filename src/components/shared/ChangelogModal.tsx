@@ -31,6 +31,12 @@ export default function ChangelogModal() {
     : [CHANGELOG[0]];
   const shown = entries.length > 0 ? entries : [CHANGELOG[0]];
 
+  // Lien vers la page d'aide en respectant le slug société (/:slug/admin/aide).
+  const helpHref = (() => {
+    const m = window.location.pathname.match(/^\/([^/]+)\/admin(\/|$)/);
+    return m ? `/${m[1]}/admin/aide` : null;
+  })();
+
   const dontShowAgain = () => {
     try {
       localStorage.setItem(KEY, APP_VERSION);
@@ -85,13 +91,22 @@ export default function ChangelogModal() {
           ))}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
-          <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
-            Plus tard
-          </Button>
-          <Button size="sm" onClick={dontShowAgain}>
-            Ne plus afficher
-          </Button>
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border">
+          {helpHref ? (
+            <a href={helpHref} className="text-xs text-primary hover:underline">
+              Voir toute l'aide & l'historique
+            </a>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+              Plus tard
+            </Button>
+            <Button size="sm" onClick={dontShowAgain}>
+              Ne plus afficher
+            </Button>
+          </div>
         </div>
       </div>
     </div>
