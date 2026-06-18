@@ -19,7 +19,6 @@ import {
   X,
   Settings,
   HelpCircle,
-  Receipt,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -66,7 +65,6 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
         items: [
           { icon: LayoutDashboard, label: "Tableau de bord", href: "dashboard" },
           { icon: FileText, label: "Contrats", href: "contracts" },
-          { icon: Receipt, label: "Factures", href: "invoices" },
           { icon: Laptop, label: "Équipements", href: "equipment" },
         ],
       },

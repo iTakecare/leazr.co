@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Search, FileText, Receipt, Package, Loader2 } from "lucide-react";
+import { Search, FileText, Package, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { clientColors } from "@/components/client/clientUi";
@@ -37,13 +37,12 @@ const ClientSearch: React.FC = () => {
     const safe = t.replace(/[,()]/g, " ").trim();
     const like = `%${escapeLike(safe)}%`;
     try {
-      const [contracts, invoices, products] = await Promise.all([
+      const [contracts, products] = await Promise.all([
         supabase
           .from("contracts")
           .select("id, contract_number, leaser_name, equipment_description")
           .or(`contract_number.ilike.${like},equipment_description.ilike.${like}`)
           .limit(5),
-        supabase.from("invoices").select("id, invoice_number, amount").ilike("invoice_number", like).limit(5),
         supabase.from("products").select("id, name, brand_name").eq("active", true).ilike("name", like).limit(5),
       ]);
 
@@ -55,15 +54,6 @@ const ClientSearch: React.FC = () => {
           sub: "Contrat",
           icon: <FileText size={15} color={clientColors.indigo} />,
           href: `contracts/${c.id}`,
-        })
-      );
-      (invoices.data || []).forEach((i: any) =>
-        out.push({
-          id: `i-${i.id}`,
-          label: i.invoice_number || "Facture",
-          sub: "Facture",
-          icon: <Receipt size={15} color={clientColors.emerald} />,
-          href: `invoices`,
         })
       );
       (products.data || []).forEach((p: any) =>
