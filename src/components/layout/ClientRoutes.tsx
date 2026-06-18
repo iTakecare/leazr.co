@@ -14,6 +14,7 @@ import ClientCatalogPage from "@/pages/ClientCatalogPage";
 import ClientProductDetailPage from "@/pages/ClientProductDetailPage";
 import ClientContractDetailPage from "@/pages/ClientContractDetailPage";
 import ClientDocumentCenterPage from "@/pages/ClientDocumentCenterPage";
+import ClientHelpPage from "@/pages/client/ClientHelpPage";
 import AIChatWidget from "@/components/client/AIChatWidget";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Plus } from "lucide-react";
@@ -39,6 +40,7 @@ const ROUTE_TITLES: { match: (p: string) => boolean; title: string }[] = [
   { match: (p) => p.includes("/products") || p.includes("/panier"), title: "Catalogue" },
   { match: (p) => p.includes("/requests"), title: "Mes demandes" },
   { match: (p) => p.includes("/support"), title: "Support" },
+  { match: (p) => p.includes("/aide"), title: "Aide & Guide" },
   { match: (p) => p.includes("/settings"), title: "Paramètres" },
 ];
 
@@ -126,6 +128,7 @@ const ClientRoutes = () => {
             <Route path="panier" element={<ClientCartPage />} />
             <Route path="panier/demande" element={<ClientCartRequestPage />} />
             <Route path="support" element={<ClientSupportPage />} />
+            <Route path="aide" element={<ClientHelpPage />} />
             <Route path="settings" element={<ClientSettingsPage />} />
             <Route path="" element={<ClientDashboard />} />
             <Route path="*" element={<ClientDashboard />} />

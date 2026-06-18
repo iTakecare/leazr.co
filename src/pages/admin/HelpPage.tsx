@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CHANGELOG, APP_VERSION } from "@/lib/changelog";
+import { ADMIN_CHANGELOG as CHANGELOG, ADMIN_VERSION as APP_VERSION } from "@/lib/changelog";
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-BE", { day: "2-digit", month: "long", year: "numeric" });
