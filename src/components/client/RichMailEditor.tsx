@@ -72,8 +72,15 @@ const RichMailEditor: React.FC<{ value: string; onChange: (html: string) => void
         onInput={emit}
         onBlur={emit}
         style={{
-          minHeight: height, maxHeight: height + 120, overflowY: "auto",
-          padding: "12px 14px", outline: "none", fontSize: 13.5, lineHeight: 1.55, color: "#1A2233",
+          height,
+          overflowY: "auto",
+          background: "#fff",
+          padding: "12px 14px",
+          outline: "none",
+          fontSize: 13.5,
+          lineHeight: 1.55,
+          color: "#1A2233",
+          wordBreak: "break-word",
         }}
       />
     </div>
