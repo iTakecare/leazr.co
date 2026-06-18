@@ -15,7 +15,6 @@ interface Props {
 }
 
 const QUARTERS = [1, 2, 3, 4];
-
 const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 const formatPeriods = (sel: Record<number, number[]>, years: number[]): string[] =>
@@ -49,7 +48,6 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
     [contract, company]
   );
 
-  // Corps généré en HTML (compatible Quill : un <p> par ligne).
   const buildBodyHtml = useCallback(
     (periodLines: string[]) => {
       const lines: string[] = [
@@ -71,13 +69,12 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
         "",
         "Vous en remerciant par avance,",
         contact || company,
-      ].filter((l, i, arr) => !(l === "" && arr[i - 1] === "")); // pas de double saut
+      ].filter((l, i, arr) => !(l === "" && arr[i - 1] === ""));
       return lines.map((l) => (l ? `<p>${escapeHtml(l)}</p>` : "<p><br></p>")).join("");
     },
     [company, contact, contract, client]
   );
 
-  // Auto-régénère tant que l'utilisateur n'a pas édité.
   useEffect(() => {
     if (!open) return;
     if (!bodyDirty) {
@@ -144,7 +141,7 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[94vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" style={{ color: clientColors.indigo }} />
@@ -152,61 +149,68 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
           </DialogTitle>
         </DialogHeader>
 
-        <div style={{ fontSize: 13, color: clientColors.muted, marginTop: -4 }}>
-          Contrat <strong>{[contract?.leaser_name, contract?.contract_number].filter(Boolean).join(" · ")}</strong>. Cochez les périodes,
+        <div style={{ fontSize: 12.5, color: clientColors.muted, marginTop: -4 }}>
+          Contrat <strong>{[contract?.leaser_name, contract?.contract_number].filter(Boolean).join(" · ")}</strong> — cochez les périodes,
           relisez/mettez en forme le mail, puis envoyez-le à la comptabilité du bailleur en votre nom.
         </div>
 
-        <div style={{ display: "flex", gap: 8, margin: "12px 0" }}>
-          <button style={{ ...ghostBtnStyle, height: 32 }} onClick={selectAll}><CheckCheck size={14} /> Toutes les factures</button>
-          {totalSelected > 0 && <button style={{ ...ghostBtnStyle, height: 32 }} onClick={clearAll}>Tout décocher</button>}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {years.map((year) => {
-            const qs = sel[year] || [];
-            const full = qs.length === 4;
-            return (
-              <div key={year} style={{ border: `1px solid ${clientColors.border}`, borderRadius: 12, padding: "12px 14px", background: full ? "#F5F8FF" : "#fff" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: clientColors.ink }}>{year}</span>
-                  <button onClick={() => toggleYear(year)} style={{ fontSize: 12, fontWeight: 600, color: clientColors.indigo, background: "transparent", border: 0, cursor: "pointer" }}>
-                    {full ? "Désélectionner" : "Toute l'année"}
-                  </button>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
-                  {QUARTERS.map((q) => {
-                    const on = qs.includes(q);
-                    return (
-                      <button key={q} onClick={() => toggleQuarter(year, q)} style={{ height: 38, borderRadius: 9, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${on ? clientColors.indigo : "#E2E5EC"}`, background: on ? clientColors.indigo : "#fff", color: on ? "#fff" : "#475569" }}>
-                        T{q}
+        {/* 2 colonnes : périodes | mail */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5" style={{ marginTop: 12, minHeight: 0, flex: 1, overflow: "hidden" }}>
+          {/* Colonne périodes */}
+          <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <button style={{ ...ghostBtnStyle, height: 32 }} onClick={selectAll}><CheckCheck size={14} /> Toutes les factures</button>
+              {totalSelected > 0 && <button style={{ ...ghostBtnStyle, height: 32 }} onClick={clearAll}>Tout décocher</button>}
+            </div>
+            <div className="lzr-scroll" style={{ display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", paddingRight: 4 }}>
+              {years.map((year) => {
+                const qs = sel[year] || [];
+                const full = qs.length === 4;
+                return (
+                  <div key={year} style={{ border: `1px solid ${clientColors.border}`, borderRadius: 11, padding: "10px 12px", background: full ? "#F5F8FF" : "#fff" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: clientColors.ink }}>{year}</span>
+                      <button onClick={() => toggleYear(year)} style={{ fontSize: 11.5, fontWeight: 600, color: clientColors.indigo, background: "transparent", border: 0, cursor: "pointer" }}>
+                        {full ? "Désélectionner" : "Toute l'année"}
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
+                      {QUARTERS.map((q) => {
+                        const on = qs.includes(q);
+                        return (
+                          <button key={q} onClick={() => toggleQuarter(year, q)} style={{ height: 34, borderRadius: 8, cursor: "pointer", fontSize: 12.5, fontWeight: 600, border: `1px solid ${on ? clientColors.indigo : "#E2E5EC"}`, background: on ? clientColors.indigo : "#fff", color: on ? "#fff" : "#475569" }}>
+                            T{q}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Colonne mail */}
+          <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: clientColors.ink }}>Mail (modifiable, mise en forme)</span>
+              <button onClick={reset} style={{ ...ghostBtnStyle, height: 28 }} title="Régénérer le texte automatique">
+                <RotateCcw size={13} /> Réinitialiser
+              </button>
+            </div>
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 5 }}>Objet</label>
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} style={{ marginBottom: 10 }} />
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 5 }}>Message</label>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <RichMailEditor value={body} onChange={onBodyChange} height={210} placeholder="Rédigez votre demande…" />
+            </div>
+            <div style={{ fontSize: 11, color: clientColors.faint, marginTop: 8 }}>
+              ℹ️ Envoi au nom de votre société, copie à votre adresse, réponse vers vous. Destinataire = compta du bailleur (gérée par iTakecare).
+            </div>
+          </div>
         </div>
 
-        {/* Éditeur enrichi du mail */}
-        <div style={{ marginTop: 16, borderTop: `1px solid ${clientColors.borderSoft}`, paddingTop: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: clientColors.ink }}>Mail (modifiable, mise en forme)</span>
-            <button onClick={reset} style={{ ...ghostBtnStyle, height: 30 }} title="Régénérer le texte automatique">
-              <RotateCcw size={13} /> Réinitialiser
-            </button>
-          </div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 6 }}>Objet</label>
-          <Input value={subject} onChange={(e) => setSubject(e.target.value)} style={{ marginBottom: 12 }} />
-          <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 6 }}>Message</label>
-          <RichMailEditor value={body} onChange={onBodyChange} height={240} placeholder="Rédigez votre demande…" />
-          <div style={{ fontSize: 11.5, color: clientColors.faint, marginTop: 10 }}>
-            ℹ️ Le mail part au nom de votre société, en copie à votre adresse, avec réponse vers vous. (Destinataire = adresse comptabilité du bailleur, gérée par iTakecare.)
-          </div>
-        </div>
-
-        <DialogFooter>
+        <DialogFooter className="mt-2">
           <button style={ghostBtnStyle} onClick={onClose}>Annuler</button>
           <button style={primaryBtnStyle} onClick={send} disabled={sending || totalSelected === 0}>
             {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
