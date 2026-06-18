@@ -32,10 +32,14 @@ serve(async (req) => {
     const caller = claims?.user;
     if (!caller) return json({ error: "invalid_token" }, 401);
 
-    const { contract_id, periods, extra_message } = (await req.json()) as { contract_id: string; periods: PeriodSel[]; extra_message?: string };
+    const payload = (await req.json()) as { contract_id: string; periods: PeriodSel[]; subject?: string; body?: string; extra_message?: string };
+    const { contract_id, periods } = payload;
     if (!contract_id || !Array.isArray(periods)) return json({ error: "contract_id et periods requis" }, 400);
     const periodsText = formatPeriods(periods);
     if (!periodsText) return json({ error: "Aucune période sélectionnée." }, 400);
+    // Le client peut fournir l'objet et le corps édités ; sinon on les construit.
+    const customBody = (payload.body || "").trim();
+    const customSubject = (payload.subject || "").trim();
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
@@ -79,8 +83,8 @@ serve(async (req) => {
     const clientEmail = client?.email || contract.client_email || "";
     const peppolYear = 2026;
 
-    const subject = `Demande de factures — Contrat ${contract.contract_number || ""} (${clientCompany})`;
-    const lines = [
+    const subject = customSubject || `Demande de factures — Contrat ${contract.contract_number || ""} (${clientCompany})`;
+    const defaultText = [
       "Madame, Monsieur,",
       "",
       `Au nom de ${clientCompany}${clientContact ? ` (${clientContact})` : ""}, nous souhaitons recevoir les factures relatives au contrat de leasing suivant :`,
@@ -96,14 +100,16 @@ serve(async (req) => {
       periodsText,
       "",
       `Pour les factures émises à partir du 1er janvier ${peppolYear}, merci de bien vouloir les transmettre via le réseau Peppol (facturation électronique).`,
-      extra_message ? `\n${extra_message}` : "",
       "",
       "Vous en remerciant par avance,",
       `${clientContact || clientCompany}`,
-    ].filter((l) => l !== "");
-    const text = lines.join("\n");
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1A2233;line-height:1.6">${lines
-      .map((l) => (l.startsWith("•") ? `<div style="margin-left:8px">${l}</div>` : l === periodsText ? `<pre style="background:#F6F7F9;padding:10px 12px;border-radius:8px;font-family:inherit;white-space:pre-wrap">${l}</pre>` : `<div>${l || "&nbsp;"}</div>`))
+    ].filter((l) => l !== "").join("\n");
+
+    const text = customBody || defaultText;
+    const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1A2233;line-height:1.6">${text
+      .split("\n")
+      .map((l) => `<div>${l ? esc(l) : "&nbsp;"}</div>`)
       .join("")}</div>`;
 
     const resend = new Resend(resendKey);

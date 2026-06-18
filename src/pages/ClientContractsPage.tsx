@@ -302,6 +302,7 @@ const ClientContractsPage = () => {
           open={!!invoiceContract}
           onClose={() => setInvoiceContract(null)}
           contract={invoiceContract}
+          client={clientData}
         />
       )}
 
