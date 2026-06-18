@@ -932,7 +932,7 @@ async function buildOfferPayloadCore(
   // ---------- 1. Load offer + verify ownership ----------
   const { data: offer, error: offerErr } = await adminSupabase
     .from("offers")
-    .select("id, company_id, client_id, financed_amount, duration, leaser_id, monthly_payment, coefficient, is_purchase")
+    .select("id, company_id, client_id, financed_amount, duration, leaser_id, monthly_payment, coefficient, is_purchase, discount_amount")
     .eq("id", offerId)
     .maybeSingle();
 
@@ -1141,6 +1141,20 @@ async function buildOfferPayloadCore(
   const isLeasing = (offer as { is_purchase?: boolean }).is_purchase !== true;
   const useMonthlyBasis = isLeasing && offerCoef > 0;
 
+  // Remise commerciale (ristourne). The equipment lines carry the FULL monthly
+  // (P.V. plein), but the agreed offer monthly — offer.monthly_payment — is
+  // already NET of the discount. Grenke must finance the DISCOUNTED amount and
+  // therefore bill the DISCOUNTED rent, so we scale every line's NetPricePerObject
+  // by the discount ratio (after/before) before summing. Without this, Grenke
+  // would finance the full P.V. and charge the full pre-discount rent (the exact
+  // gap reported by the FinancingAmount warning when a discount is present).
+  const grossLineMonthly = ((equipment ?? []) as unknown as EquipmentRow[])
+    .reduce((s, e) => s + (Number(e.monthly_payment) || 0), 0);
+  const discountAmount = Number((offer as { discount_amount?: number }).discount_amount) || 0;
+  const discountRatio = (discountAmount > 0 && grossLineMonthly > discountAmount)
+    ? (grossLineMonthly - discountAmount) / grossLineMonthly
+    : 1;
+
   for (const [idx, raw] of ((equipment ?? []) as unknown as EquipmentRow[]).entries()) {
     const eq = raw;
 
@@ -1257,6 +1271,10 @@ async function buildOfferPayloadCore(
         fix_kind: "selling_price",
       });
     }
+
+    // Apply the commercial discount proportionally so Σ(lignes) equals the
+    // discounted FinancingAmount (and Grenke bills the discounted rent).
+    netPrice = netPrice * discountRatio;
 
     // Round the per-object price to 2 decimals FIRST, then derive everything
     // (the line we send AND our running total) from that same rounded value.
