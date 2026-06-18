@@ -13,6 +13,7 @@ import ClientCartRequestPage from "@/pages/ClientCartRequestPage";
 import ClientCatalogPage from "@/pages/ClientCatalogPage";
 import ClientProductDetailPage from "@/pages/ClientProductDetailPage";
 import ClientContractDetailPage from "@/pages/ClientContractDetailPage";
+import ClientInvoicesPage from "@/pages/ClientInvoicesPage";
 import AIChatWidget from "@/components/client/AIChatWidget";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Search, Bell, Plus } from "lucide-react";
@@ -31,6 +32,7 @@ const CLIENT_SHELL_STYLES = `
 const ROUTE_TITLES: { match: (p: string) => boolean; title: string }[] = [
   { match: (p) => p.includes("/dashboard"), title: "Tableau de bord" },
   { match: (p) => p.includes("/contracts"), title: "Mes contrats" },
+  { match: (p) => p.includes("/invoices"), title: "Mes factures" },
   { match: (p) => p.includes("/equipment") || p.includes("/software"), title: "Gestion des équipements" },
   { match: (p) => p.includes("/products") || p.includes("/panier"), title: "Catalogue" },
   { match: (p) => p.includes("/requests"), title: "Mes demandes" },
@@ -146,6 +148,7 @@ const ClientRoutes = () => {
             <Route path="dashboard" element={<ClientDashboard />} />
             <Route path="contracts" element={<ClientContractsPage />} />
             <Route path="contracts/:id" element={<ClientContractDetailPage />} />
+            <Route path="invoices" element={<ClientInvoicesPage />} />
             <Route path="requests" element={<ClientRequestsPage />} />
             <Route path="requests/:id" element={<ClientRequestDetailPage />} />
             <Route path="equipment" element={<ClientEquipmentPage />} />
