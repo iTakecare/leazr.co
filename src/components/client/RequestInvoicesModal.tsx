@@ -1,7 +1,7 @@
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import RichTextEditor from "@/components/ui/rich-text-editor";
 import { Send, Loader2, FileText, CheckCheck, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,12 +16,13 @@ interface Props {
 
 const QUARTERS = [1, 2, 3, 4];
 
-const formatPeriods = (sel: Record<number, number[]>, years: number[]): string =>
+const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const formatPeriods = (sel: Record<number, number[]>, years: number[]): string[] =>
   years
     .map((y) => ({ year: y, qs: (sel[y] || []).slice().sort() }))
     .filter((p) => p.qs.length > 0)
-    .map((p) => (p.qs.length === 4 ? `${p.year} — toute l'année` : `${p.year} — ${p.qs.map((q) => "T" + q).join(", ")}`))
-    .join("\n");
+    .map((p) => (p.qs.length === 4 ? `${p.year} — toute l'année` : `${p.year} — ${p.qs.map((q) => "T" + q).join(", ")}`));
 
 const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client }) => {
   const [sel, setSel] = useState<Record<number, number[]>>({});
@@ -29,6 +30,7 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
   const [body, setBody] = useState("");
   const [bodyDirty, setBodyDirty] = useState(false);
   const [sending, setSending] = useState(false);
+  const autoRef = useRef("");
 
   const years = useMemo(() => {
     const now = new Date().getFullYear();
@@ -47,9 +49,10 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
     [contract, company]
   );
 
-  const buildBody = useCallback(
-    (periodsText: string) => {
-      const lines = [
+  // Corps généré en HTML (compatible Quill : un <p> par ligne).
+  const buildBodyHtml = useCallback(
+    (periodLines: string[]) => {
+      const lines: string[] = [
         "Madame, Monsieur,",
         "",
         `Au nom de ${company}${contact ? ` (${contact})` : ""}, nous souhaitons recevoir les factures relatives au contrat de leasing suivant :`,
@@ -62,31 +65,42 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
         client?.email ? `• Email : ${client.email}` : "",
         "",
         "Périodes demandées :",
-        periodsText || "(à préciser)",
+        ...(periodLines.length ? periodLines : ["(à préciser)"]),
         "",
         "Pour les factures émises à partir du 1er janvier 2026, merci de bien vouloir les transmettre via le réseau Peppol (facturation électronique).",
         "",
         "Vous en remerciant par avance,",
         contact || company,
-      ].filter((l) => l !== "");
-      return lines.join("\n");
+      ].filter((l, i, arr) => !(l === "" && arr[i - 1] === "")); // pas de double saut
+      return lines.map((l) => (l ? `<p>${escapeHtml(l)}</p>` : "<p><br></p>")).join("");
     },
     [company, contact, contract, client]
   );
 
-  // Auto-régénère le mail tant que l'utilisateur ne l'a pas édité manuellement.
+  // Auto-régénère tant que l'utilisateur n'a pas édité.
   useEffect(() => {
     if (!open) return;
-    if (!bodyDirty) setBody(buildBody(formatPeriods(sel, years)));
-  }, [sel, years, open, bodyDirty, buildBody]);
+    if (!bodyDirty) {
+      const html = buildBodyHtml(formatPeriods(sel, years));
+      autoRef.current = html;
+      setBody(html);
+    }
+  }, [sel, years, open, bodyDirty, buildBodyHtml]);
 
   useEffect(() => {
     if (open && !subject) setSubject(buildSubject());
   }, [open, subject, buildSubject]);
 
+  const onBodyChange = (v: string) => {
+    setBody(v);
+    if (v !== autoRef.current) setBodyDirty(true);
+  };
+
   const reset = () => {
     setBodyDirty(false);
-    setBody(buildBody(formatPeriods(sel, years)));
+    const html = buildBodyHtml(formatPeriods(sel, years));
+    autoRef.current = html;
+    setBody(html);
     setSubject(buildSubject());
   };
 
@@ -96,11 +110,9 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
       cur.has(q) ? cur.delete(q) : cur.add(q);
       return { ...s, [year]: [...cur].sort() };
     });
-  const toggleYear = (year: number) =>
-    setSel((s) => ({ ...s, [year]: (s[year] || []).length === 4 ? [] : [...QUARTERS] }));
+  const toggleYear = (year: number) => setSel((s) => ({ ...s, [year]: (s[year] || []).length === 4 ? [] : [...QUARTERS] }));
   const selectAll = () => setSel(Object.fromEntries(years.map((y) => [y, [...QUARTERS]])));
   const clearAll = () => setSel({});
-
   const totalSelected = Object.values(sel).reduce((n, qs) => n + qs.length, 0);
 
   const send = async () => {
@@ -109,11 +121,11 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
       .filter((p) => p.quarters.length > 0)
       .map((p) => (p.quarters.length === 4 ? { year: p.year, all: true } : p));
     if (periods.length === 0) { toast.error("Sélectionnez au moins un trimestre."); return; }
-    if (!body.trim()) { toast.error("Le corps du message est vide."); return; }
+    if (!body || body === "<p><br></p>") { toast.error("Le message est vide."); return; }
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("request-invoices", {
-        body: { contract_id: contract.id, periods, subject: subject.trim(), body },
+        body: { contract_id: contract.id, periods, subject: subject.trim(), body_html: body },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.message || data.error);
@@ -142,7 +154,7 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
 
         <div style={{ fontSize: 13, color: clientColors.muted, marginTop: -4 }}>
           Contrat <strong>{[contract?.leaser_name, contract?.contract_number].filter(Boolean).join(" · ")}</strong>. Cochez les périodes,
-          relisez/modifiez le mail, puis envoyez-le à la comptabilité du bailleur en votre nom.
+          relisez/mettez en forme le mail, puis envoyez-le à la comptabilité du bailleur en votre nom.
         </div>
 
         <div style={{ display: "flex", gap: 8, margin: "12px 0" }}>
@@ -177,10 +189,10 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
           })}
         </div>
 
-        {/* Éditeur du mail */}
+        {/* Éditeur enrichi du mail */}
         <div style={{ marginTop: 16, borderTop: `1px solid ${clientColors.borderSoft}`, paddingTop: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: clientColors.ink }}>Aperçu du mail (modifiable)</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: clientColors.ink }}>Mail (modifiable, mise en forme)</span>
             <button onClick={reset} style={{ ...ghostBtnStyle, height: 30 }} title="Régénérer le texte automatique">
               <RotateCcw size={13} /> Réinitialiser
             </button>
@@ -188,14 +200,9 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
           <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 6 }}>Objet</label>
           <Input value={subject} onChange={(e) => setSubject(e.target.value)} style={{ marginBottom: 12 }} />
           <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 6 }}>Message</label>
-          <Textarea
-            value={body}
-            onChange={(e) => { setBody(e.target.value); setBodyDirty(true); }}
-            rows={14}
-            style={{ fontSize: 13.5, lineHeight: 1.55 }}
-          />
-          <div style={{ fontSize: 11.5, color: clientColors.faint, marginTop: 8 }}>
-            ℹ️ Le mail part au nom de votre société, en copie à votre adresse, avec réponse vers vous. (Le destinataire = l'adresse comptabilité du bailleur, gérée par iTakecare.)
+          <RichTextEditor value={body} onChange={onBodyChange} height={260} placeholder="Rédigez votre demande…" />
+          <div style={{ fontSize: 11.5, color: clientColors.faint, marginTop: 10 }}>
+            ℹ️ Le mail part au nom de votre société, en copie à votre adresse, avec réponse vers vous. (Destinataire = adresse comptabilité du bailleur, gérée par iTakecare.)
           </div>
         </div>
 

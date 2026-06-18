@@ -32,12 +32,13 @@ serve(async (req) => {
     const caller = claims?.user;
     if (!caller) return json({ error: "invalid_token" }, 401);
 
-    const payload = (await req.json()) as { contract_id: string; periods: PeriodSel[]; subject?: string; body?: string; extra_message?: string };
+    const payload = (await req.json()) as { contract_id: string; periods: PeriodSel[]; subject?: string; body?: string; body_html?: string };
     const { contract_id, periods } = payload;
     if (!contract_id || !Array.isArray(periods)) return json({ error: "contract_id et periods requis" }, 400);
     const periodsText = formatPeriods(periods);
     if (!periodsText) return json({ error: "Aucune période sélectionnée." }, 400);
-    // Le client peut fournir l'objet et le corps édités ; sinon on les construit.
+    // Le client peut fournir l'objet + le corps édité (HTML de l'éditeur enrichi, ou texte).
+    const customHtml = (payload.body_html || "").trim();
     const customBody = (payload.body || "").trim();
     const customSubject = (payload.subject || "").trim();
 
@@ -105,12 +106,32 @@ serve(async (req) => {
       `${clientContact || clientCompany}`,
     ].filter((l) => l !== "").join("\n");
 
-    const text = customBody || defaultText;
     const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1A2233;line-height:1.6">${text
-      .split("\n")
-      .map((l) => `<div>${l ? esc(l) : "&nbsp;"}</div>`)
-      .join("")}</div>`;
+    const htmlToText = (h: string) =>
+      h
+        .replace(/<\/(p|div|h[1-6]|li)>/gi, "\n")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+    const wrap = (inner: string) => `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1A2233;line-height:1.6">${inner}</div>`;
+
+    let text: string;
+    let html: string;
+    if (customHtml) {
+      html = wrap(customHtml);
+      text = htmlToText(customHtml);
+    } else if (customBody) {
+      text = customBody;
+      html = wrap(customBody.split("\n").map((l) => `<div>${l ? esc(l) : "&nbsp;"}</div>`).join(""));
+    } else {
+      text = defaultText;
+      html = wrap(defaultText.split("\n").map((l) => `<div>${l ? esc(l) : "&nbsp;"}</div>`).join(""));
+    }
 
     const resend = new Resend(resendKey);
     const result = await resend.emails.send({
