@@ -231,8 +231,8 @@ const ContractDetail = () => {
                 />
               )}
 
-              {/* Prélèvements SEPA — frais de dossier & assurance (tous contrats) */}
-              {companyId && (
+              {/* Prélèvements SEPA — frais de dossier & assurance (self-leasing uniquement) */}
+              {companyId && contract.is_self_leasing && (
                 <ContractFeesSepaCard
                   contract={{
                     id: contract.id,
