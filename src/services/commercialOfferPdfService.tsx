@@ -158,48 +158,16 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
       .eq('offer_id', offerId)
       .order('position', { ascending: true });
 
-    // Backfill des champs marketing (tagline/spec/footnote) depuis le catalogue
-    // courant : éditer un produit prestataire se reflète immédiatement sur le PDF
-    // sans devoir retirer/ré-ajouter l'option sur l'offre. Le snapshot reste
-    // prioritaire s'il porte déjà une valeur.
-    const norm = (s: string) => (s || '').trim().toLowerCase();
-    const { data: providersForCompany } = await supabase
-      .from('external_providers')
-      .select('id')
-      .eq('company_id', offerData.company_id);
-    const providerIds = (providersForCompany || []).map((p: any) => p.id);
-    let catById: Record<string, any> = {};
-    let catByName: Record<string, any> = {};
-    if (providerIds.length > 0) {
-      const { data: catalogProducts } = await supabase
-        .from('external_provider_products')
-        .select('*')
-        .in('provider_id', providerIds);
-      (catalogProducts || []).forEach((p: any) => {
-        catById[String(p.id)] = p;
-        catByName[norm(p.name)] = p;
-      });
-    }
-    const backfillMarketing = (rows: any[] | null | undefined) =>
-      (rows || []).map((r: any) => {
-        const cat = (r.product_id && catById[String(r.product_id)]) || catByName[norm(r.product_name)];
-        if (!cat) return r;
-        return {
-          ...r,
-          tagline: r.tagline || cat.tagline || null,
-          spec: r.spec || cat.spec || null,
-          footnote: r.footnote || cat.footnote || null,
-        };
-      });
-
+    // Le backfill des champs marketing depuis le catalogue est centralisé dans
+    // enrichExternalServicesWithLogos (utilisé aussi par AdminOfferDetail).
     const { enrichExternalServicesWithLogos } = await import('@/services/offers/enrichExternalServicesWithLogos');
     const enrichedExternalServices = await enrichExternalServicesWithLogos(
-      backfillMarketing(externalServicesData as any) as any,
+      externalServicesData as any,
       offerData.company_id
     );
 
     const enrichedPromoProducts = await enrichExternalServicesWithLogos(
-      backfillMarketing(promoData as any) as any,
+      promoData as any,
       offerData.company_id
     );
 
