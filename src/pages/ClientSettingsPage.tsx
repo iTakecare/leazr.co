@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { updateClientFromProfile } from "@/services/clientService";
 import { useClientData } from "@/hooks/useClientData";
+import ClientTeamAccess from "@/components/client/ClientTeamAccess";
 import {
   clientColors,
   ClientPage,
@@ -613,6 +614,8 @@ const ClientSettingsPage = () => {
           </button>
         </div>
       </ClientCard>
+
+      {clientData?.id && <ClientTeamAccess clientId={clientData.id} />}
     </ClientPage>
   );
 };

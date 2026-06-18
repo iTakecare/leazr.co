@@ -73,6 +73,26 @@ export const useClientData = () => {
         let resolvedClient = client;
 
         if (!client) {
+          // Multi-utilisateurs : l'utilisateur peut être un membre lié (pas le user_id
+          // principal) via client_user_accounts.
+          const { data: link } = await (supabase as any)
+            .from('client_user_accounts')
+            .select('client_id')
+            .eq('user_id', user.id)
+            .limit(1)
+            .maybeSingle();
+
+          if (link?.client_id) {
+            const { data: linkedClient } = await supabase
+              .from('clients')
+              .select('*, has_custom_catalog')
+              .eq('id', link.client_id)
+              .maybeSingle();
+            if (linkedClient) resolvedClient = linkedClient;
+          }
+        }
+
+        if (!resolvedClient) {
           // Fallback: search by email
           const { data: clientByEmail, error: emailError } = await supabase
             .from('clients')
