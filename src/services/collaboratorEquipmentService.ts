@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { divideEquipment, assignIndividualEquipment } from './equipmentDivisionService';
 
 export interface EquipmentItem {
   id: string;
@@ -48,10 +49,14 @@ export const collaboratorEquipmentService = {
           purchase_price,
           quantity,
           serial_number,
+          is_individual,
+          individual_serial_number,
           monthly_payment,
           contracts!inner(id, client_name, client_id)
         `)
-        .eq('contracts.client_id', clientId);
+        .eq('contracts.client_id', clientId)
+        // Exclure les lignes divisées (quantity 0) — on garde leurs unités individuelles.
+        .or('quantity.gt.0,is_individual.eq.true');
 
       if (contractError) {
         console.error('❌ Erreur récupération équipements contrats:', contractError);
@@ -76,7 +81,7 @@ export const collaboratorEquipmentService = {
           source_name: `Contrat - ${item.contracts.client_name}`,
           purchase_price: item.purchase_price,
           quantity: item.quantity,
-          serial_number: item.serial_number,
+          serial_number: (item as any).is_individual ? (item as any).individual_serial_number : item.serial_number,
           monthly_payment: item.monthly_payment,
         })),
       ];
@@ -208,7 +213,27 @@ export const collaboratorEquipmentService = {
       }
       
       const tableName = equipmentType === 'offer' ? 'offer_equipment' : 'contract_equipment';
-      
+
+      // Découpage à l'assignation : assigner une ligne de plusieurs unités à UN
+      // collaborateur ne doit attribuer qu'UNE machine. On divise la ligne en
+      // unités individuelles et on assigne seulement la première ; les autres
+      // restent dans le pool « Non assigné ».
+      if (collaboratorId && equipmentType === 'contract') {
+        const { data: eq } = await supabase
+          .from('contract_equipment')
+          .select('id, quantity, is_individual')
+          .eq('id', equipmentId)
+          .maybeSingle();
+        if (eq && (eq.quantity || 1) > 1 && !eq.is_individual) {
+          const units = await divideEquipment({ equipmentId });
+          if (units && units.length > 0) {
+            await assignIndividualEquipment(units[0].id, collaboratorId);
+            console.log('✅ Ligne divisée, 1 unité assignée sur', units.length);
+            return;
+          }
+        }
+      }
+
       const { error } = await supabase
         .from(tableName)
         .update({ collaborator_id: collaboratorId })
@@ -218,7 +243,7 @@ export const collaboratorEquipmentService = {
         console.error('❌ Erreur SQL lors de l\'assignation:', error);
         throw error;
       }
-      
+
       console.log('✅ Assignation réussie');
     } catch (error) {
       console.error('Erreur lors de l\'assignation d\'équipement:', error);

@@ -24,6 +24,21 @@ export interface DivisionConfig {
   keepOriginal?: boolean;
 }
 
+/** Parse les n° de série stockés en tableau JSON (`["a","b"]`) ou en CSV (`a, b`). */
+export const parseSerialNumbers = (raw?: string | null): string[] => {
+  if (!raw) return [];
+  const s = String(raw).trim();
+  if (s.startsWith("[")) {
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) return arr.map((x) => String(x).trim()).filter(Boolean);
+    } catch {
+      /* fallback CSV */
+    }
+  }
+  return s.split(",").map((x) => x.trim()).filter(Boolean);
+};
+
 /**
  * Divise un équipement en plusieurs équipements individuels
  */
@@ -45,24 +60,33 @@ export const divideEquipment = async (config: DivisionConfig): Promise<ContractE
     throw new Error('Cet équipement est déjà individuel');
   }
 
-  // Analyser les numéros de série existants
-  const existingSerials = originalEquipment.serial_number 
-    ? originalEquipment.serial_number.split(',').map(s => s.trim()).filter(Boolean)
-    : [];
+  // Analyser les numéros de série existants (format tableau JSON ["x","y"] OU CSV)
+  const existingSerials = parseSerialNumbers(originalEquipment.serial_number);
 
   const allSerials = serialNumbers.length > 0 ? serialNumbers : existingSerials;
-  const totalQuantity = Math.max(originalEquipment.quantity, allSerials.length);
+  const totalQuantity = Math.max(originalEquipment.quantity || 1, allSerials.length, 1);
+
+  // Répartir prix d'achat et mensualité par unité (le total reste identique :
+  // unité × quantité = ligne d'origine), pour ne pas gonfler les sommes.
+  const unitMonthly =
+    originalEquipment.monthly_payment != null
+      ? Math.round((Number(originalEquipment.monthly_payment) / totalQuantity) * 100) / 100
+      : originalEquipment.monthly_payment;
+  const unitPurchase =
+    originalEquipment.purchase_price != null
+      ? Math.round((Number(originalEquipment.purchase_price) / totalQuantity) * 100) / 100
+      : originalEquipment.purchase_price;
 
   // Créer les équipements individuels
   const individualEquipments: Partial<ContractEquipment>[] = [];
-  
+
   for (let i = 0; i < totalQuantity; i++) {
     individualEquipments.push({
       title: originalEquipment.title,
       quantity: 1,
-      purchase_price: originalEquipment.purchase_price,
+      purchase_price: unitPurchase,
       margin: originalEquipment.margin,
-      monthly_payment: originalEquipment.monthly_payment,
+      monthly_payment: unitMonthly,
       contract_id: originalEquipment.contract_id,
       parent_equipment_id: equipmentId,
       is_individual: true,
