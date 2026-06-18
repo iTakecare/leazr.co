@@ -357,6 +357,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         vat_number: formData.get("vat_number") as string || undefined,
         phone: formData.get("phone") as string || undefined,
         email: formData.get("email") as string || undefined,
+        accounting_email: formData.get("accounting_email") as string || undefined,
         available_durations: availableDurations,
         ranges: tempRanges,
         use_duration_coefficients: useDurationBasedCoefficients,
@@ -481,10 +482,20 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Téléphone</Label>
-              <Input 
-                id="phone" 
-                name="phone" 
+              <Input
+                id="phone"
+                name="phone"
                 defaultValue={currentLeaser?.phone || ""}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="accounting_email">Email administration &amp; comptabilité</Label>
+              <Input
+                id="accounting_email"
+                name="accounting_email"
+                type="email"
+                placeholder="compta@bailleur.com — destinataire des demandes de factures"
+                defaultValue={(currentLeaser as any)?.accounting_email || ""}
               />
             </div>
             <div className="space-y-2">

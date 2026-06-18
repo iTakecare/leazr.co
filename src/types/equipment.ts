@@ -54,6 +54,7 @@ export interface Leaser {
   vat_number?: string;
   phone?: string;
   email?: string;
+  accounting_email?: string;
   billing_frequency?: 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
   contract_start_rule?: 
     | 'next_month_first' 

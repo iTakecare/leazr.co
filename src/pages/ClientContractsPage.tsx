@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FileText, Download, Eye, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
+import { FileText, Download, Eye, AlertCircle, RefreshCw, Loader2, Receipt } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useClientContracts } from "@/hooks/useClientContracts";
 import { useClientData } from "@/hooks/useClientData";
@@ -9,6 +9,7 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import RenewalRequestModal from "@/components/client/RenewalRequestModal";
+import RequestInvoicesModal from "@/components/client/RequestInvoicesModal";
 import {
   ClientPage, ClientPageHeader, ClientCard, ClientEmptyState,
   clientColors, ghostBtnStyle, badgeStyle,
@@ -33,6 +34,7 @@ const ClientContractsPage = () => {
   const { clientData } = useClientData();
   const { contracts, loading, error } = useClientContracts(user?.email, clientData?.id);
   const [renewalContract, setRenewalContract] = useState<any>(null);
+  const [invoiceContract, setInvoiceContract] = useState<any>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
 
   const formatAmount = (amount: number) =>
@@ -202,7 +204,7 @@ const ClientContractsPage = () => {
                         : `Créé le ${new Date(contract.created_at).toLocaleDateString("fr-FR")}`}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flex: "none" }}>
+                  <div style={{ display: "flex", gap: 8, flex: "none", flexWrap: "wrap" }}>
                     <button style={ghostBtnStyle} onClick={() => navigateToClient(`contracts/${contract.id}`)}>
                       <Eye size={15} /> Détails
                     </button>
@@ -214,6 +216,13 @@ const ClientContractsPage = () => {
                     >
                       {isPdfLoading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
                       PDF
+                    </button>
+                    <button
+                      style={ghostBtnStyle}
+                      onClick={() => setInvoiceContract(contract)}
+                      title="Demander des factures au bailleur"
+                    >
+                      <Receipt size={15} /> Factures
                     </button>
                   </div>
                 </div>
@@ -286,6 +295,14 @@ const ClientContractsPage = () => {
             );
           })}
         </div>
+      )}
+
+      {invoiceContract && (
+        <RequestInvoicesModal
+          open={!!invoiceContract}
+          onClose={() => setInvoiceContract(null)}
+          contract={invoiceContract}
+        />
       )}
 
       {renewalContract && clientData && (
