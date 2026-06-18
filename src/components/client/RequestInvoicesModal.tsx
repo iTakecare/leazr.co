@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import RichTextEditor from "@/components/ui/rich-text-editor";
+import RichMailEditor from "@/components/client/RichMailEditor";
 import { Send, Loader2, FileText, CheckCheck, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -200,7 +200,7 @@ const RequestInvoicesModal: React.FC<Props> = ({ open, onClose, contract, client
           <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 6 }}>Objet</label>
           <Input value={subject} onChange={(e) => setSubject(e.target.value)} style={{ marginBottom: 12 }} />
           <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 6 }}>Message</label>
-          <RichTextEditor value={body} onChange={onBodyChange} height={260} placeholder="Rédigez votre demande…" />
+          <RichMailEditor value={body} onChange={onBodyChange} height={240} placeholder="Rédigez votre demande…" />
           <div style={{ fontSize: 11.5, color: clientColors.faint, marginTop: 10 }}>
             ℹ️ Le mail part au nom de votre société, en copie à votre adresse, avec réponse vers vous. (Destinataire = adresse comptabilité du bailleur, gérée par iTakecare.)
           </div>

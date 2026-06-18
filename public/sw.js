@@ -1,5 +1,5 @@
 // Leazr Service Worker — PWA + Push Notifications + Offline
-const CACHE_NAME = 'leazr-v2';
+const CACHE_NAME = 'leazr-v3';
 const OFFLINE_URL = '/';
 
 // Assets to precache for offline shell
