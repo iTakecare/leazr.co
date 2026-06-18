@@ -16,7 +16,9 @@ import ClientContractDetailPage from "@/pages/ClientContractDetailPage";
 import ClientInvoicesPage from "@/pages/ClientInvoicesPage";
 import AIChatWidget from "@/components/client/AIChatWidget";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
-import { Search, Bell, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import ClientSearch from "@/components/client/ClientSearch";
+import ClientNotificationsBell from "@/components/client/ClientNotificationsBell";
 
 /** Styles globaux de l'espace client (font Inter + scrollbar + keyframes maquette). */
 const CLIENT_SHELL_STYLES = `
@@ -69,43 +71,9 @@ const ClientTopbar = () => {
         </div>
       </div>
 
-      <div className="hidden md:block" style={{ position: "relative", width: 300, maxWidth: "34vw" }}>
-        <Search size={16} color="#94A0B4" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-        <input
-          placeholder="Rechercher un équipement, contrat…"
-          style={{
-            width: "100%",
-            height: 40,
-            border: "1px solid #E6E9EF",
-            background: "#F6F7F9",
-            borderRadius: 11,
-            padding: "0 12px 0 36px",
-            fontSize: 13,
-            color: "#0F172A",
-            outline: "none",
-          }}
-        />
-      </div>
+      <ClientSearch />
 
-      <button
-        title="Notifications"
-        style={{
-          position: "relative",
-          width: 40,
-          height: 40,
-          borderRadius: 11,
-          border: "1px solid #E6E9EF",
-          background: "#fff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          flex: "none",
-        }}
-      >
-        <Bell size={18} color="#475569" />
-        <span style={{ position: "absolute", top: 7, right: 8, width: 8, height: 8, borderRadius: "50%", background: "#EA580C", border: "2px solid #fff" }} />
-      </button>
+      <ClientNotificationsBell />
 
       <button
         onClick={() => navigateToClient("products")}
