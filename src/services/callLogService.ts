@@ -328,13 +328,14 @@ export const getOfferCallbackStatus = async (
 ): Promise<Record<string, { callback_date: string; status: string } | null>> => {
   if (offerIds.length === 0) return {};
   try {
-    const today = new Date().toISOString().split('T')[0];
+    // 1. Récupérer TOUS les appels (peu importe le statut) pour ne garder que le dernier
+    //    par offre : un rappel n'est "en attente" que si le DERNIER appel est un
+    //    voicemail/no_answer avec une date de rappel. Si on a depuis rappelé et joint
+    //    le client ('reached'), le dernier appel n'est plus en attente → plus de logo.
     const { data, error } = await supabase
       .from('offer_call_logs')
       .select('offer_id, callback_date, status, called_at')
       .in('offer_id', offerIds)
-      .in('status', ['voicemail', 'no_answer'])
-      .not('callback_date', 'is', null)
       .order('called_at', { ascending: false });
 
     if (error) {
@@ -342,15 +343,65 @@ export const getOfferCallbackStatus = async (
       return {};
     }
 
-    const result: Record<string, { callback_date: string; status: string } | null> = {};
+    // Dernier appel par offre (data déjà triée par called_at desc)
+    const latestCallByOffer = new Map<string, { callback_date: string | null; status: string; called_at: string }>();
     (data || []).forEach((row: any) => {
-      if (!result[row.offer_id]) {
-        result[row.offer_id] = {
-          callback_date: row.callback_date,
-          status: row.status,
-        };
+      if (!latestCallByOffer.has(row.offer_id)) {
+        latestCallByOffer.set(row.offer_id, row);
       }
     });
+
+    // Offres avec un rappel potentiellement en attente
+    const pending = [...latestCallByOffer.entries()].filter(
+      ([, call]) => ['voicemail', 'no_answer'].includes(call.status) && call.callback_date
+    );
+
+    if (pending.length === 0) return {};
+
+    // 2. Récupérer l'activité du dossier postérieure à l'appel : si on a modifié l'offre
+    //    (offers.updated_at) ou changé son statut / envoyé au leaseur (offer_workflow_logs)
+    //    APRÈS l'appel, le rappel est considéré comme traité → on retire le logo.
+    const pendingIds = pending.map(([id]) => id);
+
+    const [{ data: offersData }, { data: workflowLogs }] = await Promise.all([
+      supabase.from('offers').select('id, updated_at').in('id', pendingIds),
+      supabase
+        .from('offer_workflow_logs')
+        .select('offer_id, created_at')
+        .in('offer_id', pendingIds)
+        .order('created_at', { ascending: false }),
+    ]);
+
+    const updatedAtByOffer = new Map<string, string>();
+    (offersData || []).forEach((o: any) => updatedAtByOffer.set(o.id, o.updated_at));
+
+    const latestLogByOffer = new Map<string, string>();
+    (workflowLogs || []).forEach((log: any) => {
+      if (!latestLogByOffer.has(log.offer_id)) {
+        latestLogByOffer.set(log.offer_id, log.created_at);
+      }
+    });
+
+    const result: Record<string, { callback_date: string; status: string } | null> = {};
+    pending.forEach(([offerId, call]) => {
+      const calledAtTime = new Date(call.called_at).getTime();
+      const updatedAtTime = updatedAtByOffer.has(offerId)
+        ? new Date(updatedAtByOffer.get(offerId)!).getTime()
+        : 0;
+      const lastLogTime = latestLogByOffer.has(offerId)
+        ? new Date(latestLogByOffer.get(offerId)!).getTime()
+        : 0;
+      const lastActionTime = Math.max(updatedAtTime, lastLogTime);
+
+      // Action sur le dossier postérieure à l'appel → rappel traité
+      if (lastActionTime > calledAtTime) return;
+
+      result[offerId] = {
+        callback_date: call.callback_date!,
+        status: call.status,
+      };
+    });
+
     return result;
   } catch (error) {
     console.error("❌ Exception fetching offer callback statuses:", error);
