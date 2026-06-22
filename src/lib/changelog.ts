@@ -21,7 +21,7 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
     date: "2026-06-22",
     title: "SKU client pour les fournisseurs",
     items: [
-      "Nouveau « SKU client » propre à votre société (préfixe + caractéristiques produit, max 10 caractères, ex. ITCHPPRB44), distinct du SKU d'origine du fabricant.",
+      "Nouveau « SKU client » propre à votre société (préfixe + caractéristiques produit, max 14 caractères, ex. ITCHPPRB440G11), distinct du SKU d'origine du fabricant.",
       "Préfixe SKU configurable dans Personnalisation, et génération automatique (modifiable) du SKU sur chaque fiche produit.",
       "SKU client affiché dans le catalogue et export Excel du catalogue.",
       "Vue catalogue (liste) réorganisée en colonnes : Produit, SKU client, descriptif, marque et prix « à partir de ».",

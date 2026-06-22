@@ -84,7 +84,7 @@ const stripBrandFromName = (name: string, brand: string): string => {
 };
 
 /** Longueur maximale d'un SKU client (préfixe inclus). */
-export const MAX_SKU_ITC_LENGTH = 10;
+export const MAX_SKU_ITC_LENGTH = 14;
 
 /**
  * Nombre max de caractères réservés à la marque, pour laisser de la place au

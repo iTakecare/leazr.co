@@ -15,7 +15,7 @@
  * Par défaut on (re)génère les produits sans SKU OU dont le SKU dépasse MAX_LEN.
  */
 
-const MAX_LEN = 10; // = MAX_SKU_ITC_LENGTH dans src/utils/skuItc.ts
+const MAX_LEN = 14; // = MAX_SKU_ITC_LENGTH dans src/utils/skuItc.ts
 
 import { createClient } from '@supabase/supabase-js';
 
