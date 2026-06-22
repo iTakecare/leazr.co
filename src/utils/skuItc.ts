@@ -88,10 +88,10 @@ export const MAX_SKU_ITC_LENGTH = 14;
 
 /**
  * Nombre max de caractères réservés à la marque, pour laisser de la place au
- * modèle dans le budget total. Les marques courtes (HP, DELL…) passent entières ;
- * les longues sont abrégées (APPLE→APP, SAMSUNG→SAM) afin que le modèle survive.
+ * modèle dans le budget total. Les marques courtes (HP…) passent entières ;
+ * les longues sont abrégées (APPLE→AP, SAMSUNG→SA) afin que le modèle survive.
  */
-const BRAND_CAP = 3;
+const BRAND_CAP = 2;
 
 export interface GenerateSkuItcParams {
   /** Préfixe du tenant (companies.sku_prefix), ex. "ITC". */

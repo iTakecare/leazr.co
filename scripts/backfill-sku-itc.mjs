@@ -53,7 +53,7 @@ const stripBrandFromName = (name, brand) => {
   while (i < nameTokens.length && i < brandTokens.length && normalizeSkuPart(nameTokens[i]) === brandTokens[i]) i++;
   return nameTokens.slice(i).join(' ');
 };
-const BRAND_CAP = 3;
+const BRAND_CAP = 2;
 const generateSkuItc = ({ prefix, brand, model, name }) => {
   const prefixPart = normalizeSkuPart(prefix);
   const brandFull = normalizeSkuPart(brand);
