@@ -625,8 +625,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Entreprise */}
-                  <TableCell className="text-[11px] py-2 hidden lg:table-cell">
-                    {offer.clientCompanyName || '-'}
+                  <TableCell className="text-[11px] py-2 hidden lg:table-cell w-[100px] max-w-[100px]">
+                    <span
+                      className="block truncate max-w-[100px]"
+                      title={offer.clientCompanyName || undefined}
+                    >
+                      {offer.clientCompanyName || '-'}
+                    </span>
                   </TableCell>
                   
                   {/* Type */}
