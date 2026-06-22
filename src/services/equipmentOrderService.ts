@@ -186,7 +186,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
   const { data: contractEquipment, error: contractError } = await supabase
     .from('contract_equipment')
     .select(`
-      id, title, quantity, purchase_price, actual_purchase_price, product_id,
+      id, title, quantity, purchase_price, actual_purchase_price,
       order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes,
       serial_number, individual_serial_number, purchase_notes, monthly_payment,
       contracts!inner(id, contract_number, client_name, company_id, created_at),
@@ -265,7 +265,9 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     order_reference: eq.order_reference,
     reception_date: eq.reception_date,
     order_notes: eq.order_notes,
-    product_id: eq.product_id ?? null,
+    // contract_equipment has no product_id column (unlike offer_equipment),
+    // so the SKU is resolved via the title fallback in generateSkuItc below.
+    product_id: null,
     source_type: 'contract' as const,
     source_id: eq.contracts?.id,
     client_name: eq.contracts?.client_name,
