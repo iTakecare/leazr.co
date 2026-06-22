@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.2.0";
+export const ADMIN_VERSION = "1.2.1";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.2.1",
+    date: "2026-06-22",
+    title: "Grenke : rafraîchissement du statut plus robuste",
+    items: [
+      "Le bouton « Rafraîchir le statut » d'un dossier Grenke retente automatiquement lorsqu'un hoquet temporaire de l'API Grenke (erreur 500) survient, au lieu d'afficher l'erreur directement.",
+    ],
+  },
   {
     version: "1.2.0",
     date: "2026-06-22",

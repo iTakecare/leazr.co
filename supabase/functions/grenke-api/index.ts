@@ -429,9 +429,11 @@ async function grenkeFetch(
   // Retry transient connection failures. The Supabase → VPS-proxy hop can drop
   // the first SYN intermittently (Hostinger edge / rotating Supabase egress IPs
   // being greylisted upstream). Retrying from the same isolate usually lands a
-  // moment later. We only ever return a real HTTP response (incl. 4xx/5xx) —
-  // those are never retried. For a POST we retry ONLY connect-phase throws, so
-  // we can never double-submit a financing request.
+  // moment later. We also retry Grenke's own intermittent 5xx ("Unfortunately
+  // we are not able to process your request") — their backend hiccups and
+  // clears on a retry a moment later — but ONLY for idempotent reads. For a POST
+  // we retry ONLY connect-phase throws, never an HTTP response, so we can never
+  // double-submit a financing request. 4xx is a real client error → returned as-is.
   let lastErr: unknown;
   for (let attempt = 1; attempt <= GRENKE_FETCH_MAX_ATTEMPTS; attempt++) {
     const controller = new AbortController();
@@ -440,6 +442,12 @@ async function grenkeFetch(
       console.log(`[grenke-api] grenkeFetch via proxy → ${method} ${url} (attempt ${attempt}/${GRENKE_FETCH_MAX_ATTEMPTS})`);
       const res = await fetch(url, { ...init, headers, signal: controller.signal });
       clearTimeout(timer);
+      if (isIdempotent && res.status >= 500 && attempt < GRENKE_FETCH_MAX_ATTEMPTS) {
+        console.warn(`[grenke-api] grenkeFetch got HTTP ${res.status} on idempotent ${method}; retrying (attempt ${attempt}/${GRENKE_FETCH_MAX_ATTEMPTS})`);
+        try { await res.body?.cancel(); } catch { /* discard the body so the connection can be reused */ }
+        await new Promise((r) => setTimeout(r, 700 * attempt)); // 0.7s, 1.4s backoff
+        continue;
+      }
       return res;
     } catch (e) {
       clearTimeout(timer);
