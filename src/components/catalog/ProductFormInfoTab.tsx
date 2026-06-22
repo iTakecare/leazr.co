@@ -349,9 +349,10 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
             <Input
               id="sku_itc"
               value={formData.sku_itc || ''}
-              onChange={(e) => handleInputChange('sku_itc', e.target.value.toUpperCase())}
-              placeholder={skuPrefix ? `${skuPrefix}…` : "ex. ITCHPPRB440G11"}
+              onChange={(e) => handleInputChange('sku_itc', e.target.value.toUpperCase().slice(0, 10))}
+              placeholder={skuPrefix ? `${skuPrefix}…` : "ex. ITCHPPRB4"}
               className="font-mono"
+              maxLength={10}
             />
             <Button
               type="button"

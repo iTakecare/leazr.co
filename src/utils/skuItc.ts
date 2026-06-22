@@ -83,6 +83,16 @@ const stripBrandFromName = (name: string, brand: string): string => {
   return nameTokens.slice(i).join(" ");
 };
 
+/** Longueur maximale d'un SKU client (préfixe inclus). */
+export const MAX_SKU_ITC_LENGTH = 10;
+
+/**
+ * Nombre max de caractères réservés à la marque, pour laisser de la place au
+ * modèle dans le budget total. Les marques courtes (HP, DELL…) passent entières ;
+ * les longues sont abrégées (APPLE→APP, SAMSUNG→SAM) afin que le modèle survive.
+ */
+const BRAND_CAP = 3;
+
 export interface GenerateSkuItcParams {
   /** Préfixe du tenant (companies.sku_prefix), ex. "ITC". */
   prefix?: string | null;
@@ -90,17 +100,20 @@ export interface GenerateSkuItcParams {
   /** Modèle explicite ; si absent, dérivé du nom (marque retirée). */
   model?: string | null;
   name?: string | null;
+  /** Longueur max du résultat (défaut MAX_SKU_ITC_LENGTH). */
+  maxLength?: number;
 }
 
-/** Construit le SKU ITC suggéré (non garanti unique — voir ensureUniqueSkuItc). */
+/** Construit le SKU ITC suggéré, tronqué à maxLength (non garanti unique — voir ensureUniqueSkuItc). */
 export const generateSkuItc = ({
   prefix,
   brand,
   model,
   name,
+  maxLength = MAX_SKU_ITC_LENGTH,
 }: GenerateSkuItcParams): string => {
   const prefixPart = normalizeSkuPart(prefix);
-  const brandPart = normalizeSkuPart(brand);
+  const brandFull = normalizeSkuPart(brand);
 
   let modelSource = (model ?? "").trim();
   if (!modelSource) {
@@ -108,23 +121,32 @@ export const generateSkuItc = ({
   }
   const modelPart = abbreviateModel(modelSource);
 
-  return `${prefixPart}${brandPart}${modelPart}`;
+  // Répartition du budget : préfixe (fixe) + marque (plafonnée) + modèle (reste).
+  const budget = Math.max(0, maxLength - prefixPart.length);
+  const brandPart = brandFull.slice(0, Math.min(BRAND_CAP, budget));
+  const modelBudget = Math.max(0, budget - brandPart.length);
+
+  return `${prefixPart}${brandPart}${modelPart.slice(0, modelBudget)}`.slice(0, maxLength);
 };
 
 /**
  * Garantit l'unicité du candidat au sein d'un ensemble déjà utilisé en suffixant
- * "-2", "-3"… L'ensemble n'est PAS muté.
+ * "-2", "-3"… tout en restant ≤ maxLength (la base est tronquée pour laisser la
+ * place au suffixe). L'ensemble n'est PAS muté.
  */
 export const ensureUniqueSkuItc = (
   candidate: string,
-  taken: Set<string>
+  taken: Set<string>,
+  maxLength = MAX_SKU_ITC_LENGTH
 ): string => {
-  if (!candidate || !taken.has(candidate)) return candidate;
+  if (!candidate) return candidate;
+  const base = candidate.slice(0, maxLength);
+  if (!taken.has(base)) return base;
   let i = 2;
-  let next = `${candidate}-${i}`;
-  while (taken.has(next)) {
+  for (;;) {
+    const suffix = `-${i}`;
+    const next = candidate.slice(0, Math.max(0, maxLength - suffix.length)) + suffix;
+    if (!taken.has(next)) return next;
     i++;
-    next = `${candidate}-${i}`;
   }
-  return next;
 };
