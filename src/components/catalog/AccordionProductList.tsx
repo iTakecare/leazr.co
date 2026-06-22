@@ -6,15 +6,21 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Package, Leaf, Copy } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
+import { getMinimumMonthlyPrice, hasVariantPricing } from "@/utils/productPricing";
 import { Product } from "@/types/catalog";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useBulkCO2Calculator } from "@/hooks/environmental/useBulkCO2Calculator";
 import { useDuplicateProduct } from "@/hooks/products/useDuplicateProduct";
 import ProductDuplicationDialog from "./ProductDuplicationDialog";
+
+// Gabarit de colonnes partagé entre l'en-tête et chaque ligne produit.
+// Template unique (5 colonnes) + min-width : sur écran étroit la liste défile
+// horizontalement plutôt que de casser l'alignement des colonnes.
+const COLS =
+  "grid grid-cols-[minmax(0,1.6fr)_140px_minmax(0,1.4fr)_130px_160px] gap-4 items-center min-w-[820px]";
 
 interface AccordionProductListProps {
   products: Product[];
@@ -92,7 +98,15 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
         isLoading={isDuplicating}
       />
       
-      <div className="space-y-4">
+      <div className="space-y-4 overflow-x-auto">
+        {/* En-tête de colonnes */}
+        <div className={`${COLS} px-4 pr-10 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}>
+          <span>Produit</span>
+          <span>SKU client</span>
+          <span>Descriptif</span>
+          <span>Marque</span>
+          <span className="text-right">Prix (à partir de)</span>
+        </div>
         <Accordion type="multiple" className="w-full space-y-2">
         {products.map((product) => {
           const hasVariants = product.has_variants || (product.variants && product.variants.length > 0) || (product.variant_combination_prices && product.variant_combination_prices.length > 0);
@@ -109,9 +123,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
               className="border rounded-lg bg-card"
             >
               <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
-                    {/* Product image */}
+                <div className={`${COLS} w-full`}>
+                  {/* Produit : image + nom */}
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                       {hasImageSrc ? (
                         <img
@@ -130,15 +144,16 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         </div>
                       )}
                     </div>
-
-                    {/* Product info */}
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-left">{product.name}</h3>
+                    <div className="flex flex-col items-start gap-1 min-w-0">
+                      <h3 className="font-medium text-left truncate w-full">{product.name}</h3>
+                      <div className="flex flex-wrap items-center gap-1">
                         {hasVariants && (
                           <Badge variant="secondary" className="text-xs">
                             {existingVariantsCount} variante{existingVariantsCount > 1 ? 's' : ''}
                           </Badge>
+                        )}
+                        {!product.active && (
+                          <Badge variant="destructive" className="text-xs">Inactif</Badge>
                         )}
                         {co2Results[product.id] && co2Results[product.id].co2Kg > 0 && (
                           <Badge variant="outline" className="text-xs text-green-700 border-green-300">
@@ -147,30 +162,40 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{product.brand}</span>
-                        <Separator orientation="vertical" className="h-3" />
-                        <span>{product.category}</span>
-                        {!product.active && (
-                          <>
-                            <Separator orientation="vertical" className="h-3" />
-                            <Badge variant="destructive" className="text-xs">
-                              Inactif
-                            </Badge>
-                          </>
-                        )}
-                      </div>
                     </div>
                   </div>
 
-                  {/* Price info */}
+                  {/* SKU client */}
+                  <div className="text-left text-xs font-mono text-muted-foreground truncate">
+                    {product.sku_itc || product.sku || <span className="opacity-40">—</span>}
+                  </div>
+
+                  {/* Descriptif */}
+                  <div className="text-left text-sm text-muted-foreground truncate">
+                    {product.short_description || product.description || <span className="opacity-40">—</span>}
+                  </div>
+
+                  {/* Marque · Catégorie */}
+                  <div className="flex flex-col items-start text-sm min-w-0">
+                    <span className="truncate w-full">{product.brand || "—"}</span>
+                    <span className="text-xs text-muted-foreground truncate w-full">{product.category || ""}</span>
+                  </div>
+
+                  {/* Prix (à partir de) */}
                   <div className="text-right">
-                    <div className="font-medium">
-                      {formatCurrency(product.monthly_price || 0)}/mois
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Achat: {formatCurrency(product.price || 0)}
-                    </div>
+                    {(() => {
+                      const variants = hasVariantPricing(product);
+                      const monthly = variants ? getMinimumMonthlyPrice(product) : (product.monthly_price || 0);
+                      return (
+                        <>
+                          {variants && (
+                            <div className="text-[10px] text-muted-foreground leading-none">à partir de</div>
+                          )}
+                          <div className="font-medium">{formatCurrency(monthly)}/mois</div>
+                          <div className="text-xs text-muted-foreground">Achat: {formatCurrency(product.price || 0)}</div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </AccordionTrigger>
