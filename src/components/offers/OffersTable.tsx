@@ -413,7 +413,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   currentSort={sortColumn}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="text-[10px] w-[100px] hidden lg:table-cell"
+                  className="text-[10px] w-[160px] hidden lg:table-cell"
                 />
                 <SortableTableHead
                   column="type"
@@ -429,7 +429,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   currentSort={sortColumn}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="max-w-[100px] text-[10px] hidden lg:table-cell"
+                  className="w-[90px] max-w-[90px] text-[10px] hidden lg:table-cell"
                 />
                 <SortableTableHead
                   column="source"
@@ -625,9 +625,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Entreprise */}
-                  <TableCell className="text-[11px] py-2 hidden lg:table-cell w-[100px] max-w-[100px]">
+                  <TableCell className="text-[11px] py-2 hidden lg:table-cell w-[160px] max-w-[160px]">
                     <span
-                      className="block truncate max-w-[100px]"
+                      className="block truncate max-w-[160px]"
                       title={offer.clientCompanyName || undefined}
                     >
                       {offer.clientCompanyName || '-'}
@@ -646,10 +646,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Équipement */}
-                  <TableCell className="max-w-[100px] text-[11px] py-2 hidden lg:table-cell">
+                  <TableCell className="w-[90px] max-w-[90px] text-[11px] py-2 hidden lg:table-cell">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="truncate cursor-help">
+                        <div className="truncate cursor-help max-w-[90px]">
                           {offer.equipmentForCell}
                         </div>
                       </TooltipTrigger>
