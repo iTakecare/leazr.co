@@ -88,6 +88,8 @@ export interface Product {
   is_refurbished?: boolean;
   condition?: string;
   sku?: string;
+  /** SKU propre au tenant (préfixe + caractéristiques produit), pour les fournisseurs. Voir src/utils/skuItc.ts */
+  sku_itc?: string;
   company_id?: string;
   
   // WooCommerce compatibility fields

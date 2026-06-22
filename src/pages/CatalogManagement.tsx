@@ -1,8 +1,11 @@
 
 import React from "react";
 import Container from "@/components/layout/Container";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Folder, Download, Package, Users, Settings, Leaf, Star, Handshake, Building2 } from "lucide-react";
+import { Award, Folder, Download, Package, Users, Settings, Leaf, Star, Handshake, Building2, FileSpreadsheet } from "lucide-react";
+import { exportCatalogToExcel } from "@/services/catalogExportService";
 import BrandManager from "@/components/catalog/BrandManager";
 import SimplifiedCategoryManager from "@/components/catalog/SimplifiedCategoryManager";
 import { PackManager } from "@/components/packs/PackManager";
@@ -48,6 +51,20 @@ const CatalogManagement = () => {
   // Handle new product creation
   const handleAddNewProduct = () => {
     navigateToAdmin("catalog/form");
+  };
+
+  const handleExportCatalog = async () => {
+    if (!products || products.length === 0) {
+      toast.info("Aucun produit à exporter.");
+      return;
+    }
+    try {
+      await exportCatalogToExcel(products);
+      toast.success(`${products.length} produit(s) exporté(s).`);
+    } catch (e) {
+      console.error("Erreur export catalogue:", e);
+      toast.error("Erreur lors de l'export du catalogue.");
+    }
   };
   
   return (
@@ -106,6 +123,17 @@ const CatalogManagement = () => {
             
             <div className="mt-6">
               <div className="w-full">
+                <div className="flex justify-end mb-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportCatalog}
+                    disabled={isLoading || !products || products.length === 0}
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Exporter le catalogue (Excel)
+                  </Button>
+                </div>
                 <CatalogFilterBar
                   searchQuery={filters.searchQuery}
                   onSearchChange={(query) => updateFilter('searchQuery', query)}

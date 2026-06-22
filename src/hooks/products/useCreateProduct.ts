@@ -19,6 +19,7 @@ interface CreateProductData {
   specifications?: Record<string, any>;
   stock?: number;
   sku?: string;
+  sku_itc?: string;
   is_refurbished?: boolean;
   condition?: string | null;
   purchase_price?: number;
@@ -56,6 +57,7 @@ export const useCreateProduct = () => {
         specifications: data.specifications,
         stock: data.stock || 0,
         sku: data.sku,
+        sku_itc: data.sku_itc,
         is_refurbished: data.is_refurbished || false,
         condition: data.condition,
         purchase_price: data.purchase_price,

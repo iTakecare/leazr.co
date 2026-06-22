@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
+import { generateSkuItc } from "@/utils/skuItc";
 
 export type OrderStatus = 'to_order' | 'ordered' | 'received' | 'cancelled';
 
@@ -26,6 +27,8 @@ export interface EquipmentOrderItem {
   reception_date: string | null;
   order_notes: string | null;
   product_id?: string | null;
+  /** SKU client (préfixe tenant + caractéristiques) à transmettre au fournisseur. */
+  sku_itc?: string;
   source_type?: 'offer' | 'contract';
   source_id?: string;
   client_name?: string;
@@ -183,7 +186,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
   const { data: contractEquipment, error: contractError } = await supabase
     .from('contract_equipment')
     .select(`
-      id, title, quantity, purchase_price, actual_purchase_price,
+      id, title, quantity, purchase_price, actual_purchase_price, product_id,
       order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes,
       serial_number, individual_serial_number, purchase_notes, monthly_payment,
       contracts!inner(id, contract_number, client_name, company_id, created_at),
@@ -204,7 +207,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
   const { data: offerEquipment, error: offerError } = await supabase
     .from('offer_equipment')
     .select(`
-      id, title, quantity, purchase_price, supplier_price,
+      id, title, quantity, purchase_price, supplier_price, product_id,
       order_status, supplier_id, order_date, order_reference, reception_date, order_notes,
       serial_number, monthly_payment,
       offers!inner(id, dossier_number, client_name, company_id, created_at, is_purchase, workflow_status),
@@ -262,7 +265,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     order_reference: eq.order_reference,
     reception_date: eq.reception_date,
     order_notes: eq.order_notes,
-    product_id: null,
+    product_id: eq.product_id ?? null,
     source_type: 'contract' as const,
     source_id: eq.contracts?.id,
     client_name: eq.contracts?.client_name,
@@ -289,7 +292,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     order_reference: eq.order_reference,
     reception_date: eq.reception_date,
     order_notes: eq.order_notes,
-    product_id: null,
+    product_id: eq.product_id ?? null,
     source_type: 'offer' as const,
     source_id: eq.offers?.id,
     client_name: eq.offers?.client_name,
@@ -304,5 +307,35 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     monthly_payment: eq.monthly_payment,
   }));
 
-  return [...items, ...offerItems];
+  const allItems = [...items, ...offerItems];
+
+  // ── Résolution du SKU client (SKU ITC) ──
+  // Priorité au SKU stocké sur le produit lié (cohérence catalogue ↔ fournisseur) ;
+  // repli sur une génération depuis le titre pour les lignes en texte libre.
+  const productIds = Array.from(
+    new Set(allItems.map(i => i.product_id).filter((id): id is string => !!id))
+  );
+
+  const [{ data: companyRow }, productsRes] = await Promise.all([
+    supabase.from('companies').select('sku_prefix').eq('id', companyId).single(),
+    productIds.length > 0
+      ? supabase.from('products').select('id, sku_itc').in('id', productIds)
+      : Promise.resolve({ data: [] as { id: string; sku_itc: string | null }[] }),
+  ]);
+
+  const prefix = companyRow?.sku_prefix || '';
+  const skuByProduct = new Map(
+    (productsRes.data || []).map((p: any) => [p.id, p.sku_itc as string | null])
+  );
+
+  return allItems.map(item => {
+    const stored = item.product_id ? skuByProduct.get(item.product_id) : null;
+    // Pour le repli : ne garder que la tête du titre (avant " / ") — les specs
+    // ("16 Go RAM / 512 Go SSD") ne doivent pas polluer le SKU.
+    const head = (item.title || '').split(/\s*\/\s*/)[0];
+    return {
+      ...item,
+      sku_itc: stored || generateSkuItc({ prefix, name: head }) || '',
+    };
+  });
 };

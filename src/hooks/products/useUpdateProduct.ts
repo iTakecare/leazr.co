@@ -15,6 +15,7 @@ interface UpdateProductData {
   price?: number;
   stock?: number;
   sku?: string;
+  sku_itc?: string;
   is_refurbished?: boolean;
   condition?: string | null;
   purchase_price?: number;
@@ -39,6 +40,7 @@ export const useUpdateProduct = () => {
           price: data.price,
           stock: data.stock,
           sku: data.sku,
+          sku_itc: data.sku_itc,
           is_refurbished: data.is_refurbished || false,
           condition: data.condition,
           purchase_price: data.purchase_price,

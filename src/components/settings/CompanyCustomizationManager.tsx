@@ -50,16 +50,20 @@ const CompanyCustomizationManager = () => {
   });
   const [savingSocial, setSavingSocial] = useState(false);
 
+  // Préfixe SKU client (ex. "ITC")
+  const [skuPrefix, setSkuPrefix] = useState("");
+  const [savingSku, setSavingSku] = useState(false);
+
   // Fetch lessor signature data + social URLs
   const fetchLessorSignatureData = async () => {
     if (!companyId) return;
-    
+
     const { data } = await supabase
       .from('companies')
-      .select('signature_url, signature_representative_name, signature_representative_title, trustpilot_url, google_review_url, facebook_url, linkedin_url, instagram_url')
+      .select('signature_url, signature_representative_name, signature_representative_title, trustpilot_url, google_review_url, facebook_url, linkedin_url, instagram_url, sku_prefix')
       .eq('id', companyId)
       .single();
-    
+
     if (data) {
       setLessorSignatureData(data);
       setSocialUrls({
@@ -69,6 +73,7 @@ const CompanyCustomizationManager = () => {
         linkedin_url: data.linkedin_url || "",
         instagram_url: data.instagram_url || "",
       });
+      setSkuPrefix(data.sku_prefix || "");
     }
   };
 
@@ -737,6 +742,61 @@ const CompanyCustomizationManager = () => {
                     Sauvegarder
                   </Button>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                SKU client (fournisseurs)
+              </CardTitle>
+              <CardDescription>
+                Préfixe utilisé pour générer le SKU propre à votre société sur chaque produit
+                (ex. « ITC » → ITCHPPRB440G11). Ce code est transmis aux fournisseurs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                <div className="flex-1 max-w-xs">
+                  <Label htmlFor="sku_prefix">Préfixe SKU</Label>
+                  <Input
+                    id="sku_prefix"
+                    value={skuPrefix}
+                    onChange={(e) => setSkuPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                    placeholder="ITC"
+                    className="mt-1 font-mono"
+                    maxLength={8}
+                  />
+                </div>
+                <Button
+                  disabled={savingSku || !companyId}
+                  onClick={async () => {
+                    if (!companyId) return;
+                    setSavingSku(true);
+                    try {
+                      const { error } = await supabase
+                        .from('companies')
+                        .update({ sku_prefix: skuPrefix || null })
+                        .eq('id', companyId);
+                      if (error) throw error;
+                      toast({ title: "Préfixe SKU sauvegardé", description: `Préfixe « ${skuPrefix || "—"} » enregistré.` });
+                    } catch {
+                      toast({ title: "Erreur", description: "Impossible de sauvegarder le préfixe.", variant: "destructive" });
+                    } finally {
+                      setSavingSku(false);
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  {savingSku ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Sauvegarder
+                </Button>
               </div>
             </CardContent>
           </Card>

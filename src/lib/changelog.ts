@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.1.0";
+export const ADMIN_VERSION = "1.2.0";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.2.0",
+    date: "2026-06-22",
+    title: "SKU client pour les fournisseurs",
+    items: [
+      "Nouveau « SKU client » propre à votre société (préfixe + caractéristiques produit, ex. ITCHPPRB440G11), distinct du SKU d'origine du fabricant.",
+      "Préfixe SKU configurable dans Personnalisation, et génération automatique (modifiable) du SKU sur chaque fiche produit.",
+      "SKU client affiché dans le catalogue et export Excel du catalogue.",
+      "Commandes fournisseurs : colonne « SKU client » dans le tableau et dans l'export Excel à transmettre au fournisseur.",
+    ],
+  },
   {
     version: "1.1.0",
     date: "2026-06-18",

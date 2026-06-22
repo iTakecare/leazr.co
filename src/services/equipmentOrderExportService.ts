@@ -23,6 +23,7 @@ export async function exportEquipmentOrdersToExcel(
     { header: 'Source', key: 'source', width: 12 },
     { header: 'N° Contrat', key: 'source_reference', width: 18 },
     { header: 'Client', key: 'client_name', width: 22 },
+    { header: 'SKU client', key: 'sku_itc', width: 20 },
     { header: 'Équipement', key: 'title', width: 30 },
     { header: 'Quantité', key: 'quantity', width: 10 },
     { header: 'Fournisseur', key: 'supplier_name', width: 22 },
@@ -54,6 +55,7 @@ export async function exportEquipmentOrdersToExcel(
       source: item.source_type === 'offer' ? 'Offre' : 'Contrat',
       source_reference: item.source_reference || '',
       client_name: item.client_name || '',
+      sku_itc: item.sku_itc || '',
       title: item.title || '',
       quantity: item.quantity,
       supplier_name: getSupplierName(item.supplier_id),
@@ -69,8 +71,8 @@ export async function exportEquipmentOrdersToExcel(
     });
   }
 
-  // Format currency columns
-  [7, 8, 9, 10].forEach(col => {
+  // Format currency columns (décalées de +1 après l'ajout de la colonne SKU client)
+  [8, 9, 10, 11].forEach(col => {
     sheet.getColumn(col).numFmt = '#,##0.00 €';
   });
 

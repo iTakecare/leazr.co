@@ -15,9 +15,12 @@ import { getCategoriesWithProductCount, getCategoryById } from "@/services/simpl
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
 import { useAuth } from "@/context/AuthContext";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { supabase } from "@/integrations/supabase/client";
 import { X, Upload, Loader2, Sparkles, Tag } from "lucide-react";
 import AIDescriptionHelper from "./AIDescriptionHelper";
 import { Product } from "@/types/catalog";
+import { generateSkuItc } from "@/utils/skuItc";
 
 interface ProductFormInfoTabProps {
   productToEdit?: any;
@@ -50,7 +53,23 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 }) => {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
+  const { companyId } = useMultiTenant();
   const [formData, setFormData] = useState(productToEdit || {});
+
+  // Préfixe SKU du tenant (ex. "ITC") pour la génération du SKU ITC
+  const { data: skuPrefix = "" } = useQuery({
+    queryKey: ["company-sku-prefix", companyId],
+    queryFn: async () => {
+      if (!companyId) return "";
+      const { data } = await supabase
+        .from("companies")
+        .select("sku_prefix")
+        .eq("id", companyId)
+        .single();
+      return data?.sku_prefix || "";
+    },
+    enabled: !!companyId,
+  });
   const [imagePreview, setImagePreview] = useState<string | null>(
     productToEdit?.image_url || productToEdit?.imageUrl || null
   );
@@ -88,6 +107,26 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleGenerateSkuItc = () => {
+    const brandName =
+      brands.find(b => b.id === formData.brand_id)?.name || formData.brand || "";
+    const suggestion = generateSkuItc({
+      prefix: skuPrefix,
+      brand: brandName,
+      model: formData.model,
+      name: formData.name,
+    });
+    if (!suggestion) {
+      toast({
+        title: "SKU ITC",
+        description: "Renseignez d'abord la marque et le nom du produit.",
+        variant: "destructive",
+      });
+      return;
+    }
+    handleInputChange("sku_itc", suggestion);
+  };
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -117,8 +156,9 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         active: formData.active,
         admin_only: formData.admin_only,
         image_url: imagePreview || '',
+        sku_itc: formData.sku_itc || undefined,
       };
-      
+
       updateProductMutation.mutate(updateData, {
         onSuccess: () => {
           onProductUpdated();
@@ -137,8 +177,9 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         active: formData.active !== false,
         admin_only: formData.admin_only || false,
         image_url: imagePreview || '',
+        sku_itc: formData.sku_itc || undefined,
       };
-      
+
       createProductMutation.mutate(createData, {
         onSuccess: () => {
           onProductCreated();
@@ -296,6 +337,36 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
               rows={6}
             />
           </div>
+        </div>
+
+        {/* SKU ITC (SKU client à transmettre aux fournisseurs) */}
+        <div>
+          <Label htmlFor="sku_itc" className="flex items-center gap-1.5">
+            <Tag className="h-4 w-4" />
+            SKU client (fournisseur)
+          </Label>
+          <div className="flex items-center gap-2 mt-1">
+            <Input
+              id="sku_itc"
+              value={formData.sku_itc || ''}
+              onChange={(e) => handleInputChange('sku_itc', e.target.value.toUpperCase())}
+              placeholder={skuPrefix ? `${skuPrefix}…` : "ex. ITCHPPRB440G11"}
+              className="font-mono"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGenerateSkuItc}
+              className="gap-2 whitespace-nowrap"
+            >
+              <Sparkles className="h-4 w-4" />
+              Générer
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            SKU propre à votre société (préfixe {skuPrefix || "à définir dans les réglages"} +
+            caractéristiques produit), utilisé pour les listes d'équipement transmises aux fournisseurs.
+          </p>
         </div>
 
         {/* Pricing Section */}

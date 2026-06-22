@@ -615,6 +615,11 @@ const EquipmentOrders: React.FC = () => {
                         return (
                           <>
                             <div className="font-medium text-sm">{head}</div>
+                            {item.sku_itc && (
+                              <div className="text-[10px] font-mono text-muted-foreground mt-0.5" title="SKU client (fournisseur)">
+                                {item.sku_itc}
+                              </div>
+                            )}
                             {tail.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {tail.map((p, i) => (

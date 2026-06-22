@@ -1777,6 +1777,7 @@ export type Database = {
           co2_saved: number | null
           company_type: string | null
           contract_prefix: string | null
+          sku_prefix: string | null
           created_at: string
           custom_domain: string | null
           default_html_template_slug: string | null
@@ -1817,6 +1818,7 @@ export type Database = {
           co2_saved?: number | null
           company_type?: string | null
           contract_prefix?: string | null
+          sku_prefix?: string | null
           created_at?: string
           custom_domain?: string | null
           default_html_template_slug?: string | null
@@ -1857,6 +1859,7 @@ export type Database = {
           co2_saved?: number | null
           company_type?: string | null
           contract_prefix?: string | null
+          sku_prefix?: string | null
           created_at?: string
           custom_domain?: string | null
           default_html_template_slug?: string | null
@@ -7841,6 +7844,7 @@ export type Database = {
           serial_number: string | null
           short_description: string | null
           sku: string | null
+          sku_itc: string | null
           slug: string | null
           specifications: Json | null
           status: string | null
@@ -7889,6 +7893,7 @@ export type Database = {
           serial_number?: string | null
           short_description?: string | null
           sku?: string | null
+          sku_itc?: string | null
           slug?: string | null
           specifications?: Json | null
           status?: string | null
@@ -7937,6 +7942,7 @@ export type Database = {
           serial_number?: string | null
           short_description?: string | null
           sku?: string | null
+          sku_itc?: string | null
           slug?: string | null
           specifications?: Json | null
           status?: string | null

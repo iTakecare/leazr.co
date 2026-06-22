@@ -78,10 +78,15 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       
       <div className="p-4">
         <div className="text-xs text-gray-500 mb-1">{product.brand || "Brand"}</div>
-        <h3 className="font-medium text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+        <h3 className="font-medium text-gray-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2">
           {product.name || "Produit"}
         </h3>
-        
+        {product.sku_itc && (
+          <div className="text-[11px] font-mono text-gray-500 mb-2" title="SKU client (fournisseur)">
+            {product.sku_itc}
+          </div>
+        )}
+
         {hasVariantSupport && product.parent_id && product.selected_attributes && Object.keys(product.selected_attributes || {}).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
             {Object.entries(product.selected_attributes || {}).map(([key, value], idx) => (
