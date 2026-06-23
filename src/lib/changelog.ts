@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.4";
+export const ADMIN_VERSION = "1.3.5";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.5",
+    date: "2026-06-23",
+    title: "Alex : répondeur mieux détecté dans le suivi",
+    items: [
+      "Les appels d'Alex tombés sur une messagerie vocale sont désormais correctement marqués « Message laissé (répondeur) » dans l'historique et les rapports de campagne, même quand l'opérateur ne le signale pas explicitement (détection via le résumé de l'appel).",
+    ],
+  },
   {
     version: "1.3.4",
     date: "2026-06-23",

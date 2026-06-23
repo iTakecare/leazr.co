@@ -93,10 +93,13 @@ async function handleTranscription(supabase: any, data: any) {
   // Detect transfer/no-answer/failed from termination reason if available.
   const terminationReason: string | undefined = meta.termination_reason
     ?? meta.phone_call?.termination_reason;
-  // Alex a-t-il atterri sur un répondeur ? ElevenLabs (voicemail detection)
-  // remonte l'info via le termination_reason ou le statut. On la normalise.
-  const reasonStr = `${terminationReason ?? ""} ${callStatus ?? ""}`.toLowerCase();
-  const isVoicemail = /voicemail|voice_mail|answering[_ ]?machine|répondeur/.test(reasonStr);
+  // Alex a-t-il atterri sur un répondeur ? ElevenLabs ne met PAS toujours
+  // termination_reason='voicemail' (souvent 'Call ended by remote party'), mais
+  // son analyse le dit (call_summary_title "…Voicemail", résumé "went to voicemail").
+  // On combine motif + statut + analyse pour détecter la messagerie.
+  const analysisText = `${data.analysis?.call_summary_title ?? ""} ${data.analysis?.transcript_summary ?? ""}`;
+  const reasonStr = `${terminationReason ?? ""} ${callStatus ?? ""} ${analysisText}`.toLowerCase();
+  const isVoicemail = /voicemail|voice.?mail|answering[ _-]?machine|répondeur|messagerie vocale/.test(reasonStr);
 
   let mappedStatus = "completed";
   if (callRow.status === "transferred_to_human") {
