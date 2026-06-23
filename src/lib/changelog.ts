@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.5";
+export const ADMIN_VERSION = "1.3.6";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.6",
+    date: "2026-06-23",
+    title: "Coach Alex : analyse hebdomadaire des appels",
+    items: [
+      "Chaque semaine, une IA analyse les transcriptions des appels d'Alex et vous envoie par email des suggestions concrètes pour améliorer son discours (ouverture, gestion du répondeur, objections).",
+      "Rien n'est appliqué automatiquement : vous gardez la main sur les ajustements.",
+    ],
+  },
   {
     version: "1.3.5",
     date: "2026-06-23",
