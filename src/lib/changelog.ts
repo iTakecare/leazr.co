@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.14";
+export const ADMIN_VERSION = "1.3.15";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.15",
+    date: "2026-06-23",
+    title: "Centre d'appels : « Créer une fiche client » ouvre le formulaire",
+    items: [
+      "Depuis le Centre d'appels, « Créer une fiche client » ouvre désormais directement le formulaire de nouvelle fiche client, au lieu d'afficher la liste du CRM.",
+    ],
+  },
   {
     version: "1.3.14",
     date: "2026-06-23",

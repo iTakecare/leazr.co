@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +36,13 @@ const Clients = () => {
   const [activeTab, setActiveTab] = useState("clients");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  // Ouverture auto de la modale "nouveau client" via ?create=1 (ex. bouton
+  // "Créer une fiche client" du Centre d'appels qui embarque cette page).
+  const [searchParams] = useSearchParams();
+  const [createOpen, setCreateOpen] = useState(false);
+  useEffect(() => {
+    if (searchParams.get("create") === "1") setCreateOpen(true);
+  }, [searchParams]);
 
   const { 
     clients, 
@@ -189,7 +197,7 @@ const Clients = () => {
                             </Button>
                             <BulkKycButton onCompleted={refreshClients} />
                             <EnrichKycFromDocsButton onCompleted={refreshClients} />
-                            <CreateClientDialog onClientCreated={refreshClients} />
+                            <CreateClientDialog onClientCreated={refreshClients} open={createOpen} onOpenChange={setCreateOpen} />
                           </div>
                         </div>
                       </div>
