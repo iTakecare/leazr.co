@@ -979,6 +979,9 @@ const EquipmentOrders: React.FC = () => {
         onOpenChange={setExportModalOpen}
         items={items}
         suppliers={suppliers}
+        initialStatuses={statusFilters}
+        initialSupplier={supplierFilter}
+        initialClient={clientFilter}
       />
     </div>
   );

@@ -31,6 +31,10 @@ interface ExportOrdersModalProps {
   onOpenChange: (open: boolean) => void;
   items: EquipmentOrderItem[];
   suppliers: SupplierInfo[];
+  /** Filtres actuellement actifs sur la page — préremplis à l'ouverture (WYSIWYG) */
+  initialStatuses?: OrderStatus[];
+  initialSupplier?: string;
+  initialClient?: string;
 }
 
 const ALL_STATUSES: OrderStatus[] = ['to_order', 'ordered', 'received', 'cancelled'];
@@ -39,12 +43,13 @@ const ALL_STATUSES: OrderStatus[] = ['to_order', 'ordered', 'received', 'cancell
 const itemYear = (item: EquipmentOrderItem): string =>
   item.source_date ? new Date(item.source_date).getFullYear().toString() : 'Inconnu';
 
-/** Une ligne correspond-elle au statut sélectionné (gère les lignes éclatées en unités) */
+/** Une ligne correspond-elle au statut sélectionné (gère les lignes éclatées en unités).
+ *  Pour une ligne gérée par unité, on se fie UNIQUEMENT au statut des unités
+ *  (le statut « parent » peut être obsolète après éclatement). */
 const matchesStatus = (item: EquipmentOrderItem, statuses: OrderStatus[]): boolean => {
   if (statuses.length === 0) return false;
   if (item.units && item.units.length > 0) {
-    return item.units.some(u => statuses.includes(u.order_status as OrderStatus))
-      || statuses.includes(item.order_status as OrderStatus);
+    return item.units.some(u => statuses.includes((u.order_status ?? 'to_order') as OrderStatus));
   }
   return statuses.includes(item.order_status as OrderStatus);
 };
@@ -58,12 +63,31 @@ const matchesSupplier = (item: EquipmentOrderItem, supplierId: string): boolean 
   return item.supplier_id === supplierId;
 };
 
-const ExportOrdersModal: React.FC<ExportOrdersModalProps> = ({ open, onOpenChange, items, suppliers }) => {
+const ExportOrdersModal: React.FC<ExportOrdersModalProps> = ({
+  open,
+  onOpenChange,
+  items,
+  suppliers,
+  initialStatuses,
+  initialSupplier,
+  initialClient,
+}) => {
   const [statuses, setStatuses] = useState<OrderStatus[]>([...ALL_STATUSES]);
   const [year, setYear] = useState<string>('all');
   const [supplierId, setSupplierId] = useState<string>('all');
   const [clientName, setClientName] = useState<string>('all');
   const [exporting, setExporting] = useState(false);
+
+  // À chaque ouverture, reprendre les filtres actifs sur la page
+  // (statut « À commander » → on n'exporte que ça par défaut).
+  React.useEffect(() => {
+    if (!open) return;
+    const init = (initialStatuses && initialStatuses.length > 0) ? initialStatuses : ALL_STATUSES;
+    setStatuses([...init]);
+    setSupplierId(initialSupplier ?? 'all');
+    setClientName(initialClient ?? 'all');
+    setYear('all');
+  }, [open, initialStatuses, initialSupplier, initialClient]);
 
   // Années présentes dans les données, triées décroissant ("Inconnu" en dernier)
   const years = useMemo(() => {
