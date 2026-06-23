@@ -21,7 +21,7 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
     date: "2026-06-23",
     title: "Softphone : messages d'erreur d'appel plus clairs",
     items: [
-      "Les échecs d'appel du softphone affichent désormais une cause lisible (ex. caller ID ou configuration Twilio à vérifier) au lieu d'un code technique opaque (31005).",
+      "Les échecs d'appel du softphone affichent désormais une cause lisible (ex. « correspondant injoignable, éteint ou occupé ») au lieu d'un code technique opaque (31005).",
       "Si le numéro d'appel sortant n'est pas configuré, l'appel échoue avec un message explicite plutôt qu'un raccrochage silencieux.",
     ],
   },

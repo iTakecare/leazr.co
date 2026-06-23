@@ -41,13 +41,14 @@ interface UseSoftphoneResult {
  * Appels sortants (toujours) + entrants (si receiveIncoming).
  */
 // Traduit les codes d'erreur du SDK Twilio Voice en messages actionnables (FR).
-// Surtout le 31005 « Error sent from gateway in HANGUP » : la passerelle a
-// raccroché, presque toujours un souci TwiML / caller ID côté config Twilio.
+// Le 31005 « Error sent from gateway in HANGUP » remonte quand la passerelle
+// raccroche : le plus souvent le correspondant est injoignable/occupé (l'opérateur
+// renvoie 480/486), parfois un souci de config (caller ID / TwiML App).
 function twilioErrorMessage(err: { message?: string; code?: number }): string {
   const code = err?.code;
   switch (code) {
     case 31005:
-      return "Twilio a raccroché l'appel (31005). Cause probable : numéro d'appel sortant (caller ID) non configuré ou TwiML App mal réglée. Vérifiez la config Twilio.";
+      return "L'appel n'a pas pu aboutir (31005). Le correspondant est probablement injoignable, éteint ou occupé. Réessayez plus tard.";
     case 31003:
       return "Connexion impossible (31003). Vérifiez votre réseau (WebRTC) ou réessayez.";
     case 31000:
