@@ -1729,6 +1729,22 @@ async function fetchAndPersistStatus(
     grenke_state_updated_at: now,
   };
 
+  // Rapatrier le détail financier RÉEL du dossier (montants éventuellement ajustés
+  // à la main par le représentant Grenke). C'est la source de vérité pour la facture
+  // bailleur : on ne peut pas le recalculer côté Leazr quand Grenke ajuste. On stocke
+  // le détail par bien + le montant financé réel + un snapshot brut (audit).
+  // Les noms de champs Grenke côté GET sont à confirmer sur une vraie réponse (cf.
+  // grenke_dossier_snapshot) ; on tente les mêmes clés que le payload de soumission.
+  const dossier = (parsed && typeof parsed === "object") ? parsed as Record<string, unknown> : null;
+  if (dossier) {
+    const fObjects = dossier.FinancingObjects ?? dossier.financingObjects ?? null;
+    const fAmount = dossier.FinancingAmount ?? dossier.financingAmount ?? null;
+    update.grenke_dossier_snapshot = dossier;
+    update.grenke_dossier_fetched_at = now;
+    if (Array.isArray(fObjects)) update.grenke_financing_objects = fObjects;
+    if (typeof fAmount === "number") update.grenke_financing_amount = fAmount;
+  }
+
   // Backfill Grenke's human-readable request number (e.g. "180-33037"). Keep
   // grenke_request_id in sync, and fill the user-facing leaser_request_number
   // only when it's still empty (never clobber a manual edit).
