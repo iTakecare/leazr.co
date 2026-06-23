@@ -35,6 +35,14 @@ serve(async (req) => {
     return twiml(`<Response><Say language="fr-FR">Numéro invalide.</Say></Response>`);
   }
 
+  // Sans caller ID valide, Twilio refuse le <Dial> et la passerelle raccroche
+  // (ConnectionError 31005 côté SDK navigateur, opaque). On échoue ici avec un
+  // message explicite et un log, pour que la cause soit immédiatement lisible.
+  if (!/^\+\d{8,15}$/.test(callerId)) {
+    console.error("[voice-twiml] TWILIO_CALLER_ID manquant ou invalide:", JSON.stringify(callerId));
+    return twiml(`<Response><Say language="fr-FR">Numéro d'appel sortant non configuré. Contactez l'administrateur.</Say></Response>`);
+  }
+
   // Dans le XML, les '&' des URLs DOIVENT être échappés en '&amp;' sinon le
   // TwiML est invalide et Twilio refuse l'appel.
   const xml = (s: string) => s.replace(/&/g, "&amp;");

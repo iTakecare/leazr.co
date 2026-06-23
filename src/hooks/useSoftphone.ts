@@ -40,6 +40,24 @@ interface UseSoftphoneResult {
  * Hook encapsulant le SDK Twilio Voice (softphone navigateur).
  * Appels sortants (toujours) + entrants (si receiveIncoming).
  */
+// Traduit les codes d'erreur du SDK Twilio Voice en messages actionnables (FR).
+// Surtout le 31005 « Error sent from gateway in HANGUP » : la passerelle a
+// raccroché, presque toujours un souci TwiML / caller ID côté config Twilio.
+function twilioErrorMessage(err: { message?: string; code?: number }): string {
+  const code = err?.code;
+  switch (code) {
+    case 31005:
+      return "Twilio a raccroché l'appel (31005). Cause probable : numéro d'appel sortant (caller ID) non configuré ou TwiML App mal réglée. Vérifiez la config Twilio.";
+    case 31003:
+      return "Connexion impossible (31003). Vérifiez votre réseau (WebRTC) ou réessayez.";
+    case 31000:
+    case 31009:
+      return "Transport de signalisation Twilio interrompu. Réessayez dans un instant.";
+    default:
+      return `${err?.message ?? "Erreur pendant l'appel"}${code ? ` (${code})` : ""}`;
+  }
+}
+
 export function useSoftphone(enabled: boolean, opts: UseSoftphoneOptions = {}): UseSoftphoneResult {
   const { receiveIncoming = false } = opts;
   const [status, setStatus] = useState<SoftphoneStatus>("idle");
@@ -85,7 +103,7 @@ export function useSoftphone(enabled: boolean, opts: UseSoftphoneOptions = {}): 
     twCall.on("reject", ended);
     twCall.on("error", (err: { message?: string; code?: number }) => {
       clearWatchdog();
-      setError(`${err?.message ?? "Erreur pendant l'appel"}${err?.code ? ` (${err.code})` : ""}`);
+      setError(twilioErrorMessage(err));
       setStatus("error"); clearTimer(); callRef.current = null; activeRef.current = false;
     });
   }, [startTimer, clearTimer, clearWatchdog]);
@@ -124,7 +142,7 @@ export function useSoftphone(enabled: boolean, opts: UseSoftphoneOptions = {}): 
           if (cancelled) return;
           if (activeRef.current) {
             clearWatchdog();
-            setError(`${err?.message ?? "Erreur du softphone"}${err?.code ? ` (${err.code})` : ""}`);
+            setError(twilioErrorMessage(err));
             setStatus("error");
           } else {
             console.warn("[softphone] device error (non bloquant):", err?.code, err?.message);

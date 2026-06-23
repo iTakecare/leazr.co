@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.2.2";
+export const ADMIN_VERSION = "1.2.3";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.2.3",
+    date: "2026-06-23",
+    title: "Softphone : messages d'erreur d'appel plus clairs",
+    items: [
+      "Les échecs d'appel du softphone affichent désormais une cause lisible (ex. caller ID ou configuration Twilio à vérifier) au lieu d'un code technique opaque (31005).",
+      "Si le numéro d'appel sortant n'est pas configuré, l'appel échoue avec un message explicite plutôt qu'un raccrochage silencieux.",
+    ],
+  },
   {
     version: "1.2.2",
     date: "2026-06-23",
