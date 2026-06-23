@@ -25,6 +25,7 @@ import {
   FolderOpen,
   Sparkles,
   Phone,
+  Bot,
   Wallet,
   HelpCircle
 } from "lucide-react";
@@ -102,6 +103,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
           { icon: Mail, label: "Chat Admin", href: `${basePrefix}/admin/chat`, moduleSlug: "chat" },
           { icon: Headset, label: "Support", href: `${basePrefix}/admin/support`, moduleSlug: "support", alwaysVisible: true, badge: supportUnreadCount > 0 ? String(supportUnreadCount) : undefined },
           { icon: Phone, label: "Centre d'appels", href: `${basePrefix}/admin/phone`, moduleSlug: "phone", alwaysVisible: true },
+          { icon: Bot, label: "Campagnes Alex", href: `${basePrefix}/admin/voice-campaigns`, moduleSlug: "phone", alwaysVisible: true },
         ]
       },
     ];

@@ -85,6 +85,7 @@ const StockManagement = lazy(() => import("@/pages/admin/StockManagement"));
 const Tasks = lazy(() => import("@/pages/admin/Tasks"));
 const SupportPage = lazy(() => import("@/pages/admin/SupportPage"));
 const PhoneCallCenter = lazy(() => import("@/pages/admin/PhoneCallCenter"));
+const VoiceCampaigns = lazy(() => import("@/pages/admin/VoiceCampaigns"));
 const CRMPage = lazy(() => import("@/pages/CRMPage"));
 const HelpPage = lazy(() => import("@/pages/admin/HelpPage"));
 
@@ -345,6 +346,7 @@ const AppRoutes = () => {
       <Route path="tasks" element={<Layout><Tasks /></Layout>} />
       <Route path="support" element={<Layout><SupportPage /></Layout>} />
       <Route path="phone" element={<Layout><PhoneCallCenter /></Layout>} />
+      <Route path="voice-campaigns" element={<Layout><VoiceCampaigns /></Layout>} />
       <Route path="crm" element={<Layout><CRMPage /></Layout>} />
       <Route path="aide" element={<Layout><HelpPage /></Layout>} />
       

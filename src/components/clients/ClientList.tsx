@@ -4,9 +4,11 @@ import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, Edit, Trash2, Building2, Mail, Phone, MapPin, MoreHorizontal, User, ArrowUp, ArrowDown } from "lucide-react";
+import { Eye, Edit, Trash2, Building2, Mail, Phone, MapPin, MoreHorizontal, User, ArrowUp, ArrowDown, Bot } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
+import VoiceCampaignModal from "@/components/clients/VoiceCampaignModal";
 import { formatDateToFrench } from "@/utils/formatters";
 import { Client } from "@/types/client";
 import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
@@ -36,6 +38,16 @@ const ClientList: React.FC<ClientListProps> = ({
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [campaignOpen, setCampaignOpen] = useState(false);
+
+  const toggleClient = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -240,11 +252,45 @@ const ClientList: React.FC<ClientListProps> = ({
     );
   }
 
+  const allSelected = sortedClients.length > 0 && selected.size === sortedClients.length;
+  const someSelected = selected.size > 0 && !allSelected;
+  const toggleAll = () => {
+    setSelected(allSelected ? new Set() : new Set(sortedClients.map((c) => c.id)));
+  };
+  const selectedClients = sortedClients
+    .filter((c) => selected.has(c.id))
+    .map((c) => ({ id: c.id, name: c.name || c.company || c.email || c.id }));
+
   return (
     <div className="bg-white rounded-lg border">
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b bg-violet-50">
+          <span className="text-sm text-violet-900 font-medium">{selected.size} client(s) sélectionné(s)</span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Désélectionner</Button>
+            <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setCampaignOpen(true)}>
+              <Bot className="w-4 h-4 mr-2" />
+              Appeler en groupe avec Alex
+            </Button>
+          </div>
+        </div>
+      )}
+      <VoiceCampaignModal
+        open={campaignOpen}
+        onOpenChange={setCampaignOpen}
+        clients={selectedClients}
+        onLaunched={() => setSelected(new Set())}
+      />
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={toggleAll}
+                aria-label="Tout sélectionner"
+              />
+            </TableHead>
             <SortableHeader field="name" label="Nom" />
             <SortableHeader field="company" label="Société" />
             <TableHead>KYC</TableHead>
@@ -258,6 +304,13 @@ const ClientList: React.FC<ClientListProps> = ({
         <TableBody>
           {sortedClients.map((client) => (
             <TableRow key={client.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => handleViewClient(client)}>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={selected.has(client.id)}
+                  onCheckedChange={() => toggleClient(client.id)}
+                  aria-label={`Sélectionner ${client.name}`}
+                />
+              </TableCell>
               <TableCell>
                 <div className="font-medium">{client.name}</div>
                 {client.contact_name && client.contact_name !== client.name && (
