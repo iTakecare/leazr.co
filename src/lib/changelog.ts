@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.8";
+export const ADMIN_VERSION = "1.3.9";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.9",
+    date: "2026-06-23",
+    title: "Facture Billit : « non sérialisé » respecté pour Grenke",
+    items: [
+      "Un équipement coché « non sérialisé » (câble, écran, accessoire...) ne déclenche plus l'avertissement « n° de série manquant — obligatoire pour Grenke » lors de la préparation de la facture à pousser vers Billit.",
+    ],
+  },
   {
     version: "1.3.8",
     date: "2026-06-23",

@@ -122,7 +122,7 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   if (invoice.contract_id) {
     const { data } = await supabase
       .from("contracts")
-      .select("id, client_id, leaser_id, leaser_name, contract_number, offer_id, contract_equipment(title, quantity, purchase_price, margin, serial_number, category_id)")
+      .select("id, client_id, leaser_id, leaser_name, contract_number, offer_id, contract_equipment(title, quantity, purchase_price, margin, serial_number, category_id, not_serializable)")
       .eq("id", invoice.contract_id).maybeSingle();
     contract = data;
   }
@@ -225,7 +225,9 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
         if (isLast) lineTotal = round2(amount - allocated);
         else allocated = round2(allocated + lineTotal);
         let desc = `${q > 1 ? q + "× " : ""}${e.title || "Équipement"}`;
-        const needsSN = isSerialCategory(catById.get(e.category_id) || "") || titleNeedsSerial(e.title || "");
+        // Un équipement explicitement marqué « non sérialisé » (câble, écran, accessoire...)
+        // n'exige jamais de n° de série, quelle que soit sa catégorie/titre.
+        const needsSN = !e.not_serializable && (isSerialCategory(catById.get(e.category_id) || "") || titleNeedsSerial(e.title || ""));
         const serials = parseSerials(e.serial_number, q);
         const hasRealSerial = serials.some((s) => s);
         if (needsSN || hasRealSerial) {
