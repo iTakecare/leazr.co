@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.3";
+export const ADMIN_VERSION = "1.3.4";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.4",
+    date: "2026-06-23",
+    title: "Alex : ouverture d'appel revue (moins de raccrochages)",
+    items: [
+      "Alex annonce désormais le motif de l'appel dès la première phrase (« il nous manque encore tel document pour finaliser votre dossier »), avec un ton plus humain, pour que le client comprenne tout de suite et reste en ligne.",
+      "La mention d'enregistrement et le droit de parler à un humain sont conservés, mais condensés après le motif.",
+    ],
+  },
   {
     version: "1.3.3",
     date: "2026-06-23",

@@ -109,11 +109,12 @@ serve(async (req) => {
     return jsonErr(500, "ElevenLabs not configured (missing env vars)");
   }
 
-  // First message is forced literal for RGPD compliance (announcement + consent reminder).
+  // Ouverture motif-d'abord (réduit les raccrochages) : prénom + raison de l'appel
+  // (documents manquants) dès la 1re phrase, mention RGPD condensée ensuite.
   const firstMessageByLang: Record<string, string> = {
-    fr: `Bonjour ${firstName}, je suis Alex, l'assistante virtuelle d'iTakecare. Cet appel est enregistré pour assurer la qualité du service. Vous pouvez à tout moment demander à parler à un collaborateur humain. Avez-vous quelques minutes ?`,
-    nl: `Goedendag ${firstName}, ik ben Alex, de virtuele assistente van iTakecare. Dit gesprek wordt opgenomen voor kwaliteitsdoeleinden. U kunt op elk moment vragen om met een menselijke medewerker te spreken. Heeft u enkele minuten?`,
-    en: `Hello ${firstName}, I'm Alex, iTakecare's virtual assistant. This call is being recorded for quality purposes. You can ask to speak with a human colleague at any time. Do you have a few minutes?`,
+    fr: `Bonjour ${firstName}, c'est Alex de chez iTakecare, au sujet de votre dossier de leasing. Je vous appelle car il nous manque encore ${missingDocs} pour le finaliser. Cet appel est enregistré et vous pouvez demander un collaborateur humain à tout moment. Avez-vous deux minutes ?`,
+    nl: `Goedendag ${firstName}, met Alex van iTakecare, over uw leasingdossier. Ik bel u omdat we nog ${missingDocs} nodig hebben om het af te ronden. Dit gesprek wordt opgenomen en u kunt op elk moment om een medewerker vragen. Heeft u twee minuten?`,
+    en: `Hello ${firstName}, this is Alex from iTakecare, about your leasing file. I'm calling because we still need ${missingDocs} to finalize it. This call is recorded and you can ask for a human colleague at any time. Do you have two minutes?`,
   };
 
   try {

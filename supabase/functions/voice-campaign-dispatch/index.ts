@@ -18,10 +18,11 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const STALE_RINGING_MS = 6 * 60 * 1000; // un appel "ringing" plus vieux que ça est considéré perdu
 
-const firstMessageByLang: Record<string, (n: string) => string> = {
-  fr: (n) => `Bonjour ${n}, je suis Alex, l'assistante virtuelle d'iTakecare. Cet appel est enregistré pour assurer la qualité du service. Vous pouvez à tout moment demander à parler à un collaborateur humain. Avez-vous quelques minutes ?`,
-  nl: (n) => `Goedendag ${n}, ik ben Alex, de virtuele assistente van iTakecare. Dit gesprek wordt opgenomen voor kwaliteitsdoeleinden. U kunt op elk moment vragen om met een menselijke medewerker te spreken. Heeft u enkele minuten?`,
-  en: (n) => `Hello ${n}, I'm Alex, iTakecare's virtual assistant. This call is being recorded for quality purposes. You can ask to speak with a human colleague at any time. Do you have a few minutes?`,
+// Ouverture motif-d'abord : prénom + documents manquants dès la 1re phrase, RGPD condensé.
+const firstMessageByLang: Record<string, (n: string, docs: string) => string> = {
+  fr: (n, docs) => `Bonjour ${n}, c'est Alex de chez iTakecare, au sujet de votre dossier de leasing. Je vous appelle car il nous manque encore ${docs} pour le finaliser. Cet appel est enregistré et vous pouvez demander un collaborateur humain à tout moment. Avez-vous deux minutes ?`,
+  nl: (n, docs) => `Goedendag ${n}, met Alex van iTakecare, over uw leasingdossier. Ik bel u omdat we nog ${docs} nodig hebben om het af te ronden. Dit gesprek wordt opgenomen en u kunt op elk moment om een medewerker vragen. Heeft u twee minuten?`,
+  en: (n, docs) => `Hello ${n}, this is Alex from iTakecare, about your leasing file. I'm calling because we still need ${docs} to finalize it. This call is recorded and you can ask for a human colleague at any time. Do you have two minutes?`,
 };
 
 serve(async (req) => {
@@ -101,7 +102,7 @@ async function launchCall(supabase: any, call: any): Promise<boolean> {
   const firstName = call.metadata?.first_name ?? "";
   const missingDocs = call.metadata?.missing_docs || "vos documents administratifs";
   const mk = firstMessageByLang[lang] ?? firstMessageByLang.fr;
-  const firstMessage = mk(firstName);
+  const firstMessage = mk(firstName, missingDocs);
 
   try {
     const eleven = await startElevenLabsCall({
