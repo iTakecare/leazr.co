@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.2";
+export const ADMIN_VERSION = "1.3.3";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.3",
+    date: "2026-06-23",
+    title: "Campagnes Alex : on coche les Demandes (pas le CRM)",
+    items: [
+      "Les campagnes de relance se lancent désormais depuis la liste des Demandes : on coche les demandes en attente de documents et Alex rappelle chaque client pour SES documents manquants (déterminés automatiquement par demande).",
+      "Chaque appel reste transcrit et résumé, pour savoir s'il faut rappeler ou si l'on est tombé sur la messagerie.",
+    ],
+  },
   {
     version: "1.3.2",
     date: "2026-06-23",
@@ -37,10 +46,10 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.3.0",
     date: "2026-06-23",
-    title: "Campagnes d'appels groupés avec Alex (IA)",
+    title: "Campagnes de relance documents avec Alex (IA)",
     items: [
-      "Depuis le CRM, sélectionnez plusieurs clients (cases à cocher) puis « Appeler en groupe avec Alex » : l'agent IA les appelle un par un.",
-      "Nouvelle page « Campagnes Alex » : suivez en direct l'avancement de chaque campagne et le résultat de chaque appel (client joint, message laissé, pas de réponse, occupé…), avec le résumé IA de la conversation.",
+      "Depuis la liste des Demandes, cochez plusieurs demandes en attente de documents puis « Appeler en groupe avec Alex » : l'agent IA rappelle chaque client, un par un, pour redemander ses documents manquants (calculés automatiquement par demande).",
+      "Onglet « Campagnes Alex » dans le Centre d'appels : suivez en direct chaque campagne et le résultat de chaque appel (client joint, message laissé, pas de réponse, occupé…), avec la transcription et le résumé IA de la conversation.",
       "À la fin de chaque campagne, un rapport récapitulatif est envoyé automatiquement par email à l'initiateur.",
       "Seuls les clients ayant donné leur consentement RGPD aux appels IA et disposant d'un numéro valide sont appelés ; les autres sont signalés comme ignorés.",
       "Alex peut désormais laisser un message lorsqu'il tombe sur un répondeur (détection de messagerie vocale).",

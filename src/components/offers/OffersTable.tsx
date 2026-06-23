@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/table";
 import { SortableTableHead } from "@/components/ui/SortableTableHead";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import VoiceCampaignModal from "@/components/clients/VoiceCampaignModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +41,8 @@ import {
   ExternalLink,
   Mail,
   Upload,
-  Phone
+  Phone,
+  Bot
 } from "lucide-react";
 import {
   Tooltip,
@@ -133,6 +136,17 @@ const OffersTable: React.FC<OffersTableProps> = ({
   // Sorting state
   const [sortColumn, setSortColumn] = useState<OfferSortColumn>('last_activity');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Sélection multiple (admin) pour campagne d'appels Alex (relance documents).
+  const canSelect = isAdmin();
+  const [selectedOffers, setSelectedOffers] = useState<Set<string>>(new Set());
+  const [campaignOpen, setCampaignOpen] = useState(false);
+  const toggleOffer = (id: string) =>
+    setSelectedOffers((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   
   const handleSort = (column: OfferSortColumn) => {
     if (sortColumn === column) {
@@ -368,13 +382,51 @@ const OffersTable: React.FC<OffersTableProps> = ({
     );
   }
 
+  const allSelected = canSelect && sortedOffers.length > 0 && selectedOffers.size === sortedOffers.length;
+  const someSelected = selectedOffers.size > 0 && !allSelected;
+  const toggleAll = () =>
+    setSelectedOffers(allSelected ? new Set() : new Set(sortedOffers.map((o: any) => o.id)));
+  const selectedOfferList = sortedOffers
+    .filter((o: any) => selectedOffers.has(o.id))
+    .map((o: any) => {
+      const { displayName } = parseClientName(o.client_name ?? "", o.clients);
+      return { offer_id: o.id, label: `${o.dossier_number ? o.dossier_number + " · " : ""}${displayName || o.client_name || o.id}` };
+    });
+
   return (
     <TooltipProvider>
+      {canSelect && selectedOffers.size > 0 && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 mb-2 rounded-md border bg-violet-50">
+          <span className="text-sm text-violet-900 font-medium">{selectedOffers.size} demande(s) sélectionnée(s)</span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedOffers(new Set())}>Désélectionner</Button>
+            <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setCampaignOpen(true)}>
+              <Bot className="w-4 h-4 mr-2" />
+              Appeler en groupe avec Alex
+            </Button>
+          </div>
+        </div>
+      )}
+      <VoiceCampaignModal
+        open={campaignOpen}
+        onOpenChange={setCampaignOpen}
+        offers={selectedOfferList}
+        onLaunched={() => setSelectedOffers(new Set())}
+      />
       <div className="rounded-md border overflow-hidden">
         <div className="overflow-x-auto max-w-full">
           <Table className={`${isAmbassador() ? 'min-w-[900px]' : 'min-w-[1400px]'} text-[11px]`}>
             <TableHeader>
               <TableRow className="h-9">
+                {canSelect && (
+                  <TableHead className="w-8">
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                      onCheckedChange={toggleAll}
+                      aria-label="Tout sélectionner"
+                    />
+                  </TableHead>
+                )}
                 <SortableTableHead
                   column="dossier_number"
                   label="N° Demande"
@@ -538,11 +590,20 @@ const OffersTable: React.FC<OffersTableProps> = ({
             </TableHeader>
             <TableBody>
               {sortedOffers.map((offer) => (
-                <TableRow 
-                  key={offer.id} 
+                <TableRow
+                  key={offer.id}
                   className="h-10 cursor-pointer hover:bg-muted/50"
                   onClick={() => handleViewDetails(offer.id)}
                 >
+                  {canSelect && (
+                    <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedOffers.has(offer.id)}
+                        onCheckedChange={() => toggleOffer(offer.id)}
+                        aria-label="Sélectionner la demande"
+                      />
+                    </TableCell>
+                  )}
                   {/* Numéro de demande */}
                   <TableCell className="font-mono text-[11px] py-2">
                     <div className="flex items-center gap-1.5">
