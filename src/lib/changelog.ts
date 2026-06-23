@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.6";
+export const ADMIN_VERSION = "1.3.7";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.7",
+    date: "2026-06-23",
+    title: "Facturation possible dès le statut « Livré »",
+    items: [
+      "Le bouton « Générer la facture » d'un contrat s'active désormais aussi quand le contrat est au statut « Livré » (en plus de « Commandé » et « Actif »). Inutile de passer le contrat en « Actif » au préalable pour facturer.",
+    ],
+  },
   {
     version: "1.3.6",
     date: "2026-06-23",

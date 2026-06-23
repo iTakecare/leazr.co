@@ -105,7 +105,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
 
       // 4. Calculate eligibility
       const canGenerate = isBillitEnabled &&
-                         ['equipment_ordered', 'active'].includes(contract.status) &&
+                         ['equipment_ordered', 'delivered', 'active'].includes(contract.status) &&
                          !invoice &&
                          allSerialsComplete;
       setCanGenerateInvoice(canGenerate);
