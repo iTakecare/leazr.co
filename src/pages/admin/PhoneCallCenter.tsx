@@ -36,6 +36,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import VoiceCampaigns from "@/pages/admin/VoiceCampaigns";
 import VoiceStats from "@/pages/admin/VoiceStats";
+import VoiceInsights from "@/pages/admin/VoiceInsights";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSoftphone } from "@/hooks/useSoftphone";
@@ -783,6 +784,7 @@ export default function PhoneCallCenter() {
       {view === "stats" && (
         <div className="flex-1 min-h-0 overflow-auto -mx-4 sm:-mx-6">
           <VoiceStats />
+          <VoiceInsights />
         </div>
       )}
 

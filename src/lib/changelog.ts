@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.12";
+export const ADMIN_VERSION = "1.3.13";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.13",
+    date: "2026-06-23",
+    title: "Statistiques Alex : pistes d'amélioration",
+    items: [
+      "Sous les statistiques d'Alex, une section « Pistes d'amélioration » indique combien de demandes en attente de documents sont réellement joignables par Alex, et combien sont bloquées par un numéro manquant ou un consentement IA non donné — à corriger dans les fiches.",
+      "Graphique des documents qui bloquent le plus (à expliquer ou pré-collecter en amont) et du meilleur créneau horaire pour joindre un humain.",
+      "Recommandations automatiques basées sur vos données pour améliorer le taux de réponse et la récupération des documents.",
+    ],
+  },
   {
     version: "1.3.12",
     date: "2026-06-23",
