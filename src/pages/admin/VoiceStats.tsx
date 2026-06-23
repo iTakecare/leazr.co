@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Phone, UserCheck, Voicemail, FileCheck2, Clock, TrendingUp, MessagesSquare } from "lucide-react";
+import { Loader2, Phone, UserCheck, Voicemail, FileCheck2, Clock, TrendingUp, MessagesSquare, Euro } from "lucide-react";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RTooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -48,6 +48,13 @@ const VoiceStats: React.FC = () => {
   const [convertedIds, setConvertedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<(typeof PERIODS)[number]["key"]>("90");
+  // Tarif € / minute d'appel Alex (ElevenLabs facture en crédits ; le €/min dépend
+  // de l'abonnement). Modifiable et mémorisé localement.
+  const [eurPerMin, setEurPerMin] = useState<number>(() => {
+    const v = parseFloat(localStorage.getItem("alex_eur_per_min") ?? "");
+    return Number.isFinite(v) && v > 0 ? v : 0.10;
+  });
+  useEffect(() => { localStorage.setItem("alex_eur_per_min", String(eurPerMin)); }, [eurPerMin]);
 
   useEffect(() => {
     (async () => {
@@ -105,20 +112,20 @@ const VoiceStats: React.FC = () => {
   const k = useMemo(() => {
     const n = filtered.length;
     const by: Record<string, number> = { joint: 0, voicemail: 0, no_answer: 0, failed: 0, pending: 0 };
-    let durSum = 0, durCount = 0, cost = 0, withOffer = 0, converted = 0, real = 0;
+    let durSum = 0, durCount = 0, durAll = 0, withOffer = 0, converted = 0, real = 0;
     for (const c of filtered) {
       const o = outcomeOf(c.status);
       by[o]++;
+      durAll += c.duration_seconds ?? 0; // tout le temps facturé (répondeurs inclus)
       if (o === "joint" && c.duration_seconds) { durSum += c.duration_seconds; durCount++; }
       // Conversation réelle = humain joint ET au moins 30s d'échange (≠ a juste décroché).
       if (o === "joint" && (c.duration_seconds ?? 0) >= 30) real++;
-      cost += c.cost_eur ?? 0;
       if (c.offer_id) { withOffer++; if (convertedIds.has(c.id)) converted++; }
     }
     return {
       n, by,
       avgDur: durCount ? Math.round(durSum / durCount) : 0,
-      cost,
+      durAll,
       joinRate: n ? Math.round((by.joint / n) * 100) : 0,
       vmRate: n ? Math.round((by.voicemail / n) * 100) : 0,
       real, realRate: n ? Math.round((real / n) * 100) : 0,
@@ -126,6 +133,11 @@ const VoiceStats: React.FC = () => {
       convRate: withOffer ? Math.round((converted / withOffer) * 100) : 0,
     };
   }, [filtered, convertedIds]);
+
+  const eur = useMemo(() => {
+    const total = (k.durAll / 60) * eurPerMin;
+    return { total, perCall: k.n ? total / k.n : 0 };
+  }, [k.durAll, k.n, eurPerMin]);
 
   const pieData = useMemo(
     () => Object.entries(k.by).filter(([, v]) => v > 0).map(([key, v]) => ({ name: (OUTCOME as any)[key].label, value: v, color: (OUTCOME as any)[key].color })),
@@ -163,13 +175,24 @@ const VoiceStats: React.FC = () => {
           <h1 className="text-2xl font-bold flex items-center gap-2"><TrendingUp className="w-6 h-6 text-violet-600" /> Statistiques Alex</h1>
           <p className="text-sm text-muted-foreground mt-1">Efficacité des appels de l'agent IA : jointures, répondeurs, et conversion en dépôt de documents.</p>
         </div>
-        <div className="flex items-center gap-1 rounded-lg border p-0.5">
-          {PERIODS.map((p) => (
-            <button key={p.key} onClick={() => setPeriod(p.key)}
-              className={cn("px-3 py-1 text-xs rounded-md transition-colors", period === p.key ? "bg-violet-600 text-white" : "text-muted-foreground hover:text-foreground")}>
-              {p.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            Tarif
+            <input
+              type="number" step="0.01" min="0" value={eurPerMin}
+              onChange={(e) => setEurPerMin(Math.max(0, parseFloat(e.target.value) || 0))}
+              className="w-16 rounded-md border px-1.5 py-1 text-xs text-foreground tabular-nums"
+            />
+            €/min
+          </label>
+          <div className="flex items-center gap-1 rounded-lg border p-0.5">
+            {PERIODS.map((p) => (
+              <button key={p.key} onClick={() => setPeriod(p.key)}
+                className={cn("px-3 py-1 text-xs rounded-md transition-colors", period === p.key ? "bg-violet-600 text-white" : "text-muted-foreground hover:text-foreground")}>
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -178,14 +201,15 @@ const VoiceStats: React.FC = () => {
       ) : (
         <>
           {/* KPI cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Kpi icon={Phone} label="Appels" value={k.n} />
             <Kpi icon={UserCheck} label="Humain joint" value={`${k.joinRate}%`} sub={`${k.by.joint} appels`} tone="green" />
             <Kpi icon={MessagesSquare} label="Conversations réelles" value={`${k.realRate}%`} sub={`${k.real} ≥ 30s`} tone="green" />
             <Kpi icon={Voicemail} label="Répondeur" value={`${k.vmRate}%`} sub={`${k.by.voicemail} appels`} tone="amber" />
             <Kpi icon={FileCheck2} label="Conversion docs" value={`${k.convRate}%`} sub={`${k.converted}/${k.withOffer} liés`} tone="blue" />
             <Kpi icon={Clock} label="Durée moy. (joint)" value={`${Math.floor(k.avgDur / 60)}m${String(k.avgDur % 60).padStart(2, "0")}`} />
-            <Kpi icon={TrendingUp} label="Crédits ElevenLabs" value={k.cost ? Math.round(k.cost).toLocaleString("fr-FR") : "—"} />
+            <Kpi icon={Euro} label="Coût total" value={`${eur.total.toFixed(2)} €`} sub={`${Math.round(k.durAll / 60)} min facturées`} tone="blue" />
+            <Kpi icon={Euro} label="Coût / appel" value={`${eur.perCall.toFixed(2)} €`} sub={`à ${eurPerMin.toFixed(2)} €/min`} tone="blue" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

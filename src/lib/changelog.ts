@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.17";
+export const ADMIN_VERSION = "1.3.18";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.18",
+    date: "2026-06-23",
+    title: "Statistiques Alex : coût en euros (total et par appel)",
+    items: [
+      "Le coût des appels Alex est désormais affiché en euros : coût total et coût moyen par appel, calculés sur le temps facturé (répondeurs inclus).",
+      "Un champ « Tarif €/min » modifiable en haut de la page permet de saisir votre tarif ElevenLabs réel ; il est mémorisé pour les prochaines visites.",
+    ],
+  },
   {
     version: "1.3.17",
     date: "2026-06-23",
