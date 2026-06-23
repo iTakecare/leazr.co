@@ -1,21 +1,42 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Receipt } from "lucide-react";
+import { Calendar, Receipt, CreditCard } from "lucide-react";
+
+// Valeurs Billit (champ PaymentMethod de l'Order) — cf. docs.billit.be types.
+export const BILLIT_PAYMENT_METHODS = [
+  { value: 'Wired', label: 'Virement bancaire' },
+  { value: 'Domiciliation', label: 'Domiciliation (prélèvement)' },
+  { value: 'Bancontact', label: 'Bancontact' },
+  { value: 'Visa', label: 'Carte (Visa)' },
+  { value: 'Online', label: 'Paiement en ligne' },
+  { value: 'Contant', label: 'Espèces' },
+  { value: 'PrivateAccount', label: 'Compte privé' },
+  { value: 'Other', label: 'Autre' },
+];
 
 interface LeaserBillingSettingsProps {
   billingFrequency: string;
   contractStartRule: string;
+  paymentMethod: string;
+  dueDays: string;
   onBillingFrequencyChange: (value: string) => void;
   onContractStartRuleChange: (value: string) => void;
+  onPaymentMethodChange: (value: string) => void;
+  onDueDaysChange: (value: string) => void;
 }
 
 const LeaserBillingSettings: React.FC<LeaserBillingSettingsProps> = ({
   billingFrequency,
   contractStartRule,
+  paymentMethod,
+  dueDays,
   onBillingFrequencyChange,
-  onContractStartRuleChange
+  onContractStartRuleChange,
+  onPaymentMethodChange,
+  onDueDaysChange
 }) => {
   const billingFrequencyOptions = [
     { value: 'monthly', label: 'Mensuelle' },
@@ -78,6 +99,45 @@ const LeaserBillingSettings: React.FC<LeaserBillingSettingsProps> = ({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Facturation au bailleur (Billit) : mode de paiement + échéance */}
+        <div className="grid gap-4 sm:grid-cols-2 border-t pt-4">
+          <div className="space-y-2">
+            <Label htmlFor="invoice_payment_method" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Mode de paiement (facture)
+            </Label>
+            <Select value={paymentMethod || undefined} onValueChange={onPaymentMethodChange}>
+              <SelectTrigger id="invoice_payment_method">
+                <SelectValue placeholder="Sélectionner le mode" />
+              </SelectTrigger>
+              <SelectContent>
+                {BILLIT_PAYMENT_METHODS.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="invoice_due_days" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Délai de paiement (jours)
+            </Label>
+            <Input
+              id="invoice_due_days"
+              type="number"
+              min={0}
+              placeholder="ex. 30"
+              value={dueDays}
+              onChange={(e) => onDueDaysChange(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Date d'échéance = date de facture + ce nombre de jours.
+            </p>
+          </div>
         </div>
 
         {/* Aide visuelle */}

@@ -202,6 +202,10 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
         use_duration_coefficients: (leaser as any).use_duration_coefficients || false,
         is_own_company: (leaser as any).is_own_company || false,
         residual_value_percentage: leaser.residual_value_percentage ?? 3,
+        billing_frequency: (leaser as any).billing_frequency ?? null,
+        contract_start_rule: (leaser as any).contract_start_rule ?? null,
+        invoice_payment_method: (leaser as any).invoice_payment_method ?? null,
+        invoice_due_days: (leaser as any).invoice_due_days ?? null,
         company_id: companyId
       })
       .select()
@@ -334,7 +338,11 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
         available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72],
         use_duration_coefficients: (leaser as any).use_duration_coefficients || false,
         is_own_company: (leaser as any).is_own_company || false,
-        residual_value_percentage: leaser.residual_value_percentage ?? 3
+        residual_value_percentage: leaser.residual_value_percentage ?? 3,
+        billing_frequency: (leaser as any).billing_frequency ?? null,
+        contract_start_rule: (leaser as any).contract_start_rule ?? null,
+        invoice_payment_method: (leaser as any).invoice_payment_method ?? null,
+        invoice_due_days: (leaser as any).invoice_due_days ?? null
       })
       .eq('id', id);
     

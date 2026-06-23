@@ -32,6 +32,11 @@ const jsonResponse = (body: unknown, status = 200) =>
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const addDaysISO = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+// Échéance = date de facture (ISO) + N jours.
+const addDaysToISO = (isoDate: string, days: number) => {
+  const base = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`).getTime();
+  return new Date(base + days * 86400000).toISOString().slice(0, 10);
+};
 
 // Catégories dont le n° de série est OBLIGATOIRE sur la facture Grenke
 // (ordinateur, ordinateur portable, smartphone, tablette).
@@ -138,12 +143,16 @@ interface BuiltOrder {
   warnings: string[];
   dossierRef: string | null; // « DOSSIER 180-xxxxx » -> Objet (OrderTitle) + Votre réf. (Reference) Billit
   grenkeAligned: boolean; // true = montants par bien = valeurs réelles rapatriées de Grenke
+  paymentMethod: string | null; // mode de paiement Billit (paramétré sur le bailleur)
+  dueDays: number | null; // délai de paiement en jours (paramétré sur le bailleur)
 }
 
 // Résout destinataire + canal + lignes pour une facture Leazr.
 async function buildOrder(supabase: any, companyId: string, invoice: any): Promise<BuiltOrder> {
   const warnings: string[] = [];
   let grenkeAligned = false; // true = montants par bien alignés sur les valeurs réelles Grenke
+  let paymentMethod: string | null = null; // mode de paiement Billit (paramétré sur le bailleur)
+  let dueDays: number | null = null; // délai de paiement en jours (paramétré sur le bailleur)
   const bd = invoice.billing_data || {};
   const isSelf = bd.type === "self_leasing_monthly";
   const vatRate = typeof bd.tva_rate === "number" ? bd.tva_rate : 21;
@@ -181,6 +190,13 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
       leaser = data?.[0] || null;
     }
     if (!leaser) throw new Error(`Bailleur introuvable pour la facture ${invoice.invoice_number || invoice.id}`);
+    // Paramètres de facturation du bailleur (mode de paiement + délai d'échéance).
+    paymentMethod = (leaser.invoice_payment_method || "").toString().trim() || null;
+    dueDays = (typeof leaser.invoice_due_days === "number" && leaser.invoice_due_days >= 0) ? leaser.invoice_due_days : null;
+    if (!paymentMethod || dueDays == null) {
+      const manque = [!paymentMethod ? "mode de paiement" : null, dueDays == null ? "délai d'échéance" : null].filter(Boolean).join(" et ");
+      warnings.push(`Bailleur « ${leaser.name} » : ${manque} non paramétré(s) — à compléter dans Paramètres → Leasers → ${leaser.name} (Paramètres de facturation).`);
+    }
     recipient = {
       kind: "leaser",
       name: leaser.company_name || leaser.name,
@@ -331,7 +347,7 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   const leaserRequestNumber = (offer?.leaser_request_number || "").toString().trim();
   const dossierRef = leaserRequestNumber ? `DOSSIER ${leaserRequestNumber}` : null;
 
-  return { recipient, lines, totalExcl: round2(lines.reduce((s, l) => s + l.UnitPriceExcl * l.Quantity, 0)), vatRate, warnings, dossierRef, grenkeAligned };
+  return { recipient, lines, totalExcl: round2(lines.reduce((s, l) => s + l.UnitPriceExcl * l.Quantity, 0)), vatRate, warnings, dossierRef, grenkeAligned, paymentMethod, dueDays };
 }
 
 function toBillitPayload(invoice: any, built: BuiltOrder) {
@@ -350,15 +366,23 @@ function toBillitPayload(invoice: any, built: BuiltOrder) {
     }],
   };
   if (r.email) customer.Email = r.email;
+  const orderDate = (invoice.invoice_date || todayISO()).slice(0, 10);
+  // Échéance : date explicite de la facture sinon date de facture + délai du bailleur
+  // (invoice_due_days) ; repli ultime = +30 jours.
+  const expiryDate = invoice.due_date
+    ? String(invoice.due_date).slice(0, 10)
+    : (built.dueDays != null ? addDaysToISO(orderDate, built.dueDays) : addDaysISO(30));
   const payload: any = {
     OrderType: "Invoice",
     OrderDirection: "Income",
-    OrderDate: (invoice.invoice_date || todayISO()).slice(0, 10),
-    ExpiryDate: (invoice.due_date || addDaysISO(30)).slice(0, 10),
+    OrderDate: orderDate,
+    ExpiryDate: expiryDate,
     Customer: customer,
     OrderLines: built.lines,
   };
   if (invoice.invoice_number) payload.OrderNumber = invoice.invoice_number;
+  // Mode de paiement Billit (paramétré sur le bailleur) : Wired, Domiciliation, etc.
+  if (built.paymentMethod) payload.PaymentMethod = built.paymentMethod;
   // Objet (OrderTitle) + Votre référence / PO (Reference) = n° de dossier leaseur « DOSSIER 180-xxxxx ».
   if (built.dossierRef) {
     payload.OrderTitle = built.dossierRef;
@@ -380,6 +404,8 @@ const recap = (built: BuiltOrder, invoice: any) => ({
   channel: built.recipient.channel,
   dossier_ref: built.dossierRef,
   grenke_aligned: built.grenkeAligned,
+  payment_method: built.paymentMethod,
+  due_days: built.dueDays,
   lines: built.lines.map((l) => ({ description: l.Description, quantity: l.Quantity, unit_excl: l.UnitPriceExcl, vat: l.VATPercentage })),
   total_excl: built.totalExcl,
   warnings: built.warnings,

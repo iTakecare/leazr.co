@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.20";
+export const ADMIN_VERSION = "1.3.21";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.21",
+    date: "2026-06-23",
+    title: "Leasers : mode de paiement et échéance des factures",
+    items: [
+      "Dans Paramètres → Leasers, chaque bailleur a désormais un « Mode de paiement » (virement, domiciliation…) et un « Délai de paiement (jours) ». Ils alimentent automatiquement la date d'échéance et le mode de paiement de la facture poussée vers Billit.",
+      "La date d'échéance d'une facture bailleur = date de facture + le délai paramétré sur le bailleur.",
+      "Si ces paramètres manquent, un avertissement s'affiche avant l'envoi vers Billit.",
+      "Correctif au passage : la fréquence de facturation et la règle de démarrage de contrat du bailleur sont désormais bien enregistrées (elles ne l'étaient pas).",
+    ],
+  },
   {
     version: "1.3.20",
     date: "2026-06-23",

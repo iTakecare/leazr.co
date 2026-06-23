@@ -92,6 +92,12 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const [residualValuePercentage, setResidualValuePercentage] = useState<number>(
     (currentLeaser as any)?.residual_value_percentage ?? 3
   );
+  const [invoicePaymentMethod, setInvoicePaymentMethod] = useState<string>(
+    (currentLeaser as any)?.invoice_payment_method || ''
+  );
+  const [invoiceDueDays, setInvoiceDueDays] = useState<string>(
+    (currentLeaser as any)?.invoice_due_days != null ? String((currentLeaser as any).invoice_due_days) : ''
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -364,7 +370,9 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         is_own_company: isOwnCompany,
         residual_value_percentage: residualValuePercentage,
         billing_frequency: billingFrequency as 'monthly' | 'quarterly' | 'semi-annual' | 'annual',
-        contract_start_rule: contractStartRule as 'next_month_first' | 'next_quarter_first' | 'next_semester_first' | 'next_year_first' | 'delivery_date' | 'delivery_date_plus_15'
+        contract_start_rule: contractStartRule as 'next_month_first' | 'next_quarter_first' | 'next_semester_first' | 'next_year_first' | 'delivery_date' | 'delivery_date_plus_15',
+        invoice_payment_method: invoicePaymentMethod || null,
+        invoice_due_days: invoiceDueDays.trim() !== '' ? Number(invoiceDueDays) : null
       };
       
       await onSave(leaserData);
@@ -772,8 +780,12 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         <LeaserBillingSettings
           billingFrequency={billingFrequency}
           contractStartRule={contractStartRule}
+          paymentMethod={invoicePaymentMethod}
+          dueDays={invoiceDueDays}
           onBillingFrequencyChange={setBillingFrequency}
           onContractStartRuleChange={setContractStartRule}
+          onPaymentMethodChange={setInvoicePaymentMethod}
+          onDueDaysChange={setInvoiceDueDays}
         />
 
         {/* Valeur résiduelle (rachat de contrat) */}
