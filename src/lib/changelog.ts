@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.11";
+export const ADMIN_VERSION = "1.3.12";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.12",
+    date: "2026-06-23",
+    title: "Facture Grenke : prix par bien alignés sur le portail",
+    items: [
+      "Les montants par équipement de la facture poussée vers Billit correspondent désormais exactement aux valeurs « détails du bien » du portail Grenke.",
+      "Correction : le montant financé est réparti au prorata du LOYER de chaque bien (mensualité par ligne), comme le fait Grenke — et non plus au prorata du prix d'achat + marge.",
+    ],
+  },
   {
     version: "1.3.11",
     date: "2026-06-23",

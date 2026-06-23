@@ -123,7 +123,7 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   if (invoice.contract_id) {
     const { data } = await supabase
       .from("contracts")
-      .select("id, client_id, leaser_id, leaser_name, contract_number, offer_id, contract_equipment(title, quantity, purchase_price, margin, serial_number, category_id, not_serializable)")
+      .select("id, client_id, leaser_id, leaser_name, contract_number, offer_id, contract_equipment(title, quantity, purchase_price, margin, monthly_payment, serial_number, category_id, not_serializable)")
       .eq("id", invoice.contract_id).maybeSingle();
     contract = data;
   }
@@ -205,7 +205,10 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   if (isLeaser) {
     // Facture au bailleur (Grenke) = montant FINANCÉ (≠ somme prix+marge : coefficient
     // leaser). On itémise par équipement et on répartit le montant financé au prorata
-    // de (prix+marge) ; le total reste EXACT (le dernier poste absorbe l'arrondi).
+    // du LOYER de chaque bien (mensualité par ligne) — c'est exactement ainsi que Grenke
+    // calcule la valeur « détails du bien » par asset sur son portail. Le total reste
+    // EXACT (le dernier poste absorbe l'arrondi). Repli sur (prix+marge)×qté si aucune
+    // mensualité par ligne n'est disponible.
     // Le n° de série est ajouté pour ordi/portable/smartphone/tablette (obligatoire Grenke).
     const eqs: any[] = contract?.contract_equipment || [];
     if (eqs.length) {
@@ -216,7 +219,12 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
         const { data: cats } = await supabase.from("categories").select("id, name").in("id", catIds);
         for (const c of cats || []) catById.set(c.id, c.name);
       }
-      const bases = eqs.map((e) => Math.max(0, (e.purchase_price || 0) + (e.margin || 0)) * (e.quantity || 1));
+      // Base de répartition = loyer par bien (mensualité de la ligne, déjà un total).
+      // Si aucune mensualité par ligne n'est renseignée, on retombe sur (prix+marge)×qté.
+      const monthlyBases = eqs.map((e) => Math.max(0, e.monthly_payment || 0));
+      const bases = monthlyBases.some((x) => x > 0)
+        ? monthlyBases
+        : eqs.map((e) => Math.max(0, (e.purchase_price || 0) + (e.margin || 0)) * (e.quantity || 1));
       const sumBase = bases.reduce((s, x) => s + x, 0);
       let allocated = 0;
       lines = eqs.map((e, i) => {
