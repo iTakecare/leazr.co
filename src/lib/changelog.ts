@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.16";
+export const ADMIN_VERSION = "1.3.17";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.17",
+    date: "2026-06-23",
+    title: "Statistiques Alex : KPI « Conversations réelles »",
+    items: [
+      "Nouveau KPI « Conversations réelles » : part des appels où un humain a non seulement décroché mais a réellement échangé (≥ 30 s), pour distinguer « a décroché » de « a vraiment parlé ».",
+      "Cette étape s'ajoute aussi à l'entonnoir d'efficacité (Appelés → Humain joint → Conversations réelles → Documents déposés).",
+    ],
+  },
   {
     version: "1.3.16",
     date: "2026-06-23",

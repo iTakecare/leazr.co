@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Phone, UserCheck, Voicemail, FileCheck2, Clock, TrendingUp } from "lucide-react";
+import { Loader2, Phone, UserCheck, Voicemail, FileCheck2, Clock, TrendingUp, MessagesSquare } from "lucide-react";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RTooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -105,10 +105,13 @@ const VoiceStats: React.FC = () => {
   const k = useMemo(() => {
     const n = filtered.length;
     const by: Record<string, number> = { joint: 0, voicemail: 0, no_answer: 0, failed: 0, pending: 0 };
-    let durSum = 0, durCount = 0, cost = 0, withOffer = 0, converted = 0;
+    let durSum = 0, durCount = 0, cost = 0, withOffer = 0, converted = 0, real = 0;
     for (const c of filtered) {
-      by[outcomeOf(c.status)]++;
-      if (outcomeOf(c.status) === "joint" && c.duration_seconds) { durSum += c.duration_seconds; durCount++; }
+      const o = outcomeOf(c.status);
+      by[o]++;
+      if (o === "joint" && c.duration_seconds) { durSum += c.duration_seconds; durCount++; }
+      // Conversation réelle = humain joint ET au moins 30s d'échange (≠ a juste décroché).
+      if (o === "joint" && (c.duration_seconds ?? 0) >= 30) real++;
       cost += c.cost_eur ?? 0;
       if (c.offer_id) { withOffer++; if (convertedIds.has(c.id)) converted++; }
     }
@@ -118,6 +121,7 @@ const VoiceStats: React.FC = () => {
       cost,
       joinRate: n ? Math.round((by.joint / n) * 100) : 0,
       vmRate: n ? Math.round((by.voicemail / n) * 100) : 0,
+      real, realRate: n ? Math.round((real / n) * 100) : 0,
       withOffer, converted,
       convRate: withOffer ? Math.round((converted / withOffer) * 100) : 0,
     };
@@ -144,6 +148,7 @@ const VoiceStats: React.FC = () => {
   const funnel = useMemo(() => [
     { name: "Appelés", value: k.n, color: "#6366f1" },
     { name: "Humain joint", value: k.by.joint, color: "#16a34a" },
+    { name: "Conversations réelles", value: k.real, color: "#0d9488" },
     { name: "Docs déposés", value: k.converted, color: "#0ea5e9" },
   ], [k]);
 
@@ -173,9 +178,10 @@ const VoiceStats: React.FC = () => {
       ) : (
         <>
           {/* KPI cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <Kpi icon={Phone} label="Appels" value={k.n} />
             <Kpi icon={UserCheck} label="Humain joint" value={`${k.joinRate}%`} sub={`${k.by.joint} appels`} tone="green" />
+            <Kpi icon={MessagesSquare} label="Conversations réelles" value={`${k.realRate}%`} sub={`${k.real} ≥ 30s`} tone="green" />
             <Kpi icon={Voicemail} label="Répondeur" value={`${k.vmRate}%`} sub={`${k.by.voicemail} appels`} tone="amber" />
             <Kpi icon={FileCheck2} label="Conversion docs" value={`${k.convRate}%`} sub={`${k.converted}/${k.withOffer} liés`} tone="blue" />
             <Kpi icon={Clock} label="Durée moy. (joint)" value={`${Math.floor(k.avgDur / 60)}m${String(k.avgDur % 60).padStart(2, "0")}`} />
