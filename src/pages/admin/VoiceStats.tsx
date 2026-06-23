@@ -48,13 +48,14 @@ const VoiceStats: React.FC = () => {
   const [convertedIds, setConvertedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<(typeof PERIODS)[number]["key"]>("90");
-  // Tarif € / minute d'appel Alex (ElevenLabs facture en crédits ; le €/min dépend
-  // de l'abonnement). Modifiable et mémorisé localement.
-  const [eurPerMin, setEurPerMin] = useState<number>(() => {
-    const v = parseFloat(localStorage.getItem("alex_eur_per_min") ?? "");
-    return Number.isFinite(v) && v > 0 ? v : 0.10;
+  // Coût réel = crédits ElevenLabs rapatriés (cost_eur) × prix du crédit de ton
+  // plan. ElevenLabs n'expose pas d'€ par appel → tarif €/1000 crédits saisi ici,
+  // mémorisé localement.
+  const [eurPer1k, setEurPer1k] = useState<number>(() => {
+    const v = parseFloat(localStorage.getItem("alex_eur_per_1k_credits") ?? "");
+    return Number.isFinite(v) && v > 0 ? v : 1.0;
   });
-  useEffect(() => { localStorage.setItem("alex_eur_per_min", String(eurPerMin)); }, [eurPerMin]);
+  useEffect(() => { localStorage.setItem("alex_eur_per_1k_credits", String(eurPer1k)); }, [eurPer1k]);
 
   useEffect(() => {
     (async () => {
@@ -112,11 +113,12 @@ const VoiceStats: React.FC = () => {
   const k = useMemo(() => {
     const n = filtered.length;
     const by: Record<string, number> = { joint: 0, voicemail: 0, no_answer: 0, failed: 0, pending: 0 };
-    let durSum = 0, durCount = 0, durAll = 0, withOffer = 0, converted = 0, real = 0;
+    let durSum = 0, durCount = 0, durAll = 0, credits = 0, withOffer = 0, converted = 0, real = 0;
     for (const c of filtered) {
       const o = outcomeOf(c.status);
       by[o]++;
       durAll += c.duration_seconds ?? 0; // tout le temps facturé (répondeurs inclus)
+      credits += c.cost_eur ?? 0;        // crédits ElevenLabs réels (rapatriés)
       if (o === "joint" && c.duration_seconds) { durSum += c.duration_seconds; durCount++; }
       // Conversation réelle = humain joint ET au moins 30s d'échange (≠ a juste décroché).
       if (o === "joint" && (c.duration_seconds ?? 0) >= 30) real++;
@@ -125,7 +127,7 @@ const VoiceStats: React.FC = () => {
     return {
       n, by,
       avgDur: durCount ? Math.round(durSum / durCount) : 0,
-      durAll,
+      durAll, credits,
       joinRate: n ? Math.round((by.joint / n) * 100) : 0,
       vmRate: n ? Math.round((by.voicemail / n) * 100) : 0,
       real, realRate: n ? Math.round((real / n) * 100) : 0,
@@ -135,9 +137,9 @@ const VoiceStats: React.FC = () => {
   }, [filtered, convertedIds]);
 
   const eur = useMemo(() => {
-    const total = (k.durAll / 60) * eurPerMin;
+    const total = (k.credits / 1000) * eurPer1k; // crédits réels × prix du crédit
     return { total, perCall: k.n ? total / k.n : 0 };
-  }, [k.durAll, k.n, eurPerMin]);
+  }, [k.credits, k.n, eurPer1k]);
 
   const pieData = useMemo(
     () => Object.entries(k.by).filter(([, v]) => v > 0).map(([key, v]) => ({ name: (OUTCOME as any)[key].label, value: v, color: (OUTCOME as any)[key].color })),
@@ -176,14 +178,14 @@ const VoiceStats: React.FC = () => {
           <p className="text-sm text-muted-foreground mt-1">Efficacité des appels de l'agent IA : jointures, répondeurs, et conversion en dépôt de documents.</p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Prix de 1000 crédits ElevenLabs selon votre abonnement">
             Tarif
             <input
-              type="number" step="0.01" min="0" value={eurPerMin}
-              onChange={(e) => setEurPerMin(Math.max(0, parseFloat(e.target.value) || 0))}
+              type="number" step="0.01" min="0" value={eurPer1k}
+              onChange={(e) => setEurPer1k(Math.max(0, parseFloat(e.target.value) || 0))}
               className="w-16 rounded-md border px-1.5 py-1 text-xs text-foreground tabular-nums"
             />
-            €/min
+            €/1000 créd.
           </label>
           <div className="flex items-center gap-1 rounded-lg border p-0.5">
             {PERIODS.map((p) => (
@@ -208,8 +210,8 @@ const VoiceStats: React.FC = () => {
             <Kpi icon={Voicemail} label="Répondeur" value={`${k.vmRate}%`} sub={`${k.by.voicemail} appels`} tone="amber" />
             <Kpi icon={FileCheck2} label="Conversion docs" value={`${k.convRate}%`} sub={`${k.converted}/${k.withOffer} liés`} tone="blue" />
             <Kpi icon={Clock} label="Durée moy. (joint)" value={`${Math.floor(k.avgDur / 60)}m${String(k.avgDur % 60).padStart(2, "0")}`} />
-            <Kpi icon={Euro} label="Coût total" value={`${eur.total.toFixed(2)} €`} sub={`${Math.round(k.durAll / 60)} min facturées`} tone="blue" />
-            <Kpi icon={Euro} label="Coût / appel" value={`${eur.perCall.toFixed(2)} €`} sub={`à ${eurPerMin.toFixed(2)} €/min`} tone="blue" />
+            <Kpi icon={Euro} label="Coût total" value={`${eur.total.toFixed(2)} €`} sub={`${Math.round(k.credits).toLocaleString("fr-FR")} crédits`} tone="blue" />
+            <Kpi icon={Euro} label="Coût / appel" value={`${eur.perCall.toFixed(2)} €`} sub={`${k.n ? Math.round(k.credits / k.n) : 0} crédits/appel`} tone="blue" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -13,16 +13,16 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.18";
+export const ADMIN_VERSION = "1.3.19";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.3.18",
+    version: "1.3.19",
     date: "2026-06-23",
-    title: "Statistiques Alex : coût en euros (total et par appel)",
+    title: "Statistiques Alex : coût € basé sur la conso réelle ElevenLabs",
     items: [
-      "Le coût des appels Alex est désormais affiché en euros : coût total et coût moyen par appel, calculés sur le temps facturé (répondeurs inclus).",
-      "Un champ « Tarif €/min » modifiable en haut de la page permet de saisir votre tarif ElevenLabs réel ; il est mémorisé pour les prochaines visites.",
+      "Le coût en euros est désormais calculé sur la consommation RÉELLE de crédits ElevenLabs rapatriée pour chaque appel (et non plus une estimation à la minute) : coût total et coût par appel.",
+      "Le tarif se règle en « €/1000 crédits » (selon votre abonnement ElevenLabs) ; le nombre de crédits réels par appel est affiché.",
     ],
   },
   {
