@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.9";
+export const ADMIN_VERSION = "1.3.10";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.10",
+    date: "2026-06-23",
+    title: "Facture Billit : n° de dossier dans Objet et Votre référence",
+    items: [
+      "Lors de la poussée d'une facture bailleur vers Billit, les champs « Objet » et « Votre référence / (PO) » sont désormais pré-remplis avec le numéro de dossier leaseur, précédé du mot « DOSSIER » en majuscules (ex. « DOSSIER 180-33054 »).",
+    ],
+  },
   {
     version: "1.3.9",
     date: "2026-06-23",

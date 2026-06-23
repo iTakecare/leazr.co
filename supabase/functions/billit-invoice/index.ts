@@ -107,6 +107,7 @@ interface BuiltOrder {
   totalExcl: number;
   vatRate: number;
   warnings: string[];
+  dossierRef: string | null; // « DOSSIER 180-xxxxx » -> Objet (OrderTitle) + Votre réf. (Reference) Billit
 }
 
 // Résout destinataire + canal + lignes pour une facture Leazr.
@@ -129,7 +130,7 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   let offer: any = null;
   const offerId = invoice.offer_id || contract?.offer_id;
   if (offerId) {
-    const { data } = await supabase.from("offers").select("id, client_id, client_name, is_purchase").eq("id", offerId).maybeSingle();
+    const { data } = await supabase.from("offers").select("id, client_id, client_name, is_purchase, leaser_request_number").eq("id", offerId).maybeSingle();
     offer = data;
   }
 
@@ -267,7 +268,11 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
     lines = [{ Description: `Facture ${invoice.invoice_number || ""}`.trim() || "Facture", Quantity: 1, UnitPriceExcl: amount, VATPercentage: vatRate }];
   }
 
-  return { recipient, lines, totalExcl: round2(lines.reduce((s, l) => s + l.UnitPriceExcl * l.Quantity, 0)), vatRate, warnings };
+  // Numéro de dossier leaseur (ex. « DOSSIER 180-33054 ») pour les champs Objet / Votre réf. Billit.
+  const leaserRequestNumber = (offer?.leaser_request_number || "").toString().trim();
+  const dossierRef = leaserRequestNumber ? `DOSSIER ${leaserRequestNumber}` : null;
+
+  return { recipient, lines, totalExcl: round2(lines.reduce((s, l) => s + l.UnitPriceExcl * l.Quantity, 0)), vatRate, warnings, dossierRef };
 }
 
 function toBillitPayload(invoice: any, built: BuiltOrder) {
@@ -295,6 +300,11 @@ function toBillitPayload(invoice: any, built: BuiltOrder) {
     OrderLines: built.lines,
   };
   if (invoice.invoice_number) payload.OrderNumber = invoice.invoice_number;
+  // Objet (OrderTitle) + Votre référence / PO (Reference) = n° de dossier leaseur « DOSSIER 180-xxxxx ».
+  if (built.dossierRef) {
+    payload.OrderTitle = built.dossierRef;
+    payload.Reference = built.dossierRef;
+  }
   return payload;
 }
 
@@ -309,6 +319,7 @@ const recap = (built: BuiltOrder, invoice: any) => ({
     address: [built.recipient.street, built.recipient.postalCode, built.recipient.city, built.recipient.country].filter(Boolean).join(", "),
   },
   channel: built.recipient.channel,
+  dossier_ref: built.dossierRef,
   lines: built.lines.map((l) => ({ description: l.Description, quantity: l.Quantity, unit_excl: l.UnitPriceExcl, vat: l.VATPercentage })),
   total_excl: built.totalExcl,
   warnings: built.warnings,
