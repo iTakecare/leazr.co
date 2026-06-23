@@ -16,6 +16,21 @@ export async function exportEquipmentOrdersToExcel(
   const getSupplierName = (id: string | null) => (id ? supplierMap.get(id)?.name || '' : '');
   const getSupplierType = (id: string | null) => (id ? supplierMap.get(id)?.supplier_type || 'belgian' : 'belgian');
 
+  // Caractéristiques de la ligne (mémoire, capacité, connectivité, …) pour
+  // que le fournisseur sache exactement quoi commander. Même logique que
+  // l'affichage : le CHOIX (attributes) l'emporte sur le pool d'options
+  // (specifications) en cas de clé identique.
+  const getSpecs = (item: EquipmentOrderItem): string => {
+    const merged: Record<string, string> = {
+      ...(item.specifications || {}),
+      ...(item.attributes || {}),
+    };
+    return Object.entries(merged)
+      .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(' · ');
+  };
+
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Commandes fournisseurs');
 
@@ -25,6 +40,7 @@ export async function exportEquipmentOrdersToExcel(
     { header: 'Client', key: 'client_name', width: 22 },
     { header: 'SKU client', key: 'sku_itc', width: 20 },
     { header: 'Équipement', key: 'title', width: 30 },
+    { header: 'Caractéristiques', key: 'specs', width: 40 },
     { header: 'Quantité', key: 'quantity', width: 10 },
     { header: 'Fournisseur', key: 'supplier_name', width: 22 },
     { header: 'Prix HTVA unit.', key: 'unit_price_ht', width: 16 },
@@ -57,6 +73,7 @@ export async function exportEquipmentOrdersToExcel(
       client_name: item.client_name || '',
       sku_itc: item.sku_itc || '',
       title: item.title || '',
+      specs: getSpecs(item),
       quantity: item.quantity,
       supplier_name: getSupplierName(item.supplier_id),
       unit_price_ht: unitPriceHT,
@@ -71,8 +88,9 @@ export async function exportEquipmentOrdersToExcel(
     });
   }
 
-  // Format currency columns (décalées de +1 après l'ajout de la colonne SKU client)
-  [8, 9, 10, 11].forEach(col => {
+  // Format currency columns (Prix HTVA unit./total, TVA, Prix TVAC).
+  // Indices décalés de +1 après l'ajout de la colonne « Caractéristiques ».
+  [9, 10, 11, 12].forEach(col => {
     sheet.getColumn(col).numFmt = '#,##0.00 €';
   });
 

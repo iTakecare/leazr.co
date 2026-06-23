@@ -13,9 +13,21 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.2.3";
+export const ADMIN_VERSION = "1.3.0";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.0",
+    date: "2026-06-23",
+    title: "Campagnes d'appels groupés avec Alex (IA)",
+    items: [
+      "Depuis le CRM, sélectionnez plusieurs clients (cases à cocher) puis « Appeler en groupe avec Alex » : l'agent IA les appelle un par un.",
+      "Nouvelle page « Campagnes Alex » : suivez en direct l'avancement de chaque campagne et le résultat de chaque appel (client joint, message laissé, pas de réponse, occupé…), avec le résumé IA de la conversation.",
+      "À la fin de chaque campagne, un rapport récapitulatif est envoyé automatiquement par email à l'initiateur.",
+      "Seuls les clients ayant donné leur consentement RGPD aux appels IA et disposant d'un numéro valide sont appelés ; les autres sont signalés comme ignorés.",
+      "Alex peut désormais laisser un message lorsqu'il tombe sur un répondeur (détection de messagerie vocale).",
+    ],
+  },
   {
     version: "1.2.3",
     date: "2026-06-23",
@@ -31,6 +43,8 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
     title: "Commandes fournisseurs : export Excel filtré",
     items: [
       "Le bouton « Exporter Excel » ouvre désormais une fenêtre permettant de choisir ce que l'on exporte : statut (à commander, commandé, reçu, annulé), année, fournisseur et client.",
+      "La fenêtre reprend automatiquement les filtres déjà appliqués sur la page (ce que vous voyez = ce que vous exportez).",
+      "Nouvelle colonne « Caractéristiques » dans l'export (mémoire, capacité, connectivité…) pour transmettre la commande complète au fournisseur.",
       "Le nombre d'équipements correspondant aux critères s'affiche en temps réel avant l'export.",
     ],
   },
