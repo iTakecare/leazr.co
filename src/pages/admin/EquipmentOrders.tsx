@@ -29,7 +29,7 @@ import {
   syncUnitPricesToParent,
 } from "@/services/equipmentOrderService";
 import { receiveToStock } from "@/services/stockService";
-import { exportEquipmentOrdersToExcel } from "@/services/equipmentOrderExportService";
+import ExportOrdersModal from "@/components/equipment/ExportOrdersModal";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
 import WaveLoader from "@/components/ui/WaveLoader";
@@ -98,6 +98,7 @@ const EquipmentOrders: React.FC = () => {
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [addedToStock, setAddedToStock] = useState<Set<string>>(new Set());
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [sourcingTarget, setSourcingTarget] = useState<SourcingSearchTarget | null>(null);
   const [sourcingQuery, setSourcingQuery] = useState("");
   // Map "sourceType-id" → { total, lowest_price_cents, any_approved }
@@ -824,7 +825,7 @@ const EquipmentOrders: React.FC = () => {
         </div>
         <Button
           variant="outline"
-          onClick={() => exportEquipmentOrdersToExcel(items, suppliers)}
+          onClick={() => setExportModalOpen(true)}
           disabled={items.length === 0}
         >
           <Download className="h-4 w-4 mr-2" />
@@ -970,6 +971,14 @@ const EquipmentOrders: React.FC = () => {
           setSourcingTarget(null);
           fetchData(); // rafraîchir pour mettre à jour le badge "sourc."
         }}
+      />
+
+      {/* ── Modale d'export filtré ── */}
+      <ExportOrdersModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        items={items}
+        suppliers={suppliers}
       />
     </div>
   );

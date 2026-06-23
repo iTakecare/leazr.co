@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.2.1";
+export const ADMIN_VERSION = "1.2.2";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.2.2",
+    date: "2026-06-23",
+    title: "Commandes fournisseurs : export Excel filtré",
+    items: [
+      "Le bouton « Exporter Excel » ouvre désormais une fenêtre permettant de choisir ce que l'on exporte : statut (à commander, commandé, reçu, annulé), année, fournisseur et client.",
+      "Le nombre d'équipements correspondant aux critères s'affiche en temps réel avant l'export.",
+    ],
+  },
   {
     version: "1.2.1",
     date: "2026-06-22",
