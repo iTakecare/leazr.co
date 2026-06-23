@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.0";
+export const ADMIN_VERSION = "1.3.1";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.1",
+    date: "2026-06-23",
+    title: "WhatsApp : repli SMS automatique en cas d'échec",
+    items: [
+      "Quand un message WhatsApp ne peut pas être délivré (fenêtre de 24 h fermée ou template non disponible — erreur 63016), le même message part automatiquement en SMS pour que la relance arrive quand même.",
+      "Le client n'est plus marqué « pas de WhatsApp » dans ce cas (son compte WhatsApp reste valide).",
+    ],
+  },
   {
     version: "1.3.0",
     date: "2026-06-23",

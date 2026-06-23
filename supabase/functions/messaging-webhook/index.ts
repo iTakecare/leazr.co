@@ -29,6 +29,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { normalizeBelgianPhone } from "../_shared/elevenlabs.ts";
 import {
   TWILIO_NOT_WHATSAPP_ERRORS,
+  TWILIO_WHATSAPP_WINDOW_ERRORS,
   twilioSendMessage,
   validateTwilioSignature,
 } from "../_shared/twilio.ts";
@@ -303,13 +304,18 @@ async function handleStatus(
     }
   }
 
-  // --- échec WhatsApp "pas de compte" → apprendre + fallback SMS ---
+  // --- échec WhatsApp → fallback SMS ---
+  // Deux familles d'échec déclenchent le repli SMS :
+  //   • "pas de compte WhatsApp" (63003/63024) → on mémorise whatsapp_status='no'.
+  //   • "fenêtre 24 h / template refusé" (63016…) → le client A WhatsApp, on NE
+  //     marque PAS whatsapp_status='no', on bascule juste en SMS.
   const meta = (msg?.metadata ?? {}) as Record<string, unknown>;
   const wasWhatsApp = meta.channel === "whatsapp";
   const failed = status === "failed" || status === "undelivered";
   const notWhatsApp = errorCode !== null && TWILIO_NOT_WHATSAPP_ERRORS.has(errorCode);
+  const windowOrTemplate = errorCode !== null && TWILIO_WHATSAPP_WINDOW_ERRORS.has(errorCode);
 
-  if (msg && failed && wasWhatsApp && notWhatsApp && !meta.fallback_done) {
+  if (msg && failed && wasWhatsApp && (notWhatsApp || windowOrTemplate) && !meta.fallback_done) {
     const { data: conv } = await adminSupabase
       .from("chat_conversations")
       .select("id, client_id, client_phone")
@@ -317,7 +323,8 @@ async function handleStatus(
       .maybeSingle();
     if (!conv?.client_phone) return new Response("OK", { status: 200 });
 
-    if (conv.client_id) {
+    // Uniquement pour "pas de compte WhatsApp" : on retient l'absence de compte.
+    if (conv.client_id && notWhatsApp) {
       await adminSupabase
         .from("clients")
         .update({ whatsapp_status: "no", whatsapp_checked_at: new Date().toISOString() })

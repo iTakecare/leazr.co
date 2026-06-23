@@ -112,3 +112,11 @@ export function renderTemplateBody(body: string, variables: Record<string, strin
 // le fallback SMS + la mémorisation whatsapp_status='no' sur le client.
 // 63003: Channel could not find To address ; 63024: invalid recipient.
 export const TWILIO_NOT_WHATSAPP_ERRORS = new Set([63003, 63024]);
+
+// Codes "fenêtre 24 h fermée / template non délivrable" — le client A WhatsApp
+// mais le message freeform/template a été refusé. On bascule en SMS SANS marquer
+// whatsapp_status='no' (le compte WhatsApp est valide).
+// 63016: freeform hors fenêtre 24 h (souvent un template non approuvé renvoyé en
+//        freeform par Twilio) ; 63018: rate limit ; 131047: re-engagement requis ;
+//        63051: limite quotidienne ; 63013/63021: template rejeté/invalide.
+export const TWILIO_WHATSAPP_WINDOW_ERRORS = new Set([63016, 63018, 63051, 131047, 63013, 63021]);
