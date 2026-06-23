@@ -128,6 +128,14 @@ const BillitInvoiceCard: React.FC<{
                   </div>
                 </div>
 
+                {/* Concordance Grenke : montants par bien = valeurs réelles du dossier */}
+                {recap.grenke_aligned && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-700">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Montants par bien alignés sur le dossier Grenke
+                  </div>
+                )}
+
                 {/* Warnings */}
                 {recap.warnings.length > 0 && (
                   <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 space-y-1">

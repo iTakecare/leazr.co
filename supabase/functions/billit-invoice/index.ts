@@ -69,6 +69,35 @@ function parseSerials(raw: string | null, q: number): (string | null)[] {
   return clean.slice(0, q);
 }
 
+// Apparie nos lignes de contrat aux FinancingObjects RÉELS rapatriés de Grenke,
+// par titre (= champ Details côté Grenke, qui porte le nom du bien). Renvoie le
+// montant par ligne (NetPricePerObject × Quantity, arrondi) DANS L'ORDRE des
+// équipements `eqs`, ou null si le rapatriement est absent / si une seule ligne
+// ne trouve pas son bien (on ne mélange jamais Grenke + repli sur une même facture).
+const normTitle = (s: string) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+function matchGrenkeAmounts(eqs: any[], objs: any): number[] | null {
+  if (!Array.isArray(objs) || objs.length === 0) return null;
+  const used = new Array(objs.length).fill(false);
+  const amounts: number[] = [];
+  for (const e of eqs) {
+    const et = normTitle(e.title);
+    if (!et) return null;
+    let found = -1;
+    for (let j = 0; j < objs.length; j++) {
+      if (used[j]) continue;
+      const dt = normTitle(String(objs[j]?.Details ?? objs[j]?.Name ?? ""));
+      if (dt && (dt === et || dt.startsWith(et) || et.startsWith(dt))) { found = j; break; }
+    }
+    if (found === -1) return null; // ligne non appariée -> repli intégral
+    used[found] = true;
+    const o = objs[found];
+    const net = Number(o?.NetPricePerObject) || 0;
+    const q = Number(o?.Quantity) || Number(e.quantity) || 1;
+    amounts.push(round2(net * q));
+  }
+  return amounts;
+}
+
 // En-tête Billit (PartyID, PAS ContextPartyID).
 function headers(apiKey: string, partyId?: string | null): Record<string, string> {
   const h: Record<string, string> = { ApiKey: apiKey, "Content-Type": "application/json", Accept: "application/json" };
@@ -108,11 +137,13 @@ interface BuiltOrder {
   vatRate: number;
   warnings: string[];
   dossierRef: string | null; // « DOSSIER 180-xxxxx » -> Objet (OrderTitle) + Votre réf. (Reference) Billit
+  grenkeAligned: boolean; // true = montants par bien = valeurs réelles rapatriées de Grenke
 }
 
 // Résout destinataire + canal + lignes pour une facture Leazr.
 async function buildOrder(supabase: any, companyId: string, invoice: any): Promise<BuiltOrder> {
   const warnings: string[] = [];
+  let grenkeAligned = false; // true = montants par bien alignés sur les valeurs réelles Grenke
   const bd = invoice.billing_data || {};
   const isSelf = bd.type === "self_leasing_monthly";
   const vatRate = typeof bd.tva_rate === "number" ? bd.tva_rate : 21;
@@ -130,7 +161,7 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   let offer: any = null;
   const offerId = invoice.offer_id || contract?.offer_id;
   if (offerId) {
-    const { data } = await supabase.from("offers").select("id, client_id, client_name, is_purchase, leaser_request_number").eq("id", offerId).maybeSingle();
+    const { data } = await supabase.from("offers").select("id, client_id, client_name, is_purchase, leaser_request_number, grenke_financing_objects, grenke_financing_amount").eq("id", offerId).maybeSingle();
     offer = data;
   }
 
@@ -203,12 +234,13 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   // Lignes selon la nature
   let lines: BuiltOrder["lines"] = [];
   if (isLeaser) {
-    // Facture au bailleur (Grenke) = montant FINANCÉ (≠ somme prix+marge : coefficient
-    // leaser). On itémise par équipement et on répartit le montant financé au prorata
-    // du LOYER de chaque bien (mensualité par ligne) — c'est exactement ainsi que Grenke
-    // calcule la valeur « détails du bien » par asset sur son portail. Le total reste
-    // EXACT (le dernier poste absorbe l'arrondi). Repli sur (prix+marge)×qté si aucune
-    // mensualité par ligne n'est disponible.
+    // Facture au bailleur (Grenke) = montant FINANCÉ par bien.
+    // SOURCE DE VÉRITÉ #1 : les valeurs RÉELLES rapatriées de Grenke
+    // (offer.grenke_financing_objects, montants éventuellement ajustés à la main par
+    // le représentant Grenke) → concordance EXACTE demande↔Grenke↔facture.
+    // REPLI (dossier pas encore rapatrié) : on répartit le montant financé au prorata
+    // du LOYER de chaque bien (mensualité par ligne) — c'est la méthode de Grenke ;
+    // repli ultime sur (prix+marge)×qté. Le total reste exact (dernier poste absorbe).
     // Le n° de série est ajouté pour ordi/portable/smartphone/tablette (obligatoire Grenke).
     const eqs: any[] = contract?.contract_equipment || [];
     if (eqs.length) {
@@ -219,8 +251,15 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
         const { data: cats } = await supabase.from("categories").select("id, name").in("id", catIds);
         for (const c of cats || []) catById.set(c.id, c.name);
       }
-      // Base de répartition = loyer par bien (mensualité de la ligne, déjà un total).
-      // Si aucune mensualité par ligne n'est renseignée, on retombe sur (prix+marge)×qté.
+
+      // Montants réels Grenke appariés à nos lignes (par titre = Details Grenke).
+      // null si le rapatriement est absent OU si une ligne n'a pas pu être appariée
+      // (dans ce cas on ne mélange pas les sources : repli intégral sur le prorata).
+      const grenkeAmounts = matchGrenkeAmounts(eqs, (offer as any)?.grenke_financing_objects);
+      grenkeAligned = !!grenkeAmounts;
+
+      // Base de répartition du repli = loyer par bien (mensualité de la ligne).
+      // Si aucune mensualité par ligne, on retombe sur (prix+marge)×qté.
       const monthlyBases = eqs.map((e) => Math.max(0, e.monthly_payment || 0));
       const bases = monthlyBases.some((x) => x > 0)
         ? monthlyBases
@@ -229,10 +268,15 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
       let allocated = 0;
       lines = eqs.map((e, i) => {
         const q = e.quantity || 1;
-        const isLast = i === eqs.length - 1;
-        let lineTotal = sumBase > 0 ? round2(amount * (bases[i] / sumBase)) : round2(amount / eqs.length);
-        if (isLast) lineTotal = round2(amount - allocated);
-        else allocated = round2(allocated + lineTotal);
+        let lineTotal: number;
+        if (grenkeAmounts) {
+          lineTotal = grenkeAmounts[i];
+        } else {
+          const isLast = i === eqs.length - 1;
+          lineTotal = sumBase > 0 ? round2(amount * (bases[i] / sumBase)) : round2(amount / eqs.length);
+          if (isLast) lineTotal = round2(amount - allocated);
+          else allocated = round2(allocated + lineTotal);
+        }
         let desc = `${q > 1 ? q + "× " : ""}${e.title || "Équipement"}`;
         // Un équipement explicitement marqué « non sérialisé » (câble, écran, accessoire...)
         // n'exige jamais de n° de série, quelle que soit sa catégorie/titre.
@@ -270,8 +314,15 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
 
   // Réconciliation : le total des lignes DOIT correspondre au montant Leazr (HTVA).
   // Sinon -> ligne unique au montant de référence + avertissement (jamais silencieux).
+  // EXCEPTION : si les lignes = valeurs RÉELLES Grenke, elles font foi (Grenke a pu
+  // ajuster le montant financé) — on ne collapse jamais ; on signale seulement un
+  // écart notable (>1 €) vs le montant financé Leazr (cache potentiellement périmé).
   const linesSum = round2(lines.reduce((s, l) => s + l.UnitPriceExcl * l.Quantity, 0));
-  if (!lines.length || (amount > 0 && Math.abs(linesSum - amount) > 1)) {
+  if (grenkeAligned) {
+    if (amount > 0 && Math.abs(linesSum - amount) > 1) {
+      warnings.push(`Total Grenke réel ${linesSum} € ≠ montant financé Leazr ${amount} € — la facture suit les valeurs Grenke.`);
+    }
+  } else if (!lines.length || (amount > 0 && Math.abs(linesSum - amount) > 1)) {
     if (lines.length) warnings.push(`Détail des lignes (${linesSum} €) ≠ montant facture (${amount} €) — remplacé par une ligne unique. À vérifier.`);
     lines = [{ Description: `Facture ${invoice.invoice_number || ""}`.trim() || "Facture", Quantity: 1, UnitPriceExcl: amount, VATPercentage: vatRate }];
   }
@@ -280,7 +331,7 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   const leaserRequestNumber = (offer?.leaser_request_number || "").toString().trim();
   const dossierRef = leaserRequestNumber ? `DOSSIER ${leaserRequestNumber}` : null;
 
-  return { recipient, lines, totalExcl: round2(lines.reduce((s, l) => s + l.UnitPriceExcl * l.Quantity, 0)), vatRate, warnings, dossierRef };
+  return { recipient, lines, totalExcl: round2(lines.reduce((s, l) => s + l.UnitPriceExcl * l.Quantity, 0)), vatRate, warnings, dossierRef, grenkeAligned };
 }
 
 function toBillitPayload(invoice: any, built: BuiltOrder) {
@@ -328,6 +379,7 @@ const recap = (built: BuiltOrder, invoice: any) => ({
   },
   channel: built.recipient.channel,
   dossier_ref: built.dossierRef,
+  grenke_aligned: built.grenkeAligned,
   lines: built.lines.map((l) => ({ description: l.Description, quantity: l.Quantity, unit_excl: l.UnitPriceExcl, vat: l.VATPercentage })),
   total_excl: built.totalExcl,
   warnings: built.warnings,

@@ -491,6 +491,8 @@ export interface BillitInvoiceRecap {
   invoice_number: string | null;
   recipient: { kind: "leaser" | "client"; name: string; vat: string | null; email: string | null; address: string };
   channel: "peppol" | "email";
+  dossier_ref?: string | null;
+  grenke_aligned?: boolean;
   lines: Array<{ description: string; quantity: number; unit_excl: number; vat: number }>;
   total_excl: number;
   warnings: string[];

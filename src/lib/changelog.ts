@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.15";
+export const ADMIN_VERSION = "1.3.16";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.16",
+    date: "2026-06-23",
+    title: "Facture bailleur = valeurs réelles du dossier Grenke",
+    items: [
+      "La facture poussée vers Billit reprend désormais les montants par bien EXACTEMENT tels qu'ils figurent dans le dossier Grenke (y compris les ajustements manuels effectués par le représentant Grenke).",
+      "Ces valeurs sont rapatriées automatiquement depuis Grenke (détail par bien + montant financé réel) lors de la synchronisation de statut, et figées sur la demande.",
+      "Un indicateur « Montants par bien alignés sur le dossier Grenke » s'affiche dans la carte d'envoi Billit. À défaut de rapatriement (ancien dossier), un calcul de repli au prorata du loyer est utilisé.",
+    ],
+  },
   {
     version: "1.3.15",
     date: "2026-06-23",
