@@ -49,11 +49,12 @@ const VoiceStats: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<(typeof PERIODS)[number]["key"]>("90");
   // Coût réel = crédits ElevenLabs rapatriés (cost_eur) × prix du crédit de ton
-  // plan. ElevenLabs n'expose pas d'€ par appel → tarif €/1000 crédits saisi ici,
-  // mémorisé localement.
+  // plan. ElevenLabs n'expose pas d'€ par appel → tarif €/1000 crédits.
+  // Défaut basé sur le plan iTakecare "Creator" : 22 $ / 300 000 crédits ≈
+  // 0,068 €/1000 crédits. Modifiable et mémorisé localement.
   const [eurPer1k, setEurPer1k] = useState<number>(() => {
     const v = parseFloat(localStorage.getItem("alex_eur_per_1k_credits") ?? "");
-    return Number.isFinite(v) && v > 0 ? v : 1.0;
+    return Number.isFinite(v) && v > 0 ? v : 0.068;
   });
   useEffect(() => { localStorage.setItem("alex_eur_per_1k_credits", String(eurPer1k)); }, [eurPer1k]);
 

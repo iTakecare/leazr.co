@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.19";
+export const ADMIN_VERSION = "1.3.20";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.20",
+    date: "2026-06-23",
+    title: "Statistiques Alex : tarif ElevenLabs pré-réglé",
+    items: [
+      "Le tarif des appels Alex est désormais pré-réglé sur l'abonnement ElevenLabs en cours (plan Creator : ≈ 0,068 €/1000 crédits) — le coût en euros s'affiche correctement sans rien saisir. Le champ reste modifiable si l'abonnement change.",
+    ],
+  },
   {
     version: "1.3.19",
     date: "2026-06-23",
