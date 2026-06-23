@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.13";
+export const ADMIN_VERSION = "1.3.14";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.14",
+    date: "2026-06-23",
+    title: "Statistiques Alex : répondeurs correctement comptés",
+    items: [
+      "Correction : les anciens appels tombés sur répondeur étaient comptés comme « humain joint » (gonflant le taux à 100%). Ils sont désormais reclassés en « répondeur » à partir de leur transcription, et la détection future combine motif d'appel, analyse IA et contenu de la transcription.",
+      "Le coût des appels est affiché en crédits ElevenLabs (et non en euros).",
+    ],
+  },
   {
     version: "1.3.13",
     date: "2026-06-23",

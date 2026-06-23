@@ -94,12 +94,16 @@ async function handleTranscription(supabase: any, data: any) {
   const terminationReason: string | undefined = meta.termination_reason
     ?? meta.phone_call?.termination_reason;
   // Alex a-t-il atterri sur un répondeur ? ElevenLabs ne met PAS toujours
-  // termination_reason='voicemail' (souvent 'Call ended by remote party'), mais
-  // son analyse le dit (call_summary_title "…Voicemail", résumé "went to voicemail").
-  // On combine motif + statut + analyse pour détecter la messagerie.
+  // termination_reason='voicemail' (souvent 'Call ended by remote party') et son
+  // analyse ne le signale pas toujours. On combine 3 signaux : motif/statut,
+  // analyse (titre/résumé), ET la transcription elle-même (le message du
+  // répondeur apparaît dans les tours [user] : "laissez un message", "après le
+  // bip", "appuyez sur", "n'est pas disponible", "voicemail"…).
   const analysisText = `${data.analysis?.call_summary_title ?? ""} ${data.analysis?.transcript_summary ?? ""}`;
   const reasonStr = `${terminationReason ?? ""} ${callStatus ?? ""} ${analysisText}`.toLowerCase();
-  const isVoicemail = /voicemail|voice.?mail|answering[ _-]?machine|répondeur|messagerie vocale/.test(reasonStr);
+  const isVoicemail =
+    /voicemail|voice.?mail|answering[ _-]?machine|répondeur|messagerie vocale/.test(reasonStr) ||
+    /laisser un message|laissez un message|après le bip|après le signal|messagerie|voicemail|n['’]est pas disponible|appuyez sur|record your message|not available|pas disponible pour/i.test(transcriptionText ?? "");
 
   let mappedStatus = "completed";
   if (callRow.status === "transferred_to_human") {

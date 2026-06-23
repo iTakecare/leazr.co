@@ -179,7 +179,7 @@ const VoiceStats: React.FC = () => {
             <Kpi icon={Voicemail} label="Répondeur" value={`${k.vmRate}%`} sub={`${k.by.voicemail} appels`} tone="amber" />
             <Kpi icon={FileCheck2} label="Conversion docs" value={`${k.convRate}%`} sub={`${k.converted}/${k.withOffer} liés`} tone="blue" />
             <Kpi icon={Clock} label="Durée moy. (joint)" value={`${Math.floor(k.avgDur / 60)}m${String(k.avgDur % 60).padStart(2, "0")}`} />
-            <Kpi icon={TrendingUp} label="Coût total" value={k.cost ? `${k.cost.toFixed(2)} €` : "—"} />
+            <Kpi icon={TrendingUp} label="Crédits ElevenLabs" value={k.cost ? Math.round(k.cost).toLocaleString("fr-FR") : "—"} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
