@@ -376,6 +376,7 @@ const ClientCallModal: React.FC<ClientCallModalProps> = ({
         const { error } = await db.functions.invoke("voice-call-start", {
           body: {
             client_id: clientId,
+            offer_id: offerId,
             language: "fr",
             missing_docs: missingDocs ?? "",
           },
@@ -416,7 +417,7 @@ const ClientCallModal: React.FC<ClientCallModalProps> = ({
         }
       }
     },
-    [clientId]
+    [clientId, offerId]
   );
 
   const runAiAction = useCallback(

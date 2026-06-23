@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   Bot,
+  TrendingUp,
   Phone,
   PhoneOff,
   PhoneIncoming,
@@ -34,6 +35,7 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import VoiceCampaigns from "@/pages/admin/VoiceCampaigns";
+import VoiceStats from "@/pages/admin/VoiceStats";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSoftphone } from "@/hooks/useSoftphone";
@@ -217,11 +219,13 @@ export default function PhoneCallCenter() {
   }, [adminUrl]);
 
   const [searchParams] = useSearchParams();
-  const [view, setView] = useState<"phone" | "campaigns">(
-    searchParams.get("tab") === "campaigns" ? "campaigns" : "phone",
+  const initialTab = searchParams.get("tab");
+  const [view, setView] = useState<"phone" | "campaigns" | "stats">(
+    initialTab === "campaigns" ? "campaigns" : initialTab === "stats" ? "stats" : "phone",
   );
   useEffect(() => {
-    if (searchParams.get("tab") === "campaigns") setView("campaigns");
+    const t = searchParams.get("tab");
+    if (t === "campaigns" || t === "stats") setView(t);
   }, [searchParams]);
 
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -757,12 +761,28 @@ export default function PhoneCallCenter() {
         >
           <Bot className="h-4 w-4 inline mr-1.5 -mt-0.5" /> Campagnes Alex
         </button>
+        <button
+          onClick={() => setView("stats")}
+          className={cn(
+            "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+            view === "stats" ? "border-violet-600 text-violet-700" : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <TrendingUp className="h-4 w-4 inline mr-1.5 -mt-0.5" /> Statistiques
+        </button>
       </div>
 
       {/* Vue Campagnes Alex */}
       {view === "campaigns" && (
         <div className="flex-1 min-h-0 overflow-auto -mx-4 sm:-mx-6">
           <VoiceCampaigns />
+        </div>
+      )}
+
+      {/* Vue Statistiques Alex */}
+      {view === "stats" && (
+        <div className="flex-1 min-h-0 overflow-auto -mx-4 sm:-mx-6">
+          <VoiceStats />
         </div>
       )}
 

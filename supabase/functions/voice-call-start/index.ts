@@ -13,6 +13,7 @@ import {
 
 const requestSchema = z.object({
   client_id: z.string().uuid(),
+  offer_id: z.string().uuid().optional(),
   kyc_report_id: z.string().uuid().optional(),
   language: z.enum(["fr", "nl", "en"]).default("fr"),
   missing_docs: z.string().max(500).optional(),
@@ -83,6 +84,7 @@ serve(async (req) => {
     .insert({
       client_id: client.id,
       company_id: client.company_id,
+      offer_id: parsed.offer_id ?? null,
       kyc_report_id: parsed.kyc_report_id ?? null,
       provider: "elevenlabs",
       status: "queued",

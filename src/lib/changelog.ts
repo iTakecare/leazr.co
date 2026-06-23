@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.10";
+export const ADMIN_VERSION = "1.3.11";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.11",
+    date: "2026-06-23",
+    title: "Centre d'appels : onglet Statistiques Alex",
+    items: [
+      "Nouvel onglet « Statistiques » dans le Centre d'appels : KPI et graphiques sur l'efficacité d'Alex — taux d'humains joints, répondeurs, durée moyenne, coût, et répartition des résultats.",
+      "KPI clé « Conversion documents » : part des appels (liés à une demande) suivis d'un dépôt de document dans les 14 jours, avec entonnoir Appelés → Joints → Documents déposés.",
+      "Les appels Alex (manuels et campagnes) sont désormais reliés à leur demande pour permettre ce suivi de conversion.",
+    ],
+  },
   {
     version: "1.3.10",
     date: "2026-06-23",
