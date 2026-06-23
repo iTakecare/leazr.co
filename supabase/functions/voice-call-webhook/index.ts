@@ -93,9 +93,16 @@ async function handleTranscription(supabase: any, data: any) {
   // Detect transfer/no-answer/failed from termination reason if available.
   const terminationReason: string | undefined = meta.termination_reason
     ?? meta.phone_call?.termination_reason;
+  // Alex a-t-il atterri sur un répondeur ? ElevenLabs (voicemail detection)
+  // remonte l'info via le termination_reason ou le statut. On la normalise.
+  const reasonStr = `${terminationReason ?? ""} ${callStatus ?? ""}`.toLowerCase();
+  const isVoicemail = /voicemail|voice_mail|answering[_ ]?machine|répondeur/.test(reasonStr);
+
   let mappedStatus = "completed";
   if (callRow.status === "transferred_to_human") {
     mappedStatus = "transferred_to_human";
+  } else if (isVoicemail) {
+    mappedStatus = "voicemail";
   } else if (terminationReason === "no-answer" || callStatus === "no_answer") {
     mappedStatus = "no_answer";
   } else if (callStatus === "failed") {

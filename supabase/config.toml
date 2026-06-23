@@ -269,6 +269,14 @@ verify_jwt = true
 [functions.voice-call-webhook]
 verify_jwt = false
 
+[functions.voice-campaign-start]
+# Lancement campagne d'appels groupés Alex (admin). Fait sa propre auth.
+verify_jwt = true
+
+[functions.voice-campaign-dispatch]
+# Cron (1/min, X-Cron-Secret) : passe les appels un par un + rapport. Fait sa propre auth.
+verify_jwt = false
+
 [functions.voice-tool-report-blockers]
 verify_jwt = false
 
