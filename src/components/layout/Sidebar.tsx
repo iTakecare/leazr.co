@@ -79,8 +79,8 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         items: [
           { icon: BarChart3, label: "Dashboard", href: `${basePrefix}/admin/dashboard`, moduleSlug: "dashboard", alwaysVisible: true },
           { icon: UserCheck, label: "CRM", href: `${basePrefix}/admin/clients`, moduleSlug: "crm" },
-          { icon: FileText, label: "Contrats", href: `${basePrefix}/admin/contracts`, moduleSlug: "contracts" },
           { icon: ClipboardList, label: "Demandes", href: `${basePrefix}/admin/offers`, moduleSlug: "offers" },
+          { icon: FileText, label: "Contrats", href: `${basePrefix}/admin/contracts`, moduleSlug: "contracts" },
           { icon: Calculator, label: "Factures", href: `${basePrefix}/admin/invoicing`, moduleSlug: "invoicing" },
           { icon: Wallet, label: "Gestion", href: `${basePrefix}/admin/gestion`, moduleSlug: "invoicing" },
           { icon: FolderOpen, label: "Documents", href: `${basePrefix}/admin/client-documents`, moduleSlug: "crm", alwaysVisible: true },

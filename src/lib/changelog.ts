@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.7";
+export const ADMIN_VERSION = "1.3.8";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.8",
+    date: "2026-06-23",
+    title: "Menu : « Demandes » avant « Contrats »",
+    items: [
+      "Dans le menu latéral, l'entrée « Demandes » passe avant « Contrats » pour suivre l'ordre logique du cycle de vie d'un dossier (une demande devient un contrat).",
+    ],
+  },
   {
     version: "1.3.7",
     date: "2026-06-23",
