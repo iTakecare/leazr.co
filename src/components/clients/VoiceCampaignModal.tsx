@@ -70,7 +70,7 @@ const VoiceCampaignModal: React.FC<VoiceCampaignModalProps> = ({ open, onOpenCha
       onOpenChange(false);
       setName(""); setObjective("");
       onLaunched?.();
-      navigateToAdmin("voice-campaigns");
+      navigateToAdmin("phone?tab=campaigns");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (/Aucun client appelable/i.test(msg)) {

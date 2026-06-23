@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
+  Bot,
   Phone,
   PhoneOff,
   PhoneIncoming,
@@ -30,7 +31,9 @@ import {
   Minimize2,
 } from "lucide-react";
 
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import VoiceCampaigns from "@/pages/admin/VoiceCampaigns";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSoftphone } from "@/hooks/useSoftphone";
@@ -212,6 +215,14 @@ export default function PhoneCallCenter() {
   const openAdmin = useCallback((path: string) => {
     window.open(adminUrl(path), "_blank", "noopener");
   }, [adminUrl]);
+
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState<"phone" | "campaigns">(
+    searchParams.get("tab") === "campaigns" ? "campaigns" : "phone",
+  );
+  useEffect(() => {
+    if (searchParams.get("tab") === "campaigns") setView("campaigns");
+  }, [searchParams]);
 
   const [phoneNumber, setPhoneNumber] = useState("");
   const [clientSearch, setClientSearch] = useState("");
@@ -537,6 +548,26 @@ export default function PhoneCallCenter() {
     [loadClientById]
   );
 
+  // Lien AUTOMATIQUE numéro → client : dès qu'un numéro est saisi/composé, on
+  // résout le client (matching 9 derniers chiffres) sans clic manuel. Si le
+  // client déjà associé correspond au numéro, on ne fait rien ; si le numéro
+  // change pour un autre client (ou aucun), on met à jour / on libère.
+  const last9 = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "").slice(-9);
+  useEffect(() => {
+    if (!companyId || sp.status === "in_call") return;
+    const digits = phoneNumber.replace(/\D/g, "");
+    if (digits.length < 8) return; // numéro trop court pour matcher
+    if (selectedClient?.phone && last9(selectedClient.phone) === last9(phoneNumber)) return;
+    const t = setTimeout(async () => {
+      const found = await findClientByPhone(phoneNumber);
+      if (found) setSelectedClient(found);
+      else if (selectedClient && last9(selectedClient.phone) !== last9(phoneNumber)) {
+        setSelectedClient(null); // numéro changé, plus de client correspondant
+      }
+    }, 450);
+    return () => clearTimeout(t);
+  }, [phoneNumber, companyId, selectedClient, findClientByPhone, sp.status]);
+
   const handleTranscribe = useCallback(async () => {
     if (!activeVoiceCallId) return;
     setTranscribing(true);
@@ -706,8 +737,37 @@ export default function PhoneCallCenter() {
         </div>
       </div>
 
-      {/* Layout 3 colonnes */}
-      <div className="flex gap-4 flex-1 min-h-0">
+      {/* Onglets : Téléphone (softphone) / Campagnes Alex */}
+      <div className="flex items-center gap-1 border-b">
+        <button
+          onClick={() => setView("phone")}
+          className={cn(
+            "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+            view === "phone" ? "border-emerald-600 text-emerald-700" : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <PhoneCall className="h-4 w-4 inline mr-1.5 -mt-0.5" /> Téléphone
+        </button>
+        <button
+          onClick={() => setView("campaigns")}
+          className={cn(
+            "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+            view === "campaigns" ? "border-violet-600 text-violet-700" : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Bot className="h-4 w-4 inline mr-1.5 -mt-0.5" /> Campagnes Alex
+        </button>
+      </div>
+
+      {/* Vue Campagnes Alex */}
+      {view === "campaigns" && (
+        <div className="flex-1 min-h-0 overflow-auto -mx-4 sm:-mx-6">
+          <VoiceCampaigns />
+        </div>
+      )}
+
+      {/* Layout 3 colonnes (softphone gardé monté même en onglet Campagnes) */}
+      <div className={cn("flex gap-4 flex-1 min-h-0", view !== "phone" && "hidden")}>
         {/* COLONNE GAUCHE */}
         <div className={cn("shrink-0 flex-col gap-4 min-h-0", embedded ? "hidden" : "flex w-[340px]")}>
           <Card className="shrink-0 overflow-hidden">
