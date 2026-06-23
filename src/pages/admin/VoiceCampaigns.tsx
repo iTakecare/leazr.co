@@ -135,7 +135,7 @@ const VoiceCampaigns: React.FC = () => {
         <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>
       ) : campaigns.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
-          Aucune campagne. Sélectionnez des clients dans le CRM puis « Appeler en groupe avec Alex ».
+          Aucune campagne. Dans la liste des Demandes, cochez les demandes en attente de documents puis « Appeler en groupe avec Alex ».
         </CardContent></Card>
       ) : (
         <div className="space-y-3">
