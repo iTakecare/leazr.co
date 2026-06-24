@@ -6,6 +6,7 @@ import { fr } from "date-fns/locale";
 import {
   Bot,
   TrendingUp,
+  Settings2,
   Phone,
   PhoneOff,
   PhoneIncoming,
@@ -37,6 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import VoiceCampaigns from "@/pages/admin/VoiceCampaigns";
 import VoiceStats from "@/pages/admin/VoiceStats";
 import VoiceInsights from "@/pages/admin/VoiceInsights";
+import VoiceConfig from "@/pages/admin/VoiceConfig";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSoftphone } from "@/hooks/useSoftphone";
@@ -221,12 +223,12 @@ export default function PhoneCallCenter() {
 
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get("tab");
-  const [view, setView] = useState<"phone" | "campaigns" | "stats">(
-    initialTab === "campaigns" ? "campaigns" : initialTab === "stats" ? "stats" : "phone",
+  const [view, setView] = useState<"phone" | "campaigns" | "stats" | "config">(
+    initialTab === "campaigns" ? "campaigns" : initialTab === "stats" ? "stats" : initialTab === "config" ? "config" : "phone",
   );
   useEffect(() => {
     const t = searchParams.get("tab");
-    if (t === "campaigns" || t === "stats") setView(t);
+    if (t === "campaigns" || t === "stats" || t === "config") setView(t);
   }, [searchParams]);
 
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -771,6 +773,15 @@ export default function PhoneCallCenter() {
         >
           <TrendingUp className="h-4 w-4 inline mr-1.5 -mt-0.5" /> Statistiques
         </button>
+        <button
+          onClick={() => setView("config")}
+          className={cn(
+            "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+            view === "config" ? "border-violet-600 text-violet-700" : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Settings2 className="h-4 w-4 inline mr-1.5 -mt-0.5" /> Configuration
+        </button>
       </div>
 
       {/* Vue Campagnes Alex */}
@@ -785,6 +796,13 @@ export default function PhoneCallCenter() {
         <div className="flex-1 min-h-0 overflow-auto -mx-4 sm:-mx-6">
           <VoiceStats />
           <VoiceInsights />
+        </div>
+      )}
+
+      {/* Vue Configuration Alex */}
+      {view === "config" && (
+        <div className="flex-1 min-h-0 overflow-auto -mx-4 sm:-mx-6">
+          <VoiceConfig />
         </div>
       )}
 

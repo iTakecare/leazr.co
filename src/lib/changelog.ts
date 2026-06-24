@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.23";
+export const ADMIN_VERSION = "1.3.24";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.24",
+    date: "2026-06-24",
+    title: "Centre d'appels : onglet Configuration d'Alex",
+    items: [
+      "Nouvel onglet « Configuration » dans le Centre d'appels pour paramétrer l'agent vocal Alex directement depuis Leazr : prompt système, message d'ouverture par défaut, langue, voix et modèle ElevenLabs (voice ID, modèle TTS, stabilité, vitesse, similarité), modèle LLM et température. Les modifications sont enregistrées sur l'agent ElevenLabs en un clic.",
+      "Coach Alex intégré à l'onglet : les rapports d'analyse des transcriptions (hebdomadaires + à la demande via « Analyser maintenant ») s'affichent désormais dans l'interface, plus seulement par email.",
+      "Dialogue avec le Coach Alex : vous pouvez discuter avec le coach pour refondre le prompt sur la base de l'analyse des appels. Quand il propose un prompt système ou un message d'ouverture complet, un bouton « Appliquer » le verse directement dans le formulaire de configuration.",
+    ],
+  },
   {
     version: "1.3.23",
     date: "2026-06-24",

@@ -44,11 +44,21 @@ serve(async (req) => {
   let reports = 0;
   for (const [companyId, rows] of byCompany) {
     try {
-      const html = await analyzeCompany(rows);
-      if (!html) continue;
+      const analysis = await analyzeCompany(rows);
+      if (!analysis) continue;
+      // Persiste le rapport (visible dans l'onglet Configuration du Centre d'appels).
+      await supabase.from("voice_coach_reports").insert({
+        company_id: companyId,
+        source: "cron",
+        window_days: WINDOW_DAYS,
+        calls_analyzed: rows.length,
+        stats: analysis.stats,
+        html: analysis.html,
+        summary: analysis.summary,
+      });
       const emails = await adminEmails(supabase, companyId);
       if (emails.length === 0) { console.log(`[voice-coach] no admin email for ${companyId}`); continue; }
-      const sent = await sendReport(emails, rows.length, html);
+      const sent = await sendReport(emails, rows.length, analysis.html);
       if (sent) reports++;
     } catch (e) {
       console.error("[voice-coach] company failed", companyId, e);
@@ -68,7 +78,7 @@ function stats(rows: any[]) {
   return { n, voicemail, hangupShort, real, noAnswer, avg };
 }
 
-async function analyzeCompany(rows: any[]): Promise<string | null> {
+async function analyzeCompany(rows: any[]): Promise<{ html: string; summary: string; stats: ReturnType<typeof stats> } | null> {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) { console.error("[voice-coach] ANTHROPIC_API_KEY manquante"); return null; }
 
@@ -100,7 +110,9 @@ Sois précis, concis, basé uniquement sur les transcriptions fournies.`;
       const data = await resp.json();
       const text = (data.content ?? []).map((b: { text?: string }) => b.text ?? "").join("");
       const head = `<p style="color:#475569">Analyse de <strong>${s.n} appel(s)</strong> d'Alex sur les ${WINDOW_DAYS} derniers jours — ${s.real} conversations, ${s.voicemail} répondeurs, ${s.hangupShort} raccrochages rapides, durée moyenne ${s.avg}s.</p>`;
-      return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:auto;color:#1e293b"><h2 style="color:#0f172a">Coach Alex — suggestions de la semaine</h2>${head}${text}<p style="color:#94a3b8;font-size:12px;margin-top:16px">Rapport généré automatiquement. Aucune modification n'a été appliquée — à vous de valider les ajustements dans ElevenLabs.</p></div>`;
+      const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:auto;color:#1e293b"><h2 style="color:#0f172a">Coach Alex — suggestions de la semaine</h2>${head}${text}<p style="color:#94a3b8;font-size:12px;margin-top:16px">Rapport généré automatiquement. Aucune modification n'a été appliquée — à vous de valider les ajustements dans ElevenLabs.</p></div>`;
+      const summary = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 1200);
+      return { html, summary, stats: s };
     }
     if (![429, 500, 529].includes(resp.status)) {
       console.error("[voice-coach] anthropic", resp.status, (await resp.text()).slice(0, 200));

@@ -70,6 +70,41 @@ export async function startElevenLabsCall(
   return body as ElevenLabsOutboundCallResponse;
 }
 
+// --- Convai Agents Platform : lecture/écriture de la config de l'agent (Alex) ---
+// GET  /v1/convai/agents/{agent_id}  → config complète (prompt, first_message, tts…)
+// PATCH même URL avec { conversation_config: {...} } → merge côté ElevenLabs.
+// On renvoie/repousse conversation_config en entier pour préserver outils, ASR, etc.
+
+export async function getConvaiAgent(agentId: string): Promise<any> {
+  const apiKey = getEnv("ELEVENLABS_API_KEY");
+  const res = await fetch(`${ELEVENLABS_API_BASE}/v1/convai/agents/${agentId}`, {
+    headers: { "xi-api-key": apiKey },
+  });
+  const text = await res.text();
+  let body: unknown;
+  try { body = JSON.parse(text); } catch { body = text; }
+  if (!res.ok) {
+    throw new ElevenLabsError(`ElevenLabs get-agent failed (${res.status})`, res.status, body);
+  }
+  return body;
+}
+
+export async function patchConvaiAgent(agentId: string, patch: Record<string, unknown>): Promise<any> {
+  const apiKey = getEnv("ELEVENLABS_API_KEY");
+  const res = await fetch(`${ELEVENLABS_API_BASE}/v1/convai/agents/${agentId}`, {
+    method: "PATCH",
+    headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  const text = await res.text();
+  let body: unknown;
+  try { body = JSON.parse(text); } catch { body = text; }
+  if (!res.ok) {
+    throw new ElevenLabsError(`ElevenLabs patch-agent failed (${res.status})`, res.status, body);
+  }
+  return body;
+}
+
 // E.164 normalizer (Belgian default)
 export function normalizeBelgianPhone(input: string | null | undefined): string | null {
   if (!input) return null;

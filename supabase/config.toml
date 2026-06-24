@@ -281,6 +281,10 @@ verify_jwt = false
 # Cron hebdo (X-Cron-Secret) : analyse les transcriptions d'Alex + email de suggestions. Propose-only.
 verify_jwt = false
 
+[functions.voice-config]
+# Config de l'agent Alex (prompt/voix ElevenLabs) + dialogue Coach Alex. Admin, fait sa propre auth.
+verify_jwt = true
+
 [functions.voice-tool-report-blockers]
 verify_jwt = false
 
