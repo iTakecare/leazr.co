@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.24";
+export const ADMIN_VERSION = "1.3.25";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.25",
+    date: "2026-06-24",
+    title: "Bandeau « Nouvelle version » plus visible",
+    items: [
+      "La notification de mise à jour de Leazr est désormais une carte plus grande avec un gros bouton « Recharger maintenant », plus difficile à manquer.",
+    ],
+  },
   {
     version: "1.3.24",
     date: "2026-06-24",

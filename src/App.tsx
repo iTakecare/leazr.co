@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { toast } from "sonner";
+import { Sparkles, RefreshCw } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import ChangelogModal from "@/components/shared/ChangelogModal";
@@ -429,11 +430,31 @@ function useAppUpdateCheck() {
         const m = html.match(/\/assets\/index-[A-Za-z0-9_-]+\.js/);
         if (m && cur && !cur.endsWith(m[0])) {
           notified = true;
-          toast("Nouvelle version disponible", {
-            description: "Rechargez pour mettre à jour Leazr.",
-            action: { label: "Recharger", onClick: () => window.location.reload() },
-            duration: Infinity,
-          });
+          toast.custom(
+            () => (
+              <div className="w-[380px] rounded-2xl border border-emerald-200 bg-white p-5 shadow-xl">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                    <Sparkles className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-base font-bold text-slate-900">Nouvelle version disponible</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Une mise à jour de Leazr est prête. Rechargez pour en profiter.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3.5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                  Recharger maintenant
+                </button>
+              </div>
+            ),
+            { duration: Infinity },
+          );
         }
       } catch {
         /* hors-ligne : on réessaiera */
