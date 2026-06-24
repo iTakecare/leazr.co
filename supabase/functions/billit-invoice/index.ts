@@ -427,6 +427,71 @@ async function actionPreview(supabase: any, companyId: string, invoiceId: string
   return { preview: recap(built, invoice) };
 }
 
+// Quand la facture est alignée sur les valeurs RÉELLES Grenke, on propage ces
+// montants à la DEMANDE (offer_equipment.selling_price + marge % recalculée),
+// au montant financé de l'offre, et à la facture (amount + billing_data) — pour
+// que demande, facture et Billit affichent exactement les mêmes chiffres.
+// Déclenché au « Pousser vers Billit » (choix utilisateur). Best-effort : une
+// erreur ici ne doit pas faire échouer la création Billit déjà réussie.
+async function alignDemandToGrenke(
+  supabase: any, invoice: any, built: BuiltOrder,
+): Promise<{ grenkeTotal: number | null; equipmentData: any[] | null }> {
+  const out: { grenkeTotal: number | null; equipmentData: any[] | null } = { grenkeTotal: null, equipmentData: null };
+  if (!built.grenkeAligned) return out;
+
+  let offerId = invoice.offer_id || null;
+  const contractId = invoice.contract_id || null;
+  if (!offerId && contractId) {
+    const { data: c } = await supabase.from("contracts").select("offer_id").eq("id", contractId).maybeSingle();
+    offerId = c?.offer_id || null;
+  }
+  if (!offerId) return out;
+
+  const { data: offer } = await supabase.from("offers").select("grenke_financing_objects").eq("id", offerId).maybeSingle();
+  const objs = Array.isArray(offer?.grenke_financing_objects) ? offer.grenke_financing_objects : null;
+  if (!objs || !objs.length) return out;
+
+  // Index par titre normalisé (= Details Grenke) -> prix unitaire + quantité réels.
+  const gByTitle = new Map<string, { unit: number; qty: number }>();
+  let grenkeTotal = 0;
+  for (const o of objs) {
+    const t = normTitle(String(o?.Details ?? o?.Name ?? ""));
+    const unit = round2(Number(o?.NetPricePerObject) || 0);
+    const qty = Number(o?.Quantity) || 1;
+    if (t) gByTitle.set(t, { unit, qty });
+    grenkeTotal = round2(grenkeTotal + unit * qty);
+  }
+  out.grenkeTotal = grenkeTotal;
+  // Marge % telle que selling = purchase × (1 + marge/100).
+  const marginPct = (unit: number, purchase: number) =>
+    purchase > 0 ? Math.round((unit / purchase - 1) * 100 * 10000) / 10000 : null;
+
+  // 1) DEMANDE : prix de vente par bien + marge recalculée
+  const { data: oeq } = await supabase.from("offer_equipment").select("id, title, purchase_price").eq("offer_id", offerId);
+  for (const e of oeq || []) {
+    const g = gByTitle.get(normTitle(e.title));
+    if (!g) continue;
+    const upd: Record<string, unknown> = { selling_price: g.unit };
+    const m = marginPct(g.unit, Number(e.purchase_price));
+    if (m != null) upd.margin = m;
+    await supabase.from("offer_equipment").update(upd).eq("id", e.id);
+  }
+  // 2) OFFRE : montant financé réel
+  await supabase.from("offers").update({ financed_amount: grenkeTotal }).eq("id", offerId);
+
+  // 3) FACTURE : aligner les prix par bien stockés dans billing_data (si présents)
+  const ed = Array.isArray(invoice.billing_data?.equipment_data) ? invoice.billing_data.equipment_data : null;
+  if (ed) {
+    out.equipmentData = ed.map((it: any) => {
+      const g = gByTitle.get(normTitle(it.title));
+      if (!g) return it;
+      const m = marginPct(g.unit, Number(it.purchase_price));
+      return { ...it, selling_price: g.unit, selling_price_excl_vat: g.unit, ...(m != null ? { margin: m } : {}) };
+    });
+  }
+  return out;
+}
+
 async function actionCreate(supabase: any, companyId: string, invoiceId: string) {
   const cred = await loadCredentials(supabase, companyId);
   await getBillitAccount(cred.baseUrl, cred.apiKey); // valide l'auth
@@ -451,22 +516,34 @@ async function actionCreate(supabase: any, companyId: string, invoiceId: string)
   const detail = await getBillitOrderDetail(cred.baseUrl, cred.apiKey, cred.companyId, orderId);
   const pdf = detail ? billitPdfUrl(cred.baseUrl, detail) : null;
 
-  const billing_data = {
+  // Alignement demande + facture sur les valeurs réelles Grenke (best-effort : ne
+  // doit pas faire échouer la création Billit déjà réussie).
+  let aligned: { grenkeTotal: number | null; equipmentData: any[] | null } = { grenkeTotal: null, equipmentData: null };
+  try {
+    aligned = await alignDemandToGrenke(supabase, invoice, built);
+  } catch (e) {
+    console.error("alignDemandToGrenke a échoué (non bloquant):", e instanceof Error ? e.message : e);
+  }
+
+  const billing_data: Record<string, unknown> = {
     ...(invoice.billing_data || {}),
+    ...(aligned.equipmentData ? { equipment_data: aligned.equipmentData } : {}),
     billit_draft: { order_id: String(orderId), channel: built.recipient.channel, recipient_kind: built.recipient.kind, created_at: new Date().toISOString() },
     billit_sent_channel: null,
   };
-  const { error: upErr } = await supabase.from("invoices").update({
+  const invUpdate: Record<string, unknown> = {
     external_invoice_id: String(orderId),
     integration_type: "billit",
     invoice_number: detail?.OrderNumber || invoice.invoice_number,
     pdf_url: pdf || invoice.pdf_url,
     billing_data,
     updated_at: new Date().toISOString(),
-  }).eq("id", invoice.id);
+  };
+  if (aligned.grenkeTotal != null) invUpdate.amount = aligned.grenkeTotal;
+  const { error: upErr } = await supabase.from("invoices").update(invUpdate).eq("id", invoice.id);
   if (upErr) throw upErr;
 
-  return { created: true, external_invoice_id: String(orderId), pdf_url: pdf, recap: recap(built, invoice) };
+  return { created: true, external_invoice_id: String(orderId), pdf_url: pdf, aligned_to_grenke: aligned.grenkeTotal != null, recap: recap(built, invoice) };
 }
 
 async function sendVia(cred: BillitCredentials, orderId: string, transport: "Peppol" | "Email") {

@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.21";
+export const ADMIN_VERSION = "1.3.22";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.22",
+    date: "2026-06-24",
+    title: "Alignement Grenke propagé à la demande et à la facture",
+    items: [
+      "Au « Pousser vers Billit » d'une facture bailleur alignée sur Grenke, les montants réels Grenke sont désormais propagés à la demande (prix de vente par bien + marge recalculée), au montant financé de l'offre et à la facture — tout affiche exactement les mêmes chiffres.",
+      "Demande, facture et Billit sont ainsi parfaitement cohérents avec le dossier Grenke.",
+    ],
+  },
   {
     version: "1.3.21",
     date: "2026-06-23",
