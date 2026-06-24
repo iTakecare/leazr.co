@@ -416,6 +416,7 @@ const AppRoutes = () => {
 
 // Détecte un nouveau déploiement (changement du hash du bundle principal) et
 // propose à l'utilisateur de recharger pour obtenir la nouvelle version.
+// (commit déclencheur pour visualiser le nouveau bandeau de mise à jour)
 function useAppUpdateCheck() {
   useEffect(() => {
     const cur = Array.from(document.querySelectorAll("script[src]"))
