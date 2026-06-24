@@ -432,28 +432,28 @@ function useAppUpdateCheck() {
           notified = true;
           toast.custom(
             () => (
-              <div className="w-[380px] rounded-2xl border border-emerald-200 bg-white p-5 shadow-xl">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                    <Sparkles className="h-5 w-5 text-emerald-600" />
+              <div className="w-[460px] max-w-[92vw] rounded-3xl border border-emerald-200 bg-white p-7 shadow-2xl">
+                <div className="flex items-start gap-4">
+                  <div className="mt-0.5 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-100">
+                    <Sparkles className="h-7 w-7 text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-base font-bold text-slate-900">Nouvelle version disponible</p>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="text-xl font-bold text-slate-900">Nouvelle version disponible</p>
+                    <p className="mt-1.5 text-base text-slate-500">
                       Une mise à jour de Leazr est prête. Rechargez pour en profiter.
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => window.location.reload()}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3.5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                  className="mt-6 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 px-6 py-5 text-lg font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
                 >
-                  <RefreshCw className="h-5 w-5" />
+                  <RefreshCw className="h-6 w-6" />
                   Recharger maintenant
                 </button>
               </div>
             ),
-            { duration: Infinity },
+            { duration: Infinity, unstyled: true, style: { width: "460px", maxWidth: "92vw" } },
           );
         }
       } catch {
