@@ -34,6 +34,7 @@ import SidebarMenuItem from "./SidebarMenuItem";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
 import { useAssignedTaskCount } from "@/hooks/useAssignedTaskCount";
 import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";
+import { useMessagingUnread } from "@/hooks/useMessagingUnread";
 import { GlobalSearch } from "@/components/ui/GlobalSearch";
 
 interface SidebarProps {
@@ -46,7 +47,10 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const { settings, loading: settingsLoading } = useSiteSettings();
   const { hasModuleAccess } = useModuleAccess();
   const taskUnreadCount = useAssignedTaskCount();
-  const { unreadCount: supportUnreadCount } = useTicketReplyNotifications({ role: "admin" });
+  const { unreadCount: ticketUnreadCount } = useTicketReplyNotifications({ role: "admin" });
+  const messagingWaiting = useMessagingUnread();
+  // Badge Support = réponses de tickets non lues + conversations WhatsApp/SMS en attente
+  const supportUnreadCount = ticketUnreadCount + messagingWaiting;
   const { preferences, updateSidebarCollapsed } = useUserPreferences();
   const location = useLocation();
   
@@ -113,7 +117,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         return hasModuleAccess(item.moduleSlug);
       })
     })).filter(group => group.items.length > 0);
-  }, [companySlug, hasModuleAccess, taskUnreadCount, supportUnreadCount]);
+  }, [companySlug, hasModuleAccess, taskUnreadCount, supportUnreadCount, messagingWaiting]);
 
   // Flat list for backward compat (used by isActive etc.)
   const menuItems = useMemo(() => menuGroups.flatMap(g => g.items), [menuGroups]);

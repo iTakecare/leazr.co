@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.25";
+export const ADMIN_VERSION = "1.3.26";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.26",
+    date: "2026-06-24",
+    title: "Badge Support : compteur des messages en attente",
+    items: [
+      "L'icône Support de la barre latérale affiche désormais une pastille rouge avec le nombre de conversations WhatsApp/SMS en attente de réponse, en plus des réponses de tickets non lues. Le compteur se met à jour en temps réel : plus besoin d'ouvrir le Support pour savoir qu'un client a écrit.",
+    ],
+  },
   {
     version: "1.3.25",
     date: "2026-06-24",
