@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.22";
+export const ADMIN_VERSION = "1.3.23";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.23",
+    date: "2026-06-24",
+    title: "Lookup BCE : message d'erreur clair sur numéro invalide",
+    items: [
+      "Le lookup automatique BCE valide désormais le numéro d'entreprise belge (checksum modulo 97) avant d'interroger la Banque-Carrefour : si le numéro est invalide (ex. un identifiant de lead Meta collé par erreur dans le champ TVA), un message explicite l'indique au lieu de l'erreur technique « Edge Function returned a non-2xx status code ».",
+      "Les échecs de lookup remontent maintenant proprement leur vraie cause dans la notification, plus seulement dans l'historique.",
+    ],
+  },
   {
     version: "1.3.22",
     date: "2026-06-24",

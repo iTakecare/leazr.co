@@ -417,6 +417,19 @@ interface BceData {
   warnings: string[];
 }
 
+// Valide un numéro d'entreprise belge (10 chiffres) via le checksum modulo 97 :
+// les 2 derniers chiffres = 97 − (8 premiers mod 97). Évite d'interroger kbopub
+// avec un numéro bidon (ex. un lead ID Meta collé par erreur dans le champ TVA).
+function isValidBeEnterpriseNumber(vatNumber: string): boolean {
+  const digits = vatNumber.replace(/\D/g, "");
+  if (digits.length < 9 || digits.length > 10) return false;
+  const full = digits.length === 9 ? `0${digits}` : digits;
+  if (!/^[01]\d{9}$/.test(full)) return false; // n° d'entreprise commence par 0 ou 1
+  const base = Number(full.slice(0, 8));
+  const check = Number(full.slice(8));
+  return 97 - (base % 97) === check;
+}
+
 async function fetchBceEnriched(vatNumber: string): Promise<BceData | null> {
   // Normalize VAT to digits-only
   const digits = vatNumber.replace(/\D/g, "");
@@ -808,6 +821,12 @@ serve(async (req) => {
         // Pour la Belgique : scrape direct kbopub (forme juridique, date de début, NACE, statut)
         // Pour FR/LU : on délègue à company-search qui sait router vers SIRENE / registre LU
         if (country === "BE") {
+          if (!isValidBeEnterpriseNumber(client.vat_number)) {
+            throw new Error(
+              `« ${client.vat_number} » n'est pas un numéro d'entreprise belge valide (checksum incorrect). ` +
+                "Vérifie le numéro de TVA / d'entreprise (format BE 0XXX.XXX.XXX) — il s'agit peut-être d'un identifiant de lead, pas d'une TVA.",
+            );
+          }
           const bce = await fetchBceEnriched(client.vat_number);
           if (!bce || (!bce.name && !bce.legal_form_raw && !bce.start_date)) {
             // Fallback : tenter l'ancien company-search au cas où le scrape kbopub a échoué
@@ -852,9 +871,13 @@ serve(async (req) => {
           file_mime_type: fileMime,
         })
         .eq("id", report.id);
+      // 200 (pas 502) : un échec d'analyse est un résultat "métier" attendu, pas une
+      // erreur HTTP. Avec un non-2xx, supabase-js écrase le message par un générique
+      // « Edge Function returned a non-2xx status code ». En 200, le front lit
+      // proprement data.message (cf. runAutoLookup → if (!data.success)).
       return new Response(
         JSON.stringify({ success: false, reportId: report.id, message: analysisError }),
-        { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
       );
     }
 
