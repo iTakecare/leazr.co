@@ -53,9 +53,17 @@ interface ChatMsg { role: "user" | "assistant"; content: string }
 async function invoke<T = any>(action: string, body: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await supabase.functions.invoke("voice-config", { body: { action, ...body } });
   if (error) {
-    // L'erreur edge renvoie souvent un JSON dans le contexte ; on remonte un message lisible.
+    // Sur erreur HTTP, supabase-js met la Response dans error.context : on lit le
+    // corps pour remonter la vraie cause (souvent l'erreur ElevenLabs).
     let detail = error.message;
-    try { const ctx = (error as any).context; if (ctx?.detail) detail = JSON.stringify(ctx.detail); } catch { /* */ }
+    try {
+      const ctx: any = (error as any).context;
+      if (ctx && typeof ctx.json === "function") {
+        const b = await ctx.json();
+        const d = b?.detail ?? b?.error;
+        if (d) detail = typeof d === "string" ? d : JSON.stringify(d);
+      }
+    } catch { /* corps illisible */ }
     throw new Error(detail || "Erreur edge");
   }
   if (data && (data as any).error) throw new Error((data as any).error);

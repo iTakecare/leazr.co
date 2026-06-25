@@ -47,26 +47,45 @@ serve(async (req) => {
       case "update_agent": {
         if (!agentId) return json(500, { error: "elevenlabs_not_configured" });
         const agent = await getConvaiAgent(agentId);
-        const cc = agent?.conversation_config ?? {};
-        const a = cc.agent ?? (cc.agent = {});
-        const prompt = a.prompt ?? (a.prompt = {});
-        const tts = cc.tts ?? (cc.tts = {});
-
+        const curPrompt = agent?.conversation_config?.agent?.prompt ?? {};
         const u = payload.updates ?? {};
-        if (typeof u.system_prompt === "string") prompt.prompt = u.system_prompt;
-        if (typeof u.first_message === "string") a.first_message = u.first_message;
-        if (typeof u.language === "string") a.language = u.language;
-        if (typeof u.llm === "string") prompt.llm = u.llm;
-        if (typeof u.temperature === "number") prompt.temperature = u.temperature;
-        if (typeof u.voice_id === "string") tts.voice_id = u.voice_id;
-        if (typeof u.tts_model_id === "string") tts.model_id = u.tts_model_id;
-        if (typeof u.stability === "number") tts.stability = u.stability;
-        if (typeof u.speed === "number") tts.speed = u.speed;
-        if (typeof u.similarity_boost === "number") tts.similarity_boost = u.similarity_boost;
-        if (typeof u.language_detection === "boolean") setLanguageDetection(prompt, u.language_detection);
 
-        // On repousse conversation_config en entier (préserve outils, ASR, turn…).
-        const updated = await patchConvaiAgent(agentId, { conversation_config: cc });
+        // PATCH MINIMAL : on n'envoie QUE les champs modifiés (ElevenLabs fait un
+        // deep-merge). On n'échoit jamais le champ legacy `prompt.tools` (déprécié
+        // → rejeté à l'écriture) ni les champs read-only de la réponse GET.
+        const promptPatch: Record<string, unknown> = {};
+        const agentPatch: Record<string, unknown> = {};
+        const ttsPatch: Record<string, unknown> = {};
+
+        if (typeof u.system_prompt === "string") promptPatch.prompt = u.system_prompt;
+        if (typeof u.llm === "string") promptPatch.llm = u.llm;
+        if (typeof u.temperature === "number") promptPatch.temperature = u.temperature;
+        if (typeof u.first_message === "string") agentPatch.first_message = u.first_message;
+        if (typeof u.language === "string") agentPatch.language = u.language;
+        if (typeof u.voice_id === "string") ttsPatch.voice_id = u.voice_id;
+        if (typeof u.tts_model_id === "string") ttsPatch.model_id = u.tts_model_id;
+        if (typeof u.stability === "number") ttsPatch.stability = u.stability;
+        if (typeof u.speed === "number") ttsPatch.speed = u.speed;
+        if (typeof u.similarity_boost === "number") ttsPatch.similarity_boost = u.similarity_boost;
+
+        if (typeof u.language_detection === "boolean") {
+          // On renvoie la map built_in_tools COMPLÈTE (clés existantes échoées +
+          // language_detection togglé) → préserve transfer_to_number/voicemail_detection.
+          const cur = (curPrompt.built_in_tools && typeof curPrompt.built_in_tools === "object")
+            ? curPrompt.built_in_tools : {};
+          const bit: Record<string, unknown> = { ...cur };
+          bit.language_detection = u.language_detection
+            ? (cur.language_detection ?? { ...LANGUAGE_DETECTION_TOOL })
+            : null;
+          promptPatch.built_in_tools = bit;
+        }
+
+        if (Object.keys(promptPatch).length) agentPatch.prompt = promptPatch;
+        const ccPatch: Record<string, unknown> = {};
+        if (Object.keys(agentPatch).length) ccPatch.agent = agentPatch;
+        if (Object.keys(ttsPatch).length) ccPatch.tts = ttsPatch;
+
+        const updated = await patchConvaiAgent(agentId, { conversation_config: ccPatch });
         return json(200, { ok: true, config: extractConfig(updated) });
       }
 
@@ -146,31 +165,6 @@ function hasLanguageDetection(prompt: any): boolean {
 }
 
 const LANGUAGE_DETECTION_TOOL = { name: "language_detection", params: { system_tool_type: "language_detection" } };
-
-function setLanguageDetection(prompt: any, enabled: boolean) {
-  // built_in_tools (objet) — champ documenté actuel.
-  const bit = prompt.built_in_tools ?? (prompt.built_in_tools = {});
-  if (enabled) {
-    if (!bit.language_detection) bit.language_detection = { ...LANGUAGE_DETECTION_TOOL };
-  } else {
-    bit.language_detection = null;
-  }
-
-  // Tableau legacy prompt.tools — on le maintient cohérent s'il existe.
-  if (Array.isArray(prompt.tools)) {
-    prompt.tools = prompt.tools.filter((t: any) => (t?.name ?? t?.type) !== "language_detection");
-    if (enabled) {
-      // Clone la forme d'un tool système existant pour rester valide, sinon minimal.
-      const template = prompt.tools.find((t: any) => (t?.name ?? t?.type) === "voicemail_detection")
-        ?? prompt.tools.find((t: any) => t?.type === "system");
-      const entry = template
-        ? { ...template, name: "language_detection", params: { system_tool_type: "language_detection" } }
-        : { type: "system", ...LANGUAGE_DETECTION_TOOL };
-      delete (entry as any).id;
-      prompt.tools.push(entry);
-    }
-  }
-}
 
 // --- Coach Alex : récupération des transcriptions + stats sur la fenêtre. ------
 async function fetchCalls(supabase: any, companyId: string | null) {
