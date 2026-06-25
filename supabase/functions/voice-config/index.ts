@@ -63,6 +63,7 @@ serve(async (req) => {
         if (typeof u.stability === "number") tts.stability = u.stability;
         if (typeof u.speed === "number") tts.speed = u.speed;
         if (typeof u.similarity_boost === "number") tts.similarity_boost = u.similarity_boost;
+        if (typeof u.language_detection === "boolean") setLanguageDetection(prompt, u.language_detection);
 
         // On repousse conversation_config en entier (préserve outils, ASR, turn…).
         const updated = await patchConvaiAgent(agentId, { conversation_config: cc });
@@ -109,11 +110,19 @@ function extractConfig(agent: any) {
   const a = cc.agent ?? {};
   const prompt = a.prompt ?? {};
   const tts = cc.tts ?? {};
+
+  // Langues : défaut (agent.language) + langues additionnelles (language_presets).
+  const defaultLang = a.language ?? "fr";
+  const presetLangs = Object.keys(cc.language_presets ?? {});
+  const supported_languages = [...new Set([defaultLang, ...presetLangs])];
+
   return {
     name: agent?.name ?? "Alex",
     system_prompt: prompt.prompt ?? "",
     first_message: a.first_message ?? "",
-    language: a.language ?? "fr",
+    language: defaultLang,
+    supported_languages,
+    language_detection_enabled: hasLanguageDetection(prompt),
     llm: prompt.llm ?? "",
     temperature: typeof prompt.temperature === "number" ? prompt.temperature : null,
     voice_id: tts.voice_id ?? "",
@@ -123,6 +132,44 @@ function extractConfig(agent: any) {
     similarity_boost: typeof tts.similarity_boost === "number" ? tts.similarity_boost : null,
     tools: (prompt.tools ?? []).map((t: any) => t?.name ?? t?.type ?? "tool"),
   };
+}
+
+// Le tool système `language_detection` peut vivre dans built_in_tools (objet, API
+// actuelle) ou dans le tableau legacy prompt.tools. On lit/écrit les deux par
+// prudence (l'agent Alex expose encore le tableau legacy).
+function hasLanguageDetection(prompt: any): boolean {
+  const bit = prompt?.built_in_tools;
+  if (bit && bit.language_detection) return true;
+  const legacy = prompt?.tools;
+  if (Array.isArray(legacy) && legacy.some((t: any) => (t?.name ?? t?.type) === "language_detection")) return true;
+  return false;
+}
+
+const LANGUAGE_DETECTION_TOOL = { name: "language_detection", params: { system_tool_type: "language_detection" } };
+
+function setLanguageDetection(prompt: any, enabled: boolean) {
+  // built_in_tools (objet) — champ documenté actuel.
+  const bit = prompt.built_in_tools ?? (prompt.built_in_tools = {});
+  if (enabled) {
+    if (!bit.language_detection) bit.language_detection = { ...LANGUAGE_DETECTION_TOOL };
+  } else {
+    bit.language_detection = null;
+  }
+
+  // Tableau legacy prompt.tools — on le maintient cohérent s'il existe.
+  if (Array.isArray(prompt.tools)) {
+    prompt.tools = prompt.tools.filter((t: any) => (t?.name ?? t?.type) !== "language_detection");
+    if (enabled) {
+      // Clone la forme d'un tool système existant pour rester valide, sinon minimal.
+      const template = prompt.tools.find((t: any) => (t?.name ?? t?.type) === "voicemail_detection")
+        ?? prompt.tools.find((t: any) => t?.type === "system");
+      const entry = template
+        ? { ...template, name: "language_detection", params: { system_tool_type: "language_detection" } }
+        : { type: "system", ...LANGUAGE_DETECTION_TOOL };
+      delete (entry as any).id;
+      prompt.tools.push(entry);
+    }
+  }
 }
 
 // --- Coach Alex : récupération des transcriptions + stats sur la fenêtre. ------

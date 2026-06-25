@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import {
   Bot, Loader2, Save, RefreshCw, Sparkles, Send, ClipboardCheck, MessageSquare,
-  SlidersHorizontal, FileText, AlertTriangle,
+  SlidersHorizontal, FileText, AlertTriangle, Languages,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,8 @@ interface AgentConfig {
   system_prompt: string;
   first_message: string;
   language: string;
+  supported_languages: string[];
+  language_detection_enabled: boolean;
   llm: string;
   temperature: number | null;
   voice_id: string;
@@ -71,6 +74,8 @@ function extractBlocks(text: string): { prompt?: string; firstMessage?: string }
 
 const num = (v: number | null) => (v === null || v === undefined ? "" : String(v));
 
+const LANG_LABEL: Record<string, string> = { fr: "Français", nl: "Nederlands", en: "English", de: "Deutsch" };
+
 const VoiceConfig: React.FC = () => {
   const [cfg, setCfg] = useState<AgentConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,6 +122,25 @@ const VoiceConfig: React.FC = () => {
       toast.error("Échec de l'enregistrement : " + (e.message || ""));
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Détection automatique de langue : enregistrement isolé (un clic = un PATCH
+  // ciblé qui ne touche pas aux autres champs).
+  const [savingDetection, setSavingDetection] = useState(false);
+  const toggleDetection = async (val: boolean) => {
+    if (!cfg) return;
+    setSavingDetection(true);
+    setCfg((c) => (c ? { ...c, language_detection_enabled: val } : c)); // optimiste
+    try {
+      const r = await invoke<{ config: AgentConfig }>("update_agent", { updates: { language_detection: val } });
+      setCfg(r.config);
+      toast.success(val ? "Détection automatique de la langue activée." : "Détection automatique désactivée.");
+    } catch (e: any) {
+      setCfg((c) => (c ? { ...c, language_detection_enabled: !val } : c)); // rollback
+      toast.error("Échec : " + (e.message || ""));
+    } finally {
+      setSavingDetection(false);
     }
   };
 
@@ -251,6 +275,60 @@ const VoiceConfig: React.FC = () => {
               <Input type="number" step="0.05" min="0" max="1" value={num(cfg.similarity_boost)}
                 onChange={(e) => set("similarity_boost", e.target.value === "" ? null : parseFloat(e.target.value))} />
             </Field>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ---- Langues & détection automatique ---- */}
+      {cfg && !loadError && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Languages className="h-4 w-4 text-violet-600" /> Langues & détection automatique
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium mb-1.5">Langues qu'Alex peut parler</p>
+              <div className="flex flex-wrap gap-1.5">
+                {cfg.supported_languages.map((l) => (
+                  <Badge key={l} variant="secondary" className="uppercase">
+                    {LANG_LABEL[l] ?? l}
+                    {l === cfg.language && <span className="ml-1 text-[10px] opacity-70">(défaut)</span>}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Les langues additionnelles se règlent dans le dashboard ElevenLabs (Agent → Additional
+                languages). Cette liste reflète ce qui y est activé.
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium">Détection automatique de la langue</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Quand c'est activé, Alex repère la langue parlée par le client (au téléphone comme sur
+                  un répondeur) et bascule tout seul vers le néerlandais, l'anglais ou l'allemand en cours
+                  d'appel. Recommandé pour un public multilingue.
+                </p>
+                {cfg.supported_languages.length < 2 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Une seule langue est activée sur l'agent : la détection n'aura rien vers quoi basculer.
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 pt-0.5">
+                {savingDetection && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <Switch
+                  checked={cfg.language_detection_enabled}
+                  onCheckedChange={toggleDetection}
+                  disabled={savingDetection}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.26";
+export const ADMIN_VERSION = "1.3.27";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.27",
+    date: "2026-06-24",
+    title: "Alex multilingue : détection automatique de la langue",
+    items: [
+      "Nouvelle section « Langues & détection automatique » dans l'onglet Configuration d'Alex : elle affiche les langues activées sur l'agent (FR/NL/EN/DE) et un interrupteur « Détection automatique de la langue ».",
+      "Une fois activée, Alex repère la langue parlée par le client — au téléphone comme sur un répondeur — et bascule tout seul vers le néerlandais, l'anglais ou l'allemand en cours d'appel, sans réglage préalable. Idéal pour relancer un public multilingue sur ses documents.",
+    ],
+  },
   {
     version: "1.3.26",
     date: "2026-06-24",
