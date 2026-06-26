@@ -596,7 +596,7 @@ const handleLeaserScoring = async (score: 'A' | 'B' | 'C' | 'D', reason?: string
 };
 
 // Validation finale via modale email (Contrat prêt)
-const handleSendEmailAndValidate = async (customContent?: string, includePdf: boolean = true) => {
+const handleSendEmailAndValidate = async (customContent?: string, includePdf: boolean = true, language?: string) => {
   setScoringLoading(true);
   try {
     const success = await updateOfferStatus(
@@ -610,7 +610,7 @@ const handleSendEmailAndValidate = async (customContent?: string, includePdf: bo
       return;
     }
     try {
-      await sendLeasingAcceptanceEmail(offer.id, customContent, includePdf);
+      await sendLeasingAcceptanceEmail(offer.id, customContent, includePdf, language);
       toast.success("Email envoyé et offre validée avec succès");
     } catch (emailErr) {
       console.error("Erreur d'envoi email:", emailErr);

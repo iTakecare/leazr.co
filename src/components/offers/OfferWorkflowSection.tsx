@@ -133,7 +133,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
     }
   };
 
-  const handleSendEmailAndValidate = async (customContent?: string, includePdf: boolean = true) => {
+  const handleSendEmailAndValidate = async (customContent?: string, includePdf: boolean = true, language?: string) => {
     setIsUpdating(true);
     try {
     // 1. Mettre à jour le statut
@@ -151,7 +151,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
       
       // 2. Envoyer l'email
       try {
-        await sendLeasingAcceptanceEmail(offerId, customContent, includePdf);
+        await sendLeasingAcceptanceEmail(offerId, customContent, includePdf, language);
         toast.success("Email envoyé et offre validée avec succès !");
       } catch (emailError) {
         console.error("Erreur email:", emailError);

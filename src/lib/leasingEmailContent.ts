@@ -224,6 +224,29 @@ export function rejectionTitle(lang: CommLang): string {
   }
 }
 
+// Variante HTML (paragraphes <p>) du corps de refus, pour les composeurs ReactQuill
+// (ScoringModal). Même contenu que rejectionBody mais formaté en HTML.
+export function rejectionBodyHtml(lang: CommLang): string {
+  switch (lang) {
+    case "nl": return `<p>Beste,</p>
+<p>Het spijt ons u te moeten meedelen dat onze financiële partner ons heeft laten weten dat hij geen gevolg kan geven aan uw leasingaanvraag.</p>
+<p>Wij kunnen u deze keer dus geen materiaal aanbieden.<br/>Wij wensen u alle goeds voor het vervolg van uw activiteiten.</p>
+<p>Tot binnenkort,<br/>Het team van iTakecare</p>`;
+    case "en": return `<p>Hello,</p>
+<p>We are sorry to inform you that our financial partner has told us they are unable to proceed with your leasing request.</p>
+<p>We will therefore not be able to offer you equipment this time.<br/>We wish you all the best for the continuation of your activities.</p>
+<p>See you soon,<br/>The iTakecare team</p>`;
+    case "de": return `<p>Guten Tag,</p>
+<p>Es tut uns leid, Ihnen mitteilen zu müssen, dass unser Finanzpartner uns mitgeteilt hat, dass er Ihrem Leasingantrag nicht stattgeben kann.</p>
+<p>Wir können Ihnen daher dieses Mal kein Material anbieten.<br/>Wir wünschen Ihnen alles Gute für die Fortsetzung Ihrer Tätigkeiten.</p>
+<p>Bis bald,<br/>Das iTakecare-Team</p>`;
+    default: return `<p>Bonjour,</p>
+<p>Nous sommes désolés de vous apprendre que notre partenaire financier nous a indiqué qu'il ne pouvait pas donner suite à votre demande de leasing.</p>
+<p>Nous ne pourrons donc pas vous proposer de matériel cette fois-ci.<br/>Je vous souhaite tout le meilleur pour la suite de vos activités.</p>
+<p>À bientôt,<br/>L'équipe iTakecare</p>`;
+  }
+}
+
 export function rejectionBody(lang: CommLang): string {
   switch (lang) {
     case "nl": return `Beste,

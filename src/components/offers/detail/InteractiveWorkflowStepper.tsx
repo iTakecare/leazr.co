@@ -336,7 +336,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     }
   };
 
-  const handleSendEmailAndValidate = async (customContent?: string, includePdf?: boolean) => {
+  const handleSendEmailAndValidate = async (customContent?: string, includePdf?: boolean, language?: string) => {
     setIsEmailProcessing(true);
     try {
       console.log("📧 STEPPER - Envoi email et validation de l'offre:", offerId);
@@ -351,7 +351,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         return;
       }
       try {
-        await sendLeasingAcceptanceEmail(offerId, customContent, includePdf ?? true);
+        await sendLeasingAcceptanceEmail(offerId, customContent, includePdf ?? true, language);
         toast.success("Email envoyé et offre validée. Le contrat va être créé.");
       } catch (emailErr) {
         console.error("Erreur d'envoi email:", emailErr);

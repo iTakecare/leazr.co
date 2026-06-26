@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.29";
+export const ADMIN_VERSION = "1.3.30";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.30",
+    date: "2026-06-26",
+    title: "Sélecteur de langue visible dans l'analyse de dossier",
+    items: [
+      "Un sélecteur de langue (FR/NL/EN/DE) est désormais affiché directement dans la modale d'analyse de dossier : Score B (demande de documents), Score C (email de refus) et Score D (clôture sans suite), ainsi que dans les modales d'acceptation et de relance.",
+      "Il est pré-réglé sur la langue de communication du client mais modifiable à la volée pour chaque envoi. Le contenu de l'email s'adapte instantanément à la langue choisie.",
+    ],
+  },
   {
     version: "1.3.29",
     date: "2026-06-26",

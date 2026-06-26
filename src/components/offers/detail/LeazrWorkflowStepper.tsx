@@ -326,7 +326,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
     }
   };
 
-  const handleSendEmailAndValidate = async (customContent?: string, includePdf?: boolean) => {
+  const handleSendEmailAndValidate = async (customContent?: string, includePdf?: boolean, language?: string) => {
     setIsEmailProcessing(true);
     try {
       const success = await updateOfferStatus(
@@ -340,7 +340,7 @@ const LeazrWorkflowStepper: React.FC<LeazrWorkflowStepperProps> = ({
         return;
       }
       try {
-        await sendLeasingAcceptanceEmail(offerId, customContent, includePdf ?? true);
+        await sendLeasingAcceptanceEmail(offerId, customContent, includePdf ?? true, language);
         toast.success("Email envoyé et offre validée. Le contrat va être créé.");
       } catch (emailErr) {
         console.error("Erreur d'envoi email:", emailErr);

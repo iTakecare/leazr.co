@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, FileText, Eye, Trash2, Send, X, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { getLeasingPdfMetadata, formatFileSize, type PdfMetadata } from "@/services/storageService";
@@ -15,7 +16,7 @@ interface EmailConfirmationModalProps {
   onClose: () => void;
   offerId: string;
   offerData: any;
-  onSendEmailAndValidate: (customContent?: string, includePdf?: boolean) => Promise<void>;
+  onSendEmailAndValidate: (customContent?: string, includePdf?: boolean, language?: string) => Promise<void>;
   onValidateWithoutEmail: () => Promise<void>;
 }
 
@@ -155,7 +156,7 @@ const EmailConfirmationModal: React.FC<EmailConfirmationModalProps> = ({
     setIsSending(true);
     try {
       const contentToSend = isEditMode ? customContent : undefined;
-      await onSendEmailAndValidate(contentToSend, includePdf);
+      await onSendEmailAndValidate(contentToSend, includePdf, clientLang);
     } finally {
       setIsSending(false);
     }
@@ -197,6 +198,22 @@ const EmailConfirmationModal: React.FC<EmailConfirmationModalProps> = ({
           <div className="bg-muted/50 p-4 rounded-lg">
             <p className="text-sm font-medium mb-1">Destinataire :</p>
             <p className="text-sm text-muted-foreground">{clientEmail}</p>
+          </div>
+
+          {/* Langue de l'email */}
+          <div>
+            <p className="text-sm font-medium mb-1">Langue de l'email</p>
+            <Select value={clientLang} onValueChange={(v) => setClientLang(v as CommLang)}>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-[110] bg-background shadow-md border">
+                <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
+                <SelectItem value="en">🇬🇧 English</SelectItem>
+                <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Toggle Edit Mode */}

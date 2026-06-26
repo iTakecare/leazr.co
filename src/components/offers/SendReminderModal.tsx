@@ -449,6 +449,25 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
             </p>
           </div>
 
+          {/* Langue de la relance */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Langue de la relance
+            </Label>
+            <Select value={clientLang} onValueChange={(v) => setClientLang(v as CommLang)}>
+              <SelectTrigger className="w-full bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white z-50">
+                <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
+                <SelectItem value="en">🇬🇧 English</SelectItem>
+                <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Signer selection */}
           {adminUsers.length > 0 && <div className="space-y-2">
               <Label className="flex items-center gap-2">

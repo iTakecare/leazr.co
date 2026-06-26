@@ -7,7 +7,8 @@ import { buildAcceptanceHtml, normalizeCommLang, type CommLang } from "@/lib/lea
 export const sendLeasingAcceptanceEmail = async (
   offerId: string,
   customContent?: string,
-  includePdfAttachment: boolean = true
+  includePdfAttachment: boolean = true,
+  language?: string
 ): Promise<boolean> => {
   try {
     console.log("📧 Envoi de l'email de félicitations pour acceptation du leasing");
@@ -15,10 +16,11 @@ export const sendLeasingAcceptanceEmail = async (
     console.log("📧 Inclure PDF:", includePdfAttachment);
 
     const { error } = await supabase.functions.invoke('send-leasing-acceptance-email', {
-      body: { 
-        offerId, 
-        customContent, 
-        includePdfAttachment 
+      body: {
+        offerId,
+        customContent,
+        includePdfAttachment,
+        language
       }
     });
 
@@ -41,7 +43,8 @@ export const sendLeasingAcceptanceEmail = async (
 export const sendLeasingRejectionEmail = async (
   offerId: string,
   customTitle?: string,
-  customContent?: string
+  customContent?: string,
+  language?: string
 ): Promise<boolean> => {
   try {
     console.log("📧 Envoi de l'email de refus pour le leasing");
@@ -49,10 +52,11 @@ export const sendLeasingRejectionEmail = async (
     console.log("📧 Contenu personnalisé:", customContent ? "Oui" : "Non");
 
     const { error } = await supabase.functions.invoke('send-leasing-rejection-email', {
-      body: { 
-        offerId, 
-        customTitle, 
-        customContent 
+      body: {
+        offerId,
+        customTitle,
+        customContent,
+        language
       }
     });
 
@@ -75,7 +79,8 @@ export const sendLeasingRejectionEmail = async (
 export const sendNoFollowUpEmail = async (
   offerId: string,
   customTitle?: string,
-  customContent?: string
+  customContent?: string,
+  language?: string
 ): Promise<boolean> => {
   try {
     console.log("📧 Envoi de l'email de clôture pour dossier sans suite");
@@ -83,10 +88,11 @@ export const sendNoFollowUpEmail = async (
     console.log("📧 Contenu personnalisé:", customContent ? "Oui" : "Non");
 
     const { error } = await supabase.functions.invoke('send-no-follow-up-email', {
-      body: { 
-        offerId, 
-        customTitle, 
-        customContent 
+      body: {
+        offerId,
+        customTitle,
+        customContent,
+        language
       }
     });
 

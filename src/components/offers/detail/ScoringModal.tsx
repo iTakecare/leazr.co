@@ -27,6 +27,21 @@ import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { getOfferDocuments } from "@/services/offers/offerDocuments";
 import { supabase } from "@/integrations/supabase/client";
 import type { WorkflowStepConfig } from "@/types/workflow";
+import {
+  rejectionTitle,
+  rejectionBodyHtml,
+  noFollowUpSubject,
+  noFollowUpBodyTemplate,
+  normalizeCommLang,
+  type CommLang,
+} from "@/lib/leasingEmailContent";
+
+const LANG_OPTIONS: { value: CommLang; label: string }[] = [
+  { value: "fr", label: "🇫🇷 Français" },
+  { value: "nl", label: "🇳🇱 Nederlands" },
+  { value: "en", label: "🇬🇧 English" },
+  { value: "de", label: "🇩🇪 Deutsch" },
+];
 
 interface ScoringModalProps {
   isOpen: boolean;
@@ -141,6 +156,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   const [customMessage, setCustomMessage] = useState("");
   const [docChannels, setDocChannels] = useState<Array<"email" | "whatsapp" | "sms">>(["email"]);
   const [isSending, setIsSending] = useState(false);
+  const [lang, setLang] = useState<CommLang>("fr");
   const [autoApprovalAvailable, setAutoApprovalAvailable] = useState(false);
   const [currentWorkflowStep, setCurrentWorkflowStep] = useState<WorkflowStepConfig | null>(null);
   
@@ -153,7 +169,42 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   const [noFollowUpEmailContent, setNoFollowUpEmailContent] = useState<string>(NO_FOLLOW_UP_EMAIL_TEMPLATES.no_response);
 
   const isInternalAnalysis = analysisType === 'internal';
-  
+
+  // Langue de communication du client (pré-sélection du sélecteur). L'admin peut
+  // la changer à la volée dans la modale.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      const { data: offer } = await supabase.from("offers").select("client_id").eq("id", offerId).maybeSingle();
+      let resolved: CommLang = "fr";
+      if (offer?.client_id) {
+        const { data: client } = await supabase.from("clients").select("communication_language").eq("id", offer.client_id).maybeSingle();
+        resolved = normalizeCommLang(client?.communication_language);
+      }
+      if (!cancelled) setLang(resolved);
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, offerId]);
+
+  // Quand la langue change, régénérer les défauts d'email (refus / clôture) qui
+  // n'ont pas été édités manuellement par l'admin.
+  useEffect(() => {
+    if (selectedScore === 'C') {
+      setEmailTitle(rejectionTitle(lang));
+      setEmailContent(rejectionBodyHtml(lang));
+    } else if (selectedScore === 'D') {
+      setNoFollowUpEmailTitle(noFollowUpSubject(lang));
+      setNoFollowUpEmailContent(
+        lang === 'fr'
+          ? (NO_FOLLOW_UP_EMAIL_TEMPLATES[selectedNoFollowUpReason] || NO_FOLLOW_UP_EMAIL_TEMPLATES.no_response)
+          : noFollowUpBodyTemplate(lang)
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
+
   // Récupérer la configuration du workflow pour l'étape actuelle
   useEffect(() => {
     const fetchWorkflowStep = async () => {
@@ -296,10 +347,13 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   // Mise à jour dynamique du contenu email selon la raison sélectionnée (Score D)
   useEffect(() => {
     if (selectedNoFollowUpReason && selectedScore === 'D') {
-      const template = NO_FOLLOW_UP_EMAIL_TEMPLATES[selectedNoFollowUpReason] || NO_FOLLOW_UP_EMAIL_TEMPLATES.other;
+      // FR : templates par raison (nuance de ton). NL/EN/DE : gabarit localisé générique.
+      const template = lang === 'fr'
+        ? (NO_FOLLOW_UP_EMAIL_TEMPLATES[selectedNoFollowUpReason] || NO_FOLLOW_UP_EMAIL_TEMPLATES.other)
+        : noFollowUpBodyTemplate(lang);
       setNoFollowUpEmailContent(template);
     }
-  }, [selectedNoFollowUpReason, selectedScore]);
+  }, [selectedNoFollowUpReason, selectedScore, lang]);
 
   const scoreOptions = [
     {
@@ -364,15 +418,17 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     if (score !== 'C' && score !== 'D') {
       setReason("");
     }
-    // Réinitialiser l'email de refus quand on sélectionne C
+    // Réinitialiser l'email de refus quand on sélectionne C (langue du client)
     if (score === 'C') {
-      setEmailTitle("😕 Nous sommes désolés, votre demande de leasing n'a pas été acceptée");
-      setEmailContent(DEFAULT_REJECTION_HTML);
+      setEmailTitle(rejectionTitle(lang));
+      setEmailContent(rejectionBodyHtml(lang));
     }
-    // Réinitialiser l'email de clôture quand on sélectionne D
+    // Réinitialiser l'email de clôture quand on sélectionne D (langue du client)
     if (score === 'D') {
-      setNoFollowUpEmailTitle("📁 Clôture de votre dossier");
-      setNoFollowUpEmailContent(NO_FOLLOW_UP_EMAIL_TEMPLATES.no_response);
+      setNoFollowUpEmailTitle(noFollowUpSubject(lang));
+      setNoFollowUpEmailContent(
+        lang === 'fr' ? NO_FOLLOW_UP_EMAIL_TEMPLATES.no_response : noFollowUpBodyTemplate(lang)
+      );
     }
   };
 
@@ -420,7 +476,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
 
         // Envoi MULTI-CANAL (email / WhatsApp / SMS) via document-request.
         const { data, error } = await supabase.functions.invoke("document-request", {
-          body: { offer_id: offerId, documents: docsToRequest, custom_message: customMessage || undefined, channels: docChannels },
+          body: { offer_id: offerId, documents: docsToRequest, custom_message: customMessage || undefined, channels: docChannels, language: lang },
         });
         let resp = (data ?? null) as { success?: boolean; email_status?: string|null; whatsapp_status?: string|null; sms_status?: string|null } | null;
         if (error) {
@@ -530,7 +586,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       setIsSending(true);
       
       // Envoyer l'email de refus via l'edge function
-      const emailSent = await sendLeasingRejectionEmail(offerId, emailTitle, emailContent);
+      const emailSent = await sendLeasingRejectionEmail(offerId, emailTitle, emailContent, lang);
       
       if (!emailSent) {
         throw new Error("Échec de l'envoi de l'email");
@@ -595,7 +651,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       setIsSending(true);
       
       // Envoyer l'email de clôture via l'edge function
-      await sendNoFollowUpEmail(offerId, noFollowUpEmailTitle, noFollowUpEmailContent);
+      await sendNoFollowUpEmail(offerId, noFollowUpEmailTitle, noFollowUpEmailContent, lang);
       
       // Valider le score D
       const reasonLabel = NO_FOLLOW_UP_REASONS.find(r => r.code === selectedNoFollowUpReason)?.label || selectedNoFollowUpReason;
@@ -806,6 +862,22 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
               </CardHeader>
 
               <CardContent className="space-y-4">
+                {/* Langue de la demande */}
+                <div>
+                  <p className="text-sm font-medium mb-1.5">Langue de la demande</p>
+                  <Select value={lang} onValueChange={(v) => setLang(v as CommLang)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 bg-background shadow-md border">
+                      {LANG_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">Libellés des documents et email/SMS rédigés dans cette langue.</p>
+                </div>
+
                 {/* Canaux d'envoi (email / WhatsApp / SMS) */}
                 <div>
                   <p className="text-sm font-medium mb-1.5">Envoyer via</p>
@@ -893,6 +965,20 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
 
               <CardContent className="space-y-4">
                 <div className="space-y-2">
+                  <label className="text-sm font-medium">Langue de l'email</label>
+                  <Select value={lang} onValueChange={(v) => setLang(v as CommLang)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 bg-background shadow-md border">
+                      {LANG_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <label htmlFor="email-title" className="text-sm font-medium">
                     Titre de l'email
                   </label>
@@ -946,6 +1032,20 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
               </CardHeader>
 
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Langue de l'email</label>
+                  <Select value={lang} onValueChange={(v) => setLang(v as CommLang)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 bg-background shadow-md border">
+                      {LANG_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Titre de l'email</label>
                   <Input
