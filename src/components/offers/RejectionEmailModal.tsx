@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import { rejectionTitle, rejectionBody, normalizeCommLang, type CommLang } from "@/lib/leasingEmailContent";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RejectionEmailModalProps {
   isOpen: boolean;
@@ -31,17 +33,23 @@ const RejectionEmailModal: React.FC<RejectionEmailModalProps> = ({
   const [emailTitle, setEmailTitle] = useState("");
   const [emailContent, setEmailContent] = useState("");
   const [emailPreview, setEmailPreview] = useState("");
+  const [clientLang, setClientLang] = useState<CommLang>("fr");
 
-  const defaultTitle = "😕 Nous sommes désolés, votre demande de leasing n'a pas été acceptée";
-  const defaultBody = `Bonjour,
+  const defaultTitle = rejectionTitle(clientLang);
+  const defaultBody = rejectionBody(clientLang);
 
-Nous sommes désolés de vous apprendre que notre partenaire financier nous a indiqué qu'il ne pouvait pas donner suite à votre demande de leasing.
-
-Nous ne pourrons donc pas vous proposer de matériel cette fois-ci.
-Je vous souhaite tout le meilleur pour la suite de vos activités.
-À bientôt,
-
-L'équipe iTakecare`;
+  // Langue de communication du client (l'aperçu et l'envoi par défaut suivent).
+  useEffect(() => {
+    if (!isOpen) return;
+    const inline = offerData?.clients?.communication_language;
+    if (inline) { setClientLang(normalizeCommLang(inline)); return; }
+    const clientId = offerData?.client_id;
+    if (!clientId) { setClientLang("fr"); return; }
+    let cancelled = false;
+    supabase.from("clients").select("communication_language").eq("id", clientId).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setClientLang(normalizeCommLang(data?.communication_language)); });
+    return () => { cancelled = true; };
+  }, [isOpen, offerData]);
 
   useEffect(() => {
     if (isOpen) {
@@ -49,7 +57,7 @@ L'équipe iTakecare`;
       setEmailContent(defaultBody);
       generateEmailPreview(defaultTitle, defaultBody);
     }
-  }, [isOpen]);
+  }, [isOpen, clientLang]);
 
   const generateEmailPreview = (title: string, body: string) => {
     const formattedBody = body.replace(/\n/g, '<br>');

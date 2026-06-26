@@ -1,6 +1,52 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { resolveClientLanguage, type Lang } from "../_shared/clientLanguage.ts";
+import { reminderSubject, buildReminderHtml } from "../_shared/reminderEmails.ts";
+
+// Libellés des documents demandés, par langue (relances de documents).
+const REMINDER_DOC_NAMES: Record<Lang, Record<string, string>> = {
+  fr: {
+    balance_sheet: "Bilan financier",
+    tax_notice: "Avertissement extrait de rôle",
+    id_card_front: "Carte d'identité - Recto",
+    id_card_back: "Carte d'identité - Verso",
+    id_card: "Copie de la carte d'identité (recto et verso)",
+    company_register: "Extrait de registre d'entreprise",
+    vat_certificate: "Attestation TVA",
+    bank_statement: "Relevé bancaire des 3 derniers mois",
+  },
+  nl: {
+    balance_sheet: "Financiële balans",
+    tax_notice: "Aanslagbiljet",
+    id_card_front: "Identiteitskaart - voorzijde",
+    id_card_back: "Identiteitskaart - achterzijde",
+    id_card: "Kopie van de identiteitskaart (voor- en achterzijde)",
+    company_register: "Uittreksel uit het ondernemingsregister",
+    vat_certificate: "Btw-attest",
+    bank_statement: "Bankuittreksels van de laatste 3 maanden",
+  },
+  en: {
+    balance_sheet: "Financial balance sheet",
+    tax_notice: "Tax assessment notice",
+    id_card_front: "ID card - front",
+    id_card_back: "ID card - back",
+    id_card: "Copy of the ID card (front and back)",
+    company_register: "Company register extract",
+    vat_certificate: "VAT certificate",
+    bank_statement: "Bank statements for the last 3 months",
+  },
+  de: {
+    balance_sheet: "Finanzbilanz",
+    tax_notice: "Steuerbescheid",
+    id_card_front: "Personalausweis - Vorderseite",
+    id_card_back: "Personalausweis - Rückseite",
+    id_card: "Kopie des Personalausweises (Vorder- und Rückseite)",
+    company_register: "Handelsregisterauszug",
+    vat_certificate: "USt-Bescheinigung",
+    bank_statement: "Kontoauszüge der letzten 3 Monate",
+  },
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +67,7 @@ interface ReminderEmailRequest {
   pdfFilename?: string;
   signerId?: string;
   signerPhone?: string;
+  language?: string; // surcharge éventuelle ; sinon langue du client
 }
 
 console.log("=== Edge Function send-reminder-email initialized ===");
@@ -57,7 +104,7 @@ serve(async (req) => {
 
     // Parse request body
     const requestData: ReminderEmailRequest = await req.json();
-    const { offerId, reminderType, reminderLevel, customSubject, customMessage, pdfBase64, pdfFilename, signerId } = requestData;
+    const { offerId, reminderType, reminderLevel, customSubject, customMessage, pdfBase64, pdfFilename, signerId, language } = requestData;
 
     console.log("Request data:", { offerId, reminderType, reminderLevel, hasPdf: !!pdfBase64, signerId });
 
@@ -125,6 +172,10 @@ serve(async (req) => {
       );
     }
 
+    // Langue de communication : surcharge éventuelle, sinon préférence du client.
+    const lang = await resolveClientLanguage(supabase, { override: language, clientId: offer.client_id, offerId });
+    console.log("Resolved language:", lang);
+
     // Get company info
     const { data: company } = await supabase
       .from('companies')
@@ -189,7 +240,9 @@ serve(async (req) => {
       .eq('active', true)
       .single();
 
-    if (templateError || !template) {
+    // En FR, le template société est requis (branding). Pour NL/EN/DE, on tolère
+    // l'absence : un gabarit localisé intégré prend le relais plus bas.
+    if ((templateError || !template) && lang === 'fr') {
       console.error("Template not found:", templateError);
       return new Response(
         JSON.stringify({ success: false, error: `Template '${templateName}' non trouvé` }),
@@ -215,19 +268,10 @@ serve(async (req) => {
         const appUrl = Deno.env.get("APP_URL") || 'https://www.leazr.co';
         uploadLink = `${appUrl}/r/${uploadLinks[0].token}`;
         
-        // Format requested documents
+        // Format requested documents (libellés localisés)
         const docs = uploadLinks[0].requested_documents || [];
-        const docNameMap: Record<string, string> = {
-          balance_sheet: "Bilan financier",
-          tax_notice: "Avertissement extrait de rôle",
-          id_card_front: "Carte d'identité - Recto",
-          id_card_back: "Carte d'identité - Verso",
-          id_card: "Copie de la carte d'identité (recto et verso)",
-          company_register: "Extrait de registre d'entreprise",
-          vat_certificate: "Attestation TVA",
-          bank_statement: "Relevé bancaire des 3 derniers mois"
-        };
-        
+        const docNameMap: Record<string, string> = REMINDER_DOC_NAMES[lang] ?? REMINDER_DOC_NAMES.fr;
+
         requestedDocuments = docs.map((doc: string) => {
           if (doc.startsWith('custom:')) {
             return `<li>${doc.substring(7)}</li>`;
@@ -301,8 +345,35 @@ serve(async (req) => {
       return rendered;
     };
 
-    const emailSubject = customSubject || renderTemplate(template.subject, templateVariables);
-    const emailHtml = renderTemplate(template.html_content, templateVariables);
+    let emailSubject: string;
+    let emailHtml: string;
+    if (lang === 'fr' && template) {
+      // FR : template personnalisé de la société.
+      emailSubject = customSubject || renderTemplate(template.subject, templateVariables);
+      emailHtml = renderTemplate(template.html_content, templateVariables);
+    } else if (template && customSubject) {
+      // Langue ≠ FR mais l'admin a fourni un sujet/contenu explicite : on respecte
+      // le template société rendu (l'admin a édité sciemment).
+      emailSubject = customSubject;
+      emailHtml = renderTemplate(template.html_content, templateVariables);
+    } else {
+      // NL/EN/DE : gabarit localisé intégré.
+      emailSubject = reminderSubject(lang, reminderType);
+      emailHtml = buildReminderHtml(lang, reminderType, {
+        clientName: templateVariables.client_name,
+        companyName: templateVariables.company_name,
+        offerAmount: templateVariables.offer_amount,
+        monthlyPayment: templateVariables.monthly_payment,
+        contactEmail: templateVariables.contact_email,
+        contactPhone: templateVariables.contact_phone,
+        uploadLink: templateVariables.upload_link,
+        requestedDocumentsHtml: templateVariables.requested_documents,
+        offerLink: templateVariables.offer_link,
+        representativeName: templateVariables.representative_name,
+        customMessageHtml: templateVariables.custom_message,
+        logoUrl: templateVariables.company_logo,
+      });
+    }
 
     console.log("Sending email to:", offer.client_email);
     console.log("Subject:", emailSubject);

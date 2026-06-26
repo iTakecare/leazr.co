@@ -6,6 +6,8 @@ import { Loader2, FileText, Eye, Trash2, Send, X, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { getLeasingPdfMetadata, formatFileSize, type PdfMetadata } from "@/services/storageService";
 import { getDefaultEmailTemplate } from "@/services/offers/offerEmail";
+import { normalizeCommLang, type CommLang } from "@/lib/leasingEmailContent";
+import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
 
 interface EmailConfirmationModalProps {
@@ -32,13 +34,27 @@ const EmailConfirmationModal: React.FC<EmailConfirmationModalProps> = ({
   const [customContent, setCustomContent] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [emailPreview, setEmailPreview] = useState("");
+  const [clientLang, setClientLang] = useState<CommLang>("fr");
+
+  // Langue de communication du client (pour que l'aperçu corresponde à l'envoi).
+  useEffect(() => {
+    if (!isOpen) return;
+    const inline = offerData?.clients?.communication_language;
+    if (inline) { setClientLang(normalizeCommLang(inline)); return; }
+    const clientId = offerData?.client_id;
+    if (!clientId) { setClientLang("fr"); return; }
+    let cancelled = false;
+    supabase.from("clients").select("communication_language").eq("id", clientId).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setClientLang(normalizeCommLang(data?.communication_language)); });
+    return () => { cancelled = true; };
+  }, [isOpen, offerData]);
 
   useEffect(() => {
     if (isOpen && offerData?.company_id) {
       loadPdfMetadata();
       generateEmailPreview();
     }
-  }, [isOpen, offerData]);
+  }, [isOpen, offerData, clientLang]);
 
   const loadPdfMetadata = async () => {
     if (!offerData?.company_id) return;
@@ -117,7 +133,7 @@ const EmailConfirmationModal: React.FC<EmailConfirmationModalProps> = ({
 
     console.log('📧 Final equipment HTML (validated):', equipmentListHtml);
 
-    const template = getDefaultEmailTemplate(clientFirstName, equipmentListHtml);
+    const template = getDefaultEmailTemplate(clientFirstName, equipmentListHtml, clientLang);
     setEmailPreview(template);
     setCustomContent(template);
   };

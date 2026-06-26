@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { requireElevatedAccess } from "../_shared/security.ts";
+import { resolveClientLanguage } from "../_shared/clientLanguage.ts";
+import { rejectionTitle, rejectionBody, buildRejectionHtml } from "../_shared/leasingEmails.ts";
 
 const RESEND_API_KEY = Deno.env.get('ITAKECARE_RESEND_API');
 
@@ -37,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('ITAKECARE_RESEND_API non configurée');
     }
 
-    const { offerId, customTitle, customContent } = await req.json();
+    const { offerId, customTitle, customContent, language } = await req.json();
 
     if (!offerId) {
       throw new Error('offerId est requis');
@@ -80,79 +82,16 @@ const handler = async (req: Request): Promise<Response> => {
       clientEmail: offer.client_email
     });
 
-    // Utiliser les valeurs personnalisées ou les valeurs par défaut
-    const emailTitle = customTitle || "😕 Nous sommes désolés, votre demande de leasing n'a pas été acceptée";
-    const emailBody = customContent || `Bonjour,
+    // Langue de communication : surcharge éventuelle, sinon préférence du client.
+    const lang = await resolveClientLanguage(supabase, { override: language, clientId: offer.client_id, offerId });
+    console.log('🌐 Langue résolue:', lang);
 
-Nous sommes désolés de vous apprendre que notre partenaire financier nous a indiqué qu'il ne pouvait pas donner suite à votre demande de leasing.
-
-Nous ne pourrons donc pas vous proposer de matériel cette fois-ci.
-Je vous souhaite tout le meilleur pour la suite de vos activités.
-À bientôt,
-
-L'équipe iTakecare`;
+    // Utiliser les valeurs personnalisées ou les valeurs par défaut localisées
+    const emailTitle = customTitle || rejectionTitle(lang);
+    const emailBody = customContent || rejectionBody(lang);
 
     // Générer le HTML de l'email
-    const formattedBody = emailBody.replace(/\n/g, '<br>');
-    const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    .header {
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-      color: white;
-      padding: 30px;
-      border-radius: 10px 10px 0 0;
-      text-align: center;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 24px;
-    }
-    .content {
-      background: #ffffff;
-      padding: 30px;
-      border: 1px solid #e5e7eb;
-      border-top: none;
-      white-space: pre-wrap;
-    }
-    .footer {
-      text-align: center;
-      color: #6b7280;
-      font-size: 14px;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>${emailTitle}</h1>
-  </div>
-  
-  <div class="content">
-    ${formattedBody}
-  </div>
-  
-  <div class="footer">
-    <p>iTakecare SRL | BE0795.642.894<br>
-    Avenue Général Michel 1E - 6000 Charleroi<br>
-    <a href="https://www.itakecare.be">www.itakecare.be</a> | <a href="mailto:hello@itakecare.be">hello@itakecare.be</a></p>
-  </div>
-</body>
-</html>
-    `;
+    const htmlContent = buildRejectionHtml(emailTitle, emailBody);
 
     console.log('📧 Envoi de l\'email via Resend...');
 

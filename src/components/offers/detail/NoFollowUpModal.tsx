@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { sendNoFollowUpEmail } from "@/services/offers/offerEmail";
+import { noFollowUpSubject, noFollowUpBodyTemplate, normalizeCommLang, type CommLang } from "@/lib/leasingEmailContent";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import ReactQuill from "react-quill";
@@ -35,18 +36,6 @@ const NO_FOLLOW_UP_REASONS = [
   { code: "project_cancelled", label: "Projet annulé", icon: Calendar },
   { code: "other", label: "Autre raison", icon: FileX },
 ];
-
-const DEFAULT_NO_FOLLOW_UP_HTML = `<p>Bonjour {{client_name}},</p>
-
-<p>Nous avons tenté de vous joindre à plusieurs reprises concernant votre demande de leasing informatique, mais nous n'avons malheureusement pas eu de nouvelles de votre part.</p>
-
-<p>En l'absence de retour, nous sommes contraints de <strong>clore votre dossier</strong>.</p>
-
-<p>Si toutefois il s'agit d'un oubli ou si votre situation a changé, n'hésitez pas à nous recontacter. Nous serons ravis de reprendre l'étude de votre demande.</p>
-
-<p>Nous restons à votre disposition.</p>
-
-<p>Cordialement,<br/>L'équipe iTakecare</p>`;
 
 const quillModules = {
   toolbar: [
@@ -70,8 +59,28 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
   
   // Email states
   const [sendEmail, setSendEmail] = useState(false);
-  const [emailTitle, setEmailTitle] = useState("📁 Clôture de votre dossier");
-  const [emailContent, setEmailContent] = useState<string>(DEFAULT_NO_FOLLOW_UP_HTML);
+  const [clientLang, setClientLang] = useState<CommLang>("fr");
+  const [emailTitle, setEmailTitle] = useState(noFollowUpSubject("fr"));
+  const [emailContent, setEmailContent] = useState<string>(noFollowUpBodyTemplate("fr"));
+
+  // Langue de communication du client (résolue via l'offre) → défauts localisés.
+  React.useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      const { data: offer } = await supabase.from("offers").select("client_id").eq("id", offerId).maybeSingle();
+      let lang: CommLang = "fr";
+      if (offer?.client_id) {
+        const { data: client } = await supabase.from("clients").select("communication_language").eq("id", offer.client_id).maybeSingle();
+        lang = normalizeCommLang(client?.communication_language);
+      }
+      if (cancelled) return;
+      setClientLang(lang);
+      setEmailTitle(noFollowUpSubject(lang));
+      setEmailContent(noFollowUpBodyTemplate(lang));
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, offerId]);
 
   // Fetch reminder history
   const { data: reminders = [] } = useQuery({
@@ -172,8 +181,8 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
     setSelectedReason("");
     setComment("");
     setSendEmail(false);
-    setEmailTitle("📁 Clôture de votre dossier");
-    setEmailContent(DEFAULT_NO_FOLLOW_UP_HTML);
+    setEmailTitle(noFollowUpSubject(clientLang));
+    setEmailContent(noFollowUpBodyTemplate(clientLang));
     onClose();
   };
 

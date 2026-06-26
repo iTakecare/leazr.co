@@ -19,6 +19,9 @@ import { generateCommercialOfferPDF } from "@/services/commercialOfferPdfService
 import DOMPurify from 'dompurify';
 import { usePDFPreview } from "@/hooks/usePDFPreview";
 import { PDFViewer } from "@/components/pdf/PDFViewer";
+import { normalizeCommLang, type CommLang } from "@/lib/leasingEmailContent";
+
+const LANG_NAMES: Record<CommLang, string> = { fr: "français", nl: "néerlandais", en: "anglais", de: "allemand" };
 interface AdminUser {
   id: string;
   first_name: string | null;
@@ -52,6 +55,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   const [subject, setSubject] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [previewHtml, setPreviewHtml] = useState("");
+  const [clientLang, setClientLang] = useState<CommLang>("fr");
 
   // Selected reminder type and level
   const [selectedReminder, setSelectedReminder] = useState<ReminderStatus | null>(null);
@@ -117,6 +121,19 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
     }
     return reminders;
   }, [isDocumentStatus, isOfferStatus, sentReminders]);
+
+  // Langue de communication du client (relance localisée si ≠ FR).
+  useEffect(() => {
+    if (!open) return;
+    const inline = (offer as any).clients?.communication_language;
+    if (inline) { setClientLang(normalizeCommLang(inline)); return; }
+    const clientId = (offer as any).client_id;
+    if (!clientId) { setClientLang("fr"); return; }
+    let cancelled = false;
+    supabase.from("clients").select("communication_language").eq("id", clientId).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setClientLang(normalizeCommLang(data?.communication_language)); });
+    return () => { cancelled = true; };
+  }, [open, offer]);
 
   // Get suggested reminder
   const suggestedReminder = allReminders?.suggestedReminder || reminder || availableReminders[0];
@@ -283,7 +300,10 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           offerId: offer.id,
           reminderType: selectedReminder.type,
           reminderLevel: selectedReminder.level,
-          customSubject: subject !== "" ? subject : undefined,
+          language: clientLang,
+          // En FR, on envoie le sujet rendu du template société. En NL/EN/DE, on
+          // laisse l'edge générer le sujet localisé (le gabarit intégré prend le relais).
+          customSubject: clientLang === 'fr' && subject !== "" ? subject : undefined,
           customMessage: customMessage || undefined,
           pdfBase64,
           pdfFilename,
@@ -478,6 +498,17 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
                 Ce PDF sera automatiquement joint à l'email de rappel.
               </p>
             </div>}
+
+          {clientLang !== 'fr' && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-800">
+              <Mail className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>
+                Ce client est configuré en <strong>{LANG_NAMES[clientLang]}</strong> : la relance partira dans cette langue
+                (mise en page localisée). L'aperçu ci-dessous montre la version française de référence ; votre message
+                personnalisé éventuel est conservé.
+              </span>
+            </div>
+          )}
 
           {/* Preview */}
           <div className="space-y-2">

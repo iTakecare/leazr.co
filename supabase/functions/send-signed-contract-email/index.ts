@@ -3,6 +3,128 @@ import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkRateLimit } from "../_shared/rateLimit.ts";
 import { getClientIp, getJwtRoleFromRequest, requireElevatedAccess } from "../_shared/security.ts";
+import { resolveClientLanguage, type Lang } from "../_shared/clientLanguage.ts";
+
+const SIGNED_LOCALE: Record<Lang, string> = { fr: "fr-FR", nl: "nl-NL", en: "en-GB", de: "de-DE" };
+
+const SIGNED_I18N: Record<Lang, Record<string, string>> = {
+  fr: {
+    subject: "Votre contrat {ref} a été signé",
+    successTitle: "Contrat signé avec succès !",
+    hello: "Bonjour",
+    confirm: "Nous vous confirmons que votre contrat de location a été signé électroniquement avec succès.",
+    download: "📄 Télécharger le contrat signé",
+    details: "Détails du contrat",
+    reference: "Référence :",
+    signer: "Signataire :",
+    signedDate: "Date de signature :",
+    duration: "Durée :",
+    months: "mois",
+    downPayment: "Acompte :",
+    adjustedMonthly: "Mensualité ajustée HT :",
+    monthly: "Mensualité HT :",
+    equipment: "Équipements",
+    equipmentCol: "Équipement",
+    qty: "Qté",
+    monthlyCol: "Mensualité",
+    totalMonthly: "Total mensuel HT :",
+    debitNote: "Les prélèvements seront effectués par domiciliation bancaire sur le compte que vous avez renseigné lors de la signature.",
+    questions: "Pour toute question, n'hésitez pas à nous contacter.",
+    regards: "Cordialement,",
+    team: "L'équipe",
+    signedElec: "Contrat signé électroniquement le",
+    ip: "Adresse IP :",
+    rights: "Tous droits réservés.",
+    dearClient: "Cher client",
+  },
+  nl: {
+    subject: "Uw contract {ref} is ondertekend",
+    successTitle: "Contract succesvol ondertekend!",
+    hello: "Beste",
+    confirm: "Wij bevestigen dat uw huurcontract succesvol elektronisch werd ondertekend.",
+    download: "📄 Ondertekend contract downloaden",
+    details: "Contractgegevens",
+    reference: "Referentie:",
+    signer: "Ondertekenaar:",
+    signedDate: "Datum van ondertekening:",
+    duration: "Looptijd:",
+    months: "maanden",
+    downPayment: "Voorschot:",
+    adjustedMonthly: "Aangepaste maandhuur excl. btw:",
+    monthly: "Maandhuur excl. btw:",
+    equipment: "Materiaal",
+    equipmentCol: "Materiaal",
+    qty: "Aantal",
+    monthlyCol: "Maandhuur",
+    totalMonthly: "Totaal per maand excl. btw:",
+    debitNote: "De betalingen gebeuren via domiciliëring op de rekening die u bij de ondertekening hebt opgegeven.",
+    questions: "Met vragen kunt u steeds bij ons terecht.",
+    regards: "Met vriendelijke groeten,",
+    team: "Het team van",
+    signedElec: "Contract elektronisch ondertekend op",
+    ip: "IP-adres:",
+    rights: "Alle rechten voorbehouden.",
+    dearClient: "Geachte klant",
+  },
+  en: {
+    subject: "Your contract {ref} has been signed",
+    successTitle: "Contract signed successfully!",
+    hello: "Hello",
+    confirm: "We confirm that your rental contract has been successfully signed electronically.",
+    download: "📄 Download the signed contract",
+    details: "Contract details",
+    reference: "Reference:",
+    signer: "Signatory:",
+    signedDate: "Date signed:",
+    duration: "Term:",
+    months: "months",
+    downPayment: "Down payment:",
+    adjustedMonthly: "Adjusted monthly (excl. VAT):",
+    monthly: "Monthly (excl. VAT):",
+    equipment: "Equipment",
+    equipmentCol: "Equipment",
+    qty: "Qty",
+    monthlyCol: "Monthly",
+    totalMonthly: "Total monthly (excl. VAT):",
+    debitNote: "Payments will be collected by direct debit from the account you provided when signing.",
+    questions: "If you have any questions, please don't hesitate to contact us.",
+    regards: "Kind regards,",
+    team: "The team at",
+    signedElec: "Contract signed electronically on",
+    ip: "IP address:",
+    rights: "All rights reserved.",
+    dearClient: "Dear customer",
+  },
+  de: {
+    subject: "Ihr Vertrag {ref} wurde unterzeichnet",
+    successTitle: "Vertrag erfolgreich unterzeichnet!",
+    hello: "Guten Tag",
+    confirm: "Wir bestätigen, dass Ihr Mietvertrag erfolgreich elektronisch unterzeichnet wurde.",
+    download: "📄 Unterzeichneten Vertrag herunterladen",
+    details: "Vertragsdetails",
+    reference: "Referenz:",
+    signer: "Unterzeichner:",
+    signedDate: "Unterzeichnungsdatum:",
+    duration: "Laufzeit:",
+    months: "Monate",
+    downPayment: "Anzahlung:",
+    adjustedMonthly: "Angepasste Monatsrate (netto):",
+    monthly: "Monatsrate (netto):",
+    equipment: "Ausstattung",
+    equipmentCol: "Ausstattung",
+    qty: "Menge",
+    monthlyCol: "Monatsrate",
+    totalMonthly: "Monatlich gesamt (netto):",
+    debitNote: "Die Zahlungen erfolgen per Lastschrift von dem bei der Unterzeichnung angegebenen Konto.",
+    questions: "Bei Fragen stehen wir Ihnen gerne zur Verfügung.",
+    regards: "Mit freundlichen Grüßen,",
+    team: "Das Team von",
+    signedElec: "Vertrag elektronisch unterzeichnet am",
+    ip: "IP-Adresse:",
+    rights: "Alle Rechte vorbehalten.",
+    dearClient: "Sehr geehrter Kunde",
+  },
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -185,9 +307,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
     console.log("Client email resolved:", clientEmail);
 
+    // Langue de communication du client → email localisé.
+    const lang = await resolveClientLanguage(supabase, { clientId: contract.client_id ?? contract.clients?.id });
+    const t = SIGNED_I18N[lang];
+    const dateLocale = SIGNED_LOCALE[lang];
+    console.log("Resolved language:", lang);
+
     // Format signature date
-    const signedAt = contract.contract_signed_at 
-      ? new Date(contract.contract_signed_at).toLocaleDateString('fr-FR', {
+    const signedAt = contract.contract_signed_at
+      ? new Date(contract.contract_signed_at).toLocaleDateString(dateLocale, {
           day: '2-digit',
           month: 'long',
           year: 'numeric',
@@ -398,70 +526,70 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Content -->
           <tr>
             <td style="padding: 20px 40px;">
-              <h2 style="margin: 0 0 20px; text-align: center; color: #111827; font-size: 22px;">Contrat signé avec succès !</h2>
-              
+              <h2 style="margin: 0 0 20px; text-align: center; color: #111827; font-size: 22px;">${t.successTitle}</h2>
+
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                Bonjour ${contract.client_name || 'Cher client'},
+                ${t.hello} ${contract.client_name || t.dearClient},
               </p>
-              
+
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                Nous vous confirmons que votre contrat de location a été signé électroniquement avec succès.
+                ${t.confirm}
               </p>
-              
+
               <!-- Download Button -->
               ${downloadUrl ? `
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${downloadUrl}" style="display: inline-block; background-color: ${primaryColor}; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                  📄 Télécharger le contrat signé
+                  ${t.download}
                 </a>
               </div>
               ` : ''}
-              
+
               <!-- Contract Details -->
               <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 25px 0;">
-                <h3 style="margin: 0 0 15px; color: #111827; font-size: 16px;">Détails du contrat</h3>
+                <h3 style="margin: 0 0 15px; color: #111827; font-size: 16px;">${t.details}</h3>
                 <table style="width: 100%; font-size: 14px;">
                   <tr>
-                    <td style="padding: 5px 0; color: #6b7280;">Référence :</td>
+                    <td style="padding: 5px 0; color: #6b7280;">${t.reference}</td>
                     <td style="padding: 5px 0; color: #111827; font-weight: 600;">${contractReference}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 5px 0; color: #6b7280;">Signataire :</td>
+                    <td style="padding: 5px 0; color: #6b7280;">${t.signer}</td>
                     <td style="padding: 5px 0; color: #111827;">${contract.contract_signer_name || contract.client_name}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 5px 0; color: #6b7280;">Date de signature :</td>
+                    <td style="padding: 5px 0; color: #6b7280;">${t.signedDate}</td>
                     <td style="padding: 5px 0; color: #111827;">${signedAt}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 5px 0; color: #6b7280;">Durée :</td>
-                    <td style="padding: 5px 0; color: #111827;">${contract.contract_duration || 36} mois</td>
+                    <td style="padding: 5px 0; color: #6b7280;">${t.duration}</td>
+                    <td style="padding: 5px 0; color: #111827;">${contract.contract_duration || 36} ${t.months}</td>
                   </tr>
                   ${hasDownPayment ? `
                   <tr>
-                    <td style="padding: 5px 0; color: #6b7280;">Acompte :</td>
+                    <td style="padding: 5px 0; color: #6b7280;">${t.downPayment}</td>
                     <td style="padding: 5px 0; color: #111827; font-weight: 600;">${downPayment.toFixed(2)} €</td>
                   </tr>
                   <tr>
-                    <td style="padding: 5px 0; color: #6b7280;">Mensualité ajustée HT :</td>
+                    <td style="padding: 5px 0; color: #6b7280;">${t.adjustedMonthly}</td>
                     <td style="padding: 5px 0; color: ${primaryColor}; font-weight: 700; font-size: 16px;">${adjustedMonthlyPayment.toFixed(2)} €</td>
                   </tr>
                   ` : `
                   <tr>
-                    <td style="padding: 5px 0; color: #6b7280;">Mensualité HT :</td>
+                    <td style="padding: 5px 0; color: #6b7280;">${t.monthly}</td>
                     <td style="padding: 5px 0; color: ${primaryColor}; font-weight: 700; font-size: 16px;">${totalMonthly.toFixed(2)} €</td>
                   </tr>
                   `}
               </div>
-              
+
               <!-- Equipment Table -->
-              <h3 style="margin: 25px 0 15px; color: #111827; font-size: 16px;">Équipements</h3>
+              <h3 style="margin: 25px 0 15px; color: #111827; font-size: 16px;">${t.equipment}</h3>
               <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                 <thead>
                   <tr style="background-color: #f3f4f6;">
-                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e5e7eb;">Équipement</th>
-                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #e5e7eb;">Qté</th>
-                    <th style="padding: 10px; text-align: right; border-bottom: 2px solid #e5e7eb;">Mensualité</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e5e7eb;">${t.equipmentCol}</th>
+                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #e5e7eb;">${t.qty}</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 2px solid #e5e7eb;">${t.monthlyCol}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -469,23 +597,23 @@ const handler = async (req: Request): Promise<Response> => {
                 </tbody>
                 <tfoot>
                   <tr style="background-color: #f9fafb; font-weight: 600;">
-                    <td colspan="2" style="padding: 12px 10px; text-align: right;">${hasDownPayment ? 'Mensualité ajustée HT :' : 'Total mensuel HT :'}</td>
+                    <td colspan="2" style="padding: 12px 10px; text-align: right;">${hasDownPayment ? t.adjustedMonthly : t.totalMonthly}</td>
                     <td style="padding: 12px 10px; text-align: right; color: ${primaryColor};">${hasDownPayment ? adjustedMonthlyPayment.toFixed(2) : totalMonthly.toFixed(2)} €</td>
                   </tr>
                 </tfoot>
               </table>
-              
+
               <p style="color: #374151; font-size: 15px; line-height: 1.6; margin-top: 25px;">
-                Les prélèvements seront effectués par domiciliation bancaire sur le compte que vous avez renseigné lors de la signature.
+                ${t.debitNote}
               </p>
-              
+
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                Pour toute question, n'hésitez pas à nous contacter.
+                ${t.questions}
               </p>
-              
+
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                Cordialement,<br>
-                <strong>L'équipe ${companyName}</strong>
+                ${t.regards}<br>
+                <strong>${t.team} ${companyName}</strong>
               </p>
             </td>
           </tr>
@@ -494,9 +622,9 @@ const handler = async (req: Request): Promise<Response> => {
           <tr>
             <td style="background-color: #f9fafb; padding: 20px 40px; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
-                Contrat signé électroniquement le ${signedAt}<br>
-                Adresse IP : ${contract.contract_signer_ip || 'Non disponible'}<br><br>
-                © ${new Date().getFullYear()} ${companyName}. Tous droits réservés.
+                ${t.signedElec} ${signedAt}<br>
+                ${t.ip} ${contract.contract_signer_ip || 'Non disponible'}<br><br>
+                © ${new Date().getFullYear()} ${companyName}. ${t.rights}
               </p>
             </td>
           </tr>
@@ -524,7 +652,7 @@ const handler = async (req: Request): Promise<Response> => {
     const clientEmailResponse = await resend.emails.send({
       from: `${companyName} <${fromEmail}>`,
       to: [clientEmail],
-      subject: `Votre contrat ${contractReference} a été signé`,
+      subject: t.subject.replace("{ref}", contractReference),
       html: htmlContent,
     });
 

@@ -63,6 +63,8 @@ export interface Client {
   // Canal d'envoi des factures via Billit : peppol (pros enregistrés) | email
   invoice_delivery_method?: 'peppol' | 'email' | null;
   peppol_identifier?: string | null;
+  // Langue de communication (emails, SMS/WhatsApp, relances). Défaut 'fr'.
+  communication_language?: 'fr' | 'nl' | 'en' | 'de' | null;
 }
 
 export interface CreateClientData {
@@ -95,4 +97,5 @@ export interface CreateClientData {
   contact_name?: string;
   default_leaser_id?: string;
   logo_url?: string;
+  communication_language?: 'fr' | 'nl' | 'en' | 'de';
 }

@@ -23,6 +23,7 @@ interface MessagingFields {
   whatsapp_status: "unknown" | "yes" | "no";
   preferred_channel: "auto" | "whatsapp" | "sms" | "none";
   phone: string | null;
+  communication_language: "fr" | "nl" | "en" | "de";
 }
 
 const CHANNEL_LABELS: Record<MessagingFields["preferred_channel"], string> = {
@@ -30,6 +31,13 @@ const CHANNEL_LABELS: Record<MessagingFields["preferred_channel"], string> = {
   whatsapp: "WhatsApp uniquement",
   sms: "SMS uniquement",
   none: "Aucun (désactivé)",
+};
+
+const LANGUAGE_LABELS: Record<MessagingFields["communication_language"], string> = {
+  fr: "Français",
+  nl: "Nederlands",
+  en: "English",
+  de: "Deutsch",
 };
 
 export default function ClientMessagingCard({ clientId }: { clientId: string }) {
@@ -40,7 +48,7 @@ export default function ClientMessagingCard({ clientId }: { clientId: string }) 
     let cancelled = false;
     supabase
       .from("clients")
-      .select("messaging_opt_in_at, voice_consent_given_at, whatsapp_status, preferred_channel, phone")
+      .select("messaging_opt_in_at, voice_consent_given_at, whatsapp_status, preferred_channel, phone, communication_language")
       .eq("id", clientId)
       .maybeSingle()
       .then(({ data }) => {
@@ -135,6 +143,24 @@ export default function ClientMessagingCard({ clientId }: { clientId: string }) 
             <SelectContent>
               {(Object.keys(CHANNEL_LABELS) as Array<MessagingFields["preferred_channel"]>).map((k) => (
                 <SelectItem key={k} value={k}>{CHANNEL_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Label className="text-sm shrink-0">Langue de communication</Label>
+          <Select
+            value={fields.communication_language ?? "fr"}
+            disabled={saving}
+            onValueChange={(v) => save({ communication_language: v as MessagingFields["communication_language"] })}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(LANGUAGE_LABELS) as Array<MessagingFields["communication_language"]>).map((k) => (
+                <SelectItem key={k} value={k}>{LANGUAGE_LABELS[k]}</SelectItem>
               ))}
             </SelectContent>
           </Select>

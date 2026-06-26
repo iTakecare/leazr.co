@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.28";
+export const ADMIN_VERSION = "1.3.29";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.29",
+    date: "2026-06-26",
+    title: "Communications dans la langue du client (FR/NL/EN/DE)",
+    items: [
+      "Nouveau champ « Langue de communication » sur la fiche client (carte « Messagerie & appels IA ») : français par défaut, ou néerlandais, anglais, allemand. Cette langue pilote automatiquement toutes les communications envoyées à ce client.",
+      "Les e-mails commerciaux sont désormais localisés : félicitations (acceptation de leasing), refus, clôture sans suite (Score D), relances de documents et d'offres, et confirmation de contrat signé.",
+      "Les aperçus dans les modales (acceptation, refus, clôture) reflètent la langue du client avant l'envoi. Pour les relances en NL/EN/DE, un gabarit traduit intégré est utilisé ; le français conserve vos templates d'entreprise personnalisés.",
+      "S'ajoute à la demande de documents déjà multilingue. La langue choisie au moment de l'envoi (modale de demande de documents) reste prioritaire sur la préférence du client.",
+    ],
+  },
   {
     version: "1.3.28",
     date: "2026-06-26",
@@ -335,9 +346,18 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
 ];
 
 // ────────────────────────── CLIENT (espace /client) ──────────────────────────
-export const CLIENT_VERSION = "1.1.0";
+export const CLIENT_VERSION = "1.2.0";
 
 export const CLIENT_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.2.0",
+    date: "2026-06-26",
+    title: "Vos communications dans votre langue",
+    items: [
+      "Vos e-mails (confirmation d'acceptation, relances, demandes de documents, contrat signé…) peuvent désormais vous parvenir en français, néerlandais, anglais ou allemand.",
+      "Indiquez votre langue préférée à votre interlocuteur : toutes vos communications s'y adapteront automatiquement.",
+    ],
+  },
   {
     version: "1.1.0",
     date: "2026-06-18",
