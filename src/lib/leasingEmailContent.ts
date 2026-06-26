@@ -155,6 +155,90 @@ export function buildAcceptanceHtml(lang: CommLang, clientFirstName: string, equ
   `;
 }
 
+// ───────────────────────── Notification d'offre (envoi par mail) ─────────────────────────
+interface OfferEmailStrings {
+  subject: (offerNumber: string) => string;
+  title: string;
+  greeting: (name: string) => string;
+  greetingNoName: string;
+  intro: (offerNumber: string) => string;
+  validity: (days: string) => string;
+  closing: string;
+  regards: string;
+  teamFallback: string;
+  labelTel: string;
+  labelMail: string;
+  labelWeb: string;
+  labelAddress: string;
+}
+
+const OFFER_EMAIL: Record<CommLang, OfferEmailStrings> = {
+  fr: {
+    subject: (n) => `Votre offre de leasing iTakecare - ${n}`,
+    title: "Votre offre commerciale est prête",
+    greeting: (name) => `Bonjour <strong>${name}</strong>,`,
+    greetingNoName: "Bonjour,",
+    intro: (n) => `Nous avons le plaisir de vous transmettre votre offre commerciale <strong>${n}</strong>.`,
+    validity: (d) => `<strong>⏰ Validité :</strong> Cette offre est valable ${d} jours à compter de ce jour.`,
+    closing: "Vous trouverez ci-joint le détail complet de notre proposition. N'hésitez pas à nous contacter pour toute question, ou marquer votre accord par retour de mail.",
+    regards: "Cordialement,",
+    teamFallback: "L'équipe commerciale",
+    labelTel: "Tel direct :",
+    labelMail: "Mail :",
+    labelWeb: "Web :",
+    labelAddress: "Adresse :",
+  },
+  nl: {
+    subject: (n) => `Uw iTakecare-leasingofferte - ${n}`,
+    title: "Uw commerciële offerte is klaar",
+    greeting: (name) => `Beste <strong>${name}</strong>,`,
+    greetingNoName: "Beste,",
+    intro: (n) => `Met genoegen bezorgen wij u uw commerciële offerte <strong>${n}</strong>.`,
+    validity: (d) => `<strong>⏰ Geldigheid:</strong> Deze offerte is ${d} dagen geldig vanaf vandaag.`,
+    closing: "U vindt in bijlage het volledige detail van ons voorstel. Aarzel niet om ons te contacteren bij vragen, of bevestig uw akkoord per kerende e-mail.",
+    regards: "Met vriendelijke groeten,",
+    teamFallback: "Het commerciële team",
+    labelTel: "Tel direct:",
+    labelMail: "Mail:",
+    labelWeb: "Web:",
+    labelAddress: "Adres:",
+  },
+  en: {
+    subject: (n) => `Your iTakecare leasing offer - ${n}`,
+    title: "Your commercial offer is ready",
+    greeting: (name) => `Hello <strong>${name}</strong>,`,
+    greetingNoName: "Hello,",
+    intro: (n) => `We are pleased to send you your commercial offer <strong>${n}</strong>.`,
+    validity: (d) => `<strong>⏰ Validity:</strong> This offer is valid for ${d} days from today.`,
+    closing: "You will find the full details of our proposal attached. Please don't hesitate to contact us with any questions, or confirm your agreement by reply email.",
+    regards: "Kind regards,",
+    teamFallback: "The sales team",
+    labelTel: "Direct line:",
+    labelMail: "Mail:",
+    labelWeb: "Web:",
+    labelAddress: "Address:",
+  },
+  de: {
+    subject: (n) => `Ihr iTakecare-Leasingangebot - ${n}`,
+    title: "Ihr Angebot ist bereit",
+    greeting: (name) => `Guten Tag <strong>${name}</strong>,`,
+    greetingNoName: "Guten Tag,",
+    intro: (n) => `Gerne übermitteln wir Ihnen Ihr Angebot <strong>${n}</strong>.`,
+    validity: (d) => `<strong>⏰ Gültigkeit:</strong> Dieses Angebot ist ${d} Tage ab heute gültig.`,
+    closing: "Die vollständigen Details unseres Vorschlags finden Sie im Anhang. Bei Fragen kontaktieren Sie uns gerne, oder bestätigen Sie Ihr Einverständnis per Antwort-E-Mail.",
+    regards: "Mit freundlichen Grüßen,",
+    teamFallback: "Das Vertriebsteam",
+    labelTel: "Direkt-Tel.:",
+    labelMail: "Mail:",
+    labelWeb: "Web:",
+    labelAddress: "Adresse:",
+  },
+};
+
+export function offerEmailStrings(lang: CommLang): OfferEmailStrings {
+  return OFFER_EMAIL[lang] ?? OFFER_EMAIL.fr;
+}
+
 // Clôture sans suite (Score D) — le corps garde le placeholder {{client_name}},
 // remplacé côté edge (send-no-follow-up-email) avant envoi.
 export function noFollowUpSubject(lang: CommLang): string {

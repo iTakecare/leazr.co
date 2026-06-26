@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mail, Loader2, FileText, Eye, Trash2, Send, X, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ import DOMPurify from 'dompurify';
 import { updateOfferStatus } from '@/services/offers/offerStatus';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { RichTextEditor } from '@/components/admin/RichTextEditor';
+import { offerEmailStrings, normalizeCommLang, type CommLang } from '@/lib/leasingEmailContent';
 
 
 interface EmailOfferDialogProps {
@@ -45,8 +47,25 @@ export const EmailOfferDialog = ({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [includePdf, setIncludePdf] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [lang, setLang] = useState<CommLang>('fr');
 
-  // Generate PDF and email preview on modal open
+  // Langue de communication du client (pré-sélection du sélecteur).
+  useEffect(() => {
+    if (!open || !offerId) return;
+    let cancelled = false;
+    (async () => {
+      const { data: offer } = await supabase.from('offers').select('client_id').eq('id', offerId).maybeSingle();
+      let resolved: CommLang = 'fr';
+      if (offer?.client_id) {
+        const { data: client } = await supabase.from('clients').select('communication_language').eq('id', offer.client_id).maybeSingle();
+        resolved = normalizeCommLang(client?.communication_language);
+      }
+      if (!cancelled) setLang(resolved);
+    })();
+    return () => { cancelled = true; };
+  }, [open, offerId]);
+
+  // Generate PDF and email preview on modal open / language change
   useEffect(() => {
     if (open && offerId) {
       setTo(clientEmail);
@@ -60,7 +79,8 @@ export const EmailOfferDialog = ({
       // Cleanup
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
     };
-  }, [open, offerId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, offerId, lang]);
 
   const generatePdfPreview = async () => {
     try {
@@ -149,35 +169,35 @@ export const EmailOfferDialog = ({
         firstName = offerData.client_name.split(' ')[0];
       }
 
-      const validityText = validity 
+      const t = offerEmailStrings(lang);
+      const validityText = validity
         ? `<p style="margin-top: 16px; padding: 12px; background-color: #f3f4f6; border-left: 4px solid #3b82f6; font-size: 14px;">
-             <strong>⏰ Validité:</strong> Cette offre est valable ${validity} jours à compter de ce jour.
+             ${t.validity(validity)}
            </p>`
         : '';
 
       return `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
           <h2 style="color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
-            Votre offre commerciale est prête
+            ${t.title}
           </h2>
-          
+
           <p style="margin-top: 20px; line-height: 1.6;">
-            Bonjour <strong>${firstName}</strong>,
+            ${t.greeting(firstName)}
           </p>
-          
+
           <p style="line-height: 1.6;">
-            Nous avons le plaisir de vous transmettre votre offre commerciale <strong>${offerNumber}</strong>.
+            ${t.intro(offerNumber)}
           </p>
-          
+
           ${validityText}
-          
+
           <p style="margin-top: 20px; line-height: 1.6;">
-            Vous trouverez ci-joint le détail complet de notre proposition. 
-            N'hésitez pas à nous contacter pour toute question, ou marquer votre accord par retour de mail.
+            ${t.closing}
           </p>
-          
+
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 15px 0; font-size: 12px;"><strong>Cordialement,</strong></p>
+            <p style="margin: 0 0 15px 0; font-size: 12px;"><strong>${t.regards}</strong></p>
             <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 11px; color: #333; width: 100%; max-width: 650px;">
               <tr>
                 <td style="vertical-align: top; padding-right: 20px; border-right: 2px solid #ddd; width: 45%;">
@@ -193,16 +213,16 @@ export const EmailOfferDialog = ({
                 </td>
                 <td style="vertical-align: top; padding-left: 20px; width: 55%;">
                   <div style="margin-bottom: 5px;">
-                    <span style="color: #5CC5CC; font-weight: 600;">Tel direct :</span> <a href="tel:${companyInfo.phone.replace(/\s/g, '')}" style="color: #333; text-decoration: none;">${companyInfo.phone}</a>
+                    <span style="color: #5CC5CC; font-weight: 600;">${t.labelTel}</span> <a href="tel:${companyInfo.phone.replace(/\s/g, '')}" style="color: #333; text-decoration: none;">${companyInfo.phone}</a>
                   </div>
                   <div style="margin-bottom: 5px;">
-                    <span style="color: #5CC5CC; font-weight: 600;">Mail :</span> <a href="mailto:${companyInfo.email}" style="color: #333; text-decoration: none;">${companyInfo.email}</a>
+                    <span style="color: #5CC5CC; font-weight: 600;">${t.labelMail}</span> <a href="mailto:${companyInfo.email}" style="color: #333; text-decoration: none;">${companyInfo.email}</a>
                   </div>
                   <div style="margin-bottom: 12px;">
-                    <span style="color: #5CC5CC; font-weight: 600;">Web :</span> <a href="https://${companyInfo.website}" style="color: #5CC5CC; text-decoration: none;">${companyInfo.website}</a>
+                    <span style="color: #5CC5CC; font-weight: 600;">${t.labelWeb}</span> <a href="https://${companyInfo.website}" style="color: #5CC5CC; text-decoration: none;">${companyInfo.website}</a>
                   </div>
                   <div style="font-size: 10px; line-height: 1.6; margin-bottom: 10px; color: #555;">
-                    <strong style="color: #333;">Adresse :</strong><br>
+                    <strong style="color: #333;">${t.labelAddress}</strong><br>
                     ${companyInfo.name}<br>
                     ${companyInfo.address}<br>
                     BE-${companyInfo.postal_code} ${companyInfo.city}<br>
@@ -224,35 +244,35 @@ export const EmailOfferDialog = ({
       `;
     } catch (error) {
       console.error('[EMAIL-OFFER] Error generating email preview:', error);
-      // Fallback si erreur - valeurs par défaut
-      const validityText = validity 
+      // Fallback si erreur - valeurs par défaut (localisées)
+      const t = offerEmailStrings(lang);
+      const validityText = validity
         ? `<p style="margin-top: 16px; padding: 12px; background-color: #f3f4f6; border-left: 4px solid #3b82f6; font-size: 14px;">
-             <strong>⏰ Validité:</strong> Cette offre est valable ${validity} jours à compter de ce jour.
+             ${t.validity(validity)}
            </p>`
         : '';
 
       return `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
           <h2 style="color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
-            Votre offre commerciale est prête
+            ${t.title}
           </h2>
-          
+
           <p style="margin-top: 20px; line-height: 1.6;">
-            Bonjour,
+            ${t.greetingNoName}
           </p>
-          
+
           <p style="line-height: 1.6;">
-            Nous avons le plaisir de vous transmettre votre offre commerciale <strong>${offerNumber}</strong>.
+            ${t.intro(offerNumber)}
           </p>
-          
+
           ${validityText}
-          
+
           <p style="margin-top: 20px; line-height: 1.6;">
-            Vous trouverez ci-joint le détail complet de notre proposition. 
-            N'hésitez pas à nous contacter pour toute question, ou marquer votre accord par retour de mail.
+            ${t.closing}
           </p>
-          
-          <p style="margin-top: 40px;">Cordialement,<br>L'équipe commerciale</p>
+
+          <p style="margin-top: 40px;">${t.regards}<br>${t.teamFallback}</p>
         </div>
       `;
     }
@@ -293,7 +313,7 @@ export const EmailOfferDialog = ({
         body: {
           offerId,
           to,
-          subject: `Votre offre de leasing iTakecare - ${offerNumber}`,
+          subject: offerEmailStrings(lang).subject(offerNumber),
           message: messageToSend,
           pdfBase64,
           pdfFilename: `offre-${offerNumber}.pdf`,
@@ -383,6 +403,22 @@ export const EmailOfferDialog = ({
           <div className="bg-muted/50 p-4 rounded-lg">
             <p className="text-sm font-medium mb-1">Destinataire :</p>
             <p className="text-sm text-muted-foreground">{to}</p>
+          </div>
+
+          {/* Langue de l'email */}
+          <div>
+            <p className="text-sm font-medium mb-1">Langue de l'email</p>
+            <Select value={lang} onValueChange={(v) => setLang(v as CommLang)} disabled={isSending}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-[110] bg-background shadow-md border">
+                <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                <SelectItem value="nl">🇳🇱 Nederlands</SelectItem>
+                <SelectItem value="en">🇬🇧 English</SelectItem>
+                <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Toggle Edit Mode */}

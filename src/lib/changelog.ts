@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.30";
+export const ADMIN_VERSION = "1.3.31";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.31",
+    date: "2026-06-26",
+    title: "Envoi d'offre par mail : choix de la langue",
+    items: [
+      "La modale « Envoyer l'offre par email » propose un sélecteur de langue (FR/NL/EN/DE) pré-réglé sur la langue du client : objet, texte d'accompagnement et signature s'adaptent à la langue choisie.",
+    ],
+  },
   {
     version: "1.3.30",
     date: "2026-06-26",
