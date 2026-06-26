@@ -81,6 +81,33 @@ export const updateContractEquipmentOrder = async (equipmentId: string, data: Eq
   if (error) throw error;
 };
 
+/**
+ * Envoie la commande des équipements « à commander » au fournisseur Chapp
+ * (par email, via l'edge function `send-chapp-order`). Ne modifie pas le statut :
+ * l'appelant passe les lignes envoyées en `ordered` après succès.
+ */
+export interface ChappOrderLine {
+  id: string;
+  title: string;
+  quantity: number;
+  supplier_price: number | null;
+  order_reference: string | null;
+}
+
+export const sendOrderToChapp = async (
+  sourceType: 'offer' | 'contract',
+  sourceId: string,
+  items: ChappOrderLine[],
+  note?: string
+): Promise<{ count: number; to: string; reference: string }> => {
+  const { data, error } = await supabase.functions.invoke('send-chapp-order', {
+    body: { sourceType, sourceId, items, note },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
+};
+
 export const fetchSuppliers = async (companyId: string) => {
   const { data, error } = await supabase
     .from('suppliers')

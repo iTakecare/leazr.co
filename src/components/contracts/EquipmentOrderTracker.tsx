@@ -5,10 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-import { Truck, Package, Check, Ban, Save, Edit2, Sparkles } from "lucide-react";
+import { Truck, Package, Check, Ban, Save, Edit2, Sparkles, Send } from "lucide-react";
 import SourcingSearchModal, { type SourcingSearchTarget } from "@/components/sourcing/SourcingSearchModal";
 import { buildQueryFromEquipment } from "@/services/sourcing/buildQueryFromEquipment";
 import { format } from "date-fns";
@@ -23,6 +33,7 @@ import {
   updateContractEquipmentOrder,
   fetchSuppliers,
   fetchPreferredSupplier,
+  sendOrderToChapp,
 } from "@/services/equipmentOrderService";
 
 interface EquipmentItem {
@@ -60,6 +71,9 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
   const [saving, setSaving] = useState(false);
   const [sourcingTarget, setSourcingTarget] = useState<SourcingSearchTarget | null>(null);
   const [sourcingQuery, setSourcingQuery] = useState("");
+  const [chappOpen, setChappOpen] = useState(false);
+  const [chappNote, setChappNote] = useState("");
+  const [chappSending, setChappSending] = useState(false);
   // Map equipment_id → { total, lowest_price_cents, has_approved }
   const [sourcingByLine, setSourcingByLine] = useState<Record<string, { total: number; lowest_price_cents: number | null; any_approved: boolean }>>({});
 
@@ -206,6 +220,52 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
     }
   };
 
+  const handleSendToChapp = async () => {
+    const toSend = equipment.filter(e => e.order_status === 'to_order');
+    if (toSend.length === 0) {
+      toast.info("Aucun équipement à commander");
+      return;
+    }
+    setChappSending(true);
+    try {
+      const result = await sendOrderToChapp(
+        sourceType,
+        sourceId,
+        toSend.map(e => ({
+          id: e.id,
+          title: e.title,
+          quantity: e.quantity,
+          supplier_price: e.supplier_price,
+          order_reference: e.order_reference,
+        })),
+        chappNote.trim() || undefined,
+      );
+
+      // Passer les lignes envoyées en « Commandé » (+ date de commande)
+      const orderDate = new Date().toISOString();
+      const updateFn = sourceType === 'offer' ? updateOfferEquipmentOrder : updateContractEquipmentOrder;
+      await Promise.all(
+        toSend.map(e =>
+          updateFn(e.id, {
+            order_status: 'ordered',
+            ...(e.order_date ? {} : { order_date: orderDate }),
+          }),
+        ),
+      );
+
+      toast.success(`Commande envoyée à Chapp (${result?.to || 'info@chapp.store'}) — ${toSend.length} équipement(s)`);
+      setChappOpen(false);
+      setChappNote("");
+      fetchData();
+      onUpdate?.();
+    } catch (err: any) {
+      console.error('[EquipmentOrderTracker] Chapp send error:', err);
+      toast.error(`Échec de l'envoi à Chapp : ${err?.message || 'erreur inconnue'}`);
+    } finally {
+      setChappSending(false);
+    }
+  };
+
   // Stats
   const total = equipment.length;
   const ordered = equipment.filter(e => e.order_status === 'ordered').length;
@@ -232,10 +292,20 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
             <Truck className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg">Suivi commandes fournisseurs</CardTitle>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Badge className="bg-red-100 text-red-700 border-red-200">{toOrder} à commander</Badge>
             <Badge className="bg-orange-100 text-orange-700 border-orange-200">{ordered} commandé(s)</Badge>
             <Badge className="bg-green-100 text-green-700 border-green-200">{received} reçu(s)</Badge>
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+              disabled={toOrder === 0}
+              title={toOrder === 0 ? "Aucun équipement à commander" : "Envoyer la commande à Chapp"}
+              onClick={() => setChappOpen(true)}
+            >
+              <Send className="h-4 w-4" />
+              Envoyer à Chapp
+            </Button>
           </div>
         </div>
         <CardDescription>{received}/{total} équipements reçus</CardDescription>
@@ -401,6 +471,55 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
           </Table>
         </div>
       </CardContent>
+
+      {/* ── Confirmation d'envoi de la commande à Chapp ── */}
+      <AlertDialog open={chappOpen} onOpenChange={(o) => { if (!chappSending) setChappOpen(o); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Envoyer la commande à Chapp</AlertDialogTitle>
+            <AlertDialogDescription>
+              {toOrder} équipement(s) « à commander » seront envoyés par email à{" "}
+              <strong>info@chapp.store</strong>, puis passés au statut « Commandé ».
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="max-h-48 overflow-y-auto rounded-md border divide-y text-sm">
+            {equipment.filter(e => e.order_status === 'to_order').map((e) => (
+              <div key={e.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                <span className="truncate">{e.title}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  Qté {e.quantity}
+                  {e.supplier_price != null ? ` · ${formatCurrency(e.supplier_price)}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <Textarea
+            placeholder="Note pour Chapp (optionnel)…"
+            value={chappNote}
+            onChange={(e) => setChappNote(e.target.value)}
+            rows={3}
+            disabled={chappSending}
+          />
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={chappSending}>Annuler</AlertDialogCancel>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5"
+              onClick={handleSendToChapp}
+              disabled={chappSending || toOrder === 0}
+            >
+              {chappSending ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {chappSending ? "Envoi…" : "Confirmer l'envoi"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Modale de sourcing multi-fournisseurs ── */}
       <SourcingSearchModal
