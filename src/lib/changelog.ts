@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.27";
+export const ADMIN_VERSION = "1.3.28";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.28",
+    date: "2026-06-26",
+    title: "Demande de documents : choix de la langue (FR/NL/EN/DE)",
+    items: [
+      "La modale « Demander des documents » (analyse de score, onglet Documents, Centre d'appels) propose désormais un sélecteur de langue : français par défaut, ou néerlandais, anglais et allemand.",
+      "L'e-mail et le SMS/WhatsApp de demande — ainsi que les relances — sont alors rédigés dans la langue choisie : libellés des documents traduits, texte du message et bouton de téléversement localisés.",
+      "En NL/EN/DE, si aucun gabarit personnalisé n'est configuré, un gabarit d'e-mail intégré et traduit est utilisé automatiquement (le français continue d'utiliser votre modèle d'entreprise habituel).",
+    ],
+  },
   {
     version: "1.3.27",
     date: "2026-06-24",

@@ -15,25 +15,75 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/cors.ts";
 
-const DOC_LABELS: Record<string, string> = {
-  balance_sheet: "Bilan financier",
-  provisional_balance: "Bilan financier provisoire",
-  tax_notice: "Avertissement extrait de rôle",
-  tax_return: "Liasse fiscale",
-  id_card_front: "Carte d'identité (recto)",
-  id_card_back: "Carte d'identité (verso)",
-  id_card: "Carte d'identité",
-  company_register: "Extrait de registre d'entreprise",
-  vat_certificate: "Attestation TVA",
-  bank_statement: "Relevé bancaire",
-  proof_of_address: "Justificatif de domicile",
-  company_statutes: "Statuts de l'entreprise",
-  custom: "Autre document",
+type Lang = "fr" | "nl" | "en" | "de";
+const LANGS: Lang[] = ["fr", "nl", "en", "de"];
+
+const DOC_LABELS: Record<Lang, Record<string, string>> = {
+  fr: {
+    balance_sheet: "Bilan financier",
+    provisional_balance: "Bilan financier provisoire",
+    tax_notice: "Avertissement extrait de rôle",
+    tax_return: "Liasse fiscale",
+    id_card_front: "Carte d'identité (recto)",
+    id_card_back: "Carte d'identité (verso)",
+    id_card: "Carte d'identité",
+    company_register: "Extrait de registre d'entreprise",
+    vat_certificate: "Attestation TVA",
+    bank_statement: "Relevé bancaire",
+    proof_of_address: "Justificatif de domicile",
+    company_statutes: "Statuts de l'entreprise",
+    custom: "Autre document",
+  },
+  nl: {
+    balance_sheet: "Financiële balans",
+    provisional_balance: "Voorlopige financiële balans",
+    tax_notice: "Aanslagbiljet (uittreksel)",
+    tax_return: "Belastingaangifte",
+    id_card_front: "Identiteitskaart (voorzijde)",
+    id_card_back: "Identiteitskaart (achterzijde)",
+    id_card: "Identiteitskaart",
+    company_register: "Uittreksel uit het ondernemingsregister",
+    vat_certificate: "Btw-attest",
+    bank_statement: "Bankuittreksel",
+    proof_of_address: "Bewijs van adres",
+    company_statutes: "Statuten van de onderneming",
+    custom: "Ander document",
+  },
+  en: {
+    balance_sheet: "Financial balance sheet",
+    provisional_balance: "Provisional balance sheet",
+    tax_notice: "Tax assessment notice",
+    tax_return: "Tax return",
+    id_card_front: "ID card (front)",
+    id_card_back: "ID card (back)",
+    id_card: "ID card",
+    company_register: "Company register extract",
+    vat_certificate: "VAT certificate",
+    bank_statement: "Bank statement",
+    proof_of_address: "Proof of address",
+    company_statutes: "Company statutes",
+    custom: "Other document",
+  },
+  de: {
+    balance_sheet: "Finanzbilanz",
+    provisional_balance: "Vorläufige Bilanz",
+    tax_notice: "Steuerbescheid",
+    tax_return: "Steuererklärung",
+    id_card_front: "Personalausweis (Vorderseite)",
+    id_card_back: "Personalausweis (Rückseite)",
+    id_card: "Personalausweis",
+    company_register: "Handelsregisterauszug",
+    vat_certificate: "USt-Bescheinigung",
+    bank_statement: "Kontoauszug",
+    proof_of_address: "Adressnachweis",
+    company_statutes: "Gesellschaftssatzung",
+    custom: "Weiteres Dokument",
+  },
 };
 
-function docLabel(code: string): string {
+function docLabel(code: string, lang: Lang): string {
   if (code.startsWith("custom:")) return code.slice(7);
-  return DOC_LABELS[code] ?? code;
+  return DOC_LABELS[lang][code] ?? DOC_LABELS.fr[code] ?? code;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -62,10 +112,12 @@ serve(async (req) => {
       documents?: string[];
       custom_message?: string;
       channels?: Array<"email" | "whatsapp" | "sms">;
+      language?: string;
     } | null;
     if (!body?.offer_id || !body.documents?.length || !body.channels?.length) {
       return jsonResponse({ success: false, error: "missing_params", message: "offer_id, documents et channels sont requis" }, 400);
     }
+    const language: Lang = LANGS.includes(body.language as Lang) ? (body.language as Lang) : "fr";
 
     // ---------- offre + client ----------
     const { data: offer } = await admin
@@ -94,7 +146,18 @@ serve(async (req) => {
     });
     const appUrl = Deno.env.get("APP_URL") || "https://leazr.co";
     const uploadUrl = `${appUrl}/r/${token}`;
-    const docsList = body.documents.map(docLabel).join(", ");
+    const docsList = body.documents.map((c) => docLabel(c, language)).join(", ");
+
+    // Template WhatsApp/SMS localisé si l'admin en a configuré un
+    // (clé 'document_request_<lang>'), sinon repli sur 'document_request'.
+    let messagingTemplateKey = "document_request";
+    if (language !== "fr") {
+      const { data: ms } = await admin
+        .from("messaging_settings").select("templates").eq("company_id", companyId).maybeSingle();
+      const templates = (ms?.templates ?? {}) as Record<string, unknown>;
+      const localizedKey = `document_request_${language}`;
+      if (templates[localizedKey]) messagingTemplateKey = localizedKey;
+    }
 
     // ---------- envoi par canal ----------
     const channels = [...new Set(body.channels)];
@@ -118,6 +181,7 @@ serve(async (req) => {
         const r = await callFn("send-document-request", {
           offerId: body.offer_id, clientEmail, clientName,
           requestedDocs: body.documents, customMessage: body.custom_message, uploadToken: token,
+          language,
         });
         emailStatus = r.ok && (r.data as { success?: boolean })?.success ? "sent" : "failed";
         results.email = r.data;
@@ -130,7 +194,7 @@ serve(async (req) => {
       if (!clientPhone) return { status: "failed", data: { error: "no_phone" } };
       const r = await callFn("messaging-send", {
         action: "send_message", client_id: offer.client_id, channel,
-        template_key: "document_request", offer_id: body.offer_id,
+        template_key: messagingTemplateKey, offer_id: body.offer_id,
         variables: { "1": clientName, "2": docsList, "3": uploadUrl },
       });
       const ok = r.ok && (r.data as { success?: boolean })?.success;

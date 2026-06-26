@@ -22,6 +22,14 @@ const DOCUMENT_OPTIONS = [
 ];
 
 type Channel = "email" | "whatsapp" | "sms";
+type Lang = "fr" | "nl" | "en" | "de";
+
+const LANGUAGES: { id: Lang; label: string; flag: string }[] = [
+  { id: "fr", label: "FR", flag: "🇫🇷" },
+  { id: "nl", label: "NL", flag: "🇳🇱" },
+  { id: "en", label: "EN", flag: "🇬🇧" },
+  { id: "de", label: "DE", flag: "🇩🇪" },
+];
 
 interface Props {
   open: boolean;
@@ -37,6 +45,7 @@ export default function RequestDocumentsDialog({ open, onOpenChange, offerId, de
   const [customDoc, setCustomDoc] = useState("");
   const [message, setMessage] = useState(defaultMessage ?? "");
   const [channels, setChannels] = useState<Channel[]>(["email"]);
+  const [language, setLanguage] = useState<Lang>("fr");
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
@@ -45,6 +54,7 @@ export default function RequestDocumentsDialog({ open, onOpenChange, offerId, de
       setMessage(defaultMessage ?? "");
       setCustomDoc("");
       setChannels(["email"]);
+      setLanguage("fr");
     }
   }, [open, defaultDocuments, defaultMessage]);
 
@@ -60,7 +70,7 @@ export default function RequestDocumentsDialog({ open, onOpenChange, offerId, de
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("document-request", {
-        body: { offer_id: offerId, documents, custom_message: message || undefined, channels },
+        body: { offer_id: offerId, documents, custom_message: message || undefined, channels, language },
       });
       let body = (data ?? null) as
         | { success?: boolean; email_status?: string | null; whatsapp_status?: string | null; sms_status?: string | null; message?: string }
@@ -123,6 +133,27 @@ export default function RequestDocumentsDialog({ open, onOpenChange, offerId, de
           <div>
             <Label className="text-xs">Message au client (optionnel)</Label>
             <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Un mot personnalisé…" className="mt-1 min-h-[70px]" />
+          </div>
+          <div>
+            <Label className="text-xs">Langue de la demande</Label>
+            <div className="flex gap-2 mt-1">
+              {LANGUAGES.map((l) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => setLanguage(l.id)}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors",
+                    language === l.id ? "bg-emerald-600 text-white border-emerald-600" : "hover:bg-accent"
+                  )}
+                >
+                  <span aria-hidden>{l.flag}</span> {l.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              Le courriel et le SMS/WhatsApp seront rédigés dans cette langue (français par défaut).
+            </p>
           </div>
           <div>
             <Label className="text-xs">Canaux d'envoi</Label>
