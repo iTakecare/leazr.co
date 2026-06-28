@@ -304,6 +304,14 @@ const createContractEquipmentFromOffer = async (contractId: string, offerId: str
     for (const equipment of offerEquipment) {
       console.log("📝 Création de l'équipement:", equipment.title);
 
+      // Recopier l'état de commande posé sur la demande (suivi commandes fournisseurs)
+      // pour qu'il reste synchronisé avec l'écran Commandes côté contrat : statut,
+      // fournisseur, prix fournisseur, dates et notes. Sans ça, le contrat repartait
+      // à « À commander » sans fournisseur ni montant.
+      const eqAny = equipment as any;
+      const supplierPrice = eqAny.supplier_price ?? null;
+      const orderDate = eqAny.order_date ?? null;
+
       // Créer l'équipement du contrat
       const { data: contractEquipmentData, error: equipmentError } = await supabase
         .from('contract_equipment')
@@ -317,7 +325,18 @@ const createContractEquipmentFromOffer = async (contractId: string, offerId: str
           serial_number: equipment.serial_number,
           is_gifted: equipment.is_gifted ?? false,
           category_id: equipment.category_id ?? null,
-          base_purchase_price: equipment.base_purchase_price ?? equipment.purchase_price
+          base_purchase_price: equipment.base_purchase_price ?? equipment.purchase_price,
+          // Synchronisation du suivi de commande demande → contrat
+          order_status: eqAny.order_status ?? 'to_order',
+          supplier_id: eqAny.supplier_id ?? null,
+          supplier_price: supplierPrice,
+          order_date: orderDate,
+          order_reference: eqAny.order_reference ?? null,
+          reception_date: eqAny.reception_date ?? null,
+          order_notes: eqAny.order_notes ?? null,
+          // actual_purchase_* : prix fournisseur + date de commande (cf. dashboard achats)
+          actual_purchase_price: supplierPrice,
+          actual_purchase_date: orderDate,
         })
         .select()
         .single();

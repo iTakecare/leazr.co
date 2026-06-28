@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.34";
+export const ADMIN_VERSION = "1.3.35";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.35",
+    date: "2026-06-28",
+    title: "Suivi commandes : synchro demande → contrat",
+    items: [
+      "Le suivi des commandes fournisseurs renseigné sur une demande (statut « commandé/reçu », fournisseur, prix fournisseur, dates, références) est désormais recopié sur le contrat lors de la conversion. Avant, le contrat repartait à « À commander » sans fournisseur ni montant, créant une désynchronisation avec l'écran Commandes.",
+    ],
+  },
   {
     version: "1.3.34",
     date: "2026-06-28",
