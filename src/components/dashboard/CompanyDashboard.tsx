@@ -34,6 +34,7 @@ import { useCompanyBranding } from "@/context/CompanyBrandingContext";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import DashboardPDFExportModal from "./DashboardPDFExportModal";
+import MonthlyPurchasesModal from "./MonthlyPurchasesModal";
 import { RevenueForecastCard } from "./cards/RevenueForecastCard";
 import { getRevenueForecast, RevenueForecast } from "@/services/commercialDashboardService";
 import type { PDFYearData } from "./DashboardPDFContent";
@@ -47,6 +48,7 @@ const CompanyDashboard = () => {
   const [includeCreditNotes, setIncludeCreditNotes] = useState(false);
   const [showPDFModal, setShowPDFModal] = useState(false);
   const [revenueForecast, setRevenueForecast] = useState<RevenueForecast | null>(null);
+  const [purchasesDetail, setPurchasesDetail] = useState<{ month: number; label: string } | null>(null);
 
   useEffect(() => {
     if (companyId) {
@@ -374,7 +376,20 @@ const CompanyDashboard = () => {
                             <TableCell className="text-right font-normal text-slate-500">
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
                             </TableCell>
-                            <TableCell className="text-right font-normal">{formatCurrency(month.achats)}</TableCell>
+                            <TableCell className="text-right font-normal">
+                              {month.achats > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setPurchasesDetail({ month: month.monthNumber, label: month.month })}
+                                  className="text-right underline decoration-dotted underline-offset-2 hover:text-primary transition-colors cursor-pointer"
+                                  title="Voir le détail des achats du mois"
+                                >
+                                  {formatCurrency(month.achats)}
+                                </button>
+                              ) : (
+                                formatCurrency(month.achats)
+                              )}
+                            </TableCell>
                             <TableCell className="text-right font-medium text-emerald-700">
                               {formatCurrency(includeCreditNotes ? month.marge : month.marge + month.creditNotes)}
                             </TableCell>
@@ -621,6 +636,14 @@ const CompanyDashboard = () => {
         }}
         availableYears={availableYears}
         selectedYear={selectedYear}
+      />
+
+      <MonthlyPurchasesModal
+        open={!!purchasesDetail}
+        onOpenChange={(o) => { if (!o) setPurchasesDetail(null); }}
+        year={selectedYear}
+        month={purchasesDetail?.month ?? null}
+        monthLabel={purchasesDetail?.label ?? ""}
       />
     </div>
   );

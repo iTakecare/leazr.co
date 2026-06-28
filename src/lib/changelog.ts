@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.37";
+export const ADMIN_VERSION = "1.3.38";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.38",
+    date: "2026-06-28",
+    title: "Dashboard : détail des achats au clic sur le montant du mois",
+    items: [
+      "Dans le Tableau Mensuel, le montant de la colonne « Achats » est désormais cliquable : une modale s'ouvre et liste le détail de chaque achat du mois (équipement, client, contrat/dossier, fournisseur, quantité, coût et date), avec le total. Les ventes directes et les équipements gérés par unité sont inclus, chacun dans son mois réel.",
+    ],
+  },
   {
     version: "1.3.37",
     date: "2026-06-28",
