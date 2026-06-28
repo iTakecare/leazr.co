@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.32";
+export const ADMIN_VERSION = "1.3.33";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.33",
+    date: "2026-06-28",
+    title: "Commandes fournisseurs : plus de rechargement à chaque modification",
+    items: [
+      "Changer un statut (« À commander » → « Commandé »…), choisir un fournisseur ou modifier un prix dans l'écran des commandes fournisseurs ne recharge plus toute la page : la modification est enregistrée en arrière-plan et la ligne se met à jour instantanément, sans spinner ni perte de position dans la liste.",
+    ],
+  },
   {
     version: "1.3.32",
     date: "2026-06-28",

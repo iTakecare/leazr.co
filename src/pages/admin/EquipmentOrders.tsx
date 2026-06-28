@@ -113,9 +113,9 @@ const EquipmentOrders: React.FC = () => {
     if (companyId) fetchData();
   }, [companyId]);
 
-  const fetchData = async () => {
+  const fetchData = async ({ silent = false }: { silent?: boolean } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [eqItems, suppList] = await Promise.all([
         fetchAllEquipmentOrders(companyId!),
         fetchSuppliers(companyId!),
@@ -127,8 +127,24 @@ const EquipmentOrders: React.FC = () => {
       console.error('Error fetching equipment orders:', err);
       toast.error("Erreur lors du chargement des commandes");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
+  };
+
+  // Mises à jour optimistes : on patche l'état local après une écriture réussie
+  // plutôt que de tout recharger, pour éviter le flash du spinner et un refetch.
+  const patchItem = (sourceType: string, id: string, patch: Partial<EquipmentOrderItem>) => {
+    setItems(prev => prev.map(it =>
+      it.source_type === sourceType && it.id === id ? { ...it, ...patch } : it
+    ));
+  };
+
+  const patchUnit = (unitId: string, patch: Partial<EquipmentOrderUnit>) => {
+    setItems(prev => prev.map(it =>
+      it.units?.some(u => u.id === unitId)
+        ? { ...it, units: it.units.map(u => u.id === unitId ? { ...u, ...patch } : u) }
+        : it
+    ));
   };
 
   /** Charge les indicateurs "offres sourcées" pour chaque ligne */
@@ -201,8 +217,8 @@ const EquipmentOrders: React.FC = () => {
       } else {
         await updateContractEquipmentOrder(item.id, update);
       }
+      patchItem(item.source_type!, item.id, update);
       toast.success(`Statut mis à jour : ${ORDER_STATUS_CONFIG[newStatus].label}`);
-      fetchData();
     } catch {
       toast.error("Erreur lors de la mise à jour");
     }
@@ -217,8 +233,8 @@ const EquipmentOrders: React.FC = () => {
         // Also sync actual_purchase_price for contracts
         await updateContractEquipmentOrder(item.id, update);
       }
+      patchItem(item.source_type!, item.id, update);
       toast.success("Fournisseur mis à jour");
-      fetchData();
     } catch {
       toast.error("Erreur lors de la mise à jour du fournisseur");
     }
@@ -235,7 +251,7 @@ const EquipmentOrders: React.FC = () => {
       );
       toast.success(`${item.quantity} unités créées pour "${item.title}"`);
       setExpandedItems(prev => new Set(prev).add(`${item.source_type}-${item.id}`));
-      fetchData();
+      fetchData({ silent: true });
     } catch (err) {
       console.error('Error splitting into units:', err);
       toast.error("Erreur lors de la création des unités");
@@ -248,8 +264,8 @@ const EquipmentOrders: React.FC = () => {
       if (newStatus === 'ordered' && !unit.order_date) update.order_date = new Date().toISOString();
       if (newStatus === 'received' && !unit.reception_date) update.reception_date = new Date().toISOString();
       await updateEquipmentUnit(unit.id, update);
+      patchUnit(unit.id, update);
       toast.success(`Unité ${unit.unit_index} : ${ORDER_STATUS_CONFIG[newStatus].label}`);
-      fetchData();
     } catch {
       toast.error("Erreur lors de la mise à jour");
     }
@@ -258,8 +274,8 @@ const EquipmentOrders: React.FC = () => {
   const handleUnitSupplierChange = async (unit: EquipmentOrderUnit, supplierId: string) => {
     try {
       await updateEquipmentUnit(unit.id, { supplier_id: supplierId } as any);
+      patchUnit(unit.id, { supplier_id: supplierId } as Partial<EquipmentOrderUnit>);
       toast.success("Fournisseur de l'unité mis à jour");
-      fetchData();
     } catch {
       toast.error("Erreur lors de la mise à jour");
     }
@@ -273,8 +289,8 @@ const EquipmentOrders: React.FC = () => {
       } else {
         await updateContractEquipmentOrder(item.id, update);
       }
+      patchItem(item.source_type!, item.id, update);
       toast.success("Prix mis à jour");
-      fetchData();
     } catch {
       toast.error("Erreur lors de la mise à jour du prix");
     }
@@ -286,7 +302,7 @@ const EquipmentOrders: React.FC = () => {
       // Sync average price back to parent equipment
       await syncUnitPricesToParent(unit.source_type, unit.source_equipment_id);
       toast.success("Prix de l'unité mis à jour");
-      fetchData();
+      fetchData({ silent: true });
     } catch {
       toast.error("Erreur lors de la mise à jour");
     }
@@ -314,7 +330,7 @@ const EquipmentOrders: React.FC = () => {
     try {
       await Promise.all(ops);
       toast.success(`${ops.length} équipement(s) marqués comme reçus`);
-      fetchData();
+      fetchData({ silent: true });
     } catch (e) {
       console.error('Error bulk-receiving:', e);
       toast.error("Erreur lors de la mise à jour groupée");
@@ -970,7 +986,7 @@ const EquipmentOrders: React.FC = () => {
         target={sourcingTarget ?? undefined}
         onOfferSelected={() => {
           setSourcingTarget(null);
-          fetchData(); // rafraîchir pour mettre à jour le badge "sourc."
+          fetchData({ silent: true }); // rafraîchir pour mettre à jour le badge "sourc."
         }}
       />
 
