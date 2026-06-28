@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.36";
+export const ADMIN_VERSION = "1.3.37";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.37",
+    date: "2026-06-28",
+    title: "Dashboard : achats ventilés par unité (gestion par unité)",
+    items: [
+      "Quand un équipement de contrat est géré « par unité » (chaque exemplaire avec son propre fournisseur, prix et date d'achat), le Tableau Mensuel ventile désormais le coût d'achat unité par unité, dans le bon mois. Exemple : 2 ProBook d'une même ligne, l'un acheté en mai 2026 et l'autre en septembre 2025, sont comptés chacun dans leur mois au lieu d'être regroupés sur la ligne parente.",
+    ],
+  },
   {
     version: "1.3.36",
     date: "2026-06-28",

@@ -70,42 +70,83 @@ BEGIN
     ORDER BY i.contract_id, i.invoice_date
   ),
   equipment_purchases_by_month AS (
-    SELECT
-      EXTRACT(MONTH FROM COALESCE(
-        ce.order_date,
-        ce.actual_purchase_date,
-        (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
-         WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
-        ciiy.invoice_date
-      ))::integer as month,
-      SUM(COALESCE(ce.actual_purchase_price, ce.purchase_price) * COALESCE(ce.quantity, 1)) as total_purchases
-    FROM contract_equipment ce
-    JOIN contracts c ON c.id = ce.contract_id
-    LEFT JOIN contract_invoice_in_year ciiy ON ciiy.contract_id = c.id
-    WHERE c.company_id = user_company_id
-      AND COALESCE(c.is_self_leasing, false) = false
-      AND COALESCE(
-        ce.order_date,
-        ce.actual_purchase_date,
-        (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
-         WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
-        ciiy.invoice_date
-      ) IS NOT NULL
-      AND COALESCE(ce.actual_purchase_price, ce.purchase_price) > 0
-      AND c.status IN ('signed', 'active', 'delivered', 'completed', 'equipment_ordered', 'extended', 'defaulted', 'terminated')
-      -- Exclure les équipements pas encore achetés : statut « à commander » sur un
-      -- contrat encore en pré-livraison (signé / équipement en cours de commande).
-      -- Sur un contrat actif/livré, un order_status resté 'to_order' = simple suivi
-      -- non renseigné mais matériel bien acheté → on le garde.
-      AND NOT (ce.order_status = 'to_order' AND c.status IN ('signed', 'equipment_ordered'))
-      AND EXTRACT(YEAR FROM COALESCE(
-        ce.order_date,
-        ce.actual_purchase_date,
-        (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
-         WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
-        ciiy.invoice_date
-      )) = target_year
-    GROUP BY 1
+    SELECT month, SUM(total_purchases) as total_purchases FROM (
+      -- A. Lignes gérées PAR UNITÉ : chaque unité a son propre prix fournisseur
+      --    et sa propre date de commande (ex. 1 ProBook acheté en mai, l'autre
+      --    en septembre). On bucketise unité par unité, pas sur la ligne parente.
+      SELECT
+        EXTRACT(MONTH FROM COALESCE(
+          u.order_date,
+          ce.actual_purchase_date,
+          ce.order_date,
+          (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
+           WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
+          ciiy.invoice_date
+        ))::integer as month,
+        SUM(COALESCE(u.supplier_price, ce.actual_purchase_price, ce.purchase_price)) as total_purchases
+      FROM equipment_order_units u
+      JOIN contract_equipment ce ON ce.id = u.source_equipment_id AND u.source_type = 'contract'
+      JOIN contracts c ON c.id = ce.contract_id
+      LEFT JOIN contract_invoice_in_year ciiy ON ciiy.contract_id = c.id
+      WHERE c.company_id = user_company_id
+        AND COALESCE(c.is_self_leasing, false) = false
+        AND COALESCE(u.supplier_price, ce.actual_purchase_price, ce.purchase_price) > 0
+        AND c.status IN ('signed', 'active', 'delivered', 'completed', 'equipment_ordered', 'extended', 'defaulted', 'terminated')
+        AND NOT (u.order_status = 'to_order' AND c.status IN ('signed', 'equipment_ordered'))
+        AND COALESCE(u.order_date, ce.actual_purchase_date, ce.order_date,
+          (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
+           WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
+          ciiy.invoice_date) IS NOT NULL
+        AND EXTRACT(YEAR FROM COALESCE(u.order_date, ce.actual_purchase_date, ce.order_date,
+          (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
+           WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
+          ciiy.invoice_date)) = target_year
+      GROUP BY 1
+
+      UNION ALL
+
+      -- B. Lignes SANS unités : logique standard sur la ligne parente.
+      SELECT
+        EXTRACT(MONTH FROM COALESCE(
+          ce.order_date,
+          ce.actual_purchase_date,
+          (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
+           WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
+          ciiy.invoice_date
+        ))::integer as month,
+        SUM(COALESCE(ce.actual_purchase_price, ce.purchase_price) * COALESCE(ce.quantity, 1)) as total_purchases
+      FROM contract_equipment ce
+      JOIN contracts c ON c.id = ce.contract_id
+      LEFT JOIN contract_invoice_in_year ciiy ON ciiy.contract_id = c.id
+      WHERE c.company_id = user_company_id
+        AND COALESCE(c.is_self_leasing, false) = false
+        AND NOT EXISTS (
+          SELECT 1 FROM equipment_order_units u
+          WHERE u.source_type = 'contract' AND u.source_equipment_id = ce.id
+        )
+        AND COALESCE(
+          ce.order_date,
+          ce.actual_purchase_date,
+          (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
+           WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
+          ciiy.invoice_date
+        ) IS NOT NULL
+        AND COALESCE(ce.actual_purchase_price, ce.purchase_price) > 0
+        AND c.status IN ('signed', 'active', 'delivered', 'completed', 'equipment_ordered', 'extended', 'defaulted', 'terminated')
+        -- Exclure les équipements pas encore achetés : « à commander » sur un contrat
+        -- en pré-livraison. Sur un contrat actif/livré, un 'to_order' non renseigné
+        -- = matériel bien acheté → on le garde.
+        AND NOT (ce.order_status = 'to_order' AND c.status IN ('signed', 'equipment_ordered'))
+        AND EXTRACT(YEAR FROM COALESCE(
+          ce.order_date,
+          ce.actual_purchase_date,
+          (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
+           WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
+          ciiy.invoice_date
+        )) = target_year
+      GROUP BY 1
+    ) merged
+    GROUP BY month
   ),
   self_leasing_contracts AS (
     SELECT
