@@ -644,6 +644,7 @@ const CompanyDashboard = () => {
         year={selectedYear}
         month={purchasesDetail?.month ?? null}
         monthLabel={purchasesDetail?.label ?? ""}
+        onChanged={refetch}
       />
     </div>
   );

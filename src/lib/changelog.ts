@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.38";
+export const ADMIN_VERSION = "1.3.39";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.39",
+    date: "2026-06-28",
+    title: "Détail des achats : modifier la date d'achat depuis la modale",
+    items: [
+      "Dans la modale « Détail des achats » (clic sur un montant du Tableau Mensuel), la date d'achat de chaque équipement leasing (ligne de contrat ou unité) est désormais modifiable et enregistrable directement : la ligne se reclasse aussitôt dans le bon mois et le tableau se met à jour. Pour les ventes directes, la date affichée reste celle de la facture d'achat (non modifiable ici).",
+    ],
+  },
   {
     version: "1.3.38",
     date: "2026-06-28",

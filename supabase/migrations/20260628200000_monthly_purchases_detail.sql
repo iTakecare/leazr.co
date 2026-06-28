@@ -10,7 +10,9 @@ CREATE OR REPLACE FUNCTION public.get_monthly_purchases_detail(p_year integer, p
    supplier_name text,
    quantity numeric,
    cost numeric,
-   purchase_date date
+   purchase_date date,
+   kind text,
+   record_id uuid
  )
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -41,7 +43,9 @@ BEGIN
     COALESCE(u.order_date, ce.actual_purchase_date, ce.order_date,
       (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
        WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
-      ciiy.invoice_date)::date
+      ciiy.invoice_date)::date,
+    'unit'::text,
+    u.id
   FROM equipment_order_units u
   JOIN contract_equipment ce ON ce.id = u.source_equipment_id AND u.source_type = 'contract'
   JOIN contracts c ON c.id = ce.contract_id
@@ -75,7 +79,9 @@ BEGIN
     COALESCE(ce.order_date, ce.actual_purchase_date,
       (SELECT MIN(cwl.created_at) FROM contract_workflow_logs cwl
        WHERE cwl.contract_id = c.id AND cwl.new_status = 'equipment_ordered'),
-      ciiy.invoice_date)::date
+      ciiy.invoice_date)::date,
+    'contract'::text,
+    ce.id
   FROM contract_equipment ce
   JOIN contracts c ON c.id = ce.contract_id
   LEFT JOIN contract_invoice_in_year ciiy ON ciiy.contract_id = c.id
@@ -107,7 +113,9 @@ BEGIN
     COALESCE(s.name, '—')::text,
     COALESCE(oe.quantity, 1)::numeric,
     (COALESCE(oe.purchase_price, 0) * COALESCE(oe.quantity, 1))::numeric,
-    i.invoice_date::date
+    i.invoice_date::date,
+    'offer'::text,
+    oe.id
   FROM invoices i
   JOIN offer_equipment oe ON oe.offer_id = i.offer_id
   JOIN offers o ON o.id = i.offer_id
