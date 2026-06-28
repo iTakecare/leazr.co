@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.31";
+export const ADMIN_VERSION = "1.3.32";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.32",
+    date: "2026-06-28",
+    title: "Commandes fournisseurs : correction de l'onglet « Tous »",
+    items: [
+      "Le passage sur l'onglet « Tous » de l'écran des commandes fournisseurs ne provoque plus d'erreur : les lignes dont le statut était vide ou inconnu sont désormais affichées comme « À commander » par défaut au lieu de faire planter la page.",
+    ],
+  },
   {
     version: "1.3.31",
     date: "2026-06-26",

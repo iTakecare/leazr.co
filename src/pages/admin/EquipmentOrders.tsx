@@ -473,7 +473,7 @@ const EquipmentOrders: React.FC = () => {
 
   const renderUnitRow = (unit: EquipmentOrderUnit, purchasePrice: number, parentItem: EquipmentOrderItem) => {
     const unitStatus = (unit.order_status || 'to_order') as OrderStatus;
-    const statusConfig = ORDER_STATUS_CONFIG[unitStatus];
+    const statusConfig = ORDER_STATUS_CONFIG[unitStatus] || ORDER_STATUS_CONFIG.to_order;
     const unitPrice = unit.supplier_price || purchasePrice;
     const supplierType = getSupplierType(unit.supplier_id);
     const tvaAmount = supplierType === 'belgian' ? unitPrice * 0.21 : 0;
@@ -569,7 +569,8 @@ const EquipmentOrders: React.FC = () => {
               const hasUnits = item.units && item.units.length > 0;
               const itemKey = `${item.source_type}-${item.id}`;
               const isExpanded = expandedItems.has(itemKey);
-              const statusConfig = ORDER_STATUS_CONFIG[item.order_status];
+              const itemStatus = (item.order_status || 'to_order') as OrderStatus;
+              const statusConfig = ORDER_STATUS_CONFIG[itemStatus] || ORDER_STATUS_CONFIG.to_order;
               // For per-unit items the amount shown is what's LEFT to order
               // (sum of the units still 'to_order'), not the full line total.
               const priceHT = hasUnits
@@ -756,7 +757,7 @@ const EquipmentOrders: React.FC = () => {
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       {!hasUnits && (
                         <Select
-                          value={item.order_status}
+                          value={itemStatus}
                           onValueChange={(v) => handleStatusChange(item, v as OrderStatus)}
                         >
                           <SelectTrigger className={`w-36 h-8 text-xs font-semibold border ${statusConfig.bgColor} ${statusConfig.color}`}>
