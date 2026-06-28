@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.33";
+export const ADMIN_VERSION = "1.3.34";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.34",
+    date: "2026-06-28",
+    title: "Dashboard financier : achats comptés à la date de commande",
+    items: [
+      "Dans le Tableau Mensuel, le coût d'achat d'un équipement leasing est désormais rattaché au mois de la COMMANDE au fournisseur, et non plus au mois où l'on coche « Reçu » dans l'écran Commandes. Marquer un ancien matériel comme reçu ne gonfle plus les achats (et n'écrase plus la marge) du mois en cours.",
+      "Correction d'un effet de bord : le clic « Reçu » écrasait la date d'achat réelle. La date d'achat suit maintenant la date de commande. Exemple : juin 2026 passe de ~26 408 € à ~22 749 € d'achats, l'écart étant ré-attribué au mois de commande.",
+    ],
+  },
   {
     version: "1.3.33",
     date: "2026-06-28",
