@@ -93,6 +93,11 @@ BEGIN
       ) IS NOT NULL
       AND COALESCE(ce.actual_purchase_price, ce.purchase_price) > 0
       AND c.status IN ('signed', 'active', 'delivered', 'completed', 'equipment_ordered', 'extended', 'defaulted', 'terminated')
+      -- Exclure les équipements pas encore achetés : statut « à commander » sur un
+      -- contrat encore en pré-livraison (signé / équipement en cours de commande).
+      -- Sur un contrat actif/livré, un order_status resté 'to_order' = simple suivi
+      -- non renseigné mais matériel bien acheté → on le garde.
+      AND NOT (ce.order_status = 'to_order' AND c.status IN ('signed', 'equipment_ordered'))
       AND EXTRACT(YEAR FROM COALESCE(
         ce.order_date,
         ce.actual_purchase_date,

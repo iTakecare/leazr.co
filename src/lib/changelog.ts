@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.35";
+export const ADMIN_VERSION = "1.3.36";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.36",
+    date: "2026-06-28",
+    title: "Dashboard : les équipements « à commander » pré-livraison exclus des achats",
+    items: [
+      "Un équipement encore « à commander » sur un contrat en cours (signé / équipement en commande) n'est plus comptabilisé comme un achat tant qu'il n'est pas réellement commandé. Sur un contrat actif/livré, un statut resté « à commander » (suivi non renseigné) reste compté, car le matériel a bien été acheté.",
+    ],
+  },
   {
     version: "1.3.35",
     date: "2026-06-28",
