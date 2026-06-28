@@ -232,7 +232,9 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         }
         
         // Filtrer les équipements par année d'achat effective
-        // Chaîne de fallback: actual_purchase_date → order_date → date "equipment_ordered" → invoice_date
+        // Chaîne de fallback: order_date → actual_purchase_date → date "equipment_ordered" → invoice_date
+        // (order_date = date de commande = vrai moment de l'achat ; prioritaire pour ne pas
+        //  rattacher le coût au mois où l'on clique « Reçu » dans l'écran Commandes)
         for (const eq of equipment || []) {
           const actualPurchaseDate = eq.actual_purchase_date 
             ? new Date(eq.actual_purchase_date) 
@@ -247,7 +249,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
             ? new Date(contractInvoiceDateMap.get(eq.contract_id)!)
             : null;
           
-          const effectivePurchaseDate = actualPurchaseDate || orderDate || equipmentOrderedDate || invoiceDate;
+          const effectivePurchaseDate = orderDate || actualPurchaseDate || equipmentOrderedDate || invoiceDate;
           
           // Ne compter que si la date d'achat effective est dans l'année sélectionnée
           if (effectivePurchaseDate && effectivePurchaseDate.getFullYear() === year) {
