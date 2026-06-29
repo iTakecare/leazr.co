@@ -268,6 +268,7 @@ const Contracts = () => {
           onDeleteContract={handleDeleteContract}
           isUpdatingStatus={isUpdatingStatus}
           isDeleting={isDeleting}
+          onRefresh={fetchContracts}
         />
       )}
 

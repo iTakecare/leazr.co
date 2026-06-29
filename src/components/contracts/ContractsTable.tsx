@@ -63,6 +63,8 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type SortColumn = 'date' | 'contract_number' | 'offer_number' | 'company' | 'client' | 'leaser' | 'monthly_payment' | 'financed_amount' | 'start_date' | 'end_date' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -99,6 +101,8 @@ interface ContractsTableProps {
   onDeleteContract: (contractId: string) => Promise<void>;
   isUpdatingStatus: boolean;
   isDeleting: boolean;
+  /** Rafraîchit la liste après une action (ex. actualisation du statut Grenke). */
+  onRefresh?: () => void;
 }
 
 interface SortableTableHeadProps {
@@ -148,9 +152,37 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   onDeleteContract,
   isUpdatingStatus,
   isDeleting,
+  onRefresh,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [refreshingGrenkeId, setRefreshingGrenkeId] = useState<string | null>(null);
+
+  // Re-poll Grenke pour CETTE offre liée et rafraîchit la liste : utile quand
+  // Grenke a changé d'avis (refus → accepté/en signature) mais que le statut
+  // local est resté figé en attendant le cron de synchro (toutes les 30 min).
+  const handleRefreshGrenkeStatus = async (contract: any) => {
+    if (!contract.offer_id) {
+      toast.error("Aucune offre Grenke liée à ce contrat");
+      return;
+    }
+    setRefreshingGrenkeId(contract.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("grenke-api", {
+        body: { action: "get_status", environment: "production", offer_id: contract.offer_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Statut Grenke actualisé${data?.grenke_state ? ` : ${data.grenke_state}` : ""}`);
+      onRefresh?.();
+    } catch (e: any) {
+      console.error("[ContractsTable] refresh Grenke status error:", e);
+      toast.error("Échec de l'actualisation du statut Grenke");
+    } finally {
+      setRefreshingGrenkeId(null);
+    }
+  };
+
   const [showTrackingDialog, setShowTrackingDialog] = useState(false);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
   const [trackingInfo, setTrackingInfo] = useState({
@@ -749,6 +781,16 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                         </DropdownMenuItem>
                       )}
                       
+                      {contract.offer_id && (contract.grenke_state || contract.offer_grenke_state) && (
+                        <DropdownMenuItem
+                          onClick={(e) => { e.stopPropagation(); handleRefreshGrenkeStatus(contract); }}
+                          disabled={refreshingGrenkeId === contract.id}
+                        >
+                          <RefreshCw className={`mr-2 h-4 w-4 ${refreshingGrenkeId === contract.id ? "animate-spin" : ""}`} />
+                          Actualiser le statut (Grenke)
+                        </DropdownMenuItem>
+                      )}
+
                       <DropdownMenuItem
                         onClick={() => handleDelete(contract.id)}
                         disabled={isDeleting}

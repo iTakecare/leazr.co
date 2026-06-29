@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.39";
+export const ADMIN_VERSION = "1.3.40";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.40",
+    date: "2026-06-28",
+    title: "Contrats : actualiser le statut Grenke à la demande",
+    items: [
+      "Nouvelle action « Actualiser le statut (Grenke) » dans le menu d'un contrat (liste des contrats) : elle re-interroge Grenke immédiatement et met à jour le statut affiché, sans attendre la synchro automatique (toutes les 30 min). Pratique quand Grenke change d'avis (refus → accepté / en attente de signature) et que le badge restait figé sur « Refusé ».",
+    ],
+  },
   {
     version: "1.3.39",
     date: "2026-06-28",
