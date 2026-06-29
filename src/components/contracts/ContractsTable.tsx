@@ -280,7 +280,23 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     // contract state (refreshed every 15 min by the sync). Each Grenke state has
     // its own badge; an unknown/new state falls back to showing its raw value so
     // nothing is ever hidden.
-    if (grenkeState) {
+    //
+    // EXCEPTION : un état Grenke « Declined » PÉRIMÉ ne doit pas masquer la
+    // réalité d'un contrat qui a déjà avancé (envoyé/signé/commandé/…). Cas
+    // typique : Grenke refuse, puis ré-accepte via un NOUVEAU dossier — l'ancien
+    // grenke_state de l'offre reste « Declined » alors que le contrat est en
+    // signature. On retombe alors sur le statut réel du contrat.
+    const progressedStatuses: string[] = [
+      contractStatuses.CONTRACT_SENT,
+      contractStatuses.CONTRACT_SIGNED,
+      contractStatuses.EQUIPMENT_ORDERED,
+      contractStatuses.DELIVERED,
+      contractStatuses.ACTIVE,
+      contractStatuses.EXTENDED,
+      contractStatuses.COMPLETED,
+    ];
+    const staleDecline = grenkeState === "Declined" && progressedStatuses.includes(status);
+    if (grenkeState && !staleDecline) {
       const map: Record<string, { label: string; cls: string; Icon: typeof Clock }> = {
         ApplicationSettled: { label: "Demande réglée", cls: "bg-indigo-50 text-indigo-700 border-indigo-200", Icon: Clock },
         Paid:               { label: "Payé",           cls: "bg-teal-50 text-teal-700 border-teal-200",       Icon: CheckCheck },

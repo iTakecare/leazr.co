@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.40";
+export const ADMIN_VERSION = "1.3.41";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.41",
+    date: "2026-06-29",
+    title: "Contrats : un refus Grenke périmé n'écrase plus le statut réel",
+    items: [
+      "Dans la liste des contrats, un état Grenke « Refusé » obsolète ne masque plus le statut réel d'un contrat qui a déjà avancé (envoyé, signé, commandé, actif…). Cas typique : Grenke refuse puis ré-accepte via un nouveau dossier — le contrat en attente de signature s'affiche désormais correctement au lieu de « Refusé ».",
+    ],
+  },
   {
     version: "1.3.40",
     date: "2026-06-28",
