@@ -1759,6 +1759,16 @@ async function fetchAndPersistStatus(
   if (state === "Declined" && offer.workflow_status !== "leaser_rejected") {
     update.workflow_status = "leaser_rejected"; // Refusé
     workflowChanged = true;
+  } else if (
+    offer.workflow_status === "leaser_rejected" &&
+    state && state !== "Declined" && state !== "Cancelled"
+  ) {
+    // Cas symétrique : le dossier était marqué « Refusé » mais Grenke a revu sa
+    // copie (ré-accepté / re-soumis sur le même dossier). On lève le refus :
+    //   - état d'acceptation ferme → « financed »
+    //   - sinon (en cours : prêt à signer, signature…) → « leaser_approved » (Acceptée)
+    update.workflow_status = GRENKE_ACCEPTED_STATES.has(state) ? "financed" : "leaser_approved";
+    workflowChanged = true;
   }
   // NOTE: Contracted → contract creation is intentionally NOT done here yet.
   // It's handled by the one-click finalize (UI) / future server port.

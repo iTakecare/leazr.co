@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.41";
+export const ADMIN_VERSION = "1.3.42";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.42",
+    date: "2026-06-29",
+    title: "Grenke : lever automatiquement un refus quand le dossier est ré-accepté",
+    items: [
+      "Lorsqu'on actualise le statut Grenke d'une offre marquée « Refusé » et que Grenke a entre-temps ré-accepté le dossier (ou l'a remis en cours de signature), le statut passe désormais automatiquement à « Acceptée » (ou « Financé » si le contrat est ferme) au lieu de rester bloqué sur « Refusé ».",
+    ],
+  },
   {
     version: "1.3.41",
     date: "2026-06-29",
