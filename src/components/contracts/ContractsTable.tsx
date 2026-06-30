@@ -295,8 +295,14 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
       contractStatuses.EXTENDED,
       contractStatuses.COMPLETED,
     ];
-    const staleDecline = grenkeState === "Declined" && progressedStatuses.includes(status);
-    if (grenkeState && !staleDecline) {
+    // Un contrat existe forcément ici → un état Grenke « pré-contrat » (refus
+    // périmé OU phase de demande/analyse) ne doit pas masquer le statut réel du
+    // contrat. On retombe alors sur le statut du contrat (Envoyé/Signé/Actif…).
+    const grenkePreContract = new Set([
+      "Declined", "RequestToGrenke", "ApplicationReceived", "MissingInfo", "GuaranteeRequired",
+    ]);
+    const staleGrenke = !!grenkeState && grenkePreContract.has(grenkeState) && progressedStatuses.includes(status);
+    if (grenkeState && !staleGrenke) {
       const map: Record<string, { label: string; cls: string; Icon: typeof Clock }> = {
         ApplicationSettled: { label: "Demande réglée", cls: "bg-indigo-50 text-indigo-700 border-indigo-200", Icon: Clock },
         Paid:               { label: "Payé",           cls: "bg-teal-50 text-teal-700 border-teal-200",       Icon: CheckCheck },

@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.49";
+export const ADMIN_VERSION = "1.3.50";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.50",
+    date: "2026-06-30",
+    title: "Contrats : un dossier contractualisé n'affiche plus d'état d'analyse Grenke",
+    items: [
+      "Dans la liste des contrats, un état Grenke « pré-contrat » (en analyse, soumis, infos manquantes, garantie requise) ne masque plus le statut réel du contrat : puisqu'un contrat existe, le dossier est financé. Le statut affiché reste celui du contrat (Envoyé/Signé/Actif…), cohérent avec le détail.",
+    ],
+  },
   {
     version: "1.3.49",
     date: "2026-06-30",
