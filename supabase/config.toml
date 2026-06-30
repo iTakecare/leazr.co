@@ -272,6 +272,10 @@ verify_jwt = true
 [functions.voice-call-webhook]
 verify_jwt = false
 
+[functions.voice-summaries-translate]
+# One-shot (X-Cron-Secret) : rétro-traduit en FR les résumés d'appel anglais.
+verify_jwt = false
+
 [functions.voice-campaign-start]
 # Lancement campagne d'appels groupés Alex (admin). Fait sa propre auth.
 verify_jwt = true

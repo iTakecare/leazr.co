@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.44";
+export const ADMIN_VERSION = "1.3.45";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.45",
+    date: "2026-06-30",
+    title: "Centre d'appels : comptes rendus d'Alex en français",
+    items: [
+      "Les comptes rendus des appels de l'agent vocal Alex (onglet Campagnes Alex) sont désormais rédigés en français (ils étaient générés en anglais par l'analyse du fournisseur). Les résumés existants ont aussi été retraduits.",
+    ],
+  },
   {
     version: "1.3.44",
     date: "2026-06-30",
