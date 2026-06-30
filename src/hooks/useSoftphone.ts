@@ -21,7 +21,7 @@ interface UseSoftphoneOptions {
   receiveIncoming?: boolean;
 }
 
-interface UseSoftphoneResult {
+export interface UseSoftphoneResult {
   status: SoftphoneStatus;
   callDurationSec: number;
   isMuted: boolean;

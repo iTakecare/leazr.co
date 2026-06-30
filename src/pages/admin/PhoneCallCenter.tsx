@@ -41,7 +41,7 @@ import VoiceInsights from "@/pages/admin/VoiceInsights";
 import VoiceConfig from "@/pages/admin/VoiceConfig";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { useSoftphone } from "@/hooks/useSoftphone";
+import { useVoice } from "@/context/VoiceContext";
 import RequestDocumentsDialog from "@/components/offers/RequestDocumentsDialog";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import { useTaskMutations } from "@/hooks/useTasks";
@@ -202,7 +202,9 @@ export default function PhoneCallCenter() {
   const { user } = useAuth();
   const { companyId } = useMultiTenant();
   const queryClient = useQueryClient();
-  const sp = useSoftphone(true, { receiveIncoming: true });
+  // Softphone PARTAGÉ via le VoiceProvider global (un seul Device Twilio pour
+  // toute l'app) → l'appel ne se coupe plus quand on quitte cette page.
+  const sp = useVoice()!.sp;
 
   // Vue scindée : on EMBARQUE la fiche/demande dans une iframe du panneau de
   // droite (mode ?embed=1, sans sidebar) au lieu de naviguer — sinon la page
@@ -244,35 +246,8 @@ export default function PhoneCallCenter() {
   const inCall =
     sp.status === "connecting" || sp.status === "ringing" || sp.status === "in_call";
 
-  // --------------------------------------------------------------------------
-  // PRÉSENCE
-  // --------------------------------------------------------------------------
-  useEffect(() => {
-    if (!user?.id || !companyId || !sp.identity) return;
-
-    const upsertPresence = async () => {
-      await db.from("voice_presence").upsert(
-        {
-          user_id: user.id,
-          company_id: companyId,
-          identity: sp.identity,
-          online: true,
-          last_seen: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      );
-    };
-
-    upsertPresence();
-    const interval = setInterval(upsertPresence, 30000);
-
-    return () => {
-      clearInterval(interval);
-      db.from("voice_presence")
-        .update({ online: false, last_seen: new Date().toISOString() })
-        .eq("user_id", user.id);
-    };
-  }, [user?.id, companyId, sp.identity]);
+  // PRÉSENCE : gérée globalement par le VoiceProvider (l'agent reste « en ligne »
+  // sur toutes les pages, pas seulement ici). Voir src/context/VoiceContext.tsx.
 
   // --------------------------------------------------------------------------
   // Chargement d'un client (sélection contexte droite)

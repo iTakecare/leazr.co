@@ -32,7 +32,7 @@ import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
-import { useSoftphone } from "@/hooks/useSoftphone";
+import { useVoice } from "@/context/VoiceContext";
 
 // Le client supabase est typé sur les tables connues ; ces tables vocales/IA
 // ne sont pas dans les types générés → on relâche le typage localement.
@@ -138,8 +138,8 @@ const ClientCallModal: React.FC<ClientCallModalProps> = ({
   const [notes, setNotes] = useState("");
   const [savingLog, setSavingLog] = useState(false);
 
-  // --- Volet 2 : softphone
-  const softphone = useSoftphone(open);
+  // --- Volet 2 : softphone PARTAGÉ (Device global) — pas de second Device Twilio.
+  const softphone = useVoice()!.sp;
   const [activeVoiceCallId, setActiveVoiceCallId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
 

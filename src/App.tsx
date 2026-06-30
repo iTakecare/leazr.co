@@ -11,6 +11,8 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { CartProvider } from "@/context/CartContext";
+import { VoiceProvider } from "@/context/VoiceContext";
+import FloatingSoftphone from "@/components/voice/FloatingSoftphone";
 
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -497,7 +499,10 @@ function App() {
                 <AuthProvider>
                   <CompanyBrandingProvider>
                     <CartProvider>
-                      <AppRoutes />
+                      <VoiceProvider>
+                        <AppRoutes />
+                        <FloatingSoftphone />
+                      </VoiceProvider>
                     </CartProvider>
                   </CompanyBrandingProvider>
                 </AuthProvider>

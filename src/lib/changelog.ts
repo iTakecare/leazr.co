@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.42";
+export const ADMIN_VERSION = "1.3.43";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.43",
+    date: "2026-06-30",
+    title: "Softphone : appels persistants + fiche client à l'appel entrant",
+    items: [
+      "Le softphone est désormais global : on peut naviguer librement dans Leazr pendant un appel sans le raccrocher (avant, changer d'écran coupait la communication).",
+      "Un widget d'appel flottant reste visible sur tous les écrans pendant un appel (entrant ou en cours) : décrocher, raccrocher, couper le micro, minuteur.",
+      "À l'appel entrant, le widget affiche automatiquement le client identifié et sa DERNIÈRE demande (n° de dossier + statut), avec un bouton pour l'ouvrir d'un clic sans interrompre l'appel.",
+      "L'agent reste « en ligne » pour recevoir les appels sur toutes les pages, plus seulement sur le Centre d'appels.",
+    ],
+  },
   {
     version: "1.3.42",
     date: "2026-06-29",
