@@ -24,6 +24,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import WaveLoader from "@/components/ui/WaveLoader";
 import { useDocumentMonitoring } from "@/hooks/offers/useDocumentMonitoring";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
+import OfferStatusBadge from "@/components/offers/OfferStatusBadge";
 
 // Import des composants améliorés
 import LeazrWorkflowStepper from "@/components/offers/detail/LeazrWorkflowStepper";
@@ -744,6 +745,8 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                       onUpdate={fetchOfferDetails}
                     />
                     {offer.type && <OfferTypeTag type={offer.type} partnerName={offer.partner_name} size="sm" />}
+                    {/* Statut Leazr — IDENTIQUE au listing des demandes (source de vérité). */}
+                    {offer.workflow_status && <OfferStatusBadge status={offer.workflow_status} />}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-sm text-muted-foreground">{offer.client_name}</p>
@@ -773,13 +776,22 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                       const started = !!start && new Date(start).getTime() <= Date.now();
                       let label: string | null = null;
                       let cls = "";
+                      // Quand le dossier Leazr est déjà finalisé (financé/validé/facturé),
+                      // un état Grenke de « phase de demande/analyse » (Grenke a p.ex.
+                      // rouvert pour ajustements) ne doit PAS contredire le statut affiché.
+                      // On masque alors ces états ; on garde les états de contrat utiles.
+                      const leazrFinalized = ["financed", "validated", "invoicing", "contract_signed"]
+                        .includes(offer.workflow_status || "");
+                      const grenkeRequestPhase = new Set([
+                        "RequestToGrenke", "ApplicationReceived", "MissingInfo", "GuaranteeRequired",
+                      ]);
                       if (offer.linkedContract.status === "cancelled" || gs === "Declined" || gs === "Cancelled") {
                         label = "Annulé"; cls = "bg-red-50 text-red-700 border-red-200";
                       } else if (gs === "ApplicationSettled" && !started) {
                         label = "Demande réglée"; cls = "bg-indigo-50 text-indigo-700 border-indigo-200";
                       } else if (gs === "RunningContract" || (gs === "ApplicationSettled" && started)) {
                         label = "Actif"; cls = "bg-green-50 text-green-700 border-green-200";
-                      } else if (gs) {
+                      } else if (gs && !(leazrFinalized && grenkeRequestPhase.has(gs))) {
                         label = gs; cls = "bg-amber-50 text-amber-700 border-amber-200";
                       }
                       return label ? (

@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.46";
+export const ADMIN_VERSION = "1.3.47";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.47",
+    date: "2026-06-30",
+    title: "Demande : statut du détail aligné sur le listing",
+    items: [
+      "Le statut affiché dans le détail d'une demande correspond désormais à celui du listing (ex. « Financée ») : on ajoute le badge de statut Leazr dans l'en-tête, et un état Grenke de phase d'analyse (quand Grenke a rouvert le dossier pour ajustements) ne masque plus le vrai statut quand la demande est déjà financée/validée.",
+    ],
+  },
   {
     version: "1.3.46",
     date: "2026-06-30",
