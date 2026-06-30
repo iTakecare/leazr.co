@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.51";
+export const ADMIN_VERSION = "1.3.52";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.52",
+    date: "2026-06-30",
+    title: "Billit : bouton « Envoyer » de nouveau visible sur les brouillons",
+    items: [
+      "Une facture déjà poussée vers Billit en brouillon (mais jamais réellement envoyée au client/bailleur via Peppol ou e-mail) n'affiche plus à tort « Facture déjà envoyée ». Le bouton « Envoyer via Peppol/email » reste visible tant que l'envoi réel n'a pas eu lieu.",
+    ],
+  },
   {
     version: "1.3.51",
     date: "2026-06-30",

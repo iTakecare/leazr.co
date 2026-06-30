@@ -35,11 +35,13 @@ const BillitInvoiceCard: React.FC<{
 
   const inBillit = invoice.integration_type === "billit" && !!invoice.external_invoice_id;
   const sentChannel = (invoice.billing_data as any)?.billit_sent_channel as ("peppol" | "email" | null) | undefined;
-  // « Déjà envoyée vers Billit » = RÉELLEMENT transmise à Billit (canal d'envoi
-  // Billit enregistré, ou facture Billit déjà envoyée/payée). Le statut "paid"
-  // d'une facture Mollie (self-leasing) ne veut PAS dire qu'elle est partie chez
-  // Billit — sinon les self-leasing s'affichaient à tort « déjà envoyée ».
-  const alreadySent = !!sentChannel || (inBillit && (invoice.status === "sent" || invoice.status === "paid"));
+  // « Déjà envoyée vers Billit » = un envoi RÉEL via Billit a eu lieu (action
+  // "send", qui pose billit_sent_channel). invoice.status (sent/paid) reflète le
+  // cycle de paiement CLIENT (Mollie pour le self-leasing, ou suivi interne) —
+  // ça ne veut PAS dire que la facture est partie chez Billit. Une facture avec
+  // seulement un brouillon Billit (inBillit=true, pas encore "send") doit
+  // continuer à afficher le bouton « Envoyer via Peppol/email ».
+  const alreadySent = !!sentChannel;
 
   const loadPreview = async () => {
     if (!companyId) return;
