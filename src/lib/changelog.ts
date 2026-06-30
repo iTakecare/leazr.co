@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.50";
+export const ADMIN_VERSION = "1.3.51";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.51",
+    date: "2026-06-30",
+    title: "Self-leasing : ne plus marquer les factures « déjà envoyées vers Billit »",
+    items: [
+      "Les factures self-leasing (payées via Mollie) n'apparaissent plus à tort comme « déjà envoyées vers Billit ». Le statut « payé » côté Mollie ne signifie pas un envoi vers Billit : la carte Billit affiche désormais correctement les options d'envoi tant que la facture n'a pas réellement été transmise à Billit.",
+    ],
+  },
   {
     version: "1.3.50",
     date: "2026-06-30",

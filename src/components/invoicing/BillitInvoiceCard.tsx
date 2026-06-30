@@ -34,8 +34,12 @@ const BillitInvoiceCard: React.FC<{
   const [sending, setSending] = useState(false);
 
   const inBillit = invoice.integration_type === "billit" && !!invoice.external_invoice_id;
-  const alreadySent = invoice.status === "sent" || invoice.status === "paid";
   const sentChannel = (invoice.billing_data as any)?.billit_sent_channel as ("peppol" | "email" | null) | undefined;
+  // « Déjà envoyée vers Billit » = RÉELLEMENT transmise à Billit (canal d'envoi
+  // Billit enregistré, ou facture Billit déjà envoyée/payée). Le statut "paid"
+  // d'une facture Mollie (self-leasing) ne veut PAS dire qu'elle est partie chez
+  // Billit — sinon les self-leasing s'affichaient à tort « déjà envoyée ».
+  const alreadySent = !!sentChannel || (inBillit && (invoice.status === "sent" || invoice.status === "paid"));
 
   const loadPreview = async () => {
     if (!companyId) return;
