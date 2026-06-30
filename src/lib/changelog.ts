@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.47";
+export const ADMIN_VERSION = "1.3.48";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.48",
+    date: "2026-06-30",
+    title: "Historique de la demande : toutes les étapes (qui & quand)",
+    items: [
+      "L'historique d'une demande ne se limite plus aux changements de statut : il trace aussi les envois d'e-mails (offre, demande de documents), la génération du PDF, le swap d'appareil et toutes les étapes Grenke (soumission, analyse, prêt à signer, signature client/partenaire, livraison, contrat actif) — avec qui et quand, et une icône par type d'événement.",
+    ],
+  },
   {
     version: "1.3.47",
     date: "2026-06-30",

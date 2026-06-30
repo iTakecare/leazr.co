@@ -1085,6 +1085,16 @@ export const swapContractEquipment = async (input: ContractEquipmentSwapInput) =
     .single();
   if (swErr) throw swErr;
 
+  // Trace dans l'historique de la demande.
+  if (offerId) {
+    await supabase.from('offer_workflow_logs').insert({
+      offer_id: offerId,
+      user_id: input.userId,
+      event_type: 'swap',
+      reason: `Swap d'appareil : ${input.oldTitle} → ${input.newTitle}`,
+    } as any);
+  }
+
   return { swap: swap as unknown as EquipmentSwap, stockItem };
 };
 

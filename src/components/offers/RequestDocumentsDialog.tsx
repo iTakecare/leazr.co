@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, MessageSquare, Smartphone, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { logOfferEvent } from "@/services/offers/offerEvents";
 import { cn } from "@/lib/utils";
 
 const DOCUMENT_OPTIONS = [
@@ -86,6 +87,7 @@ export default function RequestDocumentsDialog({ open, onOpenChange, offerId, de
       fmt("SMS", body?.sms_status);
       if (body?.success) {
         toast.success(`Demande envoyée${parts.length ? " — " + parts.join(", ") : ""}`);
+        logOfferEvent(offerId, "email_doc_request", `Demande de documents envoyée (${channels.join(", ")}) : ${documents.join(", ")}`);
         onSent?.();
         onOpenChange(false);
       } else {

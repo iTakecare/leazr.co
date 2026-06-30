@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import DOMPurify from 'dompurify';
 import { updateOfferStatus } from '@/services/offers/offerStatus';
+import { logOfferEvent } from '@/services/offers/offerEvents';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { RichTextEditor } from '@/components/admin/RichTextEditor';
 import { offerEmailStrings, normalizeCommLang, type CommLang } from '@/lib/leasingEmailContent';
@@ -333,6 +334,7 @@ export const EmailOfferDialog = ({
       }
 
       console.log('[EMAIL-OFFER] Email sent successfully:', data);
+      logOfferEvent(offerId, 'email_offer', `Offre envoyée par e-mail à ${to}`);
 
       // Mettre à jour le workflow_status vers 'sent'
       console.log('[EMAIL-OFFER] Updating workflow status to "sent"...');

@@ -1802,6 +1802,18 @@ async function fetchAndPersistStatus(
     } catch (e) {
       console.warn("[grenke-api] admin_notification insert failed:", e instanceof Error ? e.message : String(e));
     }
+    // Trace dans l'historique de la demande (étapes Grenke : soumis, analyse,
+    // prêt à signer, signatures, contractualisé… → « qui/quand » côté bailleur).
+    try {
+      await adminSupabase.from("offer_workflow_logs").insert({
+        offer_id: offer.id,
+        user_id: null,
+        event_type: "esign",
+        reason: `Grenke — ${copy.title}`,
+      });
+    } catch (e) {
+      console.warn("[grenke-api] offer_workflow_log insert failed:", e instanceof Error ? e.message : String(e));
+    }
   }
 
   return { state, workflowChanged };

@@ -25,6 +25,7 @@ import WaveLoader from "@/components/ui/WaveLoader";
 import { useDocumentMonitoring } from "@/hooks/offers/useDocumentMonitoring";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
 import OfferStatusBadge from "@/components/offers/OfferStatusBadge";
+import { logOfferEvent } from "@/services/offers/offerEvents";
 
 // Import des composants améliorés
 import LeazrWorkflowStepper from "@/components/offers/detail/LeazrWorkflowStepper";
@@ -371,6 +372,7 @@ const [notesLoading, setNotesLoading] = useState(false);
       // Moteur de rendu PDF unique (cf. commercialOfferPdfService).
       const { downloadCommercialOfferPDF } = await import('@/services/commercialOfferPdfService');
       await downloadCommercialOfferPDF(offer.id);
+      logOfferEvent(offer.id, 'pdf_generated', 'PDF d\'offre généré');
       toast.success('PDF téléchargé avec succès !', { id: toastId });
     } catch (error) {
       console.error("Erreur lors de la génération du PDF:", error);
