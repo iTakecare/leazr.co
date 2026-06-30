@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import CreateClientDialog from "@/components/clients/CreateClientDialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,6 +46,8 @@ const CompanyCRM = () => {
   console.log("🔍 CRM RENDER - Offers count:", offers?.length || 0);
   
   const [searchTerm, setSearchTerm] = useState("");
+  const [showCreateClient, setShowCreateClient] = useState(false);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("clients");
 
   const getStatusBadge = (status: string) => {
@@ -123,12 +127,21 @@ const CompanyCRM = () => {
             <Download className="h-4 w-4" />
             Exporter
           </Button>
-          <Button size="sm" className="gap-2">
+          <Button size="sm" className="gap-2" onClick={() => setShowCreateClient(true)}>
             <Plus className="h-4 w-4" />
-            Nouveau
+            Nouveau client
           </Button>
         </div>
       </div>
+
+      <CreateClientDialog
+        open={showCreateClient}
+        onOpenChange={setShowCreateClient}
+        onClientCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['company-clients'] });
+          setShowCreateClient(false);
+        }}
+      />
 
       {/* Statistiques rapides */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -10,6 +10,14 @@ import { Button } from "@/components/ui/button";
 // Détermine l'audience à partir de l'URL : la modale ne s'affiche que dans les
 // espaces admin et client (jamais sur les pages publiques / login).
 function resolveAudience() {
+  // Ne jamais afficher dans une vue embarquée (iframe du Centre d'appels, ?embed=1) :
+  // la modale y est difficile à fermer et fait doublon avec la fenêtre principale.
+  try {
+    if (window.self !== window.top) return null;
+    if (new URLSearchParams(window.location.search).get("embed") === "1") return null;
+  } catch {
+    return null; // cross-origin → on est dans une iframe
+  }
   const m = window.location.pathname.match(/^\/([^/]+)\/(admin|client)(\/|$)/);
   if (!m) return null;
   const slug = m[1];

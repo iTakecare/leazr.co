@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.45";
+export const ADMIN_VERSION = "1.3.46";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.46",
+    date: "2026-06-30",
+    title: "Swap : e-mail au bailleur + corrections CRM / changelog",
+    items: [
+      "La modale de swap d'appareil prépare désormais, dans un volet à droite, un e-mail prêt à envoyer au bailleur (destinataire pré-rempli, objet, message reprenant le contrat, l'appareil retiré et le nouvel appareil) pour qu'il mette à jour sa base.",
+      "CRM : le bouton « Nouveau client » est de nouveau fonctionnel (il ouvre le formulaire de création).",
+      "La fenêtre « Nouveautés » (changelog) ne s'affiche plus dans les vues embarquées du Centre d'appels, où elle était difficile à fermer.",
+    ],
+  },
   {
     version: "1.3.45",
     date: "2026-06-30",
