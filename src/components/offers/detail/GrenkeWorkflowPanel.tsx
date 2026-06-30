@@ -179,7 +179,22 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
     state?.converted_to_contract && (rawGrenkeState === "Cancelled" || rawGrenkeState === "Declined")
       ? "Contracted"
       : rawGrenkeState;
-  const meta = grenkeState ? (STATE_META[grenkeState] ?? { label: grenkeState, tone: "progress" as const }) : null;
+
+  // La demande est-elle déjà finalisée côté Leazr (financée / contractualisée) ?
+  const FINALIZED_WF = new Set(["financed", "validated", "invoicing", "contract_signed"]);
+  const isFinalized = !!state?.converted_to_contract || FINALIZED_WF.has(state?.workflow_status ?? "");
+  // États Grenke de « phase de demande / analyse » : trompeurs sur un dossier
+  // déjà financé (Grenke laisse parfois la demande en « ApplicationReceived »
+  // alors que le client a tout signé / le dossier est réglé).
+  const GRENKE_ANALYSIS_STATES = new Set([
+    "RequestToGrenke", "MissingInfo", "ApplicationReceived", "GuaranteeRequired",
+  ]);
+
+  let meta = grenkeState ? (STATE_META[grenkeState] ?? { label: grenkeState, tone: "progress" as const }) : null;
+  if (meta && isFinalized && grenkeState && GRENKE_ANALYSIS_STATES.has(grenkeState)) {
+    // On n'affiche plus « En cours d'analyse » quand la demande est financée.
+    meta = { label: "Financé", tone: "ok" };
+  }
 
   // Re-introduction (forced re-submit → archives the current dossier, creates a
   // fresh one). Offered when the dossier was refused/cancelled, when a Grenke

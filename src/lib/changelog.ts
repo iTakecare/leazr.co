@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.48";
+export const ADMIN_VERSION = "1.3.49";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.49",
+    date: "2026-06-30",
+    title: "Grenke : ne plus afficher « En cours d'analyse » sur un dossier financé",
+    items: [
+      "Le panneau Grenke d'une demande n'affiche plus « En cours d'analyse » quand la demande est déjà financée/contractualisée (Grenke laisse parfois le dossier en état d'analyse alors que le client a tout signé). Il indique alors « Financé », cohérent avec le statut de la demande.",
+    ],
+  },
   {
     version: "1.3.48",
     date: "2026-06-30",
