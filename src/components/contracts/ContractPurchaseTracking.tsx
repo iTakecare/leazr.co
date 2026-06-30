@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-import { ShoppingCart, Check, TrendingUp, Save, Calendar, ChevronDown, SplitSquareHorizontal } from "lucide-react";
+import { ShoppingCart, Check, TrendingUp, Save, Calendar, ChevronDown, SplitSquareHorizontal, RefreshCw } from "lucide-react";
 import { ORDER_STATUS_CONFIG, OrderStatus, updateContractEquipmentOrder, fetchSuppliers, splitEquipmentIntoUnits, updateEquipmentUnit, fetchEquipmentUnits, syncUnitPricesToParent } from "@/services/equipmentOrderService";
+import { fetchEquipmentSwapsByContract, type EquipmentSwap } from "@/services/stockService";
+import SwapEquipmentDialog from "@/components/contracts/SwapEquipmentDialog";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { format } from "date-fns";
@@ -25,6 +27,7 @@ interface ContractEquipment {
   purchase_notes: string | null;
   order_status: string | null;
   supplier_id: string | null;
+  serial_number: string | null;
 }
 
 interface Supplier {
@@ -55,10 +58,19 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
   const [editingUnitPrices, setEditingUnitPrices] = useState<Record<string, string>>({});
   const [editingUnitDates, setEditingUnitDates] = useState<Record<string, string>>({});
   const [editingUnitNotes, setEditingUnitNotes] = useState<Record<string, string>>({});
+  const [swaps, setSwaps] = useState<EquipmentSwap[]>([]);
+  const [swapTarget, setSwapTarget] = useState<ContractEquipment | null>(null);
 
   useEffect(() => {
     fetchEquipment();
+    fetchEquipmentSwapsByContract(contractId).then(setSwaps).catch(() => {});
   }, [contractId]);
+
+  const reloadAfterSwap = () => {
+    fetchEquipment();
+    fetchEquipmentSwapsByContract(contractId).then(setSwaps).catch(() => {});
+    onUpdate?.();
+  };
 
   useEffect(() => {
     if (companyId) {
@@ -70,7 +82,7 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
     try {
       const { data, error } = await supabase
         .from('contract_equipment')
-        .select('id, title, quantity, purchase_price, actual_purchase_price, actual_purchase_date, purchase_notes, order_status, supplier_id')
+        .select('id, title, quantity, purchase_price, actual_purchase_price, actual_purchase_date, purchase_notes, order_status, supplier_id, serial_number')
         .eq('contract_id', contractId)
         .order('created_at', { ascending: true });
 
@@ -382,7 +394,30 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                           )}
                           {isPurchased && !hasUnits && <Check className="h-4 w-4 text-green-600" />}
                           <span className="font-medium">{eq.title}</span>
+                          {swaps.some((s) => s.contract_equipment_id === eq.id) && (
+                            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 gap-1">
+                              <RefreshCw className="h-2.5 w-2.5" /> Swappé
+                            </Badge>
+                          )}
+                          {!hasUnits && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-6 px-2 text-amber-700 hover:text-amber-800 hover:bg-amber-50"
+                              onClick={(e) => { e.stopPropagation(); setSwapTarget(eq); }}
+                              title="Remplacer l'appareil (swap)"
+                            >
+                              <RefreshCw className="h-3 w-3 mr-1" /> Swap
+                            </Button>
+                          )}
                         </div>
+                        {swaps.filter((s) => s.contract_equipment_id === eq.id).map((s) => (
+                          <div key={s.id} className="text-[11px] text-amber-700/90 mt-1 ml-6">
+                            Remplace « {s.old_title} »{s.old_serial_number ? ` (S/N ${s.old_serial_number})` : ""} ·{" "}
+                            {format(new Date(s.swapped_at), "dd MMM yyyy", { locale: fr })} ·{" "}
+                            écart {s.price_delta > 0 ? "+" : ""}{formatCurrency(s.price_delta)}
+                          </div>
+                        ))}
                         {hasUnits && (
                           <div className="text-xs text-primary mt-1 ml-6">
                             {getUnitsSummary(units)}
@@ -714,6 +749,16 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
           </div>
         </div>
       </CardContent>
+
+      {swapTarget && (
+        <SwapEquipmentDialog
+          open={!!swapTarget}
+          onOpenChange={(o) => { if (!o) setSwapTarget(null); }}
+          contractId={contractId}
+          equipment={swapTarget}
+          onDone={reloadAfterSwap}
+        />
+      )}
     </Card>
   );
 };

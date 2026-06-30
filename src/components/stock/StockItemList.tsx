@@ -21,6 +21,8 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 
 interface StockItemListProps {
   onEdit?: (item: StockItem) => void;
+  /** Force le filtre par source (ex. onglet Swap = 'contract_swap'). */
+  forcedSource?: StockSource;
 }
 
 type SortKey = 'title' | 'serial_number' | 'category' | 'brand' | 'model' | 'quantity' | 'status' | 'condition' | 'grade' | 'supplier' | 'unit_price' | 'purchase_price' | 'date' | 'notes';
@@ -67,9 +69,9 @@ const getSortValue = (item: StockItem, key: SortKey): string | number => {
   }
 };
 
-const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
+const StockItemList: React.FC<StockItemListProps> = ({ onEdit, forcedSource }) => {
   const [statusFilter, setStatusFilter] = useState<StockStatus | undefined>(undefined);
-  const [sourceFilter, setSourceFilter] = useState<StockSource | undefined>(undefined);
+  const [sourceFilter, setSourceFilter] = useState<StockSource | undefined>(forcedSource);
   const [search, setSearch] = useState("");
   const { items, isLoading } = useStockItems(statusFilter);
   const [deleteItem, setDeleteItem] = useState<StockItem | null>(null);
@@ -169,8 +171,9 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
   };
 
   const filtered = useMemo(() => {
+    const effSource = forcedSource ?? sourceFilter;
     let result = items.filter(item => {
-      if (sourceFilter && (item.source || 'purchase') !== sourceFilter) return false;
+      if (effSource && (item.source || 'purchase') !== effSource) return false;
       if (!search) return true;
       const s = search.toLowerCase();
       return (
@@ -197,7 +200,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit }) => {
     }
 
     return result;
-  }, [items, search, sortKey, sortDir, sourceFilter]);
+  }, [items, search, sortKey, sortDir, sourceFilter, forcedSource]);
 
   // Group identical articles (same title+brand+model)
   type ArticleGroup = { key: string; items: StockItem[]; title: string; brand: string; model: string; category: string };

@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.43";
+export const ADMIN_VERSION = "1.3.44";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.44",
+    date: "2026-06-30",
+    title: "Swap d'appareil : remplacer un appareil défectueux sur un contrat",
+    items: [
+      "Nouveau bouton « Swap » sur chaque équipement d'un contrat (Suivi des achats) : on remplace l'appareil défectueux par un autre (titre, n° de série, nouveau prix d'achat) en gardant la mensualité du client inchangée.",
+      "L'ancien appareil revient automatiquement dans le stock (nouvel onglet « Swap »), en état « Défectueux », à son prix d'achat d'origine — gérable ensuite comme n'importe quel article (réparer, revendre, recycler).",
+      "Le nouveau prix d'achat met à jour la marge réelle du contrat (à la hausse comme à la baisse), et un badge « Swappé » + l'historique (ancien appareil, date, écart de prix) s'affichent sur la ligne du contrat.",
+    ],
+  },
   {
     version: "1.3.43",
     date: "2026-06-30",

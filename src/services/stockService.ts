@@ -5,11 +5,12 @@ export type StockCondition = 'new' | 'like_new' | 'good' | 'fair' | 'defective';
 export type RepairStatus = 'pending' | 'in_progress' | 'completed' | 'abandoned';
 export type MovementType = 'reception' | 'assign_contract' | 'unassign_contract' | 'swap_out' | 'swap_in' | 'repair_start' | 'repair_end' | 'scrap' | 'sell' | 'rachat_client' | 'contract_buyback' | 'reserve_offer' | 'release_offer';
 
-export type StockSource = 'purchase' | 'contract_buyback';
+export type StockSource = 'purchase' | 'contract_buyback' | 'contract_swap';
 
 export const STOCK_SOURCE_CONFIG: Record<StockSource, { label: string; color: string; bgColor: string }> = {
   purchase: { label: 'Achat', color: 'text-slate-700', bgColor: 'bg-slate-100 border-slate-200' },
   contract_buyback: { label: 'Reprise contrat', color: 'text-purple-700', bgColor: 'bg-purple-100 border-purple-200' },
+  contract_swap: { label: 'Swap contrat', color: 'text-amber-700', bgColor: 'bg-amber-100 border-amber-200' },
 };
 
 export interface StockItem {
@@ -965,4 +966,134 @@ export const performSwap = async (
     repair_cost: 0,
     started_at: new Date().toISOString().split('T')[0],
   });
+};
+
+// ===== SWAP D'APPAREIL SUR CONTRAT =====
+
+export interface EquipmentSwap {
+  id: string;
+  company_id: string;
+  contract_id: string;
+  contract_equipment_id: string;
+  offer_id: string | null;
+  old_title: string;
+  old_serial_number: string | null;
+  old_purchase_price: number;
+  new_title: string;
+  new_serial_number: string | null;
+  new_purchase_price: number;
+  price_delta: number;
+  reason: string | null;
+  returned_stock_item_id: string | null;
+  performed_by: string | null;
+  swapped_at: string;
+  created_at: string;
+}
+
+export interface ContractEquipmentSwapInput {
+  companyId: string;
+  contractId: string;
+  contractEquipmentId: string;
+  offerId?: string | null;
+  oldTitle: string;
+  oldSerialNumber: string | null;
+  oldPurchasePrice: number;
+  newTitle: string;
+  newSerialNumber: string | null;
+  newPurchasePrice: number;
+  reason: string;
+  userId: string;
+}
+
+/**
+ * Swap d'un appareil sur un contrat : l'ancien appareil (défectueux) revient en
+ * stock (onglet Swap), la ligne du contrat passe au nouvel appareil avec son
+ * nouveau prix d'achat réel (→ marge recalculée), et le swap est tracé.
+ * La mensualité du client n'est PAS modifiée.
+ */
+export const swapContractEquipment = async (input: ContractEquipmentSwapInput) => {
+  // 1) Ancien appareil → stock (En stock / Défectueux, à son prix d'achat d'origine)
+  const stockItem = await createStockItem({
+    company_id: input.companyId,
+    title: input.oldTitle,
+    serial_number: input.oldSerialNumber,
+    serial_numbers: input.oldSerialNumber ? [input.oldSerialNumber] : [],
+    quantity: 1,
+    status: 'in_stock',
+    condition: 'defective',
+    purchase_price: input.oldPurchasePrice,
+    source: 'contract_swap' as StockSource,
+    source_contract_id: input.contractId,
+    source_contract_equipment_id: input.contractEquipmentId,
+    reception_date: new Date().toISOString().split('T')[0],
+    notes: `Retour swap — remplacé par « ${input.newTitle} »${input.reason ? ` (${input.reason})` : ''}`,
+  } as Partial<StockItem>);
+
+  await createMovement({
+    company_id: input.companyId,
+    stock_item_id: stockItem.id,
+    movement_type: 'swap_out',
+    to_status: 'in_stock',
+    contract_id: input.contractId,
+    cost: input.oldPurchasePrice,
+    performed_by: input.userId,
+    notes: 'Ancien appareil revenu en stock suite à un swap de contrat',
+  });
+
+  // 2) Ligne contrat → nouvel appareil + nouveau prix d'achat réel (marge auto)
+  const { error: upErr } = await supabase
+    .from('contract_equipment')
+    .update({
+      title: input.newTitle,
+      serial_number: input.newSerialNumber,
+      actual_purchase_price: input.newPurchasePrice,
+      actual_purchase_date: new Date().toISOString(),
+    } as any)
+    .eq('id', input.contractEquipmentId);
+  if (upErr) throw upErr;
+
+  // 3) Trace du swap — on relie aussi la demande d'origine (offer) pour pouvoir
+  //    afficher l'indication de swap côté demande.
+  let offerId = input.offerId ?? null;
+  if (!offerId) {
+    const { data: c } = await supabase
+      .from('contracts')
+      .select('offer_id')
+      .eq('id', input.contractId)
+      .maybeSingle();
+    offerId = (c as { offer_id?: string } | null)?.offer_id ?? null;
+  }
+  const { data: swap, error: swErr } = await supabase
+    .from('equipment_swaps' as any)
+    .insert({
+      company_id: input.companyId,
+      contract_id: input.contractId,
+      contract_equipment_id: input.contractEquipmentId,
+      offer_id: offerId,
+      old_title: input.oldTitle,
+      old_serial_number: input.oldSerialNumber,
+      old_purchase_price: input.oldPurchasePrice,
+      new_title: input.newTitle,
+      new_serial_number: input.newSerialNumber,
+      new_purchase_price: input.newPurchasePrice,
+      price_delta: input.newPurchasePrice - input.oldPurchasePrice,
+      reason: input.reason || null,
+      returned_stock_item_id: stockItem.id,
+      performed_by: input.userId,
+    })
+    .select()
+    .single();
+  if (swErr) throw swErr;
+
+  return { swap: swap as unknown as EquipmentSwap, stockItem };
+};
+
+export const fetchEquipmentSwapsByContract = async (contractId: string): Promise<EquipmentSwap[]> => {
+  const { data, error } = await supabase
+    .from('equipment_swaps' as any)
+    .select('*')
+    .eq('contract_id', contractId)
+    .order('swapped_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as unknown as EquipmentSwap[];
 };

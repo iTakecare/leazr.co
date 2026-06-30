@@ -83,12 +83,19 @@ const StockManagement: React.FC = () => {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="swap">Swap</TabsTrigger>
           <TabsTrigger value="movements">Mouvements</TabsTrigger>
           <TabsTrigger value="repairs">Réparations</TabsTrigger>
           <TabsTrigger value="valuation">Valorisation</TabsTrigger>
         </TabsList>
         <TabsContent value="items" className="mt-4">
           <StockItemList onEdit={(item) => { setEditingItem(item); setFormOpen(true); }} />
+        </TabsContent>
+        <TabsContent value="swap" className="mt-4">
+          <StockItemList
+            forcedSource="contract_swap"
+            onEdit={(item) => { setEditingItem(item); setFormOpen(true); }}
+          />
         </TabsContent>
         <TabsContent value="buybackable" className="mt-4">
           <BuybackableEquipmentTab />
