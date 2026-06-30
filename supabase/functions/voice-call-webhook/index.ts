@@ -87,8 +87,34 @@ async function handleTranscription(supabase: any, data: any) {
   const meta = data.metadata ?? {};
   const durationSec = numOrNull(meta.call_duration_secs);
   const cost = numOrNull(meta.cost);
-  const summary = data.analysis?.transcript_summary ?? null;
+  let summary = data.analysis?.transcript_summary ?? null;
   const callStatus: string = data.status ?? "done";
+
+  // L'analyse ElevenLabs (transcript_summary) est en ANGLAIS. On génère notre
+  // propre résumé en FRANÇAIS depuis la transcription (Claude Haiku). Repli sur
+  // le résumé ElevenLabs si la clé manque ou l'appel échoue.
+  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (anthropicKey && transcriptionText && transcriptionText.trim().length > 20) {
+    try {
+      const aResp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": anthropicKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 400,
+          system: "Tu es l'assistant CRM de Leazr (leasing IT B2B). Tu résumes en FRANÇAIS les appels de l'agent vocal Alex (iTakecare) en 2-3 phrases factuelles. Réponds uniquement par le résumé, sans préambule ni guillemets.",
+          messages: [{ role: "user", content: `Résume cet appel téléphonique en français (2-3 phrases) :\n\n"""${transcriptionText.slice(0, 8000)}"""` }],
+        }),
+      });
+      if (aResp.ok) {
+        const aData = await aResp.json();
+        const text = (aData.content ?? []).map((b: { text?: string }) => b.text ?? "").join("").trim();
+        if (text.length > 10) summary = text;
+      }
+    } catch (e) {
+      console.warn("[voice-call-webhook] résumé FR échec:", e instanceof Error ? e.message : String(e));
+    }
+  }
 
   // Detect transfer/no-answer/failed from termination reason if available.
   const terminationReason: string | undefined = meta.termination_reason
