@@ -8,9 +8,10 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
-const looksFrench = (s: string) =>
-  /[àâäéèêëîïôöùûüçœ]/i.test(s) ||
-  /\b(le|la|les|un|une|des|appel|client|dossier|leasing|documents?|manquants?|rappel|relance)\b/i.test(s);
+// Marqueurs clairement ANGLAIS (absents d'un résumé français), pour ne traduire
+// que ce qui est en anglais sans toucher aux résumés déjà en français.
+const looksEnglish = (s: string) =>
+  /\b(the|regarding|missing|requested|requesting|recorded|contacted|provided|reiterated|acknowledged|representative|leasing file|leasing application|financial statement|left a (voice|message)|was (recorded|missing|informed)|user (responded|indicated))\b/i.test(s);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
   let skipped = 0;
   for (const row of rows ?? []) {
     const summary: string = (row.summary ?? "").trim();
-    if (!summary || looksFrench(summary)) { skipped++; continue; }
+    if (!summary || !looksEnglish(summary)) { skipped++; continue; }
 
     // Préférer une re-synthèse depuis la transcription si dispo (meilleure
     // qualité), sinon traduire le résumé anglais.
