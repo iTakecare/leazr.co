@@ -76,7 +76,7 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
           invoice_type: invoiceType,
           leaser_name: clientName,
           amount: invoiceAmount,
-          status: 'pending',
+          status: 'draft',
           integration_type: 'manual',
           invoice_date: invoiceDate?.toISOString(),
           due_date: dueDate?.toISOString(),
@@ -97,7 +97,7 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
       setDueDate(undefined);
     } catch (error: any) {
       console.error('Erreur:', error);
-      toast.error("Erreur lors de la création de la facture");
+      toast.error(`Erreur lors de la création de la facture${error?.message ? ` : ${error.message}` : ""}`);
     } finally {
       setLoading(false);
     }

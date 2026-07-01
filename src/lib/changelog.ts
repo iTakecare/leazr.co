@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.57";
+export const ADMIN_VERSION = "1.3.58";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.58",
+    date: "2026-07-01",
+    title: "Facturation : création d'une facture manuelle réparée",
+    items: [
+      "Le bouton « Nouvelle facture » (facture manuelle) échouait systématiquement avec « Erreur lors de la création de la facture » : la facture était créée avec un statut « pending » inexistant, rejeté par la base. Elle est désormais créée en brouillon comme il se doit.",
+      "Les messages d'erreur de création de facture affichent maintenant la vraie cause au lieu d'un message générique.",
+    ],
+  },
   {
     version: "1.3.57",
     date: "2026-07-01",
