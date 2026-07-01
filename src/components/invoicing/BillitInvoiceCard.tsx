@@ -16,14 +16,6 @@ import {
 
 const fmtEur = (n: number) => (n || 0).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
 
-// Seules les factures de la séquence officielle ITC-YYYY-NNN sont des documents
-// d'accounting éligibles à un envoi Billit. Les factures self-leasing (SL-…,
-// internes, encaissées via Mollie) ne doivent JAMAIS pouvoir être poussées vers
-// Billit/le comptable : ce n'est pas leur circuit (cf. incident du 30/06/2026 —
-// une SL- poussée par erreur a généré une vraie facture chez le comptable,
-// nécessitant une note de crédit). Même pattern que LeaserDocumentSendCard.
-const ITC_INVOICE_PATTERN = /^ITC-\d{4}-\d+/;
-
 const ChannelBadge: React.FC<{ channel: "peppol" | "email" }> = ({ channel }) =>
   channel === "peppol" ? (
     <Badge className="bg-blue-100 text-blue-700 border-0 gap-1"><Radio className="h-3 w-3" /> Peppol</Badge>
@@ -35,9 +27,6 @@ const BillitInvoiceCard: React.FC<{
   invoice: Invoice;
   onUpdate: (patch: Partial<Invoice>) => void;
 }> = ({ invoice, onUpdate }) => {
-  // Carte réservée aux factures officielles ITC-YYYY-NNN (voir garde-fou ci-dessus).
-  if (!invoice.invoice_number || !ITC_INVOICE_PATTERN.test(invoice.invoice_number)) return null;
-
   const { companyId } = useMultiTenant();
   const [recap, setRecap] = useState<BillitInvoiceRecap | null>(null);
   const [loading, setLoading] = useState(false);

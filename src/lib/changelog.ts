@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.54";
+export const ADMIN_VERSION = "1.3.55";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.55",
+    date: "2026-07-01",
+    title: "Billit : envoi des factures self-leasing rétabli, avec un vrai numéro officiel",
+    items: [
+      "L'envoi vers Billit est de nouveau possible pour toutes les factures (le blocage d'hier bloquait à tort l'envoi de toutes les factures, pas seulement le self-leasing — désolé pour la gêne).",
+      "Correctif de fond : Billit assigne désormais lui-même le prochain numéro officiel de sa séquence pour les factures self-leasing (au lieu de leur numéro interne), exactement comme il le fait déjà pour toutes les factures leasing classiques. Le numéro officiel est ensuite resynchronisé dans Leazr.",
+    ],
+  },
   {
     version: "1.3.54",
     date: "2026-07-01",
