@@ -421,6 +421,22 @@ async function loadInvoice(supabase: any, companyId: string, invoiceId: string) 
   return data;
 }
 
+// Seule la séquence officielle ITC-YYYY-NNN identifie un document éligible à un
+// envoi RÉEL chez Billit/le comptable. Incident du 30/06/2026 : une facture
+// self-leasing (numéro interne SL-…, encaissée via Mollie, jamais censée sortir
+// vers la comptabilité officielle) a été poussée vers Billit puis transmise
+// telle quelle au comptable, nécessitant une note de crédit pour la corriger.
+// Garde-fou en profondeur : create/send refusent toute facture non-ITC, même si
+// l'action est invoquée directement (hors UI).
+const ITC_INVOICE_NUMBER = /^ITC-\d{4}-\d+/;
+function assertItcInvoice(invoice: { invoice_number?: string | null }) {
+  if (!invoice.invoice_number || !ITC_INVOICE_NUMBER.test(invoice.invoice_number)) {
+    throw new Error(
+      `Facture « ${invoice.invoice_number ?? "(sans numéro)"} » non éligible à un envoi Billit : seule la séquence officielle ITC-YYYY-NNN peut être transmise au comptable.`,
+    );
+  }
+}
+
 async function actionPreview(supabase: any, companyId: string, invoiceId: string) {
   const invoice = await loadInvoice(supabase, companyId, invoiceId);
   const built = await buildOrder(supabase, companyId, invoice);
@@ -496,6 +512,7 @@ async function actionCreate(supabase: any, companyId: string, invoiceId: string)
   const cred = await loadCredentials(supabase, companyId);
   await getBillitAccount(cred.baseUrl, cred.apiKey); // valide l'auth
   const invoice = await loadInvoice(supabase, companyId, invoiceId);
+  assertItcInvoice(invoice);
 
   if (invoice.external_invoice_id && invoice.integration_type === "billit") {
     return { already: true, external_invoice_id: invoice.external_invoice_id, message: "Déjà présente dans Billit (brouillon)." };
@@ -558,6 +575,7 @@ async function sendVia(cred: BillitCredentials, orderId: string, transport: "Pep
 async function actionSend(supabase: any, companyId: string, invoiceId: string) {
   const cred = await loadCredentials(supabase, companyId);
   const invoice = await loadInvoice(supabase, companyId, invoiceId);
+  assertItcInvoice(invoice);
   if (!invoice.external_invoice_id) throw new Error("Facture pas encore créée dans Billit — fais d'abord « Pousser vers Billit ».");
   const built = await buildOrder(supabase, companyId, invoice);
   const orderId = invoice.external_invoice_id;

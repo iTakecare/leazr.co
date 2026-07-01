@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.52";
+export const ADMIN_VERSION = "1.3.53";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.53",
+    date: "2026-07-01",
+    title: "Billit : les factures self-leasing ne peuvent plus partir vers le comptable",
+    items: [
+      "La carte « Envoi via Billit » n'apparaît plus que sur les factures de la séquence officielle ITC-YYYY-NNN. Les factures self-leasing (numéro interne SL-…, encaissées via Mollie) ne peuvent plus être poussées vers Billit par erreur — un garde-fou équivalent a aussi été ajouté côté serveur.",
+    ],
+  },
   {
     version: "1.3.52",
     date: "2026-06-30",
