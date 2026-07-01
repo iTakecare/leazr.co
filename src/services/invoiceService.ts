@@ -1225,16 +1225,16 @@ export const generateSelfLeasingMonthlyInvoice = async (
 
     console.log('📝 Génération facture self-leasing mensuelle -', monthKey, 'contractId:', contractId);
 
-    // Vérifier si une facture existe déjà pour ce contrat et ce mois
+    // Vérifier si une facture existe déjà pour ce contrat et ce mois.
+    // Basé sur billing_data.month (mois de PAIEMENT), pas sur invoice_date : la
+    // date de facture reflète désormais le moment de GÉNÉRATION du document
+    // (peut différer du mois de paiement si la facture est générée en retard).
     const { data: existing } = await supabase
       .from('invoices')
       .select('id')
       .eq('contract_id', contractId)
       .eq('company_id', companyId)
-      .gte('invoice_date', `${year}-${String(month).padStart(2, '0')}-01`)
-      .lt('invoice_date', month === 12 
-        ? `${year + 1}-01-01` 
-        : `${year}-${String(month + 1).padStart(2, '0')}-01`)
+      .eq('billing_data->>month', monthKey)
       .maybeSingle();
 
     if (existing) {
@@ -1322,6 +1322,12 @@ export const generateSelfLeasingMonthlyInvoice = async (
       });
     }
 
+    // Date de facture = moment de GÉNÉRATION du document (aujourd'hui), pas la
+    // date de paiement Mollie : la facture peut être générée plus tard que le
+    // paiement réellement reçu (ex. paiement le 8/06, facture générée le 30/06).
+    // paid_at reste la vraie date de paiement, inchangée.
+    const generationDate = new Date().toISOString().split('T')[0];
+
     // Créer la facture avec billing_data complet - amount = HTVA
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
@@ -1334,8 +1340,8 @@ export const generateSelfLeasingMonthlyInvoice = async (
         amount: amountHtva,
         status: 'paid',
         integration_type: 'mollie',
-        invoice_date: paymentDate.split('T')[0],
-        due_date: paymentDate.split('T')[0],
+        invoice_date: generationDate,
+        due_date: generationDate,
         paid_at: paymentDate,
         billing_data: {
           type: 'self_leasing_monthly',

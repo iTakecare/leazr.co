@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.55";
+export const ADMIN_VERSION = "1.3.56";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.56",
+    date: "2026-07-01",
+    title: "Self-leasing : la date de facture reflète la génération, pas le paiement",
+    items: [
+      "Quand une facture de loyer self-leasing est générée avec un décalage par rapport au paiement Mollie (ex. paiement reçu le 8, facture générée le 30), la date de facture correspond désormais au jour de génération du document, comme pour une facture normale — la date de paiement réelle reste inchangée et visible séparément.",
+    ],
+  },
   {
     version: "1.3.55",
     date: "2026-07-01",
