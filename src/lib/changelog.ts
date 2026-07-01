@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.53";
+export const ADMIN_VERSION = "1.3.54";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.54",
+    date: "2026-07-01",
+    title: "Billit : numéro de contrat dans Référence/Objet pour le self-leasing",
+    items: [
+      "Quand une facture self-leasing est éligible à un envoi Billit, le numéro de contrat (ex. « CONTRAT LOC-ITC-2026-04007 ») est désormais renseigné dans les champs Référence et Objet, au même format que les factures self-leasing existantes déjà bien documentées.",
+    ],
+  },
   {
     version: "1.3.53",
     date: "2026-07-01",

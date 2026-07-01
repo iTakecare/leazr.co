@@ -344,8 +344,15 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
   }
 
   // Numéro de dossier leaseur (ex. « DOSSIER 180-33054 ») pour les champs Objet / Votre réf. Billit.
+  // Self-leasing (pas de dossier leaseur) : on utilise le numéro de CONTRAT
+  // (ex. « CONTRAT LOC-ITC-2026-04007 »), même format que les factures self-
+  // leasing historiques déjà correctement documentées dans Billit.
   const leaserRequestNumber = (offer?.leaser_request_number || "").toString().trim();
-  const dossierRef = leaserRequestNumber ? `DOSSIER ${leaserRequestNumber}` : null;
+  const dossierRef = leaserRequestNumber
+    ? `DOSSIER ${leaserRequestNumber}`
+    : isSelf && contract?.contract_number
+      ? `CONTRAT ${contract.contract_number}`
+      : null;
 
   return { recipient, lines, totalExcl: round2(lines.reduce((s, l) => s + l.UnitPriceExcl * l.Quantity, 0)), vatRate, warnings, dossierRef, grenkeAligned, paymentMethod, dueDays };
 }
