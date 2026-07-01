@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,11 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { CheckIcon, ChevronsUpDownIcon, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { DatePicker } from "@/components/ui/date-picker";
+import { getAllClients } from "@/services/clientService";
+import { Client } from "@/types/client";
+import { cn } from "@/lib/utils";
 
 interface NewInvoiceDialogProps {
   open: boolean;
@@ -31,7 +36,22 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
   const [description, setDescription] = useState("");
   const [invoiceDate, setInvoiceDate] = useState<Date | undefined>(new Date());
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const { companyId } = useMultiTenant();
+
+  useEffect(() => {
+    if (open) {
+      getAllClients().then(setClients).catch(() => setClients([]));
+    }
+  }, [open]);
+
+  const handleSelectClient = (client: Client) => {
+    setSelectedClient(client);
+    setClientName(client.company || client.name);
+    setClientPickerOpen(false);
+  };
 
   const handleSubmit = async () => {
     if (!companyId) {
@@ -56,7 +76,17 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
       const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
 
       const billingData = {
-        client_data: {
+        client_data: selectedClient ? {
+          name: selectedClient.name,
+          company: selectedClient.company || selectedClient.name,
+          address: selectedClient.billing_address || selectedClient.address || "",
+          city: selectedClient.billing_city || selectedClient.city || "",
+          postal_code: selectedClient.billing_postal_code || selectedClient.postal_code || "",
+          country: selectedClient.billing_country || selectedClient.country || "",
+          email: selectedClient.email || "",
+          phone: selectedClient.phone || "",
+          vat_number: selectedClient.vat_number || ""
+        } : {
           name: clientName,
           company: clientName
         },
@@ -91,6 +121,7 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
       
       // Reset form
       setClientName("");
+      setSelectedClient(null);
       setAmount("");
       setDescription("");
       setInvoiceDate(new Date());
@@ -131,11 +162,49 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="client">Nom du client *</Label>
+            <Label htmlFor="client">Client existant (optionnel)</Label>
+            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                  {selectedClient ? (selectedClient.company || selectedClient.name) : "Rechercher un client..."}
+                  <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                  <CommandInput placeholder="Rechercher un client..." />
+                  <CommandList>
+                    <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+                    <CommandGroup>
+                      {clients.map((client) => (
+                        <CommandItem
+                          key={client.id}
+                          value={`${client.company || ""} ${client.name}`}
+                          onSelect={() => handleSelectClient(client)}
+                        >
+                          <CheckIcon className={cn("mr-2 h-4 w-4", selectedClient?.id === client.id ? "opacity-100" : "opacity-0")} />
+                          {client.company || client.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <p className="text-xs text-muted-foreground">
+              Sélectionner un client existant remplit automatiquement ses coordonnées de facturation (adresse, TVA, email...).
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client-name">Nom du client (facture) *</Label>
             <Input
-              id="client"
+              id="client-name"
               value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
+              onChange={(e) => {
+                setClientName(e.target.value);
+                if (selectedClient) setSelectedClient(null);
+              }}
               placeholder="Ex: Société ABC"
             />
           </div>

@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.58";
+export const ADMIN_VERSION = "1.3.59";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.59",
+    date: "2026-07-01",
+    title: "Facturation manuelle : les coordonnées du client peuvent maintenant être reprises automatiquement",
+    items: [
+      "Le formulaire « Nouvelle facture » ne proposait qu'un champ texte libre pour le nom du client : aucune coordonnée (adresse, email, téléphone, TVA) n'était jamais reprise, même quand le client existait déjà dans la fiche client — la facture affichait alors « Non renseigné » partout.",
+      "Un sélecteur de client existant a été ajouté : le choisir remplit automatiquement toutes ses coordonnées de facturation. Le champ texte reste disponible pour un client ponctuel non enregistré.",
+    ],
+  },
   {
     version: "1.3.58",
     date: "2026-07-01",
