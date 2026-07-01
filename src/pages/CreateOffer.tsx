@@ -93,6 +93,7 @@ const CreateOffer = () => {
   const [isBuybackOpen, setIsBuybackOpen] = useState(false);
   const [fileFeeEnabled, setFileFeeEnabled] = useState(true);
   const [fileFeeAmount, setFileFeeAmount] = useState(75);
+  const [annualInsuranceOverride, setAnnualInsuranceOverride] = useState<number | null>(null);
   const [productsToBeDetermined, setProductsToBeDetermined] = useState(false);
   const [estimatedBudget, setEstimatedBudget] = useState<number>(0);
   const [isPurchase, setIsPurchase] = useState(false); // Mode achat direct
@@ -205,7 +206,9 @@ const CreateOffer = () => {
   const effectiveMonthlyForInsurance = globalDiscount.enabled && globalDiscount.discountAmount > 0
     ? totalMonthlyPayment - globalDiscount.discountAmount
     : totalMonthlyPayment;
-  const annualInsurance = calculateAnnualInsurance(effectiveMonthlyForInsurance, selectedDuration);
+  const annualInsurance = isEditMode && annualInsuranceOverride !== null
+    ? annualInsuranceOverride
+    : calculateAnnualInsurance(effectiveMonthlyForInsurance, selectedDuration);
   console.log("🔍 CreateOffer - Commission Debug:", {
     isInternalOffer,
     selectedAmbassadorId: selectedAmbassador?.id,
@@ -565,6 +568,18 @@ const CreateOffer = () => {
             if (offer.down_payment !== undefined && offer.down_payment !== null) {
               console.log("💰 STEP 3: Loading down payment:", offer.down_payment);
               setDownPayment(parseFloat(offer.down_payment) || 0);
+            }
+
+            // Charger les frais de dossier et l'assurance annuelle stockés
+            // (sinon ils étaient écrasés par les valeurs par défaut/recalculées au moindre enregistrement)
+            if (offer.file_fee !== undefined && offer.file_fee !== null) {
+              console.log("💰 STEP 3: Loading file fee:", offer.file_fee);
+              setFileFeeAmount(parseFloat(offer.file_fee) || 0);
+              setFileFeeEnabled(parseFloat(offer.file_fee) > 0);
+            }
+            if (offer.annual_insurance !== undefined && offer.annual_insurance !== null) {
+              console.log("💰 STEP 3: Loading annual insurance:", offer.annual_insurance);
+              setAnnualInsuranceOverride(parseFloat(offer.annual_insurance) || 0);
             }
 
             // Charger la remise commerciale si présente

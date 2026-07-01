@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.56";
+export const ADMIN_VERSION = "1.3.57";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.57",
+    date: "2026-07-01",
+    title: "Offres : les frais de dossier et l'assurance à 0 ne se réinitialisent plus",
+    items: [
+      "En éditant une offre depuis le formulaire complet (bouton « Modifier »), les frais de dossier et l'assurance annuelle repartaient de leurs valeurs par défaut au lieu de garder ce qui avait été saisi manuellement dans la carte « Frais et assurance » — y compris un 0 volontaire. Ces valeurs sont désormais correctement rechargées depuis l'offre existante.",
+    ],
+  },
   {
     version: "1.3.56",
     date: "2026-07-01",
