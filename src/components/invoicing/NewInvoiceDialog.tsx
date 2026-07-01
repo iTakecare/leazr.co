@@ -163,13 +163,14 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
 
           <div className="space-y-2">
             <Label htmlFor="client">Client existant (optionnel)</Label>
-            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                  {selectedClient ? (selectedClient.company || selectedClient.name) : "Rechercher un client..."}
-                  <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
+            <div className="flex gap-2">
+              <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    {selectedClient ? (selectedClient.company || selectedClient.name) : "Rechercher un client..."}
+                    <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                 <Command>
                   <CommandInput placeholder="Rechercher un client..." />
@@ -190,7 +191,13 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
                   </CommandList>
                 </Command>
               </PopoverContent>
-            </Popover>
+              </Popover>
+              {selectedClient && (
+                <Button variant="ghost" size="sm" onClick={() => setSelectedClient(null)}>
+                  Retirer
+                </Button>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               Sélectionner un client existant remplit automatiquement ses coordonnées de facturation (adresse, TVA, email...).
             </p>
@@ -201,12 +208,14 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
             <Input
               id="client-name"
               value={clientName}
-              onChange={(e) => {
-                setClientName(e.target.value);
-                if (selectedClient) setSelectedClient(null);
-              }}
+              onChange={(e) => setClientName(e.target.value)}
               placeholder="Ex: Société ABC"
             />
+            {selectedClient && (
+              <p className="text-xs text-muted-foreground">
+                Coordonnées liées à {selectedClient.company || selectedClient.name}. Modifier ce nom n'affecte pas les coordonnées reprises.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
