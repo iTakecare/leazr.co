@@ -76,6 +76,7 @@ export const NewInvoiceDialog = ({ open, onOpenChange, onSuccess }: NewInvoiceDi
       const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
 
       const billingData = {
+        ...(selectedClient ? { client_id: selectedClient.id } : {}),
         client_data: selectedClient ? {
           name: selectedClient.name,
           company: selectedClient.company || selectedClient.name,

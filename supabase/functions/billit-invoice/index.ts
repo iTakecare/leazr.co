@@ -217,23 +217,43 @@ async function buildOrder(supabase: any, companyId: string, invoice: any): Promi
       const { data } = await supabase.from("clients").select("*").eq("id", clientId).maybeSingle();
       client = data;
     }
-    if (!client) throw new Error(`Client introuvable pour la facture ${invoice.invoice_number || invoice.id}`);
-    const channel: "peppol" | "email" =
-      client.invoice_delivery_method === "peppol" || client.invoice_delivery_method === "email"
-        ? client.invoice_delivery_method
-        : (client.vat_number ? "peppol" : "email");
-    recipient = {
-      kind: "client",
-      name: client.company || client.name,
-      vat: client.vat_number || null,
-      email: client.email || null,
-      street: client.billing_address || client.address || null,
-      city: client.billing_city || client.city || null,
-      postalCode: client.billing_postal_code || client.postal_code || null,
-      country: (client.billing_country || client.country || "BE").slice(0, 2).toUpperCase(),
-      channel,
-      peppolId: client.peppol_identifier || null,
-    };
+    if (client) {
+      const channel: "peppol" | "email" =
+        client.invoice_delivery_method === "peppol" || client.invoice_delivery_method === "email"
+          ? client.invoice_delivery_method
+          : (client.vat_number ? "peppol" : "email");
+      recipient = {
+        kind: "client",
+        name: client.company || client.name,
+        vat: client.vat_number || null,
+        email: client.email || null,
+        street: client.billing_address || client.address || null,
+        city: client.billing_city || client.city || null,
+        postalCode: client.billing_postal_code || client.postal_code || null,
+        country: (client.billing_country || client.country || "BE").slice(0, 2).toUpperCase(),
+        channel,
+        peppolId: client.peppol_identifier || null,
+      };
+    } else if (bd.client_data?.name || bd.client_data?.company) {
+      // Facture manuelle sans client lié en base (ou créée avant l'ajout du
+      // sélecteur de client) : on retombe sur le snapshot client_data déjà
+      // stocké sur la facture plutôt que de bloquer l'aperçu Billit.
+      const cd = bd.client_data;
+      recipient = {
+        kind: "client",
+        name: cd.company || cd.name,
+        vat: cd.vat_number || null,
+        email: cd.email || null,
+        street: cd.address || null,
+        city: cd.city || null,
+        postalCode: cd.postal_code || null,
+        country: (cd.country || "BE").slice(0, 2).toUpperCase(),
+        channel: cd.vat_number ? "peppol" : "email",
+        peppolId: null,
+      };
+    } else {
+      throw new Error(`Client introuvable pour la facture ${invoice.invoice_number || invoice.id}`);
+    }
   }
 
   // Pré-validation du canal
