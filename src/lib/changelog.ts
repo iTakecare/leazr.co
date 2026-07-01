@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.59";
+export const ADMIN_VERSION = "1.3.60";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.60",
+    date: "2026-07-01",
+    title: "Billit : l'aperçu d'envoi ne plantait plus sur une facture manuelle",
+    items: [
+      "Sur une facture manuelle sans contrat ni offre liée, cliquer sur « Vérifier le destinataire & le canal » renvoyait une erreur « Client introuvable ». La facture retombe désormais sur les coordonnées client déjà enregistrées sur la facture elle-même quand aucune fiche client ne peut être résolue autrement.",
+    ],
+  },
   {
     version: "1.3.59",
     date: "2026-07-01",
