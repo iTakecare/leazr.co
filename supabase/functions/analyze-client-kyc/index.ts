@@ -96,6 +96,48 @@ function inferMimeFromPath(filePath: string): string | null {
   return EXT_TO_MIME[ext] || null;
 }
 
+// Recherche l'offset d'un marqueur ASCII dans un Uint8Array (sans convertir tout
+// le buffer en string — un spread String.fromCharCode(...bytes) sur 100+ Ko
+// explose la pile). fromEnd=true renvoie la DERNIÈRE occurrence.
+function findMarker(bytes: Uint8Array, marker: string, fromEnd = false): number {
+  const m = new Uint8Array(marker.length);
+  for (let i = 0; i < marker.length; i++) m[i] = marker.charCodeAt(i);
+  const last = bytes.length - m.length;
+  if (fromEnd) {
+    for (let i = last; i >= 0; i--) {
+      let ok = true;
+      for (let j = 0; j < m.length; j++) {
+        if (bytes[i + j] !== m[j]) { ok = false; break; }
+      }
+      if (ok) return i;
+    }
+  } else {
+    for (let i = 0; i <= last; i++) {
+      let ok = true;
+      for (let j = 0; j < m.length; j++) {
+        if (bytes[i + j] !== m[j]) { ok = false; break; }
+      }
+      if (ok) return i;
+    }
+  }
+  return -1;
+}
+
+// Certains fichiers stockés dans le bucket contiennent le CORPS MULTIPART de la
+// requête d'upload Supabase (préambule "------WebKitFormBoundary… / cacheControl"
+// avant le %PDF, et boundary de fermeture après le dernier %%EOF) au lieu du seul
+// PDF — l'aperçu direct affiche alors du texte brut. On isole le vrai PDF : de la
+// 1ʳᵉ occurrence de %PDF jusqu'au dernier %%EOF (inclus). Renvoie null si rien à
+// nettoyer (déjà propre) ou si le fichier n'est pas un PDF.
+function extractCleanPdf(bytes: Uint8Array): Uint8Array | null {
+  const start = findMarker(bytes.subarray(0, Math.min(bytes.length, 4096)), "%PDF");
+  if (start === -1) return null;
+  const eof = findMarker(bytes, "%%EOF", true);
+  const end = eof === -1 ? bytes.length : eof + 5;
+  if (start === 0 && end >= bytes.length) return null; // déjà propre
+  return bytes.subarray(start, end);
+}
+
 async function downloadPdfAsBase64(
   supabase: any,
   filePath: string,
@@ -114,15 +156,15 @@ async function downloadPdfAsBase64(
   const inferredMime = inferMimeFromPath(filePath);
   const mimeType = inferredMime || data.type || "application/pdf";
 
-  // Un PDF valide doit commencer par "%PDF". On cherche le marqueur dans les
-  // 1024 premiers octets : certains exports (BOM, octets parasites en tête)
-  // décalent le "%PDF" — Claude rejette alors le fichier ("PDF not valid").
-  // Si on le trouve après le début, on retire le préambule. Sinon, le fichier
-  // n'est pas un PDF (page web, JSON d'erreur, upload tronqué) → message + aperçu.
+  // Un PDF valide doit commencer par "%PDF". Certains fichiers stockés sont
+  // pollués : préambule (BOM, octets parasites, ou tout le corps multipart de
+  // l'upload Supabase) avant le %PDF, et/ou boundary de fermeture après le
+  // dernier %%EOF. Claude rejette ("PDF not valid") et l'aperçu direct affiche
+  // du texte brut. On isole le vrai PDF et, si on a dû nettoyer, on ré-uploade
+  // les octets propres pour réparer le fichier stocké (l'aperçu « Voir » remarche).
   if (mimeType === "application/pdf") {
     const head = String.fromCharCode(...bytes.subarray(0, Math.min(bytes.length, 1024)));
-    const pdfIdx = head.indexOf("%PDF");
-    if (pdfIdx === -1) {
+    if (head.indexOf("%PDF") === -1) {
       const previewAscii = String.fromCharCode(...bytes.subarray(0, 48)).replace(/[^\x20-\x7e]/g, ".");
       const previewHex = Array.from(bytes.subarray(0, 8)).map((b) => b.toString(16).padStart(2, "0")).join(" ");
       console.error(`[KYC] downloaded file is not a PDF — size=${bytes.length} hex=[${previewHex}] ascii="${previewAscii}"`);
@@ -132,9 +174,22 @@ async function downloadPdfAsBase64(
           `C'est peut-être une page web enregistrée, un JSON d'erreur ou un upload tronqué : ré-exportez le rapport en PDF et réessayez, ou utilisez le lookup automatique via le numéro de TVA.`,
       };
     }
-    if (pdfIdx > 0) {
-      console.warn(`[KYC] stripping ${pdfIdx} junk byte(s) before %PDF marker`);
-      bytes = bytes.subarray(pdfIdx);
+    const cleaned = extractCleanPdf(bytes);
+    if (cleaned) {
+      console.warn(`[KYC] wrapper détecté — nettoyage ${bytes.length}→${cleaned.length} octets, ré-upload de ${filePath}`);
+      bytes = cleaned;
+      // Copie compacte : subarray partage le buffer d'origine, on veut un Blob
+      // qui ne contient QUE les octets propres.
+      const cleanCopy = new Uint8Array(bytes);
+      const { error: reuploadErr } = await supabase.storage
+        .from(KYC_BUCKET)
+        .upload(filePath, new Blob([cleanCopy], { type: "application/pdf" }), {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+      if (reuploadErr) {
+        console.error(`[KYC] ré-upload du PDF nettoyé échoué: ${reuploadErr.message}`);
+      }
     }
   }
 

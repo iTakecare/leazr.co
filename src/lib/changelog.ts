@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.60";
+export const ADMIN_VERSION = "1.3.61";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.61",
+    date: "2026-07-06",
+    title: "KYC société : les PDF de rapports (Graydon, CompanyWeb…) s'ouvrent enfin correctement",
+    items: [
+      "Cliquer sur « Voir » un rapport KYC uploadé affichait du texte brut illisible (« ------WebKitFormBoundary… ») au lieu du PDF : le fichier était stocké enveloppé dans l'enrobage technique de la requête d'upload, et non comme un PDF pur.",
+      "L'upload envoie désormais les octets bruts du PDF, sans enrobage. Les 117 rapports déjà stockés ont été nettoyés d'un coup et s'ouvrent maintenant normalement.",
+      "Filet de sécurité : à chaque analyse, si un fichier s'avère encore enrobé, il est automatiquement ré-écrit proprement dans le stockage.",
+    ],
+  },
   {
     version: "1.3.60",
     date: "2026-07-01",

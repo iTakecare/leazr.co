@@ -103,13 +103,17 @@ export async function uploadKycPdfAndAnalyze(params: {
   // par allowed_mime_types du bucket.
   const contentType = EXT_TO_MIME[ext] || file.type || "application/octet-stream";
 
-  // Re-blober le fichier avec le bon type pour neutraliser un éventuel header
-  // "application/json" injecté par le SDK quand file.type est vide.
-  const blob = file.type === contentType ? file : new Blob([file], { type: contentType });
+  // On uploade l'ArrayBuffer (PAS un Blob/File). Le SDK Supabase encapsule un
+  // Blob/File dans du multipart/form-data ; sur le storage auto-hébergé ce corps
+  // multipart est stocké VERBATIM (préambule "------WebKitFormBoundary…/cacheControl"
+  // avant le %PDF + boundary de fin après %%EOF) → l'aperçu « Voir » affiche du
+  // texte brut. Avec un ArrayBuffer, le SDK envoie les octets bruts + l'en-tête
+  // content-type, sans wrapper. Même parade que cleanFileUploadService.ts.
+  const arrayBuffer = await file.arrayBuffer();
 
   const { error: uploadError } = await supabase.storage
     .from(KYC_BUCKET)
-    .upload(filePath, blob, { contentType, upsert: false });
+    .upload(filePath, arrayBuffer, { contentType, upsert: false });
 
   if (uploadError) {
     throw new Error(
