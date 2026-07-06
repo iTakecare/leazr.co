@@ -80,6 +80,15 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  // Calcul Leazr ≠ calcul connu de Grenke (matériel ajouté après soumission) —
+  // propose de resoumettre le calcul dans le MÊME dossier (PATCH Grenke).
+  const [calcDrift, setCalcDrift] = useState<{
+    drift: boolean;
+    current_amount?: number;
+    grenke_amount?: number;
+    has_warnings?: boolean;
+  } | null>(null);
+  const [updatingCalc, setUpdatingCalc] = useState(false);
   const [submissions, setSubmissions] = useState<Array<{
     id: string; financing_id: string | null; request_id: string | null;
     state: string | null; submitted_at: string | null; is_active: boolean;
@@ -97,6 +106,28 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
     } catch { /* non-fatal */ }
   };
 
+  const loadCalcDrift = async () => {
+    try {
+      const { data } = await supabase.functions.invoke("grenke-api", {
+        body: { action: "check_calculation_drift", environment: "production", offer_id: offerId },
+      });
+      const body = (data ?? null) as {
+        success?: boolean; drift?: boolean; known?: boolean;
+        current_amount?: number; grenke_amount?: number; has_warnings?: boolean;
+      } | null;
+      if (body?.success && body.known && body.drift) {
+        setCalcDrift({
+          drift: true,
+          current_amount: body.current_amount,
+          grenke_amount: body.grenke_amount,
+          has_warnings: body.has_warnings,
+        });
+      } else {
+        setCalcDrift(null);
+      }
+    } catch { /* non-fatal */ }
+  };
+
   const load = async () => {
     const { data } = await supabase
       .from("offers")
@@ -106,6 +137,9 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
     setState(data as never);
     setLoading(false);
     void loadSubmissions();
+    const row = data as { grenke_financing_id?: string | null; converted_to_contract?: boolean | null } | null;
+    if (row?.grenke_financing_id && !row?.converted_to_contract) void loadCalcDrift();
+    else setCalcDrift(null);
   };
 
   // Phase 3c.2 — one-click finalize when Grenke has contracted. Reuses the
@@ -167,6 +201,47 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
       toast.error("Erreur inattendue");
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  // Resoumettre le calcul revu dans le MÊME dossier Grenke (numéro de demande
+  // conservé). Annule toute e-signature en cours côté Grenke — il faudra
+  // renvoyer le contrat pour signature une fois le nouveau calcul accepté.
+  const handleUpdateCalculation = async () => {
+    const amounts = calcDrift?.grenke_amount != null && calcDrift?.current_amount != null
+      ? `\n\nMontant financé : ${calcDrift.grenke_amount.toLocaleString("fr-FR")} € → ${calcDrift.current_amount.toLocaleString("fr-FR")} €`
+      : "";
+    const ok = window.confirm(
+      "Resoumettre le calcul à Grenke ?\n\n" +
+      "Le dossier Grenke existant sera mis à jour (même numéro de demande) avec les quantités et montants actuels de l'offre." +
+      amounts +
+      "\n\n⚠️ Toute signature électronique en cours sera annulée : le contrat devra être renvoyé pour signature DocuSign.",
+    );
+    if (!ok) return;
+    try {
+      setUpdatingCalc(true);
+      const { data, error } = await supabase.functions.invoke("grenke-api", {
+        body: { action: "update_calculation", environment: "production", offer_id: offerId },
+      });
+      let body = (data ?? null) as { success?: boolean; grenke_state?: string; error?: string; message?: string } | null;
+      if (error) {
+        const ctx = (error as unknown as { context?: Response }).context;
+        if (ctx?.json) { try { body = await ctx.json(); } catch { /* */ } }
+      }
+      if (body?.success) {
+        toast.success(`Calcul resoumis à Grenke — statut : ${body.grenke_state ?? "—"}`);
+        await load();
+        onRefresh?.();
+      } else if (body?.error === "payload_has_warnings") {
+        toast.error("Le payload contient des avertissements — ouvrez l'aperçu de soumission pour les corriger d'abord.");
+      } else {
+        toast.error(`Resoumission du calcul échouée : ${body?.message ?? body?.error ?? "erreur"}`);
+      }
+    } catch (e) {
+      console.error("[GrenkeWorkflowPanel] update calculation error:", e);
+      toast.error("Erreur inattendue pendant la resoumission du calcul");
+    } finally {
+      setUpdatingCalc(false);
     }
   };
 
@@ -278,6 +353,31 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
           {state?.grenke_financing_id && (
             <span>ID&nbsp;<code className="bg-muted px-1 rounded">{state.grenke_financing_id.slice(0, 8)}…</code></span>
           )}
+        </div>
+      )}
+
+      {/* Calcul modifié dans Leazr après soumission (ex. matériel ajouté à la
+          demande du client) → resoumettre le calcul dans le MÊME dossier Grenke. */}
+      {submitted && !isFinalized && calcDrift?.drift && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            Le calcul de l'offre a été modifié depuis la soumission à Grenke
+            {calcDrift.grenke_amount != null && calcDrift.current_amount != null && (
+              <> ({calcDrift.grenke_amount.toLocaleString("fr-FR")} € → <strong>{calcDrift.current_amount.toLocaleString("fr-FR")} €</strong>)</>
+            )}
+            .
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleUpdateCalculation}
+            disabled={updatingCalc}
+            className="ml-auto gap-1.5 border-amber-400 text-amber-800 hover:bg-amber-100"
+          >
+            {updatingCalc ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            Resoumettre le calcul à Grenke
+          </Button>
         </div>
       )}
 

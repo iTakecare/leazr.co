@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.62";
+export const ADMIN_VERSION = "1.3.63";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.63",
+    date: "2026-07-06",
+    title: "Grenke : resoumettre un calcul modifié dans le même dossier (sans nouveau numéro de demande)",
+    items: [
+      "Quand le calcul d'une offre est modifié après soumission à Grenke (ex. le client demande d'ajouter du matériel alors que le dossier est déjà accepté), le panneau Grenke le détecte et affiche un bandeau « Le calcul de l'offre a été modifié depuis la soumission » avec l'ancien et le nouveau montant financé.",
+      "Nouveau bouton « Resoumettre le calcul à Grenke » : les quantités, montants et la durée revus sont poussés dans le dossier Grenke EXISTANT (même numéro de demande 180-…), au lieu de créer un nouveau dossier comme la re-soumission après refus.",
+      "Si une signature électronique était en cours, elle est annulée automatiquement (exigence Grenke à tout changement de calcul) : le contrat sera à renvoyer pour signature DocuSign une fois le dossier ré-accepté. L'équipe est notifiée et l'action est tracée dans l'historique de la demande.",
+    ],
+  },
   {
     version: "1.3.62",
     date: "2026-07-06",

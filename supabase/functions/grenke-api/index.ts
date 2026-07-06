@@ -77,7 +77,9 @@ interface GrenkeRequest {
     | "link_grenke_request"
     | "reconcile_grenke_contracts"
     | "sync_contract_instalments"
-    | "get_grenke_submissions";
+    | "get_grenke_submissions"
+    | "check_calculation_drift"
+    | "update_calculation";
   environment?: Environment;
   // future fields (calculate, submit_offer, …) live under `payload`
   payload?: Record<string, unknown>;
@@ -257,6 +259,12 @@ serve(async (req) => {
 
       case "upload_document":
         return await handleUploadDocuments(adminSupabase, companyId, environment, creds, body.offer_id, body.payload ?? {});
+
+      case "check_calculation_drift":
+        return await handleCheckCalculationDrift(adminSupabase, companyId, environment, body.offer_id);
+
+      case "update_calculation":
+        return await handleUpdateCalculation(adminSupabase, companyId, environment, creds, body.offer_id);
 
       case "reconcile_grenke_requests":
         return await handleReconcileGrenkeRequests(adminSupabase, companyId, environment, creds, body.payload ?? {});
@@ -1653,6 +1661,315 @@ async function handleSubmitOffer(
     grenke_request_id: requestId,
     grenke_state: state,
     grenke_response: parsed,
+    auto_fixed_manufacturers: autoFixedManufacturers,
+  }, 200);
+}
+
+// =====================================================================
+// check_calculation_drift / update_calculation — resoumettre le calcul dans
+// le MÊME dossier Grenke.
+//
+// Cas d'usage : le client demande d'ajouter du matériel alors que le dossier
+// est déjà accepté (ReadyToSign). On repasse l'offre en brouillon, on modifie
+// le calcul dans Leazr, puis on pousse montants/quantités/durée chez Grenke via
+// PATCH /basic/v1/requests/{financingId} (Request_PatchCalculation, cf.
+// docs/grenke-api/swagger.json) — le numéro de demande (180-…) est conservé,
+// contrairement au re-submit force=true qui crée un nouveau dossier.
+//
+// ⚠️ Grenke annule toute e-signature en cours dès que le calcul change — le
+// contrat devra être renvoyé pour signature DocuSign ensuite.
+// =====================================================================
+
+// États où le dossier ne peut plus être modifié : contractualisé, refusé,
+// annulé → passer par la re-soumission (nouveau dossier) le cas échéant.
+const GRENKE_CALC_UPDATE_BLOCKED_STATES = new Set(["Contracted", "Declined", "Cancelled"]);
+
+// États signature : une e-signature est active côté Grenke — on l'annule
+// explicitement avant le PATCH.
+const GRENKE_ESIGN_ACTIVE_STATES = new Set([
+  "StartingESignature",
+  "AwaitingCustomerSignature",
+  "AwaitingPartnerSignature",
+  "AwaitingSigningAppSignature",
+  "AwaitingDeliveryConfirmation",
+]);
+
+// Le calcul courant de l'offre (rebâti depuis la DB) diffère-t-il de ce que
+// Grenke connaît (snapshot du dernier GET /requests/{id}) ? Pas d'appel Grenke
+// ici — pur DB — donc appelable à chaque affichage du panneau.
+async function handleCheckCalculationDrift(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  offerId: string | undefined,
+): Promise<Response> {
+  if (!offerId) {
+    return jsonResponse({ success: false, error: "validation_error", message: "offer_id is required" }, 400);
+  }
+  const { data: offer, error } = await adminSupabase
+    .from("offers")
+    .select("id, company_id, grenke_financing_id, grenke_state, grenke_financing_amount, grenke_dossier_snapshot, converted_to_contract")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (error) return jsonResponse({ success: false, error: "offer_lookup_failed", message: error.message }, 500);
+  if (!offer) return jsonResponse({ success: false, error: "offer_not_found" }, 404);
+  if ((offer as { company_id: string }).company_id !== companyId) {
+    return jsonResponse({ success: false, error: "forbidden" }, 403);
+  }
+
+  const row = offer as {
+    grenke_financing_id: string | null;
+    grenke_state: string | null;
+    grenke_financing_amount: number | null;
+    grenke_dossier_snapshot: Record<string, unknown> | null;
+    converted_to_contract: boolean | null;
+  };
+  if (!row.grenke_financing_id) {
+    return jsonResponse({ success: true, drift: false, known: false, reason: "not_submitted" }, 200);
+  }
+  if (row.converted_to_contract || GRENKE_CALC_UPDATE_BLOCKED_STATES.has(row.grenke_state ?? "")) {
+    return jsonResponse({ success: true, drift: false, known: true, reason: "not_updatable" }, 200);
+  }
+
+  const built = await buildOfferPayloadCore(adminSupabase, companyId, environment, offerId);
+  if (!built.ok) {
+    return jsonResponse({ success: false, error: built.error, message: built.message }, built.status);
+  }
+
+  const snapshot = row.grenke_dossier_snapshot;
+  const snapAmountRaw = typeof row.grenke_financing_amount === "number"
+    ? row.grenke_financing_amount
+    : (typeof snapshot?.FinancingAmount === "number" ? snapshot.FinancingAmount as number : null);
+  if (snapAmountRaw == null) {
+    // Pas encore de snapshot rapatrié (le poller 15 min / « Rafraîchir le
+    // statut » s'en charge) — impossible de comparer.
+    return jsonResponse({ success: true, drift: false, known: false, reason: "no_snapshot" }, 200);
+  }
+  const grenkeAmount = Math.round(Number(snapAmountRaw) * 100) / 100;
+  const grenkePeriod = typeof snapshot?.Period === "number" ? snapshot.Period as number : null;
+
+  const currentAmount = built.payload.FinancingAmount;
+  const currentPeriod = built.payload.Period;
+  // Quantité totale : attrape « quantités revues à montant identique ».
+  const snapObjects = Array.isArray(snapshot?.FinancingObjects)
+    ? snapshot.FinancingObjects as Array<{ Quantity?: number }>
+    : null;
+  const snapQty = snapObjects
+    ? snapObjects.reduce((s, o) => s + Number(o?.Quantity ?? 0), 0)
+    : null;
+  const currentQty = built.payload.FinancingObjects.reduce((s, o) => s + o.Quantity, 0);
+
+  const drift =
+    Math.abs(currentAmount - grenkeAmount) > 0.01 ||
+    (grenkePeriod != null && currentPeriod !== grenkePeriod) ||
+    (snapQty != null && snapQty !== currentQty);
+
+  return jsonResponse({
+    success: true,
+    drift,
+    known: true,
+    current_amount: currentAmount,
+    grenke_amount: grenkeAmount,
+    current_period: currentPeriod,
+    grenke_period: grenkePeriod,
+    has_warnings: built.warnings.length > 0,
+    warnings: built.warnings,
+  }, 200);
+}
+
+async function handleUpdateCalculation(
+  adminSupabase: ReturnType<typeof createClient>,
+  companyId: string,
+  environment: Environment,
+  creds: Credentials,
+  offerId: string | undefined,
+): Promise<Response> {
+  if (!offerId) {
+    return jsonResponse({ success: false, error: "validation_error", message: "offer_id is required" }, 400);
+  }
+  const { data: offer, error } = await adminSupabase
+    .from("offers")
+    .select("id, company_id, grenke_financing_id, grenke_environment, grenke_state, grenke_esign_started_at, converted_to_contract, workflow_status, grenke_request_id, leaser_request_number")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (error) return jsonResponse({ success: false, error: "offer_lookup_failed", message: error.message }, 500);
+  if (!offer) return jsonResponse({ success: false, error: "offer_not_found" }, 404);
+  if ((offer as { company_id: string }).company_id !== companyId) {
+    return jsonResponse({ success: false, error: "forbidden" }, 403);
+  }
+
+  const row = offer as unknown as OfferStatusRow & {
+    grenke_esign_started_at: string | null;
+    converted_to_contract: boolean | null;
+  };
+  const financingId = row.grenke_financing_id;
+  if (!financingId) {
+    return jsonResponse({ success: false, error: "not_submitted", message: "Cette offre n'a pas encore été soumise à Grenke." }, 400);
+  }
+  if (row.converted_to_contract || GRENKE_CALC_UPDATE_BLOCKED_STATES.has(row.grenke_state ?? "")) {
+    return jsonResponse({
+      success: false,
+      error: "not_updatable",
+      message: `Le dossier Grenke (état ${row.grenke_state ?? "?"}) ne peut plus être modifié. ` +
+        "Pour un dossier refusé/annulé, utilisez la re-soumission (nouveau dossier).",
+    }, 409);
+  }
+  const env = (row.grenke_environment as Environment) || environment;
+
+  // Rebâtir le payload depuis l'état ACTUEL de l'offre (mêmes règles de prix,
+  // mappings et validations que la soumission initiale).
+  const built = await buildOfferPayloadCore(adminSupabase, companyId, env, offerId);
+  if (!built.ok) {
+    return jsonResponse({ success: false, error: built.error, message: built.message }, built.status);
+  }
+  if (built.warnings.length > 0) {
+    return jsonResponse({
+      success: false,
+      error: "payload_has_warnings",
+      message: "Le payload contient des avertissements — corrigez-les avant de resoumettre le calcul.",
+      warnings: built.warnings,
+    }, 422);
+  }
+
+  // Corps du PATCH : le schéma CalculationUpdate de Grenke = les champs
+  // financiers du dossier, SANS le Lessee (inchangé).
+  const calcUpdate = {
+    FinancingAmount: built.payload.FinancingAmount,
+    Period: built.payload.Period,
+    PaymentFrequency: built.payload.PaymentFrequency,
+    PaymentMethod: built.payload.PaymentMethod,
+    Currency: built.payload.Currency,
+    ProductType: built.payload.ProductType,
+    FinancingObjects: built.payload.FinancingObjects,
+  };
+
+  // Une e-signature est-elle active ? On l'annule d'abord (best-effort) :
+  // Grenke l'invaliderait de toute façon au changement de calcul, mais
+  // l'annulation explicite évite un 400 « signature in progress ».
+  if (row.grenke_esign_started_at || GRENKE_ESIGN_ACTIVE_STATES.has(row.grenke_state ?? "")) {
+    try {
+      const cancelResp = await grenkeFetch(
+        env,
+        `/basic/v1/requests/${financingId}/cancel-e-signature`,
+        { method: "PUT", headers: { "Content-Type": "application/json" }, body: "{}" },
+        creds,
+      );
+      if (!cancelResp.ok) {
+        const t = await cancelResp.text();
+        console.warn(`[grenke-api] cancel-e-signature non-OK (${cancelResp.status}): ${t.slice(0, 200)}`);
+      }
+    } catch (e) {
+      console.warn("[grenke-api] cancel-e-signature failed (continuing):", e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  const doPatch = () => grenkeFetch(
+    env,
+    `/basic/v1/requests/${financingId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(calcUpdate),
+    },
+    creds,
+  );
+
+  let response: Response;
+  try {
+    response = await doPatch();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await adminSupabase.from("offers").update({
+      grenke_last_error: { stage: "network", message: msg, at: new Date().toISOString() },
+    }).eq("id", offerId);
+    return jsonResponse({ success: false, error: "network_or_tls_error", message: msg }, 502);
+  }
+  let text = await response.text();
+  let parsed: unknown = text;
+  try { parsed = JSON.parse(text); } catch { /* keep raw */ }
+
+  // Même auto-fix fabricants que la soumission : du matériel AJOUTÉ peut
+  // porter une marque inconnue de Grenke → apprendre le rejet, passer la ligne
+  // en "Other" et réessayer UNE fois.
+  let autoFixedManufacturers: string[] = [];
+  if (response.status === 400) {
+    const rejected = extractRejectedManufacturers(parsed);
+    if (rejected.length > 0) {
+      autoFixedManufacturers = rejected;
+      await learnRejectedManufacturers(adminSupabase, companyId, built.equipment_debug, rejected);
+      const rejectedLower = new Set(rejected.map((m) => m.toLowerCase()));
+      for (const obj of calcUpdate.FinancingObjects) {
+        if (rejectedLower.has(obj.Manufacturer.toLowerCase())) obj.Manufacturer = "Other";
+      }
+      try {
+        response = await doPatch();
+        text = await response.text();
+        parsed = text;
+        try { parsed = JSON.parse(text); } catch { /* keep raw */ }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await adminSupabase.from("offers").update({
+          grenke_last_error: { stage: "network", message: msg, at: new Date().toISOString() },
+        }).eq("id", offerId);
+        return jsonResponse({ success: false, error: "network_or_tls_error", message: msg }, 502);
+      }
+    }
+  }
+
+  if (!response.ok) {
+    await adminSupabase.from("offers").update({
+      grenke_last_error: { stage: "calculation_update", status: response.status, body: parsed, at: new Date().toISOString() },
+    }).eq("id", offerId);
+    return jsonResponse({
+      success: false,
+      error: "grenke_rejected",
+      status: response.status,
+      grenke_response: parsed,
+      auto_fixed_manufacturers: autoFixedManufacturers,
+    }, response.status >= 500 ? 502 : response.status);
+  }
+
+  // Succès — même dossier, calcul revu. On nettoie l'erreur/l'e-signature
+  // locale puis on rapatrie immédiatement l'état + le snapshot Grenke (le GET
+  // met aussi à jour grenke_financing_amount → le drift retombe à false).
+  await adminSupabase.from("offers").update({
+    grenke_last_error: null,
+    grenke_esign_started_at: null,
+  }).eq("id", offerId);
+
+  const refreshed = await fetchAndPersistStatus(adminSupabase, env, creds, row);
+
+  // Trace « qui/quand » dans l'historique de la demande + notification équipe.
+  try {
+    await adminSupabase.from("offer_workflow_logs").insert({
+      offer_id: offerId,
+      user_id: null,
+      event_type: "esign",
+      reason: `Grenke — Calcul resoumis sur le même dossier : ${calcUpdate.FinancingAmount} € / ${calcUpdate.Period} mois`,
+    });
+  } catch (e) {
+    console.warn("[grenke-api] offer_workflow_log insert failed:", e instanceof Error ? e.message : String(e));
+  }
+  try {
+    await adminSupabase.from("admin_notifications").insert({
+      company_id: companyId,
+      offer_id: offerId,
+      type: "grenke_state",
+      title: "Grenke : calcul mis à jour ♻️",
+      message: `Le calcul a été resoumis à Grenke dans le même dossier (${calcUpdate.FinancingAmount} € sur ${calcUpdate.Period} mois). ` +
+        "Si une signature était en cours, elle a été annulée — renvoyez le contrat pour signature une fois le dossier ré-accepté.",
+      metadata: { grenke_financing_id: financingId, financing_amount: calcUpdate.FinancingAmount, period: calcUpdate.Period },
+    });
+  } catch (e) {
+    console.warn("[grenke-api] admin_notification insert failed:", e instanceof Error ? e.message : String(e));
+  }
+
+  return jsonResponse({
+    success: true,
+    offer_id: offerId,
+    grenke_financing_id: financingId,
+    grenke_state: refreshed.state ?? row.grenke_state,
+    patched: calcUpdate,
     auto_fixed_manufacturers: autoFixedManufacturers,
   }, 200);
 }
