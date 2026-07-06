@@ -252,15 +252,19 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
   // Once an offer has been converted into a (financed) contract, a stale
   // Cancelled/Declined Grenke state on an old dossier must not surface as
   // "Annulé" — the deal is done. Show it as the active running contract.
+  // La demande est-elle déjà finalisée côté Leazr (financée / contractualisée) ?
+  // Un contrat créé (converted_to_contract) ne suffit pas : si le workflow a
+  // été ramené en arrière (retour brouillon pour ajouter du matériel puis
+  // resoumission du calcul), la demande est de nouveau EN COURS chez Grenke et
+  // son vrai état (analyse, prêt à signer…) doit s'afficher, pas « Financé ».
+  const FINALIZED_WF = new Set(["financed", "validated", "invoicing", "contract_signed"]);
+  const isFinalized = FINALIZED_WF.has(state?.workflow_status ?? "");
+
   const rawGrenkeState = state?.grenke_state ?? null;
   const grenkeState =
-    state?.converted_to_contract && (rawGrenkeState === "Cancelled" || rawGrenkeState === "Declined")
+    state?.converted_to_contract && isFinalized && (rawGrenkeState === "Cancelled" || rawGrenkeState === "Declined")
       ? "Contracted"
       : rawGrenkeState;
-
-  // La demande est-elle déjà finalisée côté Leazr (financée / contractualisée) ?
-  const FINALIZED_WF = new Set(["financed", "validated", "invoicing", "contract_signed"]);
-  const isFinalized = !!state?.converted_to_contract || FINALIZED_WF.has(state?.workflow_status ?? "");
   // États Grenke de « phase de demande / analyse » : trompeurs sur un dossier
   // déjà financé (Grenke laisse parfois la demande en « ApplicationReceived »
   // alors que le client a tout signé / le dossier est réglé).
