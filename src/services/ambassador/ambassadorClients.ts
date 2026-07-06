@@ -234,12 +234,55 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       console.error("❌ Erreur lors de la création du lien:", error);
       throw error;
     }
-    
+
+    // Appliquer le pré-réglage marketing de l'ambassadeur au client (si le client
+    // n'a encore aucune préférence définie — on n'écrase jamais un choix manuel).
+    await applyAmbassadorMarketingDefaults(clientId, ambassadorId);
+
     console.log("✅ Client lié à l'ambassadeur avec succès");
     return true;
   } catch (error) {
     console.error("❌ Exception dans linkClientToAmbassador:", error);
     throw error;
+  }
+};
+
+/**
+ * Copie les préférences marketing par défaut d'un ambassadeur vers un client,
+ * uniquement si le client n'a pas encore de préférences (objet vide).
+ * Ne bloque jamais la liaison en cas d'erreur.
+ */
+const applyAmbassadorMarketingDefaults = async (clientId: string, ambassadorId: string) => {
+  try {
+    const { data: amb } = await supabase
+      .from("ambassadors")
+      .select("default_marketing_preferences")
+      .eq("id", ambassadorId)
+      .maybeSingle();
+
+    const defaults = (amb as any)?.default_marketing_preferences as Record<string, boolean> | null;
+    if (!defaults || Object.keys(defaults).length === 0) return; // rien à pré-régler
+
+    const { data: client } = await supabase
+      .from("clients")
+      .select("marketing_preferences")
+      .eq("id", clientId)
+      .maybeSingle();
+
+    const current = (client as any)?.marketing_preferences as Record<string, boolean> | null;
+    if (current && Object.keys(current).length > 0) return; // ne pas écraser un choix existant
+
+    const { error } = await supabase
+      .from("clients")
+      .update({ marketing_preferences: defaults } as any)
+      .eq("id", clientId);
+    if (error) {
+      console.error("⚠️ Impossible d'appliquer le pré-réglage marketing:", error);
+    } else {
+      console.log("✅ Pré-réglage marketing de l'ambassadeur appliqué au client");
+    }
+  } catch (e) {
+    console.error("⚠️ Exception applyAmbassadorMarketingDefaults:", e);
   }
 };
 

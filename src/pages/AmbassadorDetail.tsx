@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
-  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, Loader2, TrendingUp, Users, DollarSign
+  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle,
+  AlertCircle, Info, Loader2, TrendingUp, Users, DollarSign, Megaphone
 } from "lucide-react";
+import AmbassadorMarketingDefaultsCard from "@/components/ambassadors/AmbassadorMarketingDefaultsCard";
 import { getAmbassadorById } from "@/services/ambassadorService";
 import { Ambassador } from "@/services/ambassadorService";
 import AmbassadorCommissionLevelSelector from "@/components/crm/forms/AmbassadorCommissionLevelSelector";
@@ -272,6 +273,22 @@ export default function AmbassadorDetail() {
                   </span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+            <CardHeader className="bg-muted/50 pb-4 border-b">
+              <CardTitle className="flex items-center gap-2">
+                <Megaphone className="h-5 w-5 text-primary" />
+                Pré-réglage marketing
+              </CardTitle>
+              <CardDescription>Consentements pub par défaut des nouveaux clients</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <AmbassadorMarketingDefaultsCard
+                ambassadorId={ambassador.id}
+                companyId={ambassador.company_id}
+              />
             </CardContent>
           </Card>
         </div>

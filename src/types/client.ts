@@ -65,6 +65,8 @@ export interface Client {
   peppol_identifier?: string | null;
   // Langue de communication (emails, SMS/WhatsApp, relances). Défaut 'fr'.
   communication_language?: 'fr' | 'nl' | 'en' | 'de' | null;
+  // Consentement pub par canal marketing (clé "own" ou UUID partner → false = refus). Opt-in par défaut.
+  marketing_preferences?: Record<string, boolean> | null;
 }
 
 export interface CreateClientData {

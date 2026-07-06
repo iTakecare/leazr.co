@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.61";
+export const ADMIN_VERSION = "1.3.62";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.62",
+    date: "2026-07-06",
+    title: "Préférences marketing : choisir par client quelles pubs (nôtres ou partenaires) il peut recevoir",
+    items: [
+      "Nouveau bloc « Préférences marketing » sur la fiche client : un interrupteur pour nos communications et un par partenaire actif. Tout est autorisé par défaut (opt-in) ; il suffit de décocher un canal pour ne plus adresser ce client au nom de ce partenaire ou en notre nom.",
+      "Pré-réglage par ambassadeur : sur la fiche d'un ambassadeur, on définit les consentements par défaut. Chaque nouveau client rattaché à cet ambassadeur hérite automatiquement de ces réglages (sans jamais écraser un choix déjà saisi manuellement sur le client).",
+    ],
+  },
   {
     version: "1.3.61",
     date: "2026-07-06",

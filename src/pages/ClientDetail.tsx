@@ -15,6 +15,7 @@ import { getClientAmbassador, updateClientAmbassador } from "@/services/ambassad
 import TaskDialog from "@/components/tasks/TaskDialog";
 import { useTaskMutations } from "@/hooks/useTasks";
 import ClientMessagingCard from "@/components/clients/ClientMessagingCard";
+import ClientMarketingCard from "@/components/clients/ClientMarketingCard";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -244,6 +245,8 @@ export default function ClientDetail() {
       </Card>
 
       {id && <ClientMessagingCard clientId={id} />}
+
+      {id && <ClientMarketingCard clientId={id} />}
 
       <UnifiedClientView
         client={client}

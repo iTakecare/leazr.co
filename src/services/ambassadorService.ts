@@ -29,6 +29,8 @@ export interface Ambassador {
   user_account_created_at?: string;
   user_id?: string;
   pdf_template_id?: string;
+  // Pré-réglage de consentement pub appliqué aux nouveaux clients rattachés.
+  default_marketing_preferences?: Record<string, boolean> | null;
 }
 
 // Zod schema for form validation
