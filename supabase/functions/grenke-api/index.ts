@@ -1684,6 +1684,21 @@ async function handleSubmitOffer(
 // annulé → passer par la re-soumission (nouveau dossier) le cas échéant.
 const GRENKE_CALC_UPDATE_BLOCKED_STATES = new Set(["Contracted", "Declined", "Cancelled"]);
 
+// Une offre déjà convertie en contrat Leazr reste modifiable côté Grenke si son
+// workflow a été RAMENÉ EN ARRIÈRE (retour brouillon pour ajouter du matériel,
+// puis re-analyse) : converted_to_contract reste true dans ce cas. On ne bloque
+// donc que si le workflow est encore à une étape finale.
+const LEAZR_FINALIZED_WORKFLOW = new Set(["financed", "validated", "invoicing", "contract_signed"]);
+
+function calcUpdateBlocked(offer: {
+  grenke_state: string | null;
+  converted_to_contract: boolean | null;
+  workflow_status: string | null;
+}): boolean {
+  if (GRENKE_CALC_UPDATE_BLOCKED_STATES.has(offer.grenke_state ?? "")) return true;
+  return !!offer.converted_to_contract && LEAZR_FINALIZED_WORKFLOW.has(offer.workflow_status ?? "");
+}
+
 // États signature : une e-signature est active côté Grenke — on l'annule
 // explicitement avant le PATCH.
 const GRENKE_ESIGN_ACTIVE_STATES = new Set([
@@ -1708,7 +1723,7 @@ async function handleCheckCalculationDrift(
   }
   const { data: offer, error } = await adminSupabase
     .from("offers")
-    .select("id, company_id, grenke_financing_id, grenke_state, grenke_financing_amount, grenke_dossier_snapshot, converted_to_contract")
+    .select("id, company_id, grenke_financing_id, grenke_state, grenke_financing_amount, grenke_dossier_snapshot, converted_to_contract, workflow_status")
     .eq("id", offerId)
     .maybeSingle();
   if (error) return jsonResponse({ success: false, error: "offer_lookup_failed", message: error.message }, 500);
@@ -1723,11 +1738,12 @@ async function handleCheckCalculationDrift(
     grenke_financing_amount: number | null;
     grenke_dossier_snapshot: Record<string, unknown> | null;
     converted_to_contract: boolean | null;
+    workflow_status: string | null;
   };
   if (!row.grenke_financing_id) {
     return jsonResponse({ success: true, drift: false, known: false, reason: "not_submitted" }, 200);
   }
-  if (row.converted_to_contract || GRENKE_CALC_UPDATE_BLOCKED_STATES.has(row.grenke_state ?? "")) {
+  if (calcUpdateBlocked(row)) {
     return jsonResponse({ success: true, drift: false, known: true, reason: "not_updatable" }, 200);
   }
 
@@ -1806,7 +1822,7 @@ async function handleUpdateCalculation(
   if (!financingId) {
     return jsonResponse({ success: false, error: "not_submitted", message: "Cette offre n'a pas encore été soumise à Grenke." }, 400);
   }
-  if (row.converted_to_contract || GRENKE_CALC_UPDATE_BLOCKED_STATES.has(row.grenke_state ?? "")) {
+  if (calcUpdateBlocked(row)) {
     return jsonResponse({
       success: false,
       error: "not_updatable",

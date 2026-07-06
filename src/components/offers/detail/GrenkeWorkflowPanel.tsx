@@ -137,8 +137,11 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
     setState(data as never);
     setLoading(false);
     void loadSubmissions();
-    const row = data as { grenke_financing_id?: string | null; converted_to_contract?: boolean | null } | null;
-    if (row?.grenke_financing_id && !row?.converted_to_contract) void loadCalcDrift();
+    // Le serveur décide si le dossier est encore modifiable (état Grenke +
+    // workflow) — y compris une offre convertie en contrat puis ramenée en
+    // brouillon pour ajouter du matériel.
+    const row = data as { grenke_financing_id?: string | null } | null;
+    if (row?.grenke_financing_id) void loadCalcDrift();
     else setCalcDrift(null);
   };
 
@@ -358,7 +361,7 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
 
       {/* Calcul modifié dans Leazr après soumission (ex. matériel ajouté à la
           demande du client) → resoumettre le calcul dans le MÊME dossier Grenke. */}
-      {submitted && !isFinalized && calcDrift?.drift && (
+      {submitted && calcDrift?.drift && (
         <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           <span>
