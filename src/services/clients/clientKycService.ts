@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
 
 export type KycSource = "graydon" | "companyweb" | "pdf_other" | "auto_lookup";
 export type KycStatus = "pending" | "analyzing" | "analyzed" | "failed" | "validated";
@@ -104,14 +104,22 @@ export async function uploadKycPdfAndAnalyze(params: {
   const contentType = EXT_TO_MIME[ext] || file.type || "application/octet-stream";
 
   // On uploade l'ArrayBuffer (PAS un Blob/File). Le SDK Supabase encapsule un
-  // Blob/File dans du multipart/form-data ; sur le storage auto-hébergé ce corps
-  // multipart est stocké VERBATIM (préambule "------WebKitFormBoundary…/cacheControl"
-  // avant le %PDF + boundary de fin après %%EOF) → l'aperçu « Voir » affiche du
-  // texte brut. Avec un ArrayBuffer, le SDK envoie les octets bruts + l'en-tête
-  // content-type, sans wrapper. Même parade que cleanFileUploadService.ts.
+  // Blob/File dans du multipart/form-data ; le storage stockait ce corps multipart
+  // VERBATIM (préambule "------WebKitFormBoundary…/cacheControl" avant le %PDF +
+  // boundary de fin après %%EOF) → l'aperçu « Voir » affichait du texte brut. Avec
+  // un ArrayBuffer, le SDK envoie les octets bruts + l'en-tête content-type, sans
+  // wrapper.
+  //
+  // IMPORTANT : on passe par getFileUploadClient() et NON par le client `supabase`
+  // par défaut. Ce dernier injecte un header global `Content-Type: application/json`
+  // (cf. client.ts) qui, pour un upload binaire, entre en collision avec le
+  // content-type posé par storage-js → header invalide → « Invalid Content-Type
+  // header ». Le client dédié n'a pas ce header global. Même parade que
+  // cleanFileUploadService.ts.
   const arrayBuffer = await file.arrayBuffer();
+  const uploadClient = getFileUploadClient();
 
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await uploadClient.storage
     .from(KYC_BUCKET)
     .upload(filePath, arrayBuffer, { contentType, upsert: false });
 

@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.63";
+export const ADMIN_VERSION = "1.3.64";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.64",
+    date: "2026-07-08",
+    title: "KYC société : correction de l'upload de rapport PDF (« Invalid Content-Type header »)",
+    items: [
+      "L'envoi d'un rapport KYC (PDF Graydon/CompanyWeb) échouait avec « Upload échoué: Invalid Content-Type header » depuis la correction de l'aperçu des PDF. En cause : l'upload passait par le client interne qui impose un en-tête JSON, incompatible avec l'envoi d'un fichier binaire.",
+      "L'upload passe désormais par le client dédié aux fichiers : l'envoi du PDF fonctionne à nouveau et le fichier reste propre (aperçu « Voir » lisible).",
+    ],
+  },
   {
     version: "1.3.63",
     date: "2026-07-06",
