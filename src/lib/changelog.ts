@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.64";
+export const ADMIN_VERSION = "1.3.65";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.65",
+    date: "2026-07-08",
+    title: "Centre d'appels : le nom du client s'affiche dans la liste des appels récents",
+    items: [
+      "Dans la colonne de gauche « Appels récents », si le numéro est rattaché à un client (lien direct ou correspondance du numéro), c'est désormais le nom du client qui s'affiche en principal, avec le numéro rappelé en sous-ligne.",
+      "Les appels sans client identifié continuent d'afficher le numéro comme avant.",
+    ],
+  },
   {
     version: "1.3.64",
     date: "2026-07-08",

@@ -463,6 +463,53 @@ export default function PhoneCallCenter() {
     return ((data as ClientRow[]) ?? [])[0] ?? null;
   }, [companyId]);
 
+  // Résout le nom du client pour chaque appel récent : d'abord par client_id
+  // (lien direct), sinon par matching du numéro. Résultat = { [callId]: nom }.
+  const recentCallsKey = recentCalls
+    .map((c) => `${c.id}:${c.client_id ?? ""}:${c.to_phone ?? ""}`)
+    .join("|");
+  const { data: recentNames = {} } = useQuery<Record<string, string>>({
+    queryKey: ["recent-call-names", companyId, recentCallsKey],
+    enabled: !!companyId && recentCalls.length > 0,
+    queryFn: async () => {
+      const names: Record<string, string> = {};
+      const nameOf = (c: ClientRow) => c.name || c.company_name || "";
+
+      // 1) Appels déjà rattachés à un client (client_id) → un seul .in()
+      const ids = Array.from(
+        new Set(recentCalls.map((c) => c.client_id).filter(Boolean) as string[])
+      );
+      if (ids.length) {
+        const { data } = await db.from("clients").select("id, name, company_name").in("id", ids);
+        const byId: Record<string, string> = {};
+        for (const c of (data as ClientRow[]) ?? []) byId[c.id] = nameOf(c);
+        for (const call of recentCalls) {
+          if (call.client_id && byId[call.client_id]) names[call.id] = byId[call.client_id];
+        }
+      }
+
+      // 2) Appels restants → matching par numéro (numéros distincts uniquement)
+      const phones = Array.from(
+        new Set(
+          recentCalls.filter((c) => !names[c.id] && c.to_phone).map((c) => c.to_phone as string)
+        )
+      );
+      const byPhone: Record<string, string> = {};
+      await Promise.all(
+        phones.map(async (p) => {
+          const cl = await findClientByPhone(p);
+          if (cl) byPhone[p] = nameOf(cl);
+        })
+      );
+      for (const call of recentCalls) {
+        if (!names[call.id] && call.to_phone && byPhone[call.to_phone]) {
+          names[call.id] = byPhone[call.to_phone];
+        }
+      }
+      return names;
+    },
+  });
+
   // Passe un appel vers `rawNumber` (sans dépendre de l'état pour éviter les
   // courses) ; associe le client connu ou le retrouve par son numéro.
   const placeCall = useCallback(async (rawNumber: string, knownClient?: ClientRow | null) => {
@@ -945,10 +992,18 @@ export default function PhoneCallCenter() {
                           )}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="truncate font-medium font-mono text-[13px]">
-                            {call.to_phone ?? "Inconnu"}
+                          <div
+                            className={cn(
+                              "truncate font-medium text-[13px]",
+                              !recentNames[call.id] && "font-mono"
+                            )}
+                          >
+                            {recentNames[call.id] ?? call.to_phone ?? "Inconnu"}
                           </div>
                           <div className="text-xs text-muted-foreground truncate">
+                            {recentNames[call.id] && call.to_phone ? (
+                              <span className="font-mono">{call.to_phone} · </span>
+                            ) : null}
                             {fmtTime(call.created_at)}
                             {call.status ? ` · ${CALL_STATUS_FR[call.status] ?? call.status}` : ""}
                           </div>
