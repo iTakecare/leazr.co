@@ -281,14 +281,20 @@ export default function GrenkeWorkflowPanel({ offerId, leaserId, onRefresh, onSu
   // Re-introduction (forced re-submit → archives the current dossier, creates a
   // fresh one). Offered when the dossier was refused/cancelled, when a Grenke
   // error is recorded, or while it's still in an early pre-signature state
-  // (e.g. stuck in RequestToGrenke after a 502 processing error). Never once the
-  // offer has been converted into a Leazr contract.
+  // (e.g. stuck in RequestToGrenke after a 502 processing error, ou quand Grenke
+  // exige une nouvelle demande plutôt qu'un PATCH du dossier existant).
+  // On bloque uniquement sur un dossier RÉELLEMENT finalisé (workflow financé /
+  // contractualisé) : `converted_to_contract` seul est trompeur car il reste à
+  // `true` quand le workflow est ramené en arrière pour ré-analyse (même piège
+  // que la détection de drift / le badge « Financé »). On réutilise donc
+  // `isFinalized` (basé sur le workflow_status), aligné sur `calcUpdateBlocked`
+  // côté edge function.
   const RESUBMITTABLE_EARLY_STATES = new Set([
     "RequestToGrenke", "MissingInfo", "ApplicationReceived", "GuaranteeRequired",
   ]);
   const canResubmit =
     submitted &&
-    !state?.converted_to_contract &&
+    !isFinalized &&
     (grenkeState === "Declined" ||
       grenkeState === "Cancelled" ||
       state?.grenke_last_error != null ||
