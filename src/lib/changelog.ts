@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.65";
+export const ADMIN_VERSION = "1.3.66";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.66",
+    date: "2026-07-13",
+    title: "Support / Messagerie : la date s'affiche à côté de l'heure des messages",
+    items: [
+      "Dans le centre de support, chaque message affichait uniquement l'heure (ex. « 23:03 »), ce qui prêtait à confusion sur les conversations étalées sur plusieurs jours.",
+      "L'horodatage indique désormais aussi la date au format jour/mois/année (ex. « 13/07/26 23:03 »).",
+    ],
+  },
   {
     version: "1.3.65",
     date: "2026-07-08",

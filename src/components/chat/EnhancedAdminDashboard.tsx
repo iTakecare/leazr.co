@@ -965,7 +965,10 @@ export const EnhancedAdminDashboard: React.FC = () => {
                             </div>
 
                             <p className="text-xs text-muted-foreground mt-1 px-2 flex items-center gap-1 justify-end">
-                              {message.created_at ? new Date(message.created_at).toLocaleTimeString('fr-FR', {
+                              {message.created_at ? new Date(message.created_at).toLocaleString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit',
                                 hour: '2-digit',
                                 minute: '2-digit'
                               }) : ''}
