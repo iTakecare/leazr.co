@@ -806,7 +806,10 @@ export const EnhancedAdminDashboard: React.FC = () => {
                               )}
                             </div>
                             <span className="text-xs text-muted-foreground">
-                              {new Date(conversation.started_at).toLocaleTimeString('fr-FR', {
+                              {new Date(conversation.started_at).toLocaleString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit',
                                 hour: '2-digit',
                                 minute: '2-digit'
                               })}
