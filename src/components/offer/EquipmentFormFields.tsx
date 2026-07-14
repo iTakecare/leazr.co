@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Equipment } from "@/types/equipment";
@@ -35,13 +36,13 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
         <Label htmlFor="title" className={`block font-medium ${errors.title ? 'text-red-500' : 'text-gray-700'}`}>
           Désignation du produit *
         </Label>
-        <div className="mt-1 flex gap-2">
-          <Input
+        <div className="mt-1 flex gap-2 items-start">
+          <Textarea
             id="title"
-            type="text"
             value={equipment.title}
             onChange={(e) => handleChange('title', e.target.value)}
-            className={`${errors.title ? 'border-red-500' : 'border-gray-300'}`}
+            className={`min-h-[44px] ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
+            rows={1}
             placeholder="Nom du produit"
           />
           <Button
@@ -52,6 +53,9 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
             <Search className="h-5 w-5" />
           </Button>
         </div>
+        <p className="mt-1 text-xs text-gray-500">
+          Pour une config assemblée : 1re ligne = intitulé, puis un composant par ligne (retour à la ligne). Ils s'afficheront proprement, repliés sous l'intitulé.
+        </p>
         {errors.title && (
           <p className="mt-1 text-sm text-red-500">Ce champ est requis</p>
         )}

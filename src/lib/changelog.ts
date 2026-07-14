@@ -17,6 +17,15 @@ export const ADMIN_VERSION = "1.3.67";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.69",
+    date: "2026-07-14",
+    title: "Création/édition d'offre : config assemblée aussi prise en charge dans le calculateur",
+    items: [
+      "Le champ « Désignation du produit » du calculateur de mensualité (pages Créer/Modifier une offre) accepte désormais plusieurs lignes : 1re ligne = intitulé, lignes suivantes = composants (un par ligne).",
+      "Dans la « Liste des équipements » à droite, la config s'affiche avec l'intitulé + un repli « Configuration détaillée », comme sur la page de détail de l'offre.",
+    ],
+  },
+  {
     version: "1.3.68",
     date: "2026-07-14",
     title: "Offres : mise en forme propre des configurations « à la main » (PC assemblé)",

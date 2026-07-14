@@ -11,6 +11,7 @@ import FinancialSummary from "@/components/offer/FinancialSummary";
 import AmbassadorFinancialSummary from "@/components/ambassador/AmbassadorFinancialSummary";
 import { useAuth } from "@/context/AuthContext";
 import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
+import EquipmentTitleWithSpecs from "@/components/offers/EquipmentTitleWithSpecs";
 
 interface GlobalMarginAdjustment {
   amount: number;
@@ -287,10 +288,11 @@ const EquipmentList = ({
                   {equipmentList.map((item) => (
                     <tr key={item.id}>
                       <td className="px-2 py-3 text-sm text-gray-900 max-w-[120px]">
-                        <div>
-                          <div className="font-medium" title={formatEquipmentTitle(item)}>
-                            {item.title}
-                          </div>
+                        <div title={formatEquipmentTitle(item)}>
+                          <EquipmentTitleWithSpecs
+                            title={item.title}
+                            titleClassName="font-medium"
+                          />
                           {renderAttributes(item.attributes)}
                         </div>
                       </td>
