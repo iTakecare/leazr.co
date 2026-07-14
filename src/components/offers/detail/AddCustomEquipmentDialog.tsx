@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { saveEquipment } from "@/services/offers/offerEquipment";
 import { OfferEquipment } from "@/types/offerEquipment";
+import { buildEquipmentDescription } from "@/lib/equipmentDescription";
 
 interface AddCustomEquipmentDialogProps {
   offerId: string;
@@ -21,6 +23,7 @@ const AddCustomEquipmentDialog: React.FC<AddCustomEquipmentDialogProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
+    components: "",
     purchase_price: 0,
     quantity: 1,
     margin: 0,
@@ -77,7 +80,10 @@ const AddCustomEquipmentDialog: React.FC<AddCustomEquipmentDialogProps> = ({
     try {
       const equipmentData: Omit<OfferEquipment, 'id' | 'created_at' | 'updated_at'> = {
         offer_id: offerId,
-        title: formData.title.trim(),
+        title: buildEquipmentDescription(
+          formData.title,
+          formData.components.split("\n")
+        ),
         purchase_price: formData.purchase_price,
         quantity: formData.quantity,
         margin: formData.margin,
@@ -91,6 +97,7 @@ const AddCustomEquipmentDialog: React.FC<AddCustomEquipmentDialogProps> = ({
         toast.success("Équipement ajouté avec succès");
         setFormData({
           title: "",
+          components: "",
           purchase_price: 0,
           quantity: 1,
           margin: 0,
@@ -131,17 +138,32 @@ const AddCustomEquipmentDialog: React.FC<AddCustomEquipmentDialogProps> = ({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Description de l'équipement *</Label>
+            <Label htmlFor="title">Intitulé de l'équipement *</Label>
             <Input
               id="title"
               type="text"
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              placeholder="Nom ou description du produit"
+              placeholder="Ex : Configuration PC gaming sur mesure"
               required
             />
           </div>
-          
+
+          <div className="space-y-2">
+            <Label htmlFor="components">Composants / caractéristiques</Label>
+            <Textarea
+              id="components"
+              value={formData.components}
+              onChange={(e) => handleInputChange('components', e.target.value)}
+              placeholder={"Un composant par ligne, ex :\nAMD Ryzen 9 9900X\nMSI GeForce RTX 5070 12G\n32 Go DDR5 6000\nSSD Samsung 990 PRO 2 To"}
+              rows={5}
+              className="text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Une ligne par composant. Ils s'afficheront proprement, repliés sous l'intitulé.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="purchase_price">Prix d'achat (€) *</Label>

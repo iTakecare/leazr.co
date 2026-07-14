@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getOfferEquipment } from "@/services/offers/offerEquipment";
+import EquipmentTitleWithSpecs from "@/components/offers/EquipmentTitleWithSpecs";
 
 interface EquipmentDisplayProps {
   equipmentDisplay: string;
@@ -268,9 +269,12 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
                 <tr key={index} className={`border-b transition-colors hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
                   <td className="py-6 px-6">
                     <div>
-                      <div className="font-semibold text-gray-900 mb-2 text-base">
-                        {item.title}
-                      </div>
+                      <EquipmentTitleWithSpecs
+                        title={item.title}
+                        titleClassName="font-semibold text-gray-900 text-base"
+                        className="mb-2"
+                        defaultOpen
+                      />
                       
                       {/* Display attributes if available */}
                       {item.attributes && Object.keys(item.attributes).length > 0 && (

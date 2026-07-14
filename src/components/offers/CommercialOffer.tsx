@@ -1,5 +1,6 @@
 import React from 'react';
 import DOMPurify from 'dompurify';
+import { parseEquipmentDescription } from '@/lib/equipmentDescription';
 import './CommercialOffer.css';
 import './CommercialOfferPDFMode.css';
 
@@ -528,14 +529,38 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     
                     {/* Infos produit */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: d.title,
-                        fontWeight: '600',
-                        color: '#111827',
-                        marginBottom: styles.spacing.xs,
-                      }}>
-                        {item.title}
-                      </div>
+                      {(() => {
+                        const { title: mainTitle, specs } = parseEquipmentDescription(item.title);
+                        return (
+                          <>
+                            <div style={{
+                              fontSize: d.title,
+                              fontWeight: '600',
+                              color: '#111827',
+                              marginBottom: styles.spacing.xs,
+                            }}>
+                              {mainTitle || item.title}
+                            </div>
+                            {specs.length > 0 && (
+                              <ul style={{
+                                margin: `0 0 ${styles.spacing.xs}`,
+                                paddingLeft: '16px',
+                                listStyleType: 'disc',
+                              }}>
+                                {specs.map((spec, i) => (
+                                  <li key={i} style={{
+                                    fontSize: isPDFMode ? '11px' : '0.75rem',
+                                    color: '#4B5563',
+                                    lineHeight: 1.4,
+                                  }}>
+                                    {spec}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </>
+                        );
+                      })()}
                       {item.attributes && Object.keys(item.attributes).length > 0 && (
                         <div style={{
                           display: 'flex',

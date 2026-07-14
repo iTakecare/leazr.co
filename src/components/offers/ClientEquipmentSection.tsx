@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Hash, Euro } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
+import EquipmentTitleWithSpecs from "@/components/offers/EquipmentTitleWithSpecs";
 
 interface ClientEquipmentSectionProps {
   offer: any;
@@ -88,9 +89,12 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
                     <tr key={index} className={`border-b transition-colors hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
                       <td className="py-6 px-6">
                         <div>
-                          <div className="font-semibold text-gray-900 mb-2 text-base">
-                            {item.title || `Équipement ${index + 1}`}
-                          </div>
+                          <EquipmentTitleWithSpecs
+                            title={item.title || `Équipement ${index + 1}`}
+                            titleClassName="font-semibold text-gray-900 text-base"
+                            className="mb-2"
+                            defaultOpen
+                          />
                           
                           {item.description && (
                             <p className="text-gray-600 mb-3 text-sm">{item.description}</p>

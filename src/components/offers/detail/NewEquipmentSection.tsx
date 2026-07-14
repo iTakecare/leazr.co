@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import EquipmentTitleWithSpecs from "@/components/offers/EquipmentTitleWithSpecs";
 import { Loader2, Edit, Save, X, Edit3, Calculator, Trash2, ImageIcon } from "lucide-react";
 import {
   AlertDialog,
@@ -848,20 +850,26 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     <TableCell>
                       <div className="space-y-1">
                         {isEditing ? (
-                          <Input
-                            value={values.title}
-                            onChange={(e) => handleFieldChange('title', e.target.value)}
-                            className="font-medium"
-                          />
+                          <div className="space-y-1">
+                            <Textarea
+                              value={values.title}
+                              onChange={(e) => handleFieldChange('title', e.target.value)}
+                              className="font-medium min-h-[80px] text-sm"
+                              rows={4}
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                              1re ligne = intitulé, lignes suivantes = composants (un par ligne)
+                            </p>
+                          </div>
                         ) : (
-                          <div className="font-medium flex items-center gap-2">
-                            {item.title}
-                            {(item as any).is_gifted && (
+                          <EquipmentTitleWithSpecs
+                            title={item.title}
+                            titleSuffix={(item as any).is_gifted ? (
                               <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">
                                 Offert
                               </Badge>
-                            )}
-                          </div>
+                            ) : undefined}
+                          />
                         )}
                         {attributes && attributes.length > 0 && (
                           <div className="flex flex-col gap-0.5 mt-1">

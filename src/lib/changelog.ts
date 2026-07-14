@@ -17,6 +17,18 @@ export const ADMIN_VERSION = "1.3.67";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.68",
+    date: "2026-07-14",
+    title: "Offres : mise en forme propre des configurations « à la main » (PC assemblé)",
+    items: [
+      "Quand un équipement regroupe plusieurs composants (config PC assemblée sur mesure), la description n'est plus un gros pavé de texte illisible dans la ligne d'offre.",
+      "Le formulaire « Ajouter équipement » propose désormais un « Intitulé » court (ex. « Configuration PC gaming sur mesure ») et une zone « Composants / caractéristiques » où l'on saisit un composant par ligne.",
+      "Dans le tableau des équipements, seul l'intitulé s'affiche, avec un lien « Configuration détaillée (N éléments) » qui déplie la liste propre des composants.",
+      "Même mise en forme sur le PDF de l'offre et sur la vue client (lien public / signature).",
+      "L'édition d'un équipement se fait dans une zone multi-ligne (1re ligne = intitulé, lignes suivantes = composants).",
+    ],
+  },
+  {
     version: "1.3.67",
     date: "2026-07-13",
     title: "Support / Messagerie : la date s'affiche aussi dans la liste des conversations",
@@ -673,6 +685,14 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
 export const CLIENT_VERSION = "1.2.0";
 
 export const CLIENT_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.0",
+    date: "2026-07-14",
+    title: "Configurations détaillées présentées plus clairement",
+    items: [
+      "Lorsqu'un équipement de votre offre regroupe plusieurs composants (par exemple une configuration informatique sur mesure), le détail s'affiche désormais sous forme de liste claire sous l'intitulé, au lieu d'un long bloc de texte.",
+    ],
+  },
   {
     version: "1.2.0",
     date: "2026-06-26",
