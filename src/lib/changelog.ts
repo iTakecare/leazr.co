@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.67";
+export const ADMIN_VERSION = "1.3.70";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.70",
+    date: "2026-07-14",
+    title: "Messagerie : les pièces jointes WhatsApp/SMS sont enfin visibles et rattachables à une demande",
+    items: [
+      "Correction d'un bug : les fichiers (PDF, photos) envoyés par les clients via WhatsApp étaient bien reçus mais restaient invisibles dans la messagerie (une contrainte en base bloquait leur affichage). Ils s'affichent désormais correctement, avec le nom du fichier et un lien pour l'ouvrir/télécharger.",
+      "Les pièces jointes déjà reçues et « perdues » ont été récupérées et rattachées à leur conversation.",
+      "Nouveau bouton « Ajouter à la demande » sous chaque pièce jointe reçue : en un clic, le document est copié dans les documents de l'offre du client, en statut « à valider », et apparaît dans l'onglet Documents de la demande pour validation ou refus.",
+      "Plus de message en double : le nom du fichier est porté directement sur la pièce jointe.",
+    ],
+  },
   {
     version: "1.3.69",
     date: "2026-07-14",

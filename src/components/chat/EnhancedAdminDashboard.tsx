@@ -49,7 +49,8 @@ import {
 } from '@/components/ui/dialog';
 import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { MessageAISuggestions } from './MessageAISuggestions';
-import { FileText } from 'lucide-react';
+import { AttachMediaToOfferDialog } from './AttachMediaToOfferDialog';
+import { FileText, FilePlus2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatConversation, ChatMessage } from '@/types/chat';
@@ -103,7 +104,7 @@ const DeliveryTicks: React.FC<{ status?: string | null; error?: string | null }>
 
 // Pièce jointe entrante (photo de document, PDF…) — bucket privé chat-media,
 // affichée via une URL signée courte durée.
-const MediaAttachment: React.FC<{ path: string; contentType?: string | null }> = ({ path, contentType }) => {
+const MediaAttachment: React.FC<{ path: string; contentType?: string | null; fileName?: string | null }> = ({ path, contentType, fileName }) => {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -118,13 +119,14 @@ const MediaAttachment: React.FC<{ path: string; contentType?: string | null }> =
   if (contentType?.startsWith('image/')) {
     return (
       <a href={url} target="_blank" rel="noreferrer">
-        <img src={url} alt="Pièce jointe" className="max-h-48 rounded-lg mt-1" />
+        <img src={url} alt={fileName || 'Pièce jointe'} className="max-h-48 rounded-lg mt-1" />
       </a>
     );
   }
+  const label = fileName && fileName !== '📎 Pièce jointe' ? fileName : 'Ouvrir la pièce jointe';
   return (
     <a href={url} target="_blank" rel="noreferrer" className="underline inline-flex items-center gap-1 mt-1">
-      <FileImage className="h-3.5 w-3.5" /> Ouvrir la pièce jointe
+      <FileText className="h-3.5 w-3.5" /> {label}
     </a>
   );
 };
@@ -146,6 +148,8 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const [associateOpen, setAssociateOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
   const [clientResults, setClientResults] = useState<Array<{ id: string; name: string; email: string | null; phone: string | null }>>([]);
+  // Rattachement d'une pièce jointe reçue à une demande (offre) du client.
+  const [attachMedia, setAttachMedia] = useState<{ path: string; contentType?: string | null; fileName: string } | null>(null);
 
   const { navigateToAdmin } = useRoleNavigation();
 
@@ -961,11 +965,25 @@ export const EnhancedAdminDashboard: React.FC = () => {
                               }`}
                             >
                               {message.media_path ? (
-                                <MediaAttachment path={message.media_path} contentType={message.media_content_type} />
+                                <MediaAttachment path={message.media_path} contentType={message.media_content_type} fileName={message.message} />
                               ) : (
                                 <p className="whitespace-pre-wrap">{message.message}</p>
                               )}
                             </div>
+
+                            {message.media_path && message.direction === 'inbound' && selectedConversation?.client_id && (
+                              <button
+                                type="button"
+                                onClick={() => setAttachMedia({
+                                  path: message.media_path!,
+                                  contentType: message.media_content_type,
+                                  fileName: message.message && message.message !== '📎 Pièce jointe' ? message.message : 'piece-jointe',
+                                })}
+                                className="mt-1 text-xs text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
+                              >
+                                <FilePlus2 className="h-3 w-3" /> Ajouter à la demande
+                              </button>
+                            )}
 
                             <p className="text-xs text-muted-foreground mt-1 px-2 flex items-center gap-1 justify-end">
                               {message.created_at ? new Date(message.created_at).toLocaleString('fr-FR', {
@@ -1137,6 +1155,24 @@ export const EnhancedAdminDashboard: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AttachMediaToOfferDialog
+        open={!!attachMedia}
+        onOpenChange={(open) => { if (!open) setAttachMedia(null); }}
+        clientId={selectedConversation?.client_id ?? null}
+        clientName={selectedConversation?.visitor_name}
+        media={attachMedia}
+        onDone={(result) => {
+          if (result.success) {
+            showToast(
+              'Document ajouté à la demande',
+              `« ${attachMedia?.fileName} » est en attente de validation dans l'onglet Documents${result.offerNumber ? ` de ${result.offerNumber}` : ''}.`,
+            );
+          } else {
+            showToast('Erreur', result.error || "Impossible d'ajouter le document", 'destructive');
+          }
+        }}
+      />
     </div>
   );
 };

@@ -643,3 +643,66 @@ export const markLinkAsUsed = async (token: string): Promise<void> => {
     console.error('Erreur lors du marquage du lien comme utilisé:', error);
   }
 };
+
+// Rattache une pièce jointe reçue par WhatsApp/SMS (bucket privé chat-media)
+// à une offre : copie le fichier vers le bucket offer-documents et crée une
+// ligne offer_documents en statut "pending", prête à valider dans l'onglet
+// Documents de la demande.
+export const attachChatMediaToOffer = async (params: {
+  mediaPath: string;        // chemin dans le bucket chat-media
+  contentType?: string | null;
+  fileName: string;         // nom affiché (nom du fichier envoyé par le client)
+  offerId: string;
+  documentType: string;     // ex. "balance_sheet" ou "additional:other"
+}): Promise<{ success: boolean; error?: string }> => {
+  const { mediaPath, offerId, documentType } = params;
+  const contentType = params.contentType || 'application/octet-stream';
+  const fileName = params.fileName?.trim() || 'piece-jointe';
+  try {
+    // 1. Télécharger le fichier depuis le bucket chat-media (admin a accès RLS).
+    const { data: blob, error: dlErr } = await supabase.storage
+      .from('chat-media')
+      .download(mediaPath);
+    if (dlErr || !blob) {
+      return { success: false, error: dlErr?.message || 'Téléchargement de la pièce jointe impossible' };
+    }
+
+    // 2. Construire le chemin de destination dans offer-documents.
+    const extFromName = fileName.includes('.') ? fileName.split('.').pop() : '';
+    const extFromMime = contentType.split('/')[1]?.split('+')[0];
+    const ext = (extFromName || extFromMime || 'bin').toLowerCase();
+    const safeType = documentType.replace(/[^a-z0-9_]/gi, '_');
+    const destPath = `${offerId}/whatsapp_${safeType}_${Date.now()}.${ext}`;
+
+    // 3. Uploader dans offer-documents (policy: tout utilisateur authentifié).
+    const { error: upErr } = await supabase.storage
+      .from('offer-documents')
+      .upload(destPath, blob, { contentType, upsert: false });
+    if (upErr) {
+      return { success: false, error: `Upload impossible : ${upErr.message}` };
+    }
+
+    // 4. Créer la ligne offer_documents en attente de validation.
+    const { error: insErr } = await supabase.from('offer_documents').insert({
+      offer_id: offerId,
+      document_type: documentType,
+      file_name: fileName,
+      file_path: destPath,
+      file_size: blob.size,
+      mime_type: contentType,
+      uploaded_by: 'WhatsApp',
+      status: 'pending',
+    });
+    if (insErr) {
+      // Nettoyer le fichier uploadé si l'insert échoue.
+      await supabase.storage.from('offer-documents').remove([destPath]);
+      return { success: false, error: `Enregistrement impossible : ${insErr.message}` };
+    }
+
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    console.error('attachChatMediaToOffer:', error);
+    return { success: false, error: message };
+  }
+};

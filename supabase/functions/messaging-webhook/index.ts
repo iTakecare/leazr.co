@@ -193,13 +193,19 @@ async function handleInbound(
     metadata: { conversation_id: conversationId, channel, from: phone, client_id: client?.id ?? null },
   });
 
+  const numMedia = Number(p.NumMedia ?? "0") || 0;
+  const bodyText = p.Body?.trim() ?? "";
+
   // --- texte ---
-  if (p.Body?.trim()) {
+  // Pour un média WhatsApp, Body contient le nom du fichier / la légende : on
+  // le porte sur la pièce jointe (voir plus bas) plutôt que d'ajouter un
+  // message texte séparé qui ferait doublon. Message texte seul → insertion.
+  if (bodyText && numMedia === 0) {
     await adminSupabase.from("chat_messages").insert({
       conversation_id: conversationId,
       sender_type: "visitor",
       sender_name: senderName,
-      message: p.Body,
+      message: bodyText,
       message_type: "text",
       direction: "inbound",
       provider_sid: p.MessageSid ?? null,
@@ -208,11 +214,12 @@ async function handleInbound(
   }
 
   // --- médias → bucket privé chat-media ---
-  const numMedia = Number(p.NumMedia ?? "0") || 0;
   for (let i = 0; i < numMedia; i++) {
     const mediaUrl = p[`MediaUrl${i}`];
     const contentType = p[`MediaContentType${i}`] ?? "application/octet-stream";
     if (!mediaUrl) continue;
+    // Le nom de fichier/légende (Body) n'accompagne que la 1re pièce jointe.
+    const caption = i === 0 && bodyText ? bodyText : "Pièce jointe";
     try {
       const mediaResp = await fetch(mediaUrl, {
         headers: {
@@ -230,7 +237,7 @@ async function handleInbound(
         conversation_id: conversationId,
         sender_type: "visitor",
         sender_name: senderName,
-        message: "📎 Pièce jointe",
+        message: caption,
         message_type: "media",
         direction: "inbound",
         provider_sid: p.MessageSid ?? null,
