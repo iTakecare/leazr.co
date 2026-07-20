@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.70";
+export const ADMIN_VERSION = "1.3.71";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.71",
+    date: "2026-07-20",
+    title: "Dashboard financier : la carte « Factures en attente de paiement » dit enfin la vérité",
+    items: [
+      "La carte affichait 3 factures / 519,11 € alors que l'encours réel était bien plus élevé : les factures comptabilisées dans Billit mais pas encore envoyées via Billit restaient « brouillon » côté Leazr et n'étaient pas comptées.",
+      "La synchronisation Billit considère désormais toute facture comptabilisée (statut Billit différent de brouillon) comme due, et rapatrie aussi la date d'échéance réelle de Billit.",
+      "La carte affiche maintenant le montant TTC (ce que les clients doivent réellement payer), avec le total des factures impayées et le sous-total « dont échues ».",
+    ],
+  },
   {
     version: "1.3.70",
     date: "2026-07-14",

@@ -148,8 +148,13 @@ serve(async (req) => {
     // (nom client = personne/gérant, cf. _shared/billitMatch.ts buildBillitBillingData)
     const enrich = await loadLeazrEnrichment(supabase, companyId);
 
-    const statusOf = (b: BillitOrder) => (b.Paid ? 'paid' : b.IsSent ? 'sent' : 'draft');
+    // Une facture comptabilisée dans Billit (statut != Draft, ex. ToSend/ToPay) est due
+    // même si l'envoi Billit n'a pas eu lieu -> 'sent', sinon le dashboard "factures en
+    // attente de paiement" la rate (elle resterait 'draft' côté Leazr).
+    const statusOf = (b: BillitOrder) =>
+      b.Paid ? 'paid' : (b.OrderStatus && b.OrderStatus !== 'Draft') || b.IsSent ? 'sent' : 'draft';
     const isoOrNull = (d: any) => { if (!d) return null; const t = new Date(d).getTime(); return isNaN(t) ? null : new Date(t).toISOString(); };
+    const dateOrNull = (d: any) => { const iso = isoOrNull(d); return iso ? iso.slice(0, 10) : null; };
     const paidAtOf = (b: any) => (b.Paid ? (isoOrNull(b.PaidDate) || isoOrNull(b.OrderDate)) : null);
     const sentAtOf = (b: any) => (b.IsSent ? isoOrNull(b.OrderDate) : null);
     const norm = (s: any) => (s ?? '').toString().toUpperCase().replace(/\s+/g, '').trim();
@@ -179,6 +184,8 @@ serve(async (req) => {
       if (!b) continue;
       const status = statusOf(b);
       const pdfUrl = billitPdfUrl(apiBaseUrl, b);
+      // Échéance Billit = référence ; ne jamais écraser par null si Billit ne la fournit pas
+      const dueDate = dateOrNull(b.ExpiryDate);
 
       try {
         if (m.action === 'link' || m.action === 'create') {
@@ -200,6 +207,7 @@ serve(async (req) => {
                 pdf_url: pdfUrl,
                 sent_at: sentAtOf(b),
                 paid_at: paidAtOf(b),
+                ...(dueDate ? { due_date: dueDate } : {}),
                 billing_data,
                 updated_at: new Date().toISOString(),
               })
@@ -225,6 +233,7 @@ serve(async (req) => {
                 pdf_url: pdfUrl,
                 sent_at: sentAtOf(b),
                 paid_at: paidAtOf(b),
+                ...(dueDate ? { due_date: dueDate } : {}),
                 billing_data,
               });
             if (error) { errors.push(`Création ${b.OrderNumber}: ${error.message}`); continue; }

@@ -582,8 +582,8 @@ const CompanyDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Factures en attente de paiement */}
-            {overdueInvoices.overdue_count > 0 && (
+            {/* Factures en attente de paiement (montants TTC, dont échues) */}
+            {(overdueInvoices.unpaid_count ?? overdueInvoices.overdue_count) > 0 && (
               <Card className="shadow-none border-orange-200 bg-orange-50/50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-3">
@@ -592,9 +592,13 @@ const CompanyDashboard = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
                     <span>Nombre</span>
-                    <span className="text-right font-semibold text-foreground">{overdueInvoices.overdue_count}</span>
-                    <span>Montant total</span>
-                    <span className="text-right font-semibold text-orange-600">{formatCurrency(overdueInvoices.overdue_amount)}</span>
+                    <span className="text-right font-semibold text-foreground">{overdueInvoices.unpaid_count}</span>
+                    <span>Montant total (TTC)</span>
+                    <span className="text-right font-semibold text-orange-600">{formatCurrency(overdueInvoices.unpaid_amount)}</span>
+                    <span>Dont échues</span>
+                    <span className="text-right font-semibold text-red-600">
+                      {overdueInvoices.overdue_count} · {formatCurrency(overdueInvoices.overdue_amount)}
+                    </span>
                   </div>
                   <Button
                     variant="outline"
@@ -632,7 +636,7 @@ const CompanyDashboard = () => {
             refused: refusedStats ? { status: 'refused', count: refusedStats.count || 0, total_revenue: Number(refusedStats.total_revenue || 0), total_purchases: Number(refusedStats.total_purchases || 0), total_margin: Number(refusedStats.total_margin || 0) } : undefined,
             directSales: directSalesStats ? { status: 'direct_sales', count: directSalesStats.count || 0, total_revenue: Number(directSalesStats.total_revenue || 0), total_purchases: Number(directSalesStats.total_purchases || 0), total_margin: Number(directSalesStats.total_margin || 0) } : undefined,
           },
-          overdueInvoices: overdueInvoices || { overdue_count: 0, overdue_amount: 0 },
+          overdueInvoices: overdueInvoices || { overdue_count: 0, overdue_amount: 0, unpaid_count: 0, unpaid_amount: 0 },
         }}
         availableYears={availableYears}
         selectedYear={selectedYear}

@@ -23,6 +23,8 @@ export interface BillitOrder {
   VATAmount: number;
   Paid: boolean;
   IsSent: boolean;
+  OrderStatus?: string; // "Draft" | "ToSend" | "Sent" | "ToPay" | "Paid" | ...
+  ExpiryDate?: string; // date d'échéance de paiement
   OrderDirection: string; // "Income" | "Cost"
   OrderType: string; // "Invoice" | "CreditNote" | "Offer" | "DeliveryNote"
   AboutInvoiceNumber?: string;

@@ -27,6 +27,8 @@ export interface PDFContractStats {
 export interface PDFOverdueInvoices {
   overdue_count: number;
   overdue_amount: number;
+  unpaid_count?: number;
+  unpaid_amount?: number;
 }
 
 export interface PDFYearData {

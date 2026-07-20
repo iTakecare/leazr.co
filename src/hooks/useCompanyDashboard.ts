@@ -52,6 +52,8 @@ export interface RecentActivity {
 export interface OverdueInvoicesData {
   overdue_count: number;
   overdue_amount: number;
+  unpaid_count: number;
+  unpaid_amount: number;
 }
 
 /**
@@ -540,24 +542,33 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     refetch: refetchOverdue
   } = useQuery({
     queryKey: ['company-overdue-invoices', companyId],
-    queryFn: async () => {
-      if (!companyId) return { overdue_count: 0, overdue_amount: 0 };
-      
+    queryFn: async (): Promise<OverdueInvoicesData> => {
+      if (!companyId) return { overdue_count: 0, overdue_amount: 0, unpaid_count: 0, unpaid_amount: 0 };
+
       const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
-      
+
+      // Toutes les factures non payées ; le montant "à encaisser" est le TTC
+      // (billing_data.invoice_totals.total_incl_vat, repli sur amount HTVA)
       const { data, error } = await supabase
         .from('invoices')
-        .select('id, amount')
+        .select('id, amount, due_date, billing_data')
         .eq('company_id', companyId)
-        .in('status', ['sent', 'pending'])
-        .or(`due_date.lte.${today},due_date.is.null`);
-      
+        .in('status', ['sent', 'pending']);
+
       if (error) throw error;
-      
-      const count = data?.length || 0;
-      const total = data?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
-      
-      return { overdue_count: count, overdue_amount: total };
+
+      const amountOf = (inv: any) => {
+        const ttc = Number(inv.billing_data?.invoice_totals?.total_incl_vat);
+        return ttc > 0 ? ttc : Number(inv.amount || 0);
+      };
+      const overdue = (data || []).filter(inv => !inv.due_date || inv.due_date <= today);
+
+      return {
+        unpaid_count: data?.length || 0,
+        unpaid_amount: (data || []).reduce((sum, inv) => sum + amountOf(inv), 0),
+        overdue_count: overdue.length,
+        overdue_amount: overdue.reduce((sum, inv) => sum + amountOf(inv), 0),
+      };
     },
     enabled: !companyLoading && !!companyId,
     refetchInterval: 60000,
@@ -631,7 +642,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
   return {
     metrics: realTimeMetrics || (metrics ? { ...metrics, monthly_data: monthlyData, contract_stats: contractStats } : null),
     recentActivity,
-    overdueInvoices: overdueInvoices || { overdue_count: 0, overdue_amount: 0 },
+    overdueInvoices: overdueInvoices || { overdue_count: 0, overdue_amount: 0, unpaid_count: 0, unpaid_amount: 0 },
     selfLeasingProjection: selfLeasingProjection || { futureRevenue: 0, futurePurchases: 0, futureMargin: 0 },
     isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading || overdueLoading || pendingStatsLoading || realizedStatsLoading || directSalesStatsLoading || refusedStatsLoading || projectionLoading,
     refetch: refetchAll

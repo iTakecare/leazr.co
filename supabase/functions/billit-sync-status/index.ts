@@ -105,7 +105,7 @@ serve(async (req) => {
     // Construire la requête pour récupérer les factures à synchroniser
     let invoicesQuery = supabase
       .from('invoices')
-      .select('id, external_invoice_id, status, sent_at, paid_at')
+      .select('id, external_invoice_id, status, sent_at, paid_at, due_date')
       .eq('company_id', companyId)
       .eq('integration_type', 'billit')
       .not('external_invoice_id', 'is', null);
@@ -181,15 +181,26 @@ serve(async (req) => {
         let newPaidAt = invoice.paid_at;
         let newPdfUrl = null;
 
+        // Comptabilisée dans Billit (statut != Draft) = due, même si pas envoyée via Billit
+        const isBooked = billitDetails.IsSent ||
+          (billitDetails.OrderStatus && billitDetails.OrderStatus !== 'Draft');
+
         if (billitDetails.Paid && invoice.status !== 'paid') {
           newStatus = 'paid';
           newPaidAt = new Date().toISOString();
           if (!newSentAt) {
             newSentAt = new Date().toISOString();
           }
-        } else if (billitDetails.IsSent && invoice.status === 'created') {
+        } else if (isBooked && ['created', 'draft'].includes(invoice.status)) {
           newStatus = 'sent';
           newSentAt = new Date().toISOString();
+        }
+
+        // Échéance : Billit fait foi
+        let newDueDate = invoice.due_date;
+        if (billitDetails.ExpiryDate) {
+          const t = new Date(billitDetails.ExpiryDate).getTime();
+          if (!isNaN(t)) newDueDate = new Date(t).toISOString().slice(0, 10);
         }
 
         // Récupérer l'URL du PDF si disponible
@@ -198,11 +209,12 @@ serve(async (req) => {
         }
 
         // Mettre à jour la facture si des changements sont détectés
-        if (newStatus !== invoice.status || newSentAt !== invoice.sent_at || newPaidAt !== invoice.paid_at || newPdfUrl) {
+        if (newStatus !== invoice.status || newSentAt !== invoice.sent_at || newPaidAt !== invoice.paid_at || newDueDate !== invoice.due_date || newPdfUrl) {
           const updateData: any = {
             status: newStatus,
             sent_at: newSentAt,
             paid_at: newPaidAt,
+            due_date: newDueDate,
             billing_data: {
               ...((invoice as any).billing_data || {}),
               billit_details: billitDetails,
