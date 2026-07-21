@@ -10,6 +10,7 @@ import LocationManager from "@/components/equipment/LocationManager";
 import SoftwareDeploymentWizard from "@/components/equipment/SoftwareDeploymentWizard";
 import ClientSoftwareTab from "@/components/equipment/ClientSoftwareTab";
 import EquipmentAssistanceDialog, { AssistanceEquipment } from "@/components/equipment/EquipmentAssistanceDialog";
+import ClientOwnedEquipmentTab from "@/components/equipment/ClientOwnedEquipmentTab";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +38,7 @@ const SEG_TABS = [
   { value: "by-contract", label: "Par contrat", icon: FileText },
   { value: "by-equipment", label: "Liste complète", icon: Cpu },
   { value: "locations", label: "Emplacements", icon: MapPin },
+  { value: "owned", label: "Hors contrat", icon: Package },
   { value: "software", label: "Logiciels", icon: Download },
 ] as const;
 
@@ -525,6 +527,11 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                 </div>
                 <LocationManager clientId={clientData.id} companyId={(clientData as any).company_id} />
               </ClientCard>
+            </TabsContent>
+
+            {/* ── Matériel hors contrat (parc externe déclaré par le client) ── */}
+            <TabsContent value="owned">
+              <ClientOwnedEquipmentTab clientId={clientData.id} companyId={(clientData as any).company_id} />
             </TabsContent>
 
             {/* ── Logiciels (préservé via defaultTab="software") ── */}

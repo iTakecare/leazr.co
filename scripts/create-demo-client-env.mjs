@@ -380,6 +380,28 @@ async function main() {
   }
   }
 
+  // 5bis. Matériel hors contrat (parc externe déclaré par le client — table
+  // client_owned_equipment, voir scripts/apply-client-owned-equipment.mjs)
+  const OWNED_EQUIPMENT = [
+    { title: 'MacBook Pro 13" 2020',       brand: 'Apple', category: 'laptop',  serial_number: 'C02DM0AHML85', purchase_date: '2021-02-15', purchase_price: 1449, supplier: 'MediaMarkt', amortization_years: 3, condition: 'average' },
+    { title: 'iPhone 13 128Go',            brand: 'Apple', category: 'phone',   serial_number: null,            purchase_date: '2022-01-10', purchase_price: 909,  supplier: 'Proximus',   amortization_years: 3, condition: 'good' },
+    { title: 'Dell XPS 15 9520',           brand: 'Dell',  category: 'laptop',  serial_number: 'JX8JJH3',       purchase_date: '2022-09-05', purchase_price: 1650, supplier: 'Dell.be',    amortization_years: 3, condition: 'good' },
+    { title: 'Imprimante LaserJet Pro',    brand: 'HP',    category: 'printer', serial_number: null,            purchase_date: '2019-11-20', purchase_price: 320,  supplier: 'Vanden Borre', amortization_years: 5, condition: 'defective' },
+    { title: 'Écran LG UltraFine 27"',     brand: 'LG',    category: 'screen',  serial_number: null,            purchase_date: '2025-01-08', purchase_price: 449,  supplier: 'Coolblue',   amortization_years: 4, condition: 'good' },
+  ];
+  const { count: ownedCount, error: ownedCheckErr } = await sb.from('client_owned_equipment')
+    .select('id', { count: 'exact', head: true }).eq('client_id', client.id);
+  if (ownedCheckErr) {
+    console.log(`⚠️ Parc externe non seedé (table absente ? lance d'abord scripts/apply-client-owned-equipment.mjs) : ${ownedCheckErr.message}`);
+  } else if (ownedCount && ownedCount > 0) {
+    console.log(`ℹ️  ${ownedCount} équipement(s) hors contrat déjà présent(s) — création sautée`);
+  } else {
+    const { error: ownedErr } = await sb.from('client_owned_equipment')
+      .insert(OWNED_EQUIPMENT.map((e) => ({ ...e, client_id: client.id, company_id: COMPANY_ID })));
+    if (ownedErr) console.log(`⚠️ Parc externe : ${ownedErr.message}`);
+    else console.log(`✅ Parc externe : ${OWNED_EQUIPMENT.length} équipements hors contrat (dont 3 amortis → démo renouvellement)`);
+  }
+
   // 6. Catalogue sur mesure
   let nbPrices = 0, nbVariants = 0;
   for (const productId of CUSTOM_CATALOG_PRODUCT_IDS) {
