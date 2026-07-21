@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.74";
+export const ADMIN_VERSION = "1.3.75";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.75",
+    date: "2026-07-21",
+    title: "Cases à cocher bien visibles (bordure bleue)",
+    items: [
+      "Les cases à cocher (ex. sélection de demandes dans « Mes demandes ») étaient quasi invisibles : bordure grise trop pâle sur fond blanc.",
+      "Elles ont désormais une bordure bleue (couleur de votre personnalisation) et une coche bleue quand elles sont cochées, toujours sur fond blanc.",
+    ],
+  },
   {
     version: "1.3.74",
     date: "2026-07-21",
