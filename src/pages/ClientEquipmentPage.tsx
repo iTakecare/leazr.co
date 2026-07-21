@@ -2,13 +2,11 @@ import React, { useState } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download, Filter, Laptop, Headset } from "lucide-react";
+import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Filter, Laptop, Headset } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import LocationManager from "@/components/equipment/LocationManager";
-import SoftwareDeploymentWizard from "@/components/equipment/SoftwareDeploymentWizard";
-import ClientSoftwareTab from "@/components/equipment/ClientSoftwareTab";
 import EquipmentAssistanceDialog, { AssistanceEquipment } from "@/components/equipment/EquipmentAssistanceDialog";
 import ClientOwnedEquipmentTab from "@/components/equipment/ClientOwnedEquipmentTab";
 import { motion } from "framer-motion";
@@ -39,7 +37,6 @@ const SEG_TABS = [
   { value: "by-equipment", label: "Liste complète", icon: Cpu },
   { value: "locations", label: "Emplacements", icon: MapPin },
   { value: "owned", label: "Hors contrat", icon: Package },
-  { value: "software", label: "Logiciels", icon: Download },
 ] as const;
 
 const SegmentedTabs: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => (
@@ -108,8 +105,6 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [deployWizardOpen, setDeployWizardOpen] = useState(false);
-  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
   const [assistanceOpen, setAssistanceOpen] = useState(false);
   const [assistanceEquipment, setAssistanceEquipment] = useState<AssistanceEquipment | null>(null);
 
@@ -209,12 +204,6 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
     if (t.includes("imprimante") || t.includes("scanner") || t.includes("printer")) return "impression";
     if (t.includes("tablette") || t.includes("ipad") || t.includes("tab")) return "tablettes";
     return "autre";
-  };
-
-  // Only PCs, Macs, tablets and smartphones can have software installed
-  const canInstallSoftware = (title: string): boolean => {
-    const cat = detectCategory(title);
-    return ["informatique", "telephonie", "tablettes"].includes(cat);
   };
 
   const categoryLabels: Record<string, string> = {
@@ -345,24 +334,6 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                                     {item.monthly_payment != null && (
                                       <span style={{ fontSize: 12, color: clientColors.muted }}>{fmtEur(item.monthly_payment)}</span>
                                     )}
-                                    {canInstallSoftware(item.title || "") && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="gap-1 text-xs h-8"
-                                        style={{ color: clientColors.indigo }}
-                                        onClick={() => {
-                                          setSelectedEquipment({
-                                            id: item.id,
-                                            name: item.title || "Équipement",
-                                            contractRef: contract.contract_number || contract.id.slice(0, 8),
-                                          });
-                                          setDeployWizardOpen(true);
-                                        }}
-                                      >
-                                        <Download className="h-3 w-3" /> Installer
-                                      </Button>
-                                    )}
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -480,21 +451,6 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                           {eq.monthlyPayment != null ? `${Number(eq.monthlyPayment).toFixed(2)} €` : "—"}
                         </span>
                         <span style={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                          {canInstallSoftware(eq.name) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-xs h-8 w-8 p-0"
-                              style={{ color: clientColors.indigo }}
-                              title="Installer un logiciel"
-                              onClick={() => {
-                                setSelectedEquipment({ id: eq.id, name: eq.name, contractRef: eq.contractRef });
-                                setDeployWizardOpen(true);
-                              }}
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -534,14 +490,6 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
               <ClientOwnedEquipmentTab clientId={clientData.id} companyId={(clientData as any).company_id} />
             </TabsContent>
 
-            {/* ── Logiciels (préservé via defaultTab="software") ── */}
-            <TabsContent value="software">
-              <ClientSoftwareTab
-                clientId={clientData.id}
-                companyId={(clientData as any).company_id}
-                equipment={allEquipment}
-              />
-            </TabsContent>
           </Tabs>
         </motion.div>
       </motion.div>
@@ -554,13 +502,6 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
         companyId={(clientData as any).company_id}
       />
 
-      {selectedEquipment && (
-        <SoftwareDeploymentWizard
-          open={deployWizardOpen}
-          onOpenChange={setDeployWizardOpen}
-          equipment={selectedEquipment}
-        />
-      )}
     </ClientPage>
   );
 };

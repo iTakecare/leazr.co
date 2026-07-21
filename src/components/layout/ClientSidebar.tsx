@@ -14,7 +14,6 @@ import {
   Laptop,
   Clock,
   Package,
-  Download,
   Menu,
   X,
   Settings,
@@ -75,7 +74,6 @@ const ClientSidebar = memo(({ onLinkClick }: SidebarProps) => {
         title: "Demandes",
         items: [
           { icon: Package, label: "Catalogue", href: "products" },
-          { icon: Download, label: "Logiciels", href: "software" },
           {
             icon: Clock,
             label: "Mes demandes",

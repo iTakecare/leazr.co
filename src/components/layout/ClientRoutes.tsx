@@ -36,7 +36,7 @@ const ROUTE_TITLES: { match: (p: string) => boolean; title: string }[] = [
   { match: (p) => p.includes("/dashboard"), title: "Tableau de bord" },
   { match: (p) => p.includes("/contracts"), title: "Mes contrats" },
   { match: (p) => p.includes("/documents"), title: "Mes documents" },
-  { match: (p) => p.includes("/equipment") || p.includes("/software"), title: "Gestion des équipements" },
+  { match: (p) => p.includes("/equipment"), title: "Gestion des équipements" },
   { match: (p) => p.includes("/products") || p.includes("/panier"), title: "Catalogue" },
   { match: (p) => p.includes("/requests"), title: "Mes demandes" },
   { match: (p) => p.includes("/support"), title: "Support" },
@@ -122,7 +122,6 @@ const ClientRoutes = () => {
             <Route path="requests" element={<ClientRequestsPage />} />
             <Route path="requests/:id" element={<ClientRequestDetailPage />} />
             <Route path="equipment" element={<ClientEquipmentPage />} />
-            <Route path="software" element={<ClientEquipmentPage defaultTab="software" />} />
             <Route path="products" element={<ClientCatalogPage />} />
             <Route path="products/:productId" element={<ClientProductDetailPage />} />
             <Route path="panier" element={<ClientCartPage />} />
