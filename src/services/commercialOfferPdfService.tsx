@@ -17,6 +17,7 @@ interface CommercialOfferData {
   clientEmail: string;
   clientPhone: string;
   clientCompany: string;
+  clientVatNumber?: string;
   clientAddress: string;
   companyLogo: string | null;
   companyName: string;
@@ -120,6 +121,12 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
           contact_name,
           email,
           phone,
+          company,
+          vat_number,
+          address,
+          city,
+          postal_code,
+          country,
           billing_address,
           billing_city,
           billing_postal_code,
@@ -245,14 +252,21 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
       contentBlocksMap[block.page_name][block.block_key] = block.content;
     });
 
-    // Formater l'adresse de facturation
-    const billingAddress = offerData.clients ? 
-      [
-        offerData.clients.billing_address,
-        offerData.clients.billing_postal_code,
-        offerData.clients.billing_city,
-        offerData.clients.billing_country
-      ].filter(Boolean).join(', ') 
+    // Adresse de facturation, repli sur l'adresse principale du client
+    const clientRecord = offerData.clients as any;
+    const billingAddress = clientRecord
+      ? ([
+          clientRecord.billing_address,
+          clientRecord.billing_postal_code,
+          clientRecord.billing_city,
+          clientRecord.billing_country
+        ].filter(Boolean).join(', ') ||
+        [
+          clientRecord.address,
+          clientRecord.postal_code,
+          clientRecord.city,
+          clientRecord.country
+        ].filter(Boolean).join(', '))
       : '';
 
     const isPurchase = (offerData as any)?.is_purchase === true;
@@ -284,7 +298,8 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
       clientName: offerData.client_name || 'Client',
       clientEmail: offerData.client_email || offerData.clients?.email || '',
       clientPhone: offerData.clients?.phone || '',
-      clientCompany: (offerData as any).client_company || '',
+      clientCompany: (offerData as any).client_company || clientRecord?.company || '',
+      clientVatNumber: clientRecord?.vat_number || '',
       clientAddress: billingAddress,
       companyLogo: companyLogoBase64,
       companyName: companyBranding.companyName || offerData.companies?.name || '',

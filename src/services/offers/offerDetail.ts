@@ -7,7 +7,7 @@ export const getOfferById = async (id: string) => {
   try {
     const { data, error } = await supabase
       .from('offers')
-      .select('*')
+      .select('*, clients (company, vat_number, email, phone, address, city, postal_code, country, billing_address, billing_city, billing_postal_code, billing_country)')
       .eq('id', id)
       .single();
 

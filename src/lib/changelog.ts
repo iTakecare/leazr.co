@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.75";
+export const ADMIN_VERSION = "1.3.76";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.76",
+    date: "2026-07-21",
+    title: "PDF d'offre : coordonnées complètes du client dans le bloc Destinataire",
+    items: [
+      "Le bloc « Destinataire » du PDF d'offre n'affichait que le nom, l'email et le téléphone du contact.",
+      "Il affiche désormais aussi le nom de l'entreprise, le numéro de TVA et l'adresse complète du client (adresse de facturation si renseignée, sinon l'adresse principale de la fiche client).",
+      "Même enrichissement sur la vue d'impression de l'offre.",
+    ],
+  },
   {
     version: "1.3.75",
     date: "2026-07-21",

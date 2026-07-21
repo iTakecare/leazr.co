@@ -60,6 +60,23 @@ const OfferPrintView: React.FC = () => {
     0
   );
 
+  // Adresse de facturation, repli sur l'adresse principale du client
+  const clientRecord = (offer as any).clients;
+  const clientAddress = clientRecord
+    ? ([
+        clientRecord.billing_address,
+        clientRecord.billing_postal_code,
+        clientRecord.billing_city,
+        clientRecord.billing_country
+      ].filter(Boolean).join(', ') ||
+      [
+        clientRecord.address,
+        clientRecord.postal_code,
+        clientRecord.city,
+        clientRecord.country
+      ].filter(Boolean).join(', '))
+    : '';
+
   return (
     <div>
       {/* Bouton de retour - masqué à l'impression */}
@@ -83,6 +100,8 @@ const OfferPrintView: React.FC = () => {
         clientEmail={offer.client_email}
         clientPhone={offer.client_phone}
         clientCompany={offer.clients?.company || ''}
+        clientVatNumber={clientRecord?.vat_number || ''}
+        clientAddress={clientAddress}
         validityDays={10}
         equipment={equipmentData}
         totalMonthly={totalMonthly}

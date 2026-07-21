@@ -13,6 +13,7 @@ interface CommercialOfferProps {
   clientPhone?: string;
   clientCompany?: string;
   clientAddress?: string;
+  clientVatNumber?: string;
   companyLogo?: string | null;
   companyName?: string;
   // Coordonnées de l'entreprise émettrice (white-label, par tenant)
@@ -231,6 +232,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   clientPhone = "N/A",
   clientCompany,
   clientAddress,
+  clientVatNumber,
   companyLogo,
   companyName = '',
   companyAddress = '',
@@ -389,6 +391,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               <p className="client-label">Destinataire</p>
               <h3 className="client-name">{clientName}</h3>
               {clientCompany && <p className="client-company">{clientCompany}</p>}
+              {clientVatNumber && <p className="client-vat">TVA : {clientVatNumber}</p>}
               {clientAddress && <p className="client-address">{clientAddress}</p>}
               <div className="client-contact">
                 <span>📧 {clientEmail}</span>

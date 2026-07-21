@@ -243,6 +243,12 @@ body {
   margin-bottom: 6px;
 }
 
+.client-vat {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
 .client-address {
   font-size: 11px;
   color: #666;
