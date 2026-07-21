@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.72";
+export const ADMIN_VERSION = "1.3.73";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.73",
+    date: "2026-07-21",
+    title: "Boutons illisibles (texte blanc sur fond blanc) : corrigé partout",
+    items: [
+      "Sur plusieurs écrans (ex. bouton « Équipements → » de la nouvelle demande), les boutons principaux devenaient quasi invisibles : texte blanc sur fond transparent.",
+      "Cause : les couleurs de personnalisation de la société (stockées en hexadécimal) étaient injectées telles quelles dans le thème, qui attend un autre format — le fond bleu « sautait » dès que le branding se chargeait.",
+      "Les couleurs sont désormais converties au bon format à l'application du branding : tous les boutons et éléments utilisant la couleur principale retrouvent leur fond bleu, sur tous les écrans.",
+      "Bonus : si une couleur claire est choisie dans la personnalisation, le texte des boutons passe automatiquement en foncé pour rester lisible.",
+    ],
+  },
   {
     version: "1.3.72",
     date: "2026-07-21",

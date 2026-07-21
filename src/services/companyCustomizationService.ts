@@ -1,6 +1,56 @@
 
 import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
 
+// Les couleurs de branding sont stockées en hex (#33638e) mais Tailwind consomme
+// les variables via hsl(var(--primary)) : il faut donc injecter un triplet HSL
+// « H S% L% », sinon la propriété est invalide et le fond devient transparent
+// (texte blanc illisible sur fond blanc).
+const parseColorToHsl = (color: string): { h: number; s: number; l: number } | null => {
+  const c = color.trim();
+
+  const hslTriple = c.match(/^(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%$/);
+  if (hslTriple) {
+    return { h: parseFloat(hslTriple[1]), s: parseFloat(hslTriple[2]), l: parseFloat(hslTriple[3]) };
+  }
+
+  let hex = c.match(/^#?([0-9a-f]{6})$/i)?.[1];
+  if (!hex) {
+    const short = c.match(/^#?([0-9a-f]{3})$/i)?.[1];
+    if (short) hex = short.split('').map(ch => ch + ch).join('');
+  }
+  if (!hex) return null;
+
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max === g) h = ((b - r) / d + 2) / 6;
+    else h = ((r - g) / d + 4) / 6;
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 1000) / 10, l: Math.round(l * 1000) / 10 };
+};
+
+const setHslVariable = (variable: string, color: string): void => {
+  const hsl = parseColorToHsl(color);
+  if (!hsl) {
+    console.warn(`🎨 CUSTOMIZATION SERVICE - Couleur illisible pour ${variable}:`, color);
+    return;
+  }
+  const root = document.documentElement;
+  root.style.setProperty(variable, `${hsl.h} ${hsl.s}% ${hsl.l}%`);
+  // Texte lisible quelle que soit la couleur choisie par le tenant :
+  // foncé sur couleur claire, blanc sur couleur foncée.
+  root.style.setProperty(`${variable}-foreground`, hsl.l > 60 ? '222 47% 11%' : '0 0% 100%');
+};
+
 export interface CompanyBranding {
   id?: string;
   company_id: string;
@@ -134,18 +184,16 @@ class CompanyCustomizationService {
     
     if (!branding) return;
 
-    const root = document.documentElement;
-
     if (branding.primary_color) {
-      root.style.setProperty('--primary', branding.primary_color);
+      setHslVariable('--primary', branding.primary_color);
     }
 
     if (branding.secondary_color) {
-      root.style.setProperty('--secondary', branding.secondary_color);
+      setHslVariable('--secondary', branding.secondary_color);
     }
 
     if (branding.accent_color) {
-      root.style.setProperty('--accent', branding.accent_color);
+      setHslVariable('--accent', branding.accent_color);
     }
 
     // Apply favicon dynamically
