@@ -225,7 +225,7 @@ const ClientCatalogPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsWizardOpen(true)}
-            className="fixed bottom-6 right-6 z-40 transition-transform hover:-translate-y-0.5"
+            className="fixed bottom-6 right-24 z-40 transition-transform hover:-translate-y-0.5"
             style={{ ...primaryBtnStyle, height: 48, padding: '0 20px', borderRadius: 14, background: CLIENT_GRADIENT }}
           >
             <Sparkles size={16} />

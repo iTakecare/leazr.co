@@ -8,8 +8,11 @@
  *   - 2 contrats actifs avec 24 équipements (MacBooks, PC portables, fixes, accessoires)
  *     → ~15 assignés à des collaborateurs, ~9 non assignés (pour démo drag & drop)
  *   - 1 demande en cours (5× MacBook Air) visible dans "Mes demandes"
- *   - Catalogue sur mesure : 15 produits avec prix négociés (-5%) via client_custom_prices
- *     + client_custom_variant_prices sur toutes leurs variantes
+ *   - Catalogue sur mesure : 15 produits avec prix démo (base × PRICE_FACTOR) via
+ *     client_custom_prices + client_custom_variant_prices sur toutes leurs variantes
+ *
+ * Réexécutable sans doublons : relancer --apply met à jour les prix du catalogue
+ * (utile après changement de PRICE_FACTOR) sans recréer contrats ni demandes.
  *
  * Usage :
  *   node scripts/create-demo-client-env.mjs            → dry-run (montre ce qui sera créé)
@@ -101,7 +104,7 @@ const CONTRACT_2_EQUIPMENT = [
 ];
 
 // Catalogue sur mesure : produits actifs (admin_only = false) du catalogue iTakecare.
-// Remise "négociée" de 5% appliquée sur les mensualités.
+// Les mensualités affichées = tarif de base × PRICE_FACTOR.
 const CUSTOM_CATALOG_PRODUCT_IDS = [
   'e414a247-0c60-4ad6-b1a5-f9ecde8c24f5', // MacBook Pro 14 M4
   '52605c7f-fe21-442d-9d5c-e827240fa763', // MacBook Pro 16 M4 Pro
@@ -119,7 +122,9 @@ const CUSTOM_CATALOG_PRODUCT_IDS = [
   '45bcf475-961a-4a4a-93b2-9e5f196cabe9', // Logitech Combo Touch iPad Pro 11
   '8056b477-898d-4185-a663-1e0ce8247183', // Logitech Combo Touch iPad Pro 13
 ];
-const DISCOUNT = 0.95; // -5%
+// Facteur appliqué aux prix catalogue de base pour la démo. Les tarifs internes
+// iTakecare paraissaient trop bas vs marché en présentation → on affiche +15%.
+const PRICE_FACTOR = 1.15;
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const sumMonthly = (eq) => r2(eq.reduce((s, e) => s + e.monthly, 0));
@@ -186,7 +191,7 @@ async function main() {
   console.log(`   Collabs  : ${COLLABORATORS.length}`);
   console.log(`   Contrat 1: ${CONTRACT_1_EQUIPMENT.length} équipements — ${sumMonthly(CONTRACT_1_EQUIPMENT)} €/mois`);
   console.log(`   Contrat 2: ${CONTRACT_2_EQUIPMENT.length} équipements — ${sumMonthly(CONTRACT_2_EQUIPMENT)} €/mois`);
-  console.log(`   Catalogue: ${CUSTOM_CATALOG_PRODUCT_IDS.length} produits sur mesure (-5%)`);
+  console.log(`   Catalogue: ${CUSTOM_CATALOG_PRODUCT_IDS.length} produits sur mesure (base × ${PRICE_FACTOR})`);
 
   if (!APPLY) { console.log('\n   → Relance avec --apply pour créer.\n'); return; }
 
@@ -256,11 +261,17 @@ async function main() {
   }
   console.log(`✅ Collaborateurs: ${collabIds.length}`);
 
-  // 4. Contrats + équipements
+  // 4. Contrats + équipements (sautés s'il en existe déjà — réexécution sans doublons)
   const contracts = [
     { label: 'Parc initial — janvier 2026',  equipment: CONTRACT_1_EQUIPMENT, start: '2026-01-15' },
     { label: 'Extension équipe — juin 2026', equipment: CONTRACT_2_EQUIPMENT, start: '2026-06-01' },
   ];
+  const { count: existingContractsCount } = await sb.from('contracts')
+    .select('id', { count: 'exact', head: true }).eq('client_id', client.id);
+  if (existingContractsCount && existingContractsCount > 0) {
+    console.log(`ℹ️  ${existingContractsCount} contrat(s) déjà présent(s) — création sautée`);
+    contracts.length = 0;
+  }
 
   for (const [i, cfg] of contracts.entries()) {
     const monthly = sumMonthly(cfg.equipment);
@@ -330,6 +341,12 @@ async function main() {
     { title: 'MacBook Air 13 M4 16Go/256Go', sn: null, monthly: 40.95, price: 719 },
     { title: 'MacBook Air 13 M4 16Go/256Go', sn: null, monthly: 40.95, price: 719 },
   ];
+  const { count: existingPendingCount } = await sb.from('offers')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', client.id).eq('converted_to_contract', false);
+  if (existingPendingCount && existingPendingCount > 0) {
+    console.log(`ℹ️  Demande en cours déjà présente — création sautée`);
+  } else {
   const { data: pendingOffer, error: poErr } = await sb.from('offers').insert({
     user_id: ADMIN_USER_ID,
     client_id: client.id,
@@ -361,6 +378,7 @@ async function main() {
     })));
     console.log(`✅ Demande en cours: 5× MacBook Air (${sumMonthly(pendingEq)} €/mois)`);
   }
+  }
 
   // 6. Catalogue sur mesure
   let nbPrices = 0, nbVariants = 0;
@@ -385,10 +403,10 @@ async function main() {
       client_id: client.id,
       product_id: productId,
       company_id: COMPANY_ID,
-      custom_monthly_price: isFinite(baseMonthly) ? r2(baseMonthly * DISCOUNT) : null,
-      custom_purchase_price: isFinite(basePrice) ? r2(basePrice * DISCOUNT) : null,
+      custom_monthly_price: isFinite(baseMonthly) ? r2(baseMonthly * PRICE_FACTOR) : null,
+      custom_purchase_price: isFinite(basePrice) ? r2(basePrice * PRICE_FACTOR) : null,
       is_active: true,
-      notes: 'Tarif négocié démo (-5%)',
+      notes: 'Tarif démo (base × PRICE_FACTOR)',
     }, { onConflict: 'client_id,product_id' });
     if (cpErr) { console.log(`   ⚠️ client_custom_prices ${product.name}: ${cpErr.message}`); continue; }
     nbPrices++;
@@ -398,8 +416,8 @@ async function main() {
         client_id: client.id,
         variant_price_id: v.id,
         company_id: COMPANY_ID,
-        custom_monthly_price: v.monthly_price ? r2(Number(v.monthly_price) * DISCOUNT) : null,
-        custom_purchase_price: v.price ? r2(Number(v.price) * DISCOUNT) : null,
+        custom_monthly_price: v.monthly_price ? r2(Number(v.monthly_price) * PRICE_FACTOR) : null,
+        custom_purchase_price: v.price ? r2(Number(v.price) * PRICE_FACTOR) : null,
         is_active: true,
       }, { onConflict: 'client_id,variant_price_id' });
       if (!vErr) nbVariants++;

@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download, Filter, Laptop } from "lucide-react";
+import { Package, Users, AlertCircle, Search, FileText, Cpu, MapPin, Download, Filter, Laptop, Headset } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useClientData } from "@/hooks/useClientData";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import LocationManager from "@/components/equipment/LocationManager";
 import SoftwareDeploymentWizard from "@/components/equipment/SoftwareDeploymentWizard";
 import ClientSoftwareTab from "@/components/equipment/ClientSoftwareTab";
+import EquipmentAssistanceDialog, { AssistanceEquipment } from "@/components/equipment/EquipmentAssistanceDialog";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,6 +108,13 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [deployWizardOpen, setDeployWizardOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+  const [assistanceOpen, setAssistanceOpen] = useState(false);
+  const [assistanceEquipment, setAssistanceEquipment] = useState<AssistanceEquipment | null>(null);
+
+  const openAssistance = (eq: AssistanceEquipment) => {
+    setAssistanceEquipment(eq);
+    setAssistanceOpen(true);
+  };
 
   // Fetch real equipment from contract_equipment table
   const { data: contractEquipmentRaw = [] } = useQuery({
@@ -353,6 +361,22 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                                         <Download className="h-3 w-3" /> Installer
                                       </Button>
                                     )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="gap-1 text-xs h-8"
+                                      style={{ color: clientColors.indigo }}
+                                      onClick={() =>
+                                        openAssistance({
+                                          id: item.id,
+                                          name: item.title || "Équipement",
+                                          serial: item.serial_number,
+                                          contractRef: contract.contract_number || contract.id.slice(0, 8),
+                                        })
+                                      }
+                                    >
+                                      <Headset className="h-3 w-3" /> Assistance
+                                    </Button>
                                   </div>
                                 </div>
                               );
@@ -408,7 +432,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1.6fr 1fr 0.9fr 1fr 0.7fr 90px",
+                        gridTemplateColumns: "1.6fr 1fr 0.9fr 1fr 0.7fr 150px",
                         gap: 12,
                         padding: "12px 18px",
                         borderBottom: `1px solid ${clientColors.border}`,
@@ -432,7 +456,7 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                         key={eq.id}
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "1.6fr 1fr 0.9fr 1fr 0.7fr 90px",
+                          gridTemplateColumns: "1.6fr 1fr 0.9fr 1fr 0.7fr 150px",
                           gap: 12,
                           padding: "12px 18px",
                           borderBottom: `1px solid ${clientColors.borderSoft}`,
@@ -453,23 +477,32 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
                         <span style={{ fontSize: 12.5, color: clientColors.muted, textAlign: "right" }}>
                           {eq.monthlyPayment != null ? `${Number(eq.monthlyPayment).toFixed(2)} €` : "—"}
                         </span>
-                        <span style={{ textAlign: "right" }}>
-                          {canInstallSoftware(eq.name) ? (
+                        <span style={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                          {canInstallSoftware(eq.name) && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="gap-1 text-xs h-8"
+                              className="text-xs h-8 w-8 p-0"
                               style={{ color: clientColors.indigo }}
+                              title="Installer un logiciel"
                               onClick={() => {
                                 setSelectedEquipment({ id: eq.id, name: eq.name, contractRef: eq.contractRef });
                                 setDeployWizardOpen(true);
                               }}
                             >
-                              <Download className="h-3 w-3" /> Installer
+                              <Download className="h-3.5 w-3.5" />
                             </Button>
-                          ) : (
-                            <span style={{ fontSize: 12, color: clientColors.faint }}>—</span>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1 text-xs h-8"
+                            style={{ color: clientColors.indigo }}
+                            title="Demander une assistance"
+                            onClick={() => openAssistance({ id: eq.id, name: eq.name, serial: eq.serial, contractRef: eq.contractRef })}
+                          >
+                            <Headset className="h-3.5 w-3.5" /> Assistance
+                          </Button>
                         </span>
                       </div>
                     ))}
@@ -505,6 +538,14 @@ const ClientEquipmentPage = ({ defaultTab = "by-contract" }: { defaultTab?: stri
           </Tabs>
         </motion.div>
       </motion.div>
+
+      <EquipmentAssistanceDialog
+        open={assistanceOpen}
+        onOpenChange={setAssistanceOpen}
+        equipment={assistanceEquipment}
+        clientId={clientData.id}
+        companyId={(clientData as any).company_id}
+      />
 
       {selectedEquipment && (
         <SoftwareDeploymentWizard
