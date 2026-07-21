@@ -2,6 +2,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OfferData } from "./types";
 
+// PostgREST passe les .in() dans l'URL : au-delà de ~200 ids la requête part en
+// « Bad Request » (URL trop longue). On découpe donc en lots.
+const IN_CHUNK_SIZE = 100;
+const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
   try {
     console.log("🔍 RÉCUPÉRATION OFFRES - includeConverted:", includeConverted);
@@ -103,46 +112,57 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     
     // Récupérer les derniers workflow logs pour calculer la dernière activité
     const offerIds = data.map(o => o.id);
-    const { data: workflowLogs, error: logsError } = await supabase
-      .from('offer_workflow_logs')
-      .select('offer_id, created_at, new_status, sub_reason')
-      .in('offer_id', offerIds)
-      .order('created_at', { ascending: false });
-
-    if (logsError) {
-      console.warn("⚠️ Erreur lors de la récupération des workflow logs:", logsError);
-    }
+    const logChunks = await Promise.all(
+      chunkArray(offerIds, IN_CHUNK_SIZE).map((ids) =>
+        supabase
+          .from('offer_workflow_logs')
+          .select('offer_id, created_at, new_status, sub_reason')
+          .in('offer_id', ids)
+          .order('created_at', { ascending: false })
+      )
+    );
+    const workflowLogs = logChunks.flatMap((r) => {
+      if (r.error) console.warn("⚠️ Erreur lors de la récupération des workflow logs:", r.error);
+      return r.data || [];
+    }).sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
     // Calculer le dernier log par offre + le motif du statut courant
     // (sub_reason du dernier log correspondant au workflow_status actuel —
     // sert au filtre par motif « sans suite » / refus dans la liste)
     const latestLogByOffer = new Map<string, string>();
     const statusLogByOfferStatus = new Map<string, { sub_reason: string | null; created_at: string }>();
-    if (workflowLogs) {
-      for (const log of workflowLogs) {
-        if (!latestLogByOffer.has(log.offer_id)) {
-          latestLogByOffer.set(log.offer_id, log.created_at);
-        }
-        const key = `${log.offer_id}|${log.new_status}`;
-        if (!statusLogByOfferStatus.has(key)) {
-          statusLogByOfferStatus.set(key, { sub_reason: log.sub_reason ?? null, created_at: log.created_at });
-        }
+    for (const log of workflowLogs) {
+      if (!latestLogByOffer.has(log.offer_id)) {
+        latestLogByOffer.set(log.offer_id, log.created_at);
+      }
+      const key = `${log.offer_id}|${log.new_status}`;
+      const existing = statusLogByOfferStatus.get(key);
+      if (!existing) {
+        statusLogByOfferStatus.set(key, { sub_reason: log.sub_reason ?? null, created_at: log.created_at });
+      } else if (existing.sub_reason == null && log.sub_reason != null) {
+        // Certains passages de statut génèrent deux logs (un avec motif, un sans) :
+        // on garde la date du plus récent mais on récupère le motif s'il existe
+        existing.sub_reason = log.sub_reason;
       }
     }
     
     // Récupérer le dernier document uploadé par offre (pour le calcul d'activité)
-    const { data: latestDocs } = await supabase
-      .from('offer_documents')
-      .select('offer_id, uploaded_at')
-      .in('offer_id', offerIds)
-      .order('uploaded_at', { ascending: false });
-    
+    const docChunks = await Promise.all(
+      chunkArray(offerIds, IN_CHUNK_SIZE).map((ids) =>
+        supabase
+          .from('offer_documents')
+          .select('offer_id, uploaded_at')
+          .in('offer_id', ids)
+          .order('uploaded_at', { ascending: false })
+      )
+    );
+    const latestDocs = docChunks.flatMap((r) => r.data || [])
+      .sort((a, b) => (a.uploaded_at < b.uploaded_at ? 1 : -1));
+
     const latestDocByOffer = new Map<string, string>();
-    if (latestDocs) {
-      for (const doc of latestDocs) {
-        if (!latestDocByOffer.has(doc.offer_id)) {
-          latestDocByOffer.set(doc.offer_id, doc.uploaded_at);
-        }
+    for (const doc of latestDocs) {
+      if (!latestDocByOffer.has(doc.offer_id)) {
+        latestDocByOffer.set(doc.offer_id, doc.uploaded_at);
       }
     }
     

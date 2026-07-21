@@ -274,10 +274,12 @@ async function actionChat(supabase: any, companyId: string, messages: Array<{ ro
 async function actionReport(supabase: any, companyId: string, messages: Array<{ role: string; content: string }>, focus?: string) {
   const clean = (messages || [])
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
-    .slice(-12);
+    .slice(-20);
   const instruction =
     (clean.length
-      ? "À partir de la conversation ci-dessus, produis un rapport d'analyse complet et rigoureux. Ré-exécute les requêtes SQL nécessaires pour disposer de chiffres exacts et complets (ne te fie pas uniquement aux réponses précédentes)."
+      ? "À partir de la conversation ci-dessus, produis un rapport d'analyse complet et rigoureux, digne d'une présentation de direction. " +
+        "Si la conversation couvre PLUSIEURS sujets/KPI, structure le rapport en UNE SECTION PAR SUJET (dans l'ordre de la conversation), " +
+        "avec les KPIs globaux les plus parlants en tête de rapport. Ré-exécute les requêtes SQL nécessaires pour disposer de chiffres exacts et complets (ne te fie pas uniquement aux réponses précédentes)."
       : "Produis un rapport d'analyse GÉNÉRAL de l'activité : volumes et statuts des demandes, taux de conversion, délais moyens/médians par étape, motifs de refus, sans suite, CA facturé, achats, marges. Exécute toutes les requêtes SQL nécessaires.") +
     (focus ? `\nFocus demandé : ${focus}` : "") +
     "\nQuand tu as tous les chiffres, appelle l'outil emit_report avec le rapport structuré final (valeurs formatées en français : '12 500 €', '38 %', '42 j'). N'écris pas le rapport en texte : uniquement via emit_report.";

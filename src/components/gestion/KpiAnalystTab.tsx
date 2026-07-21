@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarChart3, Send, RefreshCw, FileDown, Database, Trash2 } from "lucide-react";
@@ -35,6 +36,8 @@ const KpiAnalystTab: React.FC = () => {
   const [input, setInput] = useState("");
   const [chatting, setChatting] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  // Indices des réponses cochées « Inclure au rapport » (PDF combiné multi-KPI)
+  const [selectedForReport, setSelectedForReport] = useState<Set<number>>(new Set());
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, chatting]);
@@ -58,16 +61,40 @@ const KpiAnalystTab: React.FC = () => {
     }
   };
 
+  const toggleForReport = (idx: number) => {
+    setSelectedForReport((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   const handlePdf = async () => {
     if (!companyId || generatingPdf) return;
+    // Si des analyses sont cochées : rapport combiné sur ces analyses uniquement
+    // (chaque réponse cochée est envoyée avec la question qui la précède)
+    let reportMessages = messages;
+    if (selectedForReport.size > 0) {
+      reportMessages = [];
+      messages.forEach((m, i) => {
+        if (m.role === "assistant" && selectedForReport.has(i)) {
+          const prev = messages[i - 1];
+          if (prev?.role === "user") reportMessages.push(prev);
+          reportMessages.push(m);
+        }
+      });
+    }
     setGeneratingPdf(true);
     const toastId = toast.loading(
-      messages.length
-        ? "Génération du rapport PDF à partir de la conversation..."
-        : "Génération du rapport d'activité général (peut prendre 1-2 min)...",
+      selectedForReport.size > 0
+        ? `Génération du rapport combiné (${selectedForReport.size} analyse${selectedForReport.size > 1 ? "s" : ""})...`
+        : messages.length
+          ? "Génération du rapport PDF à partir de la conversation..."
+          : "Génération du rapport d'activité général (peut prendre 1-2 min)...",
     );
     try {
-      const report = await kpiReport(companyId, messages);
+      const report = await kpiReport(companyId, reportMessages);
       await downloadKpiReportPdf(report);
       toast.success("Rapport PDF téléchargé", { id: toastId });
     } catch (e: any) {
@@ -91,13 +118,15 @@ const KpiAnalystTab: React.FC = () => {
           </div>
           <div className="flex gap-2">
             {messages.length > 0 && (
-              <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" onClick={() => setMessages([])} disabled={chatting || generatingPdf}>
+              <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" onClick={() => { setMessages([]); setSelectedForReport(new Set()); }} disabled={chatting || generatingPdf}>
                 <Trash2 className="h-3.5 w-3.5" /> Vider
               </Button>
             )}
             <Button onClick={handlePdf} disabled={generatingPdf || chatting} size="sm" variant="outline" className="gap-2">
               {generatingPdf ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-              {messages.length ? "PDF de cette analyse" : "Rapport d'activité PDF"}
+              {selectedForReport.size > 0
+                ? `PDF combiné (${selectedForReport.size} analyse${selectedForReport.size > 1 ? "s" : ""})`
+                : messages.length ? "PDF de cette analyse" : "Rapport d'activité PDF"}
             </Button>
           </div>
         </div>
@@ -131,6 +160,14 @@ const KpiAnalystTab: React.FC = () => {
                 {m.role === "assistant" ? (
                   <>
                     <MD>{m.content}</MD>
+                    <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground cursor-pointer w-fit">
+                      <Checkbox
+                        checked={selectedForReport.has(i)}
+                        onCheckedChange={() => toggleForReport(i)}
+                        className="h-3.5 w-3.5"
+                      />
+                      Inclure au rapport PDF
+                    </label>
                     {m.queries && m.queries.length > 0 && (
                       <details className="mt-2 text-xs text-muted-foreground">
                         <summary className="cursor-pointer flex items-center gap-1">

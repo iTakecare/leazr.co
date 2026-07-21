@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.78";
+export const ADMIN_VERSION = "1.3.79";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.79",
+    date: "2026-07-21",
+    title: "Motifs sans suite enfin visibles + rapport PDF combiné multi-KPI",
+    items: [
+      "Correctif : les motifs de « sans suite » ne s'affichaient pas et leur filtre restait vide — le chargement de l'historique échouait silencieusement dès que la liste dépassait ~200 demandes (requête trop longue). Le motif apparaît désormais sous le badge « Sans suite » et le filtre par motif fonctionne.",
+      "Les demandes classées sans suite avant l'introduction des motifs remontent via le filtre « Sans motif renseigné ».",
+      "Analyste KPI : coche « Inclure au rapport PDF » sous chaque réponse — tu peux combiner plusieurs analyses (délais de refus, sans suite, conversions...) en un seul rapport PDF structuré, une section par sujet, prêt pour une présentation.",
+      "Bonus : la colonne « Activité » de la liste des demandes est plus fiable (même correctif de chargement).",
+    ],
+  },
   {
     version: "1.3.78",
     date: "2026-07-21",
