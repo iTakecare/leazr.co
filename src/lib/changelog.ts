@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.71";
+export const ADMIN_VERSION = "1.3.72";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.72",
+    date: "2026-07-21",
+    title: "CRM : retour du bouton « Nouveau client »",
+    items: [
+      "Le bouton « Nouveau client » avait disparu de la page CRM > Clients suite à l'intégration du Centre d'appels (ouverture automatique de la fiche via un lien) : la modale restait accessible par ce lien mais n'avait plus de bouton sur la page.",
+      "Le bouton est de retour à sa place, à droite de la barre d'actions, et ouvre la même modale de création de client.",
+    ],
+  },
   {
     version: "1.3.71",
     date: "2026-07-20",

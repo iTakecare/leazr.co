@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, ShieldQuestion } from "lucide-react";
+import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, ShieldQuestion, Plus } from "lucide-react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
@@ -197,6 +197,10 @@ const Clients = () => {
                             </Button>
                             <BulkKycButton onCompleted={refreshClients} />
                             <EnrichKycFromDocsButton onCompleted={refreshClients} />
+                            <Button className="bg-[#1d5681] gap-2" onClick={() => setCreateOpen(true)}>
+                              <Plus className="h-4 w-4" />
+                              Nouveau client
+                            </Button>
                             <CreateClientDialog onClientCreated={refreshClients} open={createOpen} onOpenChange={setCreateOpen} />
                           </div>
                         </div>
