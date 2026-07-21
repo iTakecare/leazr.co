@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Plus, Pencil, Trash2, Loader2, RefreshCw, Laptop, Send } from "lucide-react";
+import { Package, Plus, Pencil, Trash2, Loader2, RefreshCw, Laptop, Send, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ interface OwnedEquipment {
   supplier: string | null;
   amortization_years: number;
   condition: string;
+  collaborator_id: string | null;
   notes: string | null;
 }
 
@@ -50,6 +51,7 @@ const EMPTY_FORM = {
   supplier: "",
   amortization_years: "3",
   condition: "good",
+  collaborator_id: "none",
   notes: "",
 };
 
@@ -106,6 +108,35 @@ const ClientOwnedEquipmentTab: React.FC<ClientOwnedEquipmentTabProps> = ({ clien
     enabled: !!clientId,
   });
 
+  const { data: collaborators = [] } = useQuery({
+    queryKey: ["client-collaborators", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("collaborators")
+        .select("id, name, role")
+        .eq("client_id", clientId)
+        .order("name");
+      if (error) throw error;
+      return data as { id: string; name: string; role: string | null }[];
+    },
+    enabled: !!clientId,
+  });
+
+  const assign = useMutation({
+    mutationFn: async ({ id, collaboratorId }: { id: string; collaboratorId: string | null }) => {
+      const { error } = await supabase
+        .from("client_owned_equipment")
+        .update({ collaborator_id: collaboratorId })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["client-owned-equipment", clientId] });
+      toast.success(vars.collaboratorId ? "Équipement assigné" : "Équipement désassigné");
+    },
+    onError: () => toast.error("Erreur lors de l'assignation"),
+  });
+
   const openCreate = () => {
     setEditing(null);
     setForm(EMPTY_FORM);
@@ -124,6 +155,7 @@ const ClientOwnedEquipmentTab: React.FC<ClientOwnedEquipmentTabProps> = ({ clien
       supplier: eq.supplier ?? "",
       amortization_years: String(eq.amortization_years ?? 3),
       condition: eq.condition ?? "good",
+      collaborator_id: eq.collaborator_id ?? "none",
       notes: eq.notes ?? "",
     });
     setFormOpen(true);
@@ -143,6 +175,7 @@ const ClientOwnedEquipmentTab: React.FC<ClientOwnedEquipmentTabProps> = ({ clien
         supplier: form.supplier.trim() || null,
         amortization_years: Number(form.amortization_years) || 3,
         condition: form.condition,
+        collaborator_id: form.collaborator_id !== "none" ? form.collaborator_id : null,
         notes: form.notes.trim() || null,
       };
       const { error } = editing
@@ -271,6 +304,24 @@ const ClientOwnedEquipmentTab: React.FC<ClientOwnedEquipmentTabProps> = ({ clien
                         {status.label}
                       </span>
                     )}
+                    <Select
+                      value={eq.collaborator_id ?? "none"}
+                      onValueChange={(v) => assign.mutate({ id: eq.id, collaboratorId: v === "none" ? null : v })}
+                    >
+                      <SelectTrigger
+                        className="h-8 rounded-lg text-xs w-[170px] gap-1"
+                        style={{ color: eq.collaborator_id ? clientColors.ink : clientColors.faint }}
+                      >
+                        <UserRound className="h-3.5 w-3.5 shrink-0" style={{ color: eq.collaborator_id ? clientColors.indigo : clientColors.faint }} />
+                        <SelectValue placeholder="Non assigné" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Non assigné</SelectItem>
+                        {collaborators.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {renewable && (
                       <Button
                         size="sm"
@@ -370,6 +421,18 @@ const ClientOwnedEquipmentTab: React.FC<ClientOwnedEquipmentTabProps> = ({ clien
                 <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CONDITIONS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: clientColors.muted, display: "block", marginBottom: 5 }}>Assigné à</label>
+              <Select value={form.collaborator_id} onValueChange={(v) => setForm({ ...form, collaborator_id: v })}>
+                <SelectTrigger className="rounded-xl"><SelectValue placeholder="Non assigné" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Non assigné</SelectItem>
+                  {collaborators.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}{c.role ? ` — ${c.role}` : ""}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
