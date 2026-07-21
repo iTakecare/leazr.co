@@ -1442,11 +1442,7 @@ const CreateOffer = () => {
                         {/* Nav step 1 */}
                         {!isEditMode && (
                           <div className="flex justify-end pt-2">
-                            <Button
-                              onClick={goNext}
-                              disabled={!canAdvanceStep1}
-                              className="bg-primary hover:bg-primary/90"
-                            >
+                            <Button onClick={goNext} disabled={!canAdvanceStep1}>
                               {productsToBeDetermined ? "Valider →" : "Équipements →"}
                             </Button>
                           </div>
@@ -1675,14 +1671,10 @@ const CreateOffer = () => {
                         {/* Nav step 2 */}
                         {!isEditMode && (
                           <div className="flex justify-between pt-2">
-                            <Button variant="outline" onClick={goBack}>
+                            <Button onClick={goBack}>
                               ← Configuration
                             </Button>
-                            <Button
-                              onClick={goNext}
-                              disabled={!canAdvanceStep2}
-                              className="bg-primary hover:bg-primary/90"
-                            >
+                            <Button onClick={goNext} disabled={!canAdvanceStep2}>
                               Valider →
                             </Button>
                           </div>
@@ -1729,7 +1721,7 @@ const CreateOffer = () => {
                         {/* Nav step 3 */}
                         {!isEditMode && (
                           <div className="flex justify-start pt-2">
-                            <Button variant="outline" onClick={goBack}>
+                            <Button onClick={goBack}>
                               ← {productsToBeDetermined ? "Configuration" : "Équipements"}
                             </Button>
                           </div>

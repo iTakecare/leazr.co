@@ -171,7 +171,7 @@ const ReactivateOfferButton: React.FC<ReactivateOfferButtonProps> = ({
             <Button 
               onClick={handleReactivate} 
               disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className=""
             >
               {isSubmitting ? (
                 <>

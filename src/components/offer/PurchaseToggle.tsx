@@ -30,7 +30,7 @@ const PurchaseToggle: React.FC<PurchaseToggleProps> = ({
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all",
             !isPurchase 
-              ? "!bg-blue-600 !text-white shadow-md" 
+              ? "!bg-primary !text-primary-foreground shadow-md"
               : "bg-transparent text-muted-foreground hover:text-foreground"
           )}
         >

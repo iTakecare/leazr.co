@@ -319,7 +319,7 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
 
       <Button
         size="sm"
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+        className="w-full"
         onClick={handleSend}
         disabled={sending || !canSend}
       >

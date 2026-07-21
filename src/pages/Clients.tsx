@@ -197,7 +197,7 @@ const Clients = () => {
                             </Button>
                             <BulkKycButton onCompleted={refreshClients} />
                             <EnrichKycFromDocsButton onCompleted={refreshClients} />
-                            <Button className="bg-[#1d5681] gap-2" onClick={() => setCreateOpen(true)}>
+                            <Button className="gap-2" onClick={() => setCreateOpen(true)}>
                               <Plus className="h-4 w-4" />
                               Nouveau client
                             </Button>

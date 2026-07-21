@@ -524,7 +524,7 @@ const ContractFeesSepaCard: React.FC<ContractFeesSepaCardProps> = ({
                 </p>
                 <Button
                   size="sm"
-                  className="w-full h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                  className="w-full h-9 text-xs"
                   onClick={handleActivateInsurance}
                   disabled={insuranceLoading}
                 >

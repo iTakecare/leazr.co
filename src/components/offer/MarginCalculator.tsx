@@ -201,7 +201,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
               <Button 
                 onClick={handleApplyMargin}
                 disabled={false}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full"
               >
                 {hideFinancialDetails ? 'Appliquer cette mensualité' : 'Appliquer cette marge'}
               </Button>
@@ -286,7 +286,7 @@ const MarginCalculator: React.FC<MarginCalculatorProps> = ({
             <Button 
               onClick={handleApplySalePrice}
               disabled={targetSalePrice <= equipmentPurchasePrice}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              className="w-full"
             >
               {isPurchase ? 'Appliquer ce prix de vente' : (hideFinancialDetails ? 'Appliquer ce prix de vente' : 'Appliquer cette configuration')}
             </Button>

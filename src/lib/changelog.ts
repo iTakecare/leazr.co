@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.73";
+export const ADMIN_VERSION = "1.3.74";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.74",
+    date: "2026-07-21",
+    title: "Boutons uniformes dans toute l'application + cases à cocher discrètes",
+    items: [
+      "Tous les boutons principaux utilisent désormais la même couleur (le bleu de votre personnalisation société) : fini le mélange de bleus différents selon les écrans (calculateur de marge, e-signature Grenke, résiliation de contrat, SEPA, sélecteur Leasing/Achat, wizard de nouvelle demande…).",
+      "Les boutons de navigation du wizard « Nouvelle demande » (← Configuration, ← Équipements, Valider →) sont maintenant bleus, uniformes avec le reste.",
+      "Un bouton désactivé s'affiche en bleu estompé (au lieu d'un gris quasi invisible) : on voit qu'il existe mais qu'il n'est pas encore actionnable — ex. « Valider → » tant qu'aucun équipement n'est ajouté.",
+      "Les cases à cocher gardent un fond blanc avec une coche foncée une fois cochées (elles héritaient d'un fond bleu plein depuis la 1.3.73). Les interrupteurs (toggles) restent bleus quand activés, c'est voulu.",
+    ],
+  },
   {
     version: "1.3.73",
     date: "2026-07-21",

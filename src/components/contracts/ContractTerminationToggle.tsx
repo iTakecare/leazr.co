@@ -106,7 +106,7 @@ const ContractTerminationToggle: React.FC<ContractTerminationToggleProps> = ({
           <Button 
             onClick={handleReactivate}
             disabled={isUpdating}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full"
           >
             {isUpdating ? "En cours..." : "Réactiver en statut Prolongé"}
           </Button>

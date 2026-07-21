@@ -237,7 +237,7 @@ const CreateClientDialog = ({
   }
   return <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-[#1d5681]">
+        <Button>
           <Plus className="h-4 w-4 mr-2" />
           Nouveau client
         </Button>
