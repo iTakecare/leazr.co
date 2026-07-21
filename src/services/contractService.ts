@@ -634,15 +634,28 @@ export const uploadContractDocument = async (
 
 export const getContracts = async (includeCompleted = true): Promise<Contract[]> => {
   try {
+    // Filtrage explicite par company_id : la RLS laisse passer toutes les sociétés
+    // pour les admins, ce qui ferait remonter les contrats d'autres tenants
+    // (dont les environnements de démo rattachés à une société fantôme).
+    const { data: authData } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', authData.user?.id ?? '')
+      .maybeSingle();
+
     let query = supabase
       .from('contracts')
       .select(`
-        *, 
+        *,
         clients(name, email, company),
         offers!contracts_offer_id_fkey(dossier_number, leaser_request_number, down_payment, coefficient, financed_amount, grenke_state),
         contract_equipment(id, title, monthly_payment, quantity),
         leasers(logo_url)
       `)
+    if (profile?.company_id) {
+      query = query.eq('company_id', profile.company_id);
+    }
     if (!includeCompleted) {
       query = query.neq('status', contractStatuses.COMPLETED);
     }
