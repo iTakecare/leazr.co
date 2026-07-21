@@ -206,7 +206,7 @@ const ClientOwnedEquipmentTab: React.FC<ClientOwnedEquipmentTabProps> = ({ clien
   const requestRenewal = useMutation({
     mutationFn: async (eq: OwnedEquipment) => {
       const status = amortizationStatus(eq);
-      const { error } = await supabase.from("support_tickets").insert({
+      const { data: ticket, error } = await supabase.from("support_tickets").insert({
         client_id: clientId,
         company_id: companyId,
         subject: `Proposition de renouvellement — ${eq.title}`,
@@ -222,8 +222,10 @@ const ClientOwnedEquipmentTab: React.FC<ClientOwnedEquipmentTabProps> = ({ clien
         status: "open",
         priority: "medium",
         created_by_client: true,
-      });
+      }).select("id").single();
       if (error) throw error;
+      // Email aux admins — fire-and-forget, ne bloque pas la création
+      supabase.functions.invoke("notify-new-ticket", { body: { ticketId: ticket.id } }).catch(() => {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-tickets"] });

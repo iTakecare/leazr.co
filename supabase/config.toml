@@ -266,6 +266,9 @@ verify_jwt = false
 [functions.notify-ticket-reply]
 verify_jwt = false
 
+[functions.notify-new-ticket]
+verify_jwt = false
+
 [functions.voice-call-start]
 verify_jwt = true
 
