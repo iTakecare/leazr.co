@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.76";
+export const ADMIN_VERSION = "1.3.77";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.77",
+    date: "2026-07-21",
+    title: "Analyste KPI : un chat IA qui interroge la base et sort des rapports PDF",
+    items: [
+      "Nouvel onglet « Analyste KPI » dans Gestion & pilotage : pose n'importe quelle question chiffrée en langage naturel (ex. « quels sont les types de refus, après combien de temps et pour quels motifs ? », « après combien de temps une demande passe-t-elle sans suite ? »).",
+      "L'IA écrit et exécute elle-même les requêtes SQL en lecture seule, strictement limitées aux données de ta société — les requêtes utilisées sont consultables sous chaque réponse pour vérifier.",
+      "Bouton « PDF de cette analyse » : transforme la conversation en un rapport PDF structuré (indicateurs clés, tableaux, recommandations). Sans conversation, il génère un rapport d'activité général.",
+      "Elle connaît le métier : statuts de demandes (refus interne, refus bailleur, sans suite...), motifs de refus, délais entre étapes, contrats, factures de vente et d'achat, marges.",
+    ],
+  },
   {
     version: "1.3.76",
     date: "2026-07-21",
