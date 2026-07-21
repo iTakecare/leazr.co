@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Phone, MessageSquare, FileText, Plus, Send, Clock, Loader2, ArrowLeft, Paperclip, Download, User, Shield, ChevronRight, ChevronDown, X } from "lucide-react";
+import { Mail, Phone, MessageSquare, FileText, Plus, Send, Clock, Loader2, ArrowLeft, Paperclip, Download, User, Shield, ChevronRight, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
@@ -104,7 +104,6 @@ const ClientSupportPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [form, setForm] = useState({ subject: "", category: "technical", description: "" });
-  const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -138,22 +137,6 @@ const ClientSupportPage = () => {
       return data;
     },
     enabled: !!clientId,
-  });
-
-  // Fetch FAQ from knowledge base
-  const { data: faqArticles = [] } = useQuery({
-    queryKey: ["client-faq", companyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("support_knowledge_base")
-        .select("*")
-        .eq("company_id", companyId!)
-        .eq("is_active", true)
-        .order("category");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!companyId,
   });
 
   const createTicket = useMutation({
@@ -323,53 +306,6 @@ const ClientSupportPage = () => {
         )}
       </div>
 
-      {/* Questions fréquentes */}
-      {faqArticles.length > 0 && (
-        <div>
-          <p style={sectionLabelStyle}>Questions fréquentes</p>
-          <ClientCard pad={0}>
-            {faqArticles.map((article: any, idx: number) => {
-              const isOpen = openFaq === article.id;
-              return (
-                <div
-                  key={article.id}
-                  style={{ borderTop: idx === 0 ? "none" : `1px solid ${clientColors.borderSoft}` }}
-                >
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : article.id)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      padding: "15px 18px",
-                      background: "transparent",
-                      border: 0,
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                  >
-                    <span style={{ fontSize: 13.5, fontWeight: 700, color: clientColors.ink }}>
-                      {article.title}
-                    </span>
-                    <ChevronDown
-                      size={16}
-                      color={clientColors.faint}
-                      style={{ flexShrink: 0, transition: "transform .2s", transform: isOpen ? "rotate(180deg)" : "none" }}
-                    />
-                  </button>
-                  {isOpen && (
-                    <div style={{ padding: "0 18px 16px", fontSize: 13, color: clientColors.muted, whiteSpace: "pre-line", lineHeight: 1.55 }}>
-                      {article.content}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </ClientCard>
-        </div>
-      )}
     </ClientPage>
   );
 };
