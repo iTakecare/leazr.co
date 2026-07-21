@@ -105,20 +105,27 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     const offerIds = data.map(o => o.id);
     const { data: workflowLogs, error: logsError } = await supabase
       .from('offer_workflow_logs')
-      .select('offer_id, created_at')
+      .select('offer_id, created_at, new_status, sub_reason')
       .in('offer_id', offerIds)
       .order('created_at', { ascending: false });
-    
+
     if (logsError) {
       console.warn("⚠️ Erreur lors de la récupération des workflow logs:", logsError);
     }
-    
-    // Calculer le dernier log par offre
+
+    // Calculer le dernier log par offre + le motif du statut courant
+    // (sub_reason du dernier log correspondant au workflow_status actuel —
+    // sert au filtre par motif « sans suite » / refus dans la liste)
     const latestLogByOffer = new Map<string, string>();
+    const statusLogByOfferStatus = new Map<string, { sub_reason: string | null; created_at: string }>();
     if (workflowLogs) {
       for (const log of workflowLogs) {
         if (!latestLogByOffer.has(log.offer_id)) {
           latestLogByOffer.set(log.offer_id, log.created_at);
+        }
+        const key = `${log.offer_id}|${log.new_status}`;
+        if (!statusLogByOfferStatus.has(key)) {
+          statusLogByOfferStatus.set(key, { sub_reason: log.sub_reason ?? null, created_at: log.created_at });
         }
       }
     }
@@ -158,10 +165,13 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
         : 0;
       const lastActivityAt = new Date(Math.max(updatedAtTime, lastLogTime, lastDocTime)).toISOString();
       
+      const statusLog = statusLogByOfferStatus.get(`${offer.id}|${offer.workflow_status}`);
       return {
         ...offer,
         has_recent_documents: hasUnviewedDocs,
-        last_activity_at: lastActivityAt
+        last_activity_at: lastActivityAt,
+        status_sub_reason: statusLog?.sub_reason ?? null,
+        status_changed_at: statusLog?.created_at ?? null
       };
     });
   } catch (error) {

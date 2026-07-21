@@ -13,9 +13,21 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.77";
+export const ADMIN_VERSION = "1.3.78";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.78",
+    date: "2026-07-21",
+    title: "Filtres période & motif sur « Mes demandes » + correctif CFO IA (self-leasing)",
+    items: [
+      "« Mes demandes » : nouveau filtre par période « Du / Au » (sur la date de l'offre), disponible sur tous les onglets — ex. toutes les refusées du 01/01 au 21/07.",
+      "Onglet « Refusées » : filtres supplémentaires par type de rejet (interne / leaser) et par motif de refus (suspect/fraude, entreprise trop jeune, client particulier, situation financière...).",
+      "Onglet « Sans suite » : filtre par motif (plus de nouvelles, projet reporté, parti chez un concurrent, budget, projet annulé...).",
+      "Le motif s'affiche désormais sous le badge de statut dans la liste pour les demandes refusées et sans suite.",
+      "CFO IA : les contrats en self-leasing n'apparaissent plus à tort en perte — le coût d'achat est lissé sur la durée du contrat et la marge est désormais calculée en projeté (loyers totaux − coût − commission), au lieu de comparer le facturé à ce jour au coût d'achat total.",
+    ],
+  },
   {
     version: "1.3.77",
     date: "2026-07-21",

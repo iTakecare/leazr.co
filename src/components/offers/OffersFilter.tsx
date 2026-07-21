@@ -8,6 +8,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InvoiceDateRangeFilter } from "@/components/invoicing/InvoiceDateRangeFilter";
+
+// Motifs de refus (offers.rejection_category — mêmes codes que ScoringModal)
+export const REJECTION_CATEGORY_LABELS: Record<string, string> = {
+  fraud: "Suspect / fraude",
+  young_company: "Entreprise trop jeune / montant",
+  private_client: "Client particulier",
+  financial_situation: "Situation financière",
+  other: "Autre raison",
+  unknown: "Sans motif renseigné",
+};
+
+// Motifs de sans suite (offer_workflow_logs.sub_reason — mêmes codes que NoFollowUpModal)
+export const NO_FOLLOW_UP_LABELS: Record<string, string> = {
+  no_response: "Plus de nouvelles après relances",
+  project_postponed: "Projet reporté par le client",
+  went_competitor: "Parti chez un concurrent",
+  budget_issue: "Problème de budget",
+  project_cancelled: "Projet annulé",
+  other: "Autre raison",
+  unknown: "Sans motif renseigné",
+};
 
 interface OffersFilterProps {
   activeTab: string;
@@ -17,6 +39,14 @@ interface OffersFilterProps {
   activeSource: string;
   onSourceChange: (value: string) => void;
   hideTypeFilter?: boolean;
+  dateFrom?: Date;
+  dateTo?: Date;
+  onDateFromChange?: (date: Date | undefined) => void;
+  onDateToChange?: (date: Date | undefined) => void;
+  activeRejectType?: string;
+  onRejectTypeChange?: (value: string) => void;
+  activeMotif?: string;
+  onMotifChange?: (value: string) => void;
 }
 
 const OffersFilter = ({
@@ -27,7 +57,20 @@ const OffersFilter = ({
   activeSource,
   onSourceChange,
   hideTypeFilter = false,
+  dateFrom,
+  dateTo,
+  onDateFromChange,
+  onDateToChange,
+  activeRejectType = "all",
+  onRejectTypeChange,
+  activeMotif = "all",
+  onMotifChange,
 }: OffersFilterProps) => {
+  const motifLabels =
+    activeTab === "rejected" ? REJECTION_CATEGORY_LABELS
+    : activeTab === "without_follow_up" ? NO_FOLLOW_UP_LABELS
+    : null;
+
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Status tabs — principal filtre, style pill compact */}
@@ -97,6 +140,48 @@ const OffersFilter = ({
               <SelectItem value="web_catalog" className="text-xs">Catalogue</SelectItem>
             </SelectContent>
           </Select>
+        </>
+      )}
+
+      {/* Onglet Refusées : type de rejet (interne / leaser) */}
+      {activeTab === "rejected" && onRejectTypeChange && (
+        <Select value={activeRejectType} onValueChange={onRejectTypeChange}>
+          <SelectTrigger className="h-8 w-[140px] text-xs border-border/60 rounded-full px-3 bg-background">
+            <SelectValue placeholder="Type de rejet" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">Tous les rejets</SelectItem>
+            <SelectItem value="internal_rejected" className="text-xs">Rejet interne</SelectItem>
+            <SelectItem value="leaser_rejected" className="text-xs">Rejet leaser</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* Onglets Refusées / Sans suite : filtre par motif */}
+      {motifLabels && onMotifChange && (
+        <Select value={activeMotif} onValueChange={onMotifChange}>
+          <SelectTrigger className="h-8 w-[210px] text-xs border-border/60 rounded-full px-3 bg-background">
+            <SelectValue placeholder="Motif" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">Tous les motifs</SelectItem>
+            {Object.entries(motifLabels).map(([code, label]) => (
+              <SelectItem key={code} value={code} className="text-xs">{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* Plage de dates (date de l'offre) */}
+      {onDateFromChange && onDateToChange && (
+        <>
+          <div className="h-5 w-px bg-border/60 hidden sm:block" />
+          <InvoiceDateRangeFilter
+            startDate={dateFrom}
+            endDate={dateTo}
+            onStartDateChange={onDateFromChange}
+            onEndDateChange={onDateToChange}
+          />
         </>
       )}
     </div>

@@ -40,6 +40,14 @@ const Offers = () => {
     setActiveSource,
     activeKPIFilter,
     setActiveKPIFilter,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    activeRejectType,
+    setActiveRejectType,
+    activeMotif,
+    setActiveMotif,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     isUpdatingStatus,
@@ -151,7 +159,23 @@ const Offers = () => {
 
         {/* Filtres sur une seule ligne */}
         <div className="mb-4">
-          <OffersFilter activeTab={activeTab} onTabChange={setActiveTab} activeType={activeType} onTypeChange={setActiveType} activeSource={activeSource} onSourceChange={setActiveSource} hideTypeFilter={isBrokerUser()} />
+          <OffersFilter
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            activeType={activeType}
+            onTypeChange={setActiveType}
+            activeSource={activeSource}
+            onSourceChange={setActiveSource}
+            hideTypeFilter={isBrokerUser()}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+            activeRejectType={activeRejectType}
+            onRejectTypeChange={setActiveRejectType}
+            activeMotif={activeMotif}
+            onMotifChange={setActiveMotif}
+          />
         </div>
 
         {/* KPI cards */}

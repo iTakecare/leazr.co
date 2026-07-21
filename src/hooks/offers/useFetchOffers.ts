@@ -21,6 +21,9 @@ export interface Offer extends OfferData {
   has_recent_documents?: boolean;
   is_purchase?: boolean;
   last_activity_at?: string;
+  rejection_category?: string | null;
+  status_sub_reason?: string | null;
+  status_changed_at?: string | null;
   offer_custom_packs?: Array<{
     id: string;
     pack_name: string;

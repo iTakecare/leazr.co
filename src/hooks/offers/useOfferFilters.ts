@@ -4,12 +4,26 @@ import { Offer } from "./useFetchOffers";
 
 export const useOfferFilters = (offers: Offer[]) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("in_progress");
+  const [activeTab, setActiveTabState] = useState("in_progress");
   const [activeType, setActiveType] = useState("all");
   const [activeSource, setActiveSource] = useState("all");
   const [activeKPIFilter, setActiveKPIFilter] = useState<string | null>(null);
+  // Plage de dates sur la date de l'offre (created_at)
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  // Onglet Refusées : type de rejet (internal_rejected / leaser_rejected)
+  const [activeRejectType, setActiveRejectType] = useState("all");
+  // Motif : rejection_category (Refusées) ou sub_reason du log (Sans suite)
+  const [activeMotif, setActiveMotif] = useState("all");
   const [filteredOffers, setFilteredOffers] = useState<Offer[]>([]);
-  
+
+  // Changer d'onglet réinitialise les filtres propres à l'onglet (type de rejet, motif)
+  const setActiveTab = (tab: string) => {
+    setActiveTabState(tab);
+    setActiveRejectType("all");
+    setActiveMotif("all");
+  };
+
   useEffect(() => {
     if (!offers || offers.length === 0) {
       setFilteredOffers([]);
@@ -69,6 +83,32 @@ export const useOfferFilters = (offers: Offer[]) => {
       }
     });
     
+    // Filtre par plage de dates (date de l'offre)
+    if (dateFrom) {
+      const fromTime = new Date(dateFrom).setHours(0, 0, 0, 0);
+      result = result.filter(offer => offer.created_at && new Date(offer.created_at).getTime() >= fromTime);
+    }
+    if (dateTo) {
+      const toTime = new Date(dateTo).setHours(23, 59, 59, 999);
+      result = result.filter(offer => offer.created_at && new Date(offer.created_at).getTime() <= toTime);
+    }
+
+    // Onglet Refusées : filtre par type de rejet (interne / leaser)
+    if (activeTab === "rejected" && activeRejectType !== "all") {
+      result = result.filter(offer => (offer.workflow_status || '').trim().toLowerCase() === activeRejectType);
+    }
+
+    // Filtre par motif
+    if (activeMotif !== "all") {
+      if (activeTab === "rejected") {
+        // Motif de refus = offers.rejection_category
+        result = result.filter(offer => (offer.rejection_category || 'unknown') === activeMotif);
+      } else if (activeTab === "without_follow_up") {
+        // Motif sans suite = sub_reason du dernier log de passage en without_follow_up
+        result = result.filter(offer => (offer.status_sub_reason || 'unknown') === activeMotif);
+      }
+    }
+
     // Filtre par type d'offre (admin_offer, client_request, etc.)
     if (activeType !== "all") {
       console.log(`Filtering by offer type: ${activeType}`);
@@ -124,8 +164,8 @@ export const useOfferFilters = (offers: Offer[]) => {
     
     console.log(`Filtering complete: ${result.length} offers remain`);
     setFilteredOffers(result);
-  }, [offers, searchTerm, activeTab, activeType, activeSource, activeKPIFilter]);
-  
+  }, [offers, searchTerm, activeTab, activeType, activeSource, activeKPIFilter, dateFrom, dateTo, activeRejectType, activeMotif]);
+
   return {
     searchTerm,
     setSearchTerm,
@@ -137,6 +177,14 @@ export const useOfferFilters = (offers: Offer[]) => {
     setActiveSource,
     activeKPIFilter,
     setActiveKPIFilter,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    activeRejectType,
+    setActiveRejectType,
+    activeMotif,
+    setActiveMotif,
     filteredOffers
   };
 };

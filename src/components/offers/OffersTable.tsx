@@ -51,6 +51,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import OfferStatusBadge from "./OfferStatusBadge";
+import { REJECTION_CATEGORY_LABELS, NO_FOLLOW_UP_LABELS } from "./OffersFilter";
 import OfferTypeTag from "./OfferTypeTag";
 import ReminderIndicator from "./ReminderIndicator";
 import SendReminderModal from "./SendReminderModal";
@@ -869,10 +870,24 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-[11px] py-2">
-                    <OfferStatusBadge 
-                      status={offer.workflow_status} 
+                    <OfferStatusBadge
+                      status={offer.workflow_status}
                       hasRecentDocuments={offer.has_recent_documents}
                     />
+                    {(() => {
+                      // Motif affiché sous le badge pour les refusées / sans suite
+                      const motif =
+                        (offer.workflow_status === 'internal_rejected' || offer.workflow_status === 'leaser_rejected')
+                          ? REJECTION_CATEGORY_LABELS[(offer as any).rejection_category || '']
+                          : offer.workflow_status === 'without_follow_up'
+                            ? NO_FOLLOW_UP_LABELS[(offer as any).status_sub_reason || '']
+                            : undefined;
+                      return motif ? (
+                        <div className="text-[10px] text-muted-foreground mt-0.5 max-w-[130px] truncate" title={motif}>
+                          {motif}
+                        </div>
+                      ) : null;
+                    })()}
                   </TableCell>
                   
                   {/* Reminder column */}

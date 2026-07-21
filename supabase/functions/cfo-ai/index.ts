@@ -120,12 +120,31 @@ async function buildFinancialContext(supabase: any, companyId: string) {
     let cost = 0;
     for (const e of eqs) cost += (e.actual_purchase_price ?? e.purchase_price ?? 0) * (e.quantity || 1);
     const commission = (offerById.get(c.offer_id) as any)?.commission || 0;
-    if (rev || cost) margins.push({ n: c.contract_number, client: c.client_name, status: c.status, rev, cost, marge: rev - cost - commission });
+    if (c.is_self_leasing) {
+      // Self-leasing : le coût d'achat est lissé sur la durée du contrat, la marge
+      // est incluse dans chaque mensualité. Comparer le facturé À CE JOUR au coût
+      // d'achat TOTAL ferait croire à une perte : on calcule la marge PROJETÉE
+      // sur la durée totale (loyers totaux - coût - commission).
+      const loyersTotaux = (c.monthly_payment || 0) * (c.contract_duration || 0);
+      if (loyersTotaux || cost) {
+        margins.push({
+          n: c.contract_number, client: c.client_name, status: c.status,
+          type: "self_leasing", rev, loyers_totaux_prevus: loyersTotaux, cost,
+          marge: loyersTotaux - cost - commission, marge_type: "projetee_duree_totale",
+        });
+      }
+    } else if (rev || cost) {
+      margins.push({
+        n: c.contract_number, client: c.client_name, status: c.status,
+        type: "refinance", rev, cost,
+        marge: rev - cost - commission, marge_type: "realisee",
+      });
+    }
   }
   margins.sort((a, b) => a.marge - b.marge);
   const totRev = margins.reduce((s, m) => s + m.rev, 0);
   const totMarge = margins.reduce((s, m) => s + m.marge, 0);
-  const negatives = margins.filter((m) => m.rev > 0 && m.marge < 0);
+  const negatives = margins.filter((m) => m.marge < 0 && (m.type === "self_leasing" || m.rev > 0));
 
   // Yuki (comptabilité) si configuré
   let yuki: any = null;
@@ -169,6 +188,10 @@ const CFO_SYSTEM =
   "qui refinance ses contrats principalement chez GRENKE et fait aussi du self-leasing (loyers mensuels encaissés en direct). " +
   "Tu reçois les données financières réelles en JSON : ventes, achats (sync Billit/Peppol), rentabilité réelle par contrat, " +
   "et si disponible la comptabilité Yuki (PCMN belge : classe 6 charges, 7 produits, 55 trésorerie, 40 clients, 44 fournisseurs). " +
+  "IMPORTANT — deux types de contrats dans rentabilite_contrats : type 'refinance' (refinancé chez un bailleur : marge réalisée = facturé - coût - commission) " +
+  "et type 'self_leasing' (loyers encaissés en direct : le coût d'achat est LISSÉ sur la durée, la marge est incluse dans chaque mensualité ; " +
+  "la marge indiquée est la marge PROJETÉE sur la durée totale = loyers_totaux_prevus - coût - commission ; " +
+  "un facturé à ce jour (rev) inférieur au coût d'achat est NORMAL en cours de contrat, ce n'est PAS une perte — ne jamais présenter un self-leasing comme déficitaire si sa marge projetée est positive). " +
   "Sois direct, concret et chiffré. Pas de généralités creuses. Montants en €. Tu t'adresses au fondateur (Gianni).\n\n" +
   "RÈGLES DE FORMAT (impératif, le rendu est en markdown GFM) :\n" +
   "- Titres de section en '## ' courts.\n" +
