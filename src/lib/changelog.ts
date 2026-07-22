@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.79";
+export const ADMIN_VERSION = "1.3.80";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.80",
+    date: "2026-07-21",
+    title: "Analyste KPI : export Excel des rapports",
+    items: [
+      "Nouveau bouton « Excel » à côté du PDF : le même rapport (analyse en cours, combiné multi-KPI ou rapport d'activité général) s'exporte en classeur .xlsx.",
+      "Structure du classeur : une feuille « Synthèse » (indicateurs clés + recommandations) puis une feuille par section avec ses tableaux.",
+      "Les valeurs chiffrées (€, %, jours) sont converties en vrais nombres Excel : tu peux trier, filtrer et faire tes propres calculs dessus.",
+      "Astuce : exporter en PDF puis en Excel (même sélection) ne relance pas l'analyse — le rapport est réutilisé.",
+    ],
+  },
   {
     version: "1.3.79",
     date: "2026-07-21",

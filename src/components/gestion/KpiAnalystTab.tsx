@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BarChart3, Send, RefreshCw, FileDown, Database, Trash2 } from "lucide-react";
+import { BarChart3, Send, RefreshCw, FileDown, FileSpreadsheet, Database, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { toast } from "sonner";
-import { KpiChatMessage, kpiChat, kpiReport } from "@/services/kpiService";
+import { KpiChatMessage, KpiReport, kpiChat, kpiReport } from "@/services/kpiService";
 import { downloadKpiReportPdf } from "@/services/kpiReportPdfService";
+import { downloadKpiReportExcel } from "@/services/kpiReportExcelService";
 
 // Markdown enrichi (tableaux, listes) — même rendu que le CFO IA
 const MD: React.FC<{ children: string }> = ({ children }) => (
@@ -36,8 +37,11 @@ const KpiAnalystTab: React.FC = () => {
   const [input, setInput] = useState("");
   const [chatting, setChatting] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
-  // Indices des réponses cochées « Inclure au rapport » (PDF combiné multi-KPI)
+  // Indices des réponses cochées « Inclure au rapport » (PDF/Excel combiné multi-KPI)
   const [selectedForReport, setSelectedForReport] = useState<Set<number>>(new Set());
+  // Cache du dernier rapport généré : exporter en PDF puis Excel (ou l'inverse)
+  // sur la même sélection ne relance pas l'analyse IA
+  const [lastReport, setLastReport] = useState<{ signature: string; report: KpiReport } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, chatting]);
@@ -70,33 +74,44 @@ const KpiAnalystTab: React.FC = () => {
     });
   };
 
-  const handlePdf = async () => {
+  // Si des analyses sont cochées : rapport combiné sur ces analyses uniquement
+  // (chaque réponse cochée est envoyée avec la question qui la précède)
+  const buildReportMessages = (): KpiChatMessage[] => {
+    if (selectedForReport.size === 0) return messages;
+    const subset: KpiChatMessage[] = [];
+    messages.forEach((m, i) => {
+      if (m.role === "assistant" && selectedForReport.has(i)) {
+        const prev = messages[i - 1];
+        if (prev?.role === "user") subset.push(prev);
+        subset.push(m);
+      }
+    });
+    return subset;
+  };
+
+  const handleExport = async (format: "pdf" | "excel") => {
     if (!companyId || generatingPdf) return;
-    // Si des analyses sont cochées : rapport combiné sur ces analyses uniquement
-    // (chaque réponse cochée est envoyée avec la question qui la précède)
-    let reportMessages = messages;
-    if (selectedForReport.size > 0) {
-      reportMessages = [];
-      messages.forEach((m, i) => {
-        if (m.role === "assistant" && selectedForReport.has(i)) {
-          const prev = messages[i - 1];
-          if (prev?.role === "user") reportMessages.push(prev);
-          reportMessages.push(m);
-        }
-      });
-    }
+    const reportMessages = buildReportMessages();
+    const signature = JSON.stringify(reportMessages.map((m) => m.content));
     setGeneratingPdf(true);
     const toastId = toast.loading(
-      selectedForReport.size > 0
-        ? `Génération du rapport combiné (${selectedForReport.size} analyse${selectedForReport.size > 1 ? "s" : ""})...`
-        : messages.length
-          ? "Génération du rapport PDF à partir de la conversation..."
-          : "Génération du rapport d'activité général (peut prendre 1-2 min)...",
+      lastReport?.signature === signature
+        ? "Export du rapport..."
+        : selectedForReport.size > 0
+          ? `Génération du rapport combiné (${selectedForReport.size} analyse${selectedForReport.size > 1 ? "s" : ""})...`
+          : messages.length
+            ? "Génération du rapport à partir de la conversation..."
+            : "Génération du rapport d'activité général (peut prendre 1-2 min)...",
     );
     try {
-      const report = await kpiReport(companyId, reportMessages);
-      await downloadKpiReportPdf(report);
-      toast.success("Rapport PDF téléchargé", { id: toastId });
+      let report = lastReport?.signature === signature ? lastReport.report : null;
+      if (!report) {
+        report = await kpiReport(companyId, reportMessages);
+        setLastReport({ signature, report });
+      }
+      if (format === "pdf") await downloadKpiReportPdf(report);
+      else await downloadKpiReportExcel(report);
+      toast.success(format === "pdf" ? "Rapport PDF téléchargé" : "Rapport Excel téléchargé", { id: toastId });
     } catch (e: any) {
       toast.error(e.message || "Erreur lors de la génération du rapport", { id: toastId });
     } finally {
@@ -122,11 +137,15 @@ const KpiAnalystTab: React.FC = () => {
                 <Trash2 className="h-3.5 w-3.5" /> Vider
               </Button>
             )}
-            <Button onClick={handlePdf} disabled={generatingPdf || chatting} size="sm" variant="outline" className="gap-2">
+            <Button onClick={() => handleExport("pdf")} disabled={generatingPdf || chatting} size="sm" variant="outline" className="gap-2">
               {generatingPdf ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
               {selectedForReport.size > 0
                 ? `PDF combiné (${selectedForReport.size} analyse${selectedForReport.size > 1 ? "s" : ""})`
                 : messages.length ? "PDF de cette analyse" : "Rapport d'activité PDF"}
+            </Button>
+            <Button onClick={() => handleExport("excel")} disabled={generatingPdf || chatting} size="sm" variant="outline" className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
             </Button>
           </div>
         </div>
