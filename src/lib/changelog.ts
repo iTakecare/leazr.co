@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.80";
+export const ADMIN_VERSION = "1.3.81";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.81",
+    date: "2026-07-22",
+    title: "Comptabilité : la rémunération dirigeant (618) classée avec les rémunérations",
+    items: [
+      "Le poste « Rémunérations & charges sociales » du compte de résultat (onglet Comptabilité, source Yuki) affichait 0 € : la rémunération de dirigeant, les ATN, chèques-repas et cotisations sociales (comptes 618xxx du PCMN) étaient noyés dans « Services et biens divers ».",
+      "Les comptes 618xxx sont désormais présentés avec les rémunérations (62), et retirés des services et biens divers — les totaux et le résultat ne changent pas, seule la ventilation est plus lisible.",
+      "Le CFO IA reçoit la même ventilation corrigée (salaires vs services) pour ses analyses.",
+      "Pour info : Amortissements et Impôts à 0 € sont normaux en cours d'année — ces écritures sont passées par le comptable à la clôture ; « Produits financiers » à 0 € correspond à quelques centimes d'intérêts.",
+    ],
+  },
   {
     version: "1.3.80",
     date: "2026-07-21",

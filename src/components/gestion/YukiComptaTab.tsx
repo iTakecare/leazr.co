@@ -22,19 +22,21 @@ const PRODUCT_GROUPS = [
   { key: "autres_prod", label: "Autres produits d'exploitation", prefixes: ["74", "71", "72"], sign: -1 },
   { key: "prod_fin", label: "Produits financiers", prefixes: ["75", "76"], sign: -1 },
 ];
+// NB: en PCMN belge le 618 (rémunérations dirigeants, ATN, CAS…) est techniquement
+// du 61, mais pour le pilotage on le présente avec les rémunérations (62).
 const CHARGE_GROUPS = [
   { key: "achats", label: "Approvisionnements et marchandises", prefixes: ["60"], sign: 1 },
-  { key: "services", label: "Services et biens divers", prefixes: ["61"], sign: 1 },
-  { key: "remunerations", label: "Rémunérations & charges sociales", prefixes: ["62"], sign: 1 },
+  { key: "services", label: "Services et biens divers", prefixes: ["61"], exclude: ["618"], sign: 1 },
+  { key: "remunerations", label: "Rémunérations & charges sociales", prefixes: ["62", "618"], sign: 1 },
   { key: "amortissements", label: "Amortissements & réductions de valeur", prefixes: ["63"], sign: 1 },
   { key: "autres_charges", label: "Autres charges d'exploitation", prefixes: ["64"], sign: 1 },
   { key: "charges_fin", label: "Charges financières", prefixes: ["65", "66"], sign: 1 },
   { key: "impots", label: "Impôts", prefixes: ["67", "77"], sign: 1 },
 ];
 
-const buildGroup = (rows: GLRow[], g: { key: string; label: string; prefixes: string[]; sign: number }) => {
+const buildGroup = (rows: GLRow[], g: { key: string; label: string; prefixes: string[]; exclude?: string[]; sign: number }) => {
   const accounts = rows
-    .filter((r) => g.prefixes.some((p) => r.code.startsWith(p)))
+    .filter((r) => g.prefixes.some((p) => r.code.startsWith(p)) && !(g.exclude || []).some((p) => r.code.startsWith(p)))
     .map((r) => ({ code: r.code, description: r.description, amount: r.amount * g.sign }))
     .filter((a) => Math.abs(a.amount) > 0.005)
     .sort((a, b) => b.amount - a.amount);

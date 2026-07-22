@@ -124,9 +124,10 @@ export function summarizeBalance(rows: YukiGLBalanceRow[]) {
     tresorerie_55: byClass("55"),
     clients_40: byClass("40"),
     fournisseurs_44: byClass("44"),
-    salaires_62: byClass("62"),
+    // 618 = rémunérations dirigeants/ATN/CAS -> présenté avec les salaires (62)
+    salaires_62: byClass("62") + byClass("618"),
     amortissements_63: byClass("63"),
-    services_biens_61: byClass("61"),
+    services_biens_61: byClass("61") - byClass("618"),
     achats_60: byClass("60"),
   };
 }
