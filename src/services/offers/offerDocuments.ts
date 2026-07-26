@@ -675,7 +675,9 @@ export const attachChatMediaToOffer = async (params: {
     const destPath = `${offerId}/whatsapp_${safeType}_${Date.now()}.${ext}`;
 
     // 3. Uploader dans offer-documents (policy: tout utilisateur authentifié).
-    const { error: upErr } = await supabase.storage
+    // getFileUploadClient() : sans le header JSON global qui casse les uploads
+    // de Blob (le multipart serait stocké brut dans le bucket).
+    const { error: upErr } = await getFileUploadClient().storage
       .from('offer-documents')
       .upload(destPath, blob, { contentType, upsert: false });
     if (upErr) {

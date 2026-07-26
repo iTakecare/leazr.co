@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
 import { Palette, FileText, Layout, Code, Loader2 } from "lucide-react";
 import PDFTemplatePreview from "./PDFTemplatePreview";
 import PDFTemplateSectionManager from "./PDFTemplateSectionManager";
@@ -104,7 +104,8 @@ export default function PDFTemplateEditor({
       const fileName = `${template.id}-logo-${Date.now()}.${fileExt}`;
       const filePath = `pdf-templates/${fileName}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      // getFileUploadClient() : sans le header JSON global qui casse les uploads
+      const { error: uploadError, data } = await getFileUploadClient().storage
         .from("product-images")
         .upload(filePath, file);
 

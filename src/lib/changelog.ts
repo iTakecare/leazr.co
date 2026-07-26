@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.81";
+export const ADMIN_VERSION = "1.3.82";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.82",
+    date: "2026-07-26",
+    title: "Correctif : pièces jointes WhatsApp illisibles une fois ajoutées à une demande",
+    items: [
+      "Les documents reçus par WhatsApp/SMS puis rattachés à une demande via « Ajouter à la demande » s'ouvraient en texte illisible (données brutes) au lieu de l'image ou du PDF : le fichier était stocké avec son enveloppe technique d'upload.",
+      "Corrigé : les nouveaux rattachements stockent le fichier proprement, et les 12 documents déjà corrompus ont été réparés — ils s'ouvrent désormais normalement depuis l'onglet Documents.",
+      "Même correctif préventif appliqué à l'upload de logo dans l'éditeur de modèles PDF.",
+    ],
+  },
   {
     version: "1.3.81",
     date: "2026-07-22",
