@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.84";
+export const ADMIN_VERSION = "1.3.85";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.85",
+    date: "2026-07-27",
+    title: "Boîte mail : chacun voit et gère sa propre boîte",
+    items: [
+      "Correctif : la boîte sales@itakecare.be n'apparaissait pas dans la session de son propriétaire — le compte n'était rattaché à aucun utilisateur. C'est réparé : chaque compte mail est rattaché à son propriétaire.",
+      "L'onglet « Comptes mail » ne montre plus que TES comptes (comme la Boîte mail) : chaque collaborateur gère sa propre boîte, sans voir ni pouvoir modifier/supprimer celles des autres.",
+      "Un compte ajouté depuis « Ajouter un compte » appartient automatiquement à celui qui le crée.",
+    ],
+  },
   {
     version: "1.3.84",
     date: "2026-07-27",

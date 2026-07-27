@@ -149,12 +149,19 @@ const ImapAccountsManager: React.FC = () => {
   const [foldersLoading, setFoldersLoading] = useState(false);
   const [togglingPath, setTogglingPath] = useState<string | null>(null);
 
+  // Uniquement MES comptes (owner = moi) : chaque collaborateur gère sa
+  // propre boîte, comme dans la Boîte mail (MailboxPage). Un compte créé
+  // ici appartient à son créateur (mail-sync pose owner_user_id).
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["imap-accounts-admin"],
     queryFn: async (): Promise<ImapAccountRow[]> => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id;
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("imap_accounts")
         .select("*")
+        .eq("owner_user_id", uid)
         .order("created_at");
       if (error) throw error;
       return (data ?? []) as ImapAccountRow[];
