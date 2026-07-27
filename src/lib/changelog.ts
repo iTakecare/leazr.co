@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.82";
+export const ADMIN_VERSION = "1.3.83";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.83",
+    date: "2026-07-27",
+    title: "Les emails liés à une demande sont enfin visibles dans la demande",
+    items: [
+      "Nouvelle carte « Emails liés » dans la Vue d'ensemble d'une demande : elle liste les emails rattachés depuis l'écran Support (« Lier à un dossier ») ou via le centre d'actions IA de la boîte mail.",
+      "Un clic sur un email ouvre une modale avec le message complet (expéditeur, destinataire, date, contenu HTML avec images intégrées).",
+      "La carte n'apparaît que si au moins un email est lié — pas d'encombrement sur les demandes sans email.",
+    ],
+  },
   {
     version: "1.3.82",
     date: "2026-07-26",

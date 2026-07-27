@@ -37,6 +37,7 @@ import FinancialSection from "@/components/offers/detail/FinancialSection";
 import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
 import ExternalServicesSection from "@/components/offers/detail/ExternalServicesSection";
+import LinkedEmailsSection from "@/components/offers/detail/LinkedEmailsSection";
 import AddPromoProductsModal from "@/components/offers/detail/AddPromoProductsModal";
 import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
@@ -838,6 +839,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <OfferAISummary offerId={offer.id} />
                     <ClientSection offer={offer} />
+                    <LinkedEmailsSection offerId={offer.id} />
                     <EquipmentSwapNotice offerId={offer.id} />
                     <NewEquipmentSection offer={offer} onOfferUpdate={() => { setEquipmentRefreshKey((k) => k + 1); fetchOfferDetails(); }} />
                     <ExternalServicesSection offerId={offer.id} />
