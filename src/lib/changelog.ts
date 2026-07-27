@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.83";
+export const ADMIN_VERSION = "1.3.84";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.84",
+    date: "2026-07-27",
+    title: "Onglet « Emails » dédié sur le détail d'une demande",
+    items: [
+      "Les emails liés à une demande ont désormais leur propre onglet « Emails » (entre Appels et Historique), au lieu d'une carte dans la Vue d'ensemble.",
+      "Le nombre d'emails liés est affiché dans l'onglet, et un message explique comment lier un email quand il n'y en a aucun.",
+    ],
+  },
   {
     version: "1.3.83",
     date: "2026-07-27",

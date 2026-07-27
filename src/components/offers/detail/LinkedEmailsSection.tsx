@@ -81,8 +81,6 @@ const LinkedEmailsSection = ({ offerId }: LinkedEmailsSectionProps) => {
     }
   }, [openEmail?.id, openEmail?.body_html]);
 
-  if (emails.length === 0) return null;
-
   const formatDate = (iso: string | null) =>
     iso ? format(new Date(iso), "d MMM yyyy 'à' HH:mm", { locale: fr }) : "";
 
@@ -97,6 +95,13 @@ const LinkedEmailsSection = ({ offerId }: LinkedEmailsSectionProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
+          {emails.length === 0 && (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Aucun email lié à cette demande. Tu peux lier un email depuis
+              l'écran Support (« Lier à un dossier ») ou via le centre
+              d'actions IA de la boîte mail.
+            </p>
+          )}
           {emails.map((email) => (
             <button
               key={email.id}

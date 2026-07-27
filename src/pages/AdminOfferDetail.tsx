@@ -82,7 +82,7 @@ const AdminOfferDetail = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() => {
     const tab = searchParams.get("tab");
-    return ["overview","financial","documents","calls","history","notes"].includes(tab ?? "") ? tab! : "overview";
+    return ["overview","financial","documents","calls","emails","history","notes"].includes(tab ?? "") ? tab! : "overview";
   });
   const [scoringLoading, setScoringLoading] = useState(false);
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
@@ -827,11 +827,12 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
               {/* Contenu principal - permettre le débordement */}
               <div className="lg:col-span-3 min-h-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-6">
+                  <TabsList className="grid w-full grid-cols-7">
                     <TabsTrigger value="overview" className="text-xs sm:text-sm">Vue d'ensemble</TabsTrigger>
                     <TabsTrigger value="financial" className="text-xs sm:text-sm">Financier</TabsTrigger>
                     <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
                     <TabsTrigger value="calls" className="text-xs sm:text-sm">Appels</TabsTrigger>
+                    <TabsTrigger value="emails" className="text-xs sm:text-sm">Emails</TabsTrigger>
                     <TabsTrigger value="history" className="text-xs sm:text-sm">Historique</TabsTrigger>
                     <TabsTrigger value="notes" className="text-xs sm:text-sm">Notes</TabsTrigger>
                   </TabsList>
@@ -839,7 +840,6 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <OfferAISummary offerId={offer.id} />
                     <ClientSection offer={offer} />
-                    <LinkedEmailsSection offerId={offer.id} />
                     <EquipmentSwapNotice offerId={offer.id} />
                     <NewEquipmentSection offer={offer} onOfferUpdate={() => { setEquipmentRefreshKey((k) => k + 1); fetchOfferDetails(); }} />
                     <ExternalServicesSection offerId={offer.id} />
@@ -860,6 +860,10 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
 
                   <TabsContent value="calls" className="space-y-4 mt-4 overflow-visible">
                     <CallHistory offerId={offer.id} />
+                  </TabsContent>
+
+                  <TabsContent value="emails" className="space-y-4 mt-4 overflow-visible">
+                    <LinkedEmailsSection offerId={offer.id} />
                   </TabsContent>
 
                   <TabsContent value="history" className="space-y-4 mt-4 overflow-visible">
