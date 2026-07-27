@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.85";
+export const ADMIN_VERSION = "1.3.86";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.86",
+    date: "2026-07-27",
+    title: "Boîte mail : statut lu/non lu synchronisé avec le serveur (IMAP)",
+    items: [
+      "Le statut lu/non lu est désormais réconcilié avec le serveur IMAP à chaque passage de synchronisation (toutes les 2 min) : un mail lu depuis le webmail, Outlook ou le téléphone devient lu dans Leazr aussi — les compteurs de non-lus reflètent enfin la réalité de la boîte.",
+      "Dans l'autre sens : ouvrir un mail dans Leazr le marque lu sur le serveur, visible immédiatement depuis tes autres appareils.",
+      "Nouveau bouton « Marquer non lu » dans la lecture d'un email — répercuté lui aussi sur le serveur.",
+      "Un mail déplacé ou supprimé côté serveur ne reste plus compté comme non lu dans Leazr.",
+    ],
+  },
   {
     version: "1.3.85",
     date: "2026-07-27",

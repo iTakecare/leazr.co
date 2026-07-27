@@ -6,7 +6,7 @@ import { useTaskMutations } from "@/hooks/useTasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Ticket, CheckSquare, Sparkles, Loader2, User, MessageSquare, Trash2, Link, FolderOpen } from "lucide-react";
+import { ArrowLeft, Ticket, CheckSquare, Sparkles, Loader2, User, MessageSquare, Trash2, Link, FolderOpen, MailOpen } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -72,7 +72,8 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
   const [selectedDossierType, setSelectedDossierType] = useState<'offer' | 'contract' | null>(null);
   const [selectedDossierId, setSelectedDossierId] = useState<string>('');
 
-  // Mark as read on mount
+  // Mark as read on mount — mise à jour DB immédiate (compteurs réactifs)
+  // + répercussion \Seen sur le serveur IMAP en arrière-plan (set_read).
   React.useEffect(() => {
     if (!email.is_read) {
       supabase
@@ -80,8 +81,21 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
         .update({ is_read: true })
         .eq("id", email.id)
         .then(() => queryClient.invalidateQueries({ queryKey: ["synced-emails"] }));
+      supabase.functions
+        .invoke("mail-sync", { body: { action: "set_read", email_id: email.id, read: true } })
+        .catch(() => { /* best-effort : le cron réconciliera */ });
     }
   }, [email.id]);
+
+  const markUnread = async () => {
+    await supabase.from("synced_emails").update({ is_read: false }).eq("id", email.id);
+    queryClient.invalidateQueries({ queryKey: ["synced-emails"] });
+    supabase.functions
+      .invoke("mail-sync", { body: { action: "set_read", email_id: email.id, read: false } })
+      .catch(() => { /* best-effort : le cron réconciliera */ });
+    toast.success("Email marqué comme non lu");
+    onBack();
+  };
 
   const createTicketFromEmail = useMutation({
     mutationFn: async () => {
@@ -316,6 +330,10 @@ const EmailDetail = ({ email, onBack, onHide }: EmailDetailProps) => {
             >
               <Sparkles className="h-4 w-4 mr-2" />
               Assistant IA
+            </Button>
+            <Button variant="outline" size="sm" onClick={markUnread}>
+              <MailOpen className="h-4 w-4 mr-2" />
+              Marquer non lu
             </Button>
             {onHide && (
               <Button

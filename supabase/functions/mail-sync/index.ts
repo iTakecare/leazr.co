@@ -9,7 +9,8 @@
 //
 // Actions (auth = X-Cron-Secret pour sync_all, JWT utilisateur sinon) :
 //   sync_all / sync_account / list_server_folders / set_folder_sync /
-//   save_account / test_account / delete_account / get_attachment
+//   save_account / test_account / delete_account / get_attachment /
+//   set_read (lu/non lu répercuté sur le serveur IMAP)
 // =====================================================================
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -310,6 +311,49 @@ async function syncAccount(
           uidvalidity: uidValidity || folder.uidvalidity,
           last_uid: maxSeen,
         }).eq("id", folder.id);
+
+        // --- Réconciliation lu/non lu avec le serveur -----------------
+        // Les nouveaux messages arrivent avec leur flag \Seen, mais un
+        // mail lu (ou remarqué non lu) ENSUITE depuis un autre client
+        // (webmail, Outlook, mobile) ne génère pas de nouvel UID : on
+        // compare l'état UNSEEN du serveur avec nos lignes. Un mail
+        // déplacé/supprimé côté serveur sort du dossier → considéré lu
+        // (les compteurs de non-lus ne restent pas gonflés).
+        try {
+          if (Date.now() <= deadline) {
+            const unseen = await client.search({ seen: false }, { uid: true });
+            const unseenUids = new Set<number>((unseen || []).map(Number));
+
+            const { data: dbUnread } = await adminSupabase
+              .from("synced_emails")
+              .select("id, imap_uid")
+              .eq("account_id", account.id)
+              .eq("folder_path", folder.path)
+              .eq("is_read", false)
+              .not("imap_uid", "is", null)
+              .limit(2000);
+            const becameRead = (dbUnread ?? [])
+              .filter((r) => !unseenUids.has(Number(r.imap_uid)))
+              .map((r) => r.id as string);
+            for (let i = 0; i < becameRead.length; i += 200) {
+              await adminSupabase.from("synced_emails")
+                .update({ is_read: true })
+                .in("id", becameRead.slice(i, i + 200));
+            }
+
+            const unseenArr = Array.from(unseenUids).slice(0, 2000);
+            for (let i = 0; i < unseenArr.length; i += 200) {
+              await adminSupabase.from("synced_emails")
+                .update({ is_read: false })
+                .eq("account_id", account.id)
+                .eq("folder_path", folder.path)
+                .eq("is_read", true)
+                .in("imap_uid", unseenArr.slice(i, i + 200));
+            }
+          }
+        } catch (e) {
+          errors.push(`${folder.path} flags: ${e instanceof Error ? e.message : e}`);
+        }
       } finally {
         lock.release();
       }
@@ -557,6 +601,7 @@ serve(async (req) => {
       document_type?: string;
       account?: Record<string, unknown>;
       password?: string;
+      read?: boolean;
     } | null;
     if (!body?.action) return jsonResponse({ success: false, error: "invalid_action" }, 400);
 
@@ -675,6 +720,52 @@ serve(async (req) => {
           if (error) return jsonResponse({ success: false, error: "password_save_failed", message: error.message }, 500);
         }
         return jsonResponse({ success: true, account_id: accountId });
+      }
+
+      case "set_read": {
+        // Marque lu/non lu en base ET sur le serveur IMAP (\Seen), pour que
+        // webmail/Outlook/mobile voient le même état que Leazr.
+        const emailId = body.email_id ?? "";
+        const read = body.read !== false;
+        const { data: email } = await adminSupabase
+          .from("synced_emails")
+          .select("id, company_id, account_id, folder_path, imap_uid")
+          .eq("id", emailId)
+          .maybeSingle();
+        if (!email || email.company_id !== companyId) {
+          return jsonResponse({ success: false, error: "email_not_found" }, 404);
+        }
+        await adminSupabase.from("synced_emails").update({ is_read: read }).eq("id", email.id);
+
+        // Répercussion IMAP best-effort : les lignes v1 sans UID n'ont pas
+        // de localisation serveur — base seule dans ce cas.
+        let imapSynced = false;
+        if (email.account_id && email.folder_path && email.imap_uid != null) {
+          const account = await loadAccount(String(email.account_id));
+          const password = account ? await getPassword(adminSupabase, account.id) : null;
+          if (account && password) {
+            const client = imapClient(account, password);
+            try {
+              await client.connect();
+              const flagLock = await client.getMailboxLock(String(email.folder_path));
+              try {
+                if (read) {
+                  await client.messageFlagsAdd(String(email.imap_uid), ["\\Seen"], { uid: true });
+                } else {
+                  await client.messageFlagsRemove(String(email.imap_uid), ["\\Seen"], { uid: true });
+                }
+                imapSynced = true;
+              } finally {
+                flagLock.release();
+              }
+              await client.logout();
+            } catch (e) {
+              console.error("[mail-sync] set_read IMAP:", e instanceof Error ? e.message : e);
+              try { await client.logout(); } catch { /* */ }
+            }
+          }
+        }
+        return jsonResponse({ success: true, imap_synced: imapSynced });
       }
 
       case "test_account": {
