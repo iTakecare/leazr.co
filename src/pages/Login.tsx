@@ -169,12 +169,12 @@ const Login = () => {
             {/* Logo dynamique basé sur la company */}
             <div className="mb-16 flex flex-col items-center">
               {brandingLoading ? (
-                <div className="w-36 h-36 bg-muted animate-pulse rounded" />
+                <div className="w-64 h-32 bg-muted animate-pulse rounded" />
               ) : companyBranding?.logo_url ? (
-                <img 
-                  src={companyBranding.logo_url} 
-                  alt={`${companyBranding.name} Logo`} 
-                  className="w-36 h-36 object-contain"
+                <img
+                  src={companyBranding.logo_url}
+                  alt={`${companyBranding.name} Logo`}
+                  className="h-32 w-auto max-w-[460px] object-contain"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
