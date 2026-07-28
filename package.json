@@ -63,7 +63,6 @@
     "@types/handlebars": "^4.1.0",
     "@types/lodash": "^4.17.20",
     "@types/uuid": "^10.0.0",
-    "@types/xlsx": "^0.0.36",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -106,8 +105,7 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
     "vaul": "^0.9.3",
-    "vite-plugin-pwa": "^1.2.0",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.23.8"
   },
   "devDependencies": {
