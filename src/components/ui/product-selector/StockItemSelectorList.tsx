@@ -134,8 +134,10 @@ const StockItemSelectorList: React.FC<StockItemSelectorListProps> = ({
                   ? STOCK_SOURCE_CONFIG.contract_buyback
                   : null;
               const condCfg = CONDITION_CONFIG[item.condition];
-              const displayPrice =
+              const basePrice =
                 item.unit_price ?? item.buyback_price ?? item.purchase_price ?? 0;
+              const extraCosts = item.additional_costs_total || 0;
+              const displayPrice = basePrice + extraCosts;
               return (
                 <button
                   key={item.id}
@@ -179,6 +181,11 @@ const StockItemSelectorList: React.FC<StockItemSelectorListProps> = ({
                       <p className="text-sm font-semibold">
                         {displayPrice.toFixed(2)} €
                       </p>
+                      {extraCosts > 0 && (
+                        <p className="text-[10px] text-orange-600">
+                          dont +{extraCosts.toFixed(2)} € coûts
+                        </p>
+                      )}
                       <p className="text-[10px] text-muted-foreground">prix achat</p>
                     </div>
                   </div>

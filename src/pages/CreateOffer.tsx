@@ -688,11 +688,13 @@ const CreateOffer = () => {
 
   const handleStockItemSelect = (item: StockItem) => {
     if (!selectedLeaser) return;
-    // Cost basis: buyback price for contract-buybacks, otherwise purchase price.
-    const purchasePrice =
+    // Cost basis: buyback price for contract-buybacks, otherwise purchase price,
+    // plus additional costs (repairs, parts…) = real acquisition cost.
+    const basePrice =
       (item.source === "contract_buyback"
         ? item.buyback_price ?? item.purchase_price
         : item.purchase_price) || 0;
+    const purchasePrice = basePrice + (item.additional_costs_total || 0);
     setEquipment({
       id: crypto.randomUUID(),
       title: item.title,

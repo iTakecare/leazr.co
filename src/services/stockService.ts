@@ -52,6 +52,8 @@ export interface StockItem {
   supplier?: { name: string } | null;
   product?: { name: string } | null;
   contract?: { contract_number: string; client_name: string } | null;
+  /** Somme des coûts additionnels (stock_item_costs), renseignée par fetchAvailableStockItems */
+  additional_costs_total?: number;
 }
 
 export interface StockMovement {
@@ -696,7 +698,9 @@ export const assignReservedStockToContract = async (
 
 /**
  * Stock items disponibles pour ajouter à une offre.
- * Retourne uniquement le matériel `in_stock` (non encore réservé / attribué).
+ * Retourne uniquement le matériel `in_stock` (non encore réservé / attribué),
+ * avec `additional_costs_total` (Σ stock_item_costs) pour afficher / reprendre
+ * le coût d'achat réel dans l'offre.
  */
 export const fetchAvailableStockItems = async (companyId: string): Promise<StockItem[]> => {
   const { data, error } = await supabase
@@ -704,13 +708,23 @@ export const fetchAvailableStockItems = async (companyId: string): Promise<Stock
     .select(`
       *,
       supplier:suppliers(name),
-      product:products(name)
+      product:products(name),
+      costs:stock_item_costs(amount)
     `)
     .eq('company_id', companyId)
     .eq('status', 'in_stock')
     .order('updated_at', { ascending: false });
   if (error) throw error;
-  return (data || []) as unknown as StockItem[];
+  return (data || []).map((row: any) => {
+    const { costs, ...item } = row;
+    return {
+      ...item,
+      additional_costs_total: (costs || []).reduce(
+        (sum: number, c: any) => sum + (Number(c.amount) || 0),
+        0
+      ),
+    };
+  }) as unknown as StockItem[];
 };
 
 // ===== CONTRACT-SPECIFIC =====

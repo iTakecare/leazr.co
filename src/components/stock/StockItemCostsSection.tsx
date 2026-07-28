@@ -114,6 +114,8 @@ const StockItemCostsSection: React.FC<StockItemCostsSectionProps> = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["stock-cost-totals"] });
+      queryClient.invalidateQueries({ queryKey: ["available-stock-items"] });
       setForm((f) => ({ ...f, label: "", amount: "", notes: "" }));
       setAdding(false);
       toast.success("Coût ajouté");
@@ -125,6 +127,8 @@ const StockItemCostsSection: React.FC<StockItemCostsSectionProps> = ({
     mutationFn: async (id: string) => deleteStockItemCost(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["stock-cost-totals"] });
+      queryClient.invalidateQueries({ queryKey: ["available-stock-items"] });
       setDeleteCost(null);
       toast.success("Coût supprimé");
     },

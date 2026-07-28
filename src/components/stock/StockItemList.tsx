@@ -255,9 +255,27 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit, forcedSource }) =
     });
   };
 
+  /** Colonne "Total" = prix d'achat + coûts additionnels (affiche le détail si coûts > 0). */
+  const renderTotalCell = (item: StockItem) => {
+    const extra = costTotals[item.id] || 0;
+    const base = item.purchase_price || 0;
+    if (extra > 0) {
+      return (
+        <div className="flex flex-col items-end leading-tight">
+          <span className="font-semibold">{(base + extra).toFixed(2)} €</span>
+          <span className="text-[10px] text-orange-600 font-normal">+{extra.toFixed(2)} € coûts</span>
+        </div>
+      );
+    }
+    return <>{base.toFixed(2)} €</>;
+  };
+
   const renderGroupParentRow = (group: ArticleGroup) => {
     const isExpanded = expandedArticles.has(group.key);
-    const totalPrice = group.items.reduce((sum, i) => sum + (i.purchase_price || 0), 0);
+    const totalPrice = group.items.reduce(
+      (sum, i) => sum + (i.purchase_price || 0) + (costTotals[i.id] || 0),
+      0
+    );
     const totalQty = group.items.reduce((sum, i) => sum + (i.quantity || 1), 0);
     return (
       <React.Fragment key={`group-${group.key}`}>
@@ -330,7 +348,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit, forcedSource }) =
               <TableCell className="text-xs">{item.grade || '-'}</TableCell>
               <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
               <TableCell className="text-right text-xs">{(item.unit_price || item.purchase_price)?.toFixed(2)} €</TableCell>
-              <TableCell className="text-right text-xs font-medium">{item.purchase_price?.toFixed(2)} €</TableCell>
+              <TableCell className="text-right text-xs font-medium">{renderTotalCell(item)}</TableCell>
               <TableCell className="text-xs text-muted-foreground">
                 {item.reception_date ? format(new Date(item.reception_date), 'dd/MM/yyyy', { locale: fr }) :
                  item.purchase_date ? format(new Date(item.purchase_date), 'dd/MM/yyyy', { locale: fr }) : '-'}
@@ -427,21 +445,7 @@ const StockItemList: React.FC<StockItemListProps> = ({ onEdit, forcedSource }) =
         <TableCell className="text-xs">{item.grade || '-'}</TableCell>
         <TableCell className="text-xs">{item.supplier?.name || '-'}</TableCell>
         <TableCell className="text-right text-xs">{(item.unit_price || item.purchase_price)?.toFixed(2)} €</TableCell>
-        <TableCell className="text-right text-xs font-medium">
-          {(() => {
-            const extra = costTotals[item.id] || 0;
-            const base = item.purchase_price || 0;
-            if (extra > 0) {
-              return (
-                <div className="flex flex-col items-end leading-tight">
-                  <span className="font-semibold">{(base + extra).toFixed(2)} €</span>
-                  <span className="text-[10px] text-orange-600 font-normal">+{extra.toFixed(2)} € coûts</span>
-                </div>
-              );
-            }
-            return <>{base.toFixed(2)} €</>;
-          })()}
-        </TableCell>
+        <TableCell className="text-right text-xs font-medium">{renderTotalCell(item)}</TableCell>
         <TableCell className="text-xs text-muted-foreground">
           {item.reception_date ? format(new Date(item.reception_date), 'dd/MM/yyyy', { locale: fr }) :
            item.purchase_date ? format(new Date(item.purchase_date), 'dd/MM/yyyy', { locale: fr }) : '-'}
