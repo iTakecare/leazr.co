@@ -25,6 +25,19 @@ export const getSupabaseClient = () => {
         },
       },
     });
+
+    // realtime-js >= 2.15 : ajouter un callback sur un canal déjà souscrit lève
+    // une erreur fatale, et supabase.channel(nom) RÉUTILISE un canal existant du
+    // même nom. Si deux composants montent le même topic (ex. deux hooks sur
+    // `agent_status_${companyId}`), le second crashe. Tous les canaux de l'app
+    // sont du postgres_changes (aucun broadcast/presence), donc le nom partagé
+    // n'a aucun rôle fonctionnel : on suffixe chaque topic pour le rendre unique.
+    // ⚠️ Si un jour un canal broadcast/presence partagé entre clients devient
+    // nécessaire, il faudra un contournement explicite ici.
+    const origChannel = supabaseInstance.channel.bind(supabaseInstance);
+    let channelSeq = 0;
+    supabaseInstance.channel = (name: string, opts?: Parameters<typeof origChannel>[1]) =>
+      origChannel(`${name}#${++channelSeq}`, opts);
   }
   return supabaseInstance;
 };
