@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router";
+import { getAmbassadorReducedMarginRate } from "@/services/ambassadorCommissionService";
 import { Button } from "@/components/ui/button";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import ClientInfo from "@/components/offer/ClientInfo";
@@ -101,12 +102,19 @@ const AmbassadorCreateOffer = () => {
     return null;
   }
 
+  // Barème « hors support » : marge réduite appliquée par défaut aux lignes
+  const [reducedMarginRate, setReducedMarginRate] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (!ambassadorId) return;
+    getAmbassadorReducedMarginRate(ambassadorId).then(setReducedMarginRate);
+  }, [ambassadorId]);
+
   // Wrap equipment calculator in try-catch
   const { absorbingCategoryIds } = useAbsorbingCategories();
   let equipmentHook = null;
   try {
     // NB: durée laissée à 36 (comportement existant) ; on ajoute juste les catégories absorbantes
-    equipmentHook = useEquipmentCalculator(selectedLeaser, 36, absorbingCategoryIds);
+    equipmentHook = useEquipmentCalculator(selectedLeaser, 36, absorbingCategoryIds, reducedMarginRate ?? 20);
   } catch (error) {
     console.error("❌ Error in useEquipmentCalculator:", error);
     return <div className="p-8 text-red-600">Erreur de chargement du calculateur</div>;

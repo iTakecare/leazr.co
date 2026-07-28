@@ -27,8 +27,9 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
 }) => {
   const [name, setName] = useState(level?.name || '');
   const [isDefault, setIsDefault] = useState(level?.is_default || false);
-  const [calculationMode, setCalculationMode] = useState<'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount'>(level?.calculation_mode || 'margin');
+  const [calculationMode, setCalculationMode] = useState<'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount' | 'fixed_per_pc_reduced_margin'>(level?.calculation_mode || 'margin');
   const [fixedRate, setFixedRate] = useState<number>(level?.fixed_rate || 100);
+  const [marginRate, setMarginRate] = useState<number>(level?.margin_rate || 30);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = Boolean(level);
@@ -39,6 +40,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
     setIsDefault(level?.is_default || false);
     setCalculationMode(level?.calculation_mode || 'margin');
     setFixedRate(level?.fixed_rate || 100);
+    setMarginRate(level?.margin_rate || 30);
   }, [level]);
 
   const resetForm = () => {
@@ -46,6 +48,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
     setIsDefault(level?.is_default || false);
     setCalculationMode(level?.calculation_mode || 'margin');
     setFixedRate(level?.fixed_rate || 100);
+    setMarginRate(level?.margin_rate || 30);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +59,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
     }
 
     // Validation pour les modes nécessitant un fixed_rate
-    if ((calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount') && (!fixedRate || fixedRate <= 0)) {
+    if ((calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount' || calculationMode === 'fixed_per_pc_reduced_margin') && (!fixedRate || fixedRate <= 0)) {
       toast.error(
         calculationMode === 'fixed_per_pc'
           ? "Le montant par PC est requis pour le mode forfait"
@@ -67,6 +70,11 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
       return;
     }
     
+    if (calculationMode === 'fixed_per_pc_reduced_margin' && (!marginRate || marginRate <= 0)) {
+      toast.error("Le taux de marge réduit est requis pour le mode hors support");
+      return;
+    }
+
     // Pour le mode one_monthly_rounded_up, pas besoin de taux (toujours 100%)
 
     setIsSubmitting(true);
@@ -79,7 +87,8 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
           name,
           is_default: isDefault,
           calculation_mode: calculationMode,
-          fixed_rate: (calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount') ? fixedRate : undefined
+          margin_rate: calculationMode === 'fixed_per_pc_reduced_margin' ? marginRate : undefined,
+          fixed_rate: (calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount' || calculationMode === 'fixed_per_pc_reduced_margin') ? fixedRate : undefined
         });
         console.log("[CommissionLevelForm] Update result:", result);
         toast.success("Barème mis à jour avec succès");
@@ -89,7 +98,8 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
           type,
           is_default: isDefault,
           calculation_mode: calculationMode,
-          fixed_rate: (calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount') ? fixedRate : undefined
+          margin_rate: calculationMode === 'fixed_per_pc_reduced_margin' ? marginRate : undefined,
+          fixed_rate: (calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount' || calculationMode === 'fixed_per_pc_reduced_margin') ? fixedRate : undefined
         });
         console.log("[CommissionLevelForm] Create result:", result);
         toast.success("Barème créé avec succès");
@@ -101,7 +111,8 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
           name,
           is_default: isDefault,
           calculation_mode: calculationMode,
-          fixed_rate: (calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount') ? fixedRate : undefined,
+          margin_rate: calculationMode === 'fixed_per_pc_reduced_margin' ? marginRate : undefined,
+          fixed_rate: (calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount' || calculationMode === 'fixed_per_pc_reduced_margin') ? fixedRate : undefined,
           type
         });
       } else {
@@ -142,7 +153,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="calculationMode">Mode de calcul</Label>
-              <Select value={calculationMode} onValueChange={(value: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount') => setCalculationMode(value)}>
+              <Select value={calculationMode} onValueChange={(value: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount' | 'fixed_per_pc_reduced_margin') => setCalculationMode(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner le mode de calcul" />
                 </SelectTrigger>
@@ -153,6 +164,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
                   <SelectItem value="one_monthly_rounded_up">1 mensualité (arrondi à l'euro supérieur)</SelectItem>
                   <SelectItem value="fixed_per_pc">Forfait par PC</SelectItem>
                   <SelectItem value="fixed_amount">Montant fixe</SelectItem>
+                  <SelectItem value="fixed_per_pc_reduced_margin">Marge réduite + forfait par PC (hors support)</SelectItem>
                 </SelectContent>
               </Select>
               <div className="text-sm text-muted-foreground">
@@ -166,32 +178,53 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
                   ? 'L\'ambassadeur touche 1 mensualité complète, arrondie à l\'euro supérieur. Ex: 92,30€ → 93€'
                   : calculationMode === 'fixed_amount'
                   ? 'Montant fixe ajouté au prix total de la demande, correspondant au montant demandé par l\'ambassadeur'
+                  : calculationMode === 'fixed_per_pc_reduced_margin'
+                  ? 'Offres sans support : la marge appliquée par défaut aux offres de l\'ambassadeur est réduite (ex. 30% au lieu de 40-50%), et sa commission est un montant fixe par PC.'
                   : 'Montant fixe par PC (catégories Laptop et Desktop)'
                 }
               </div>
             </div>
-            {(calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount') && (
+            {(calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_amount' || calculationMode === 'fixed_per_pc_reduced_margin') && (
               <div className="grid gap-2">
                 <Label htmlFor="fixedRate">
-                  {calculationMode === 'fixed_per_pc' ? 'Montant par PC (€)' : calculationMode === 'fixed_amount' ? 'Montant fixe (€)' : 'Taux de commission (%)'}
+                  {(calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_per_pc_reduced_margin') ? 'Montant par PC (€)' : calculationMode === 'fixed_amount' ? 'Montant fixe (€)' : 'Taux de commission (%)'}
                 </Label>
                 <Input
                   id="fixedRate"
                   type="number"
                   value={fixedRate}
                   onChange={(e) => setFixedRate(Number(e.target.value))}
-                  placeholder={calculationMode === 'fixed_per_pc' ? 'Ex: 50' : calculationMode === 'fixed_amount' ? 'Ex: 150' : 'Ex: 100 pour 100%'}
+                  placeholder={(calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_per_pc_reduced_margin') ? 'Ex: 50' : calculationMode === 'fixed_amount' ? 'Ex: 150' : 'Ex: 100 pour 100%'}
                   min="0"
                   step="0.01"
                   required
                 />
                 <div className="text-sm text-muted-foreground">
-                  {calculationMode === 'fixed_per_pc'
+                  {(calculationMode === 'fixed_per_pc' || calculationMode === 'fixed_per_pc_reduced_margin')
                     ? 'Commission = Nombre de PC × Montant fixe. Les catégories "Laptop" et "Desktop" sont comptabilisées.'
                     : calculationMode === 'fixed_amount'
                     ? 'Ce montant fixe est la commission de l\'ambassadeur, ajoutée au prix total de la demande.'
                     : 'Exemple : Si vous saisissez 100%, l\'ambassadeur recevra 100% de la mensualité en commission'
                   }
+                </div>
+              </div>
+            )}
+            {calculationMode === 'fixed_per_pc_reduced_margin' && (
+              <div className="grid gap-2">
+                <Label htmlFor="marginRate">Taux de marge réduit (%)</Label>
+                <Input
+                  id="marginRate"
+                  type="number"
+                  value={marginRate}
+                  onChange={(e) => setMarginRate(Number(e.target.value))}
+                  placeholder="Ex: 30"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  required
+                />
+                <div className="text-sm text-muted-foreground">
+                  Marge appliquée par défaut aux offres de l'ambassadeur, à la place de la marge standard — le client paie moins car le support n'est pas fourni.
                 </div>
               </div>
             )}

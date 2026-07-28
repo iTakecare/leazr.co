@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router";
+import { getAmbassadorReducedMarginRate } from "@/services/ambassadorCommissionService";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -145,6 +146,17 @@ const CreateOffer = () => {
   }>>([]);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const { absorbingCategoryIds } = useAbsorbingCategories();
+
+  // Barème « hors support » de l'ambassadeur sélectionné : marge réduite par défaut
+  const [ambassadorReducedMargin, setAmbassadorReducedMargin] = useState<number | null>(null);
+  useEffect(() => {
+    if (!selectedAmbassador?.id) {
+      setAmbassadorReducedMargin(null);
+      return;
+    }
+    getAmbassadorReducedMarginRate(selectedAmbassador.id).then(setAmbassadorReducedMargin);
+  }, [selectedAmbassador?.id]);
+
   const {
     equipment,
     setEquipment,
@@ -172,7 +184,7 @@ const CreateOffer = () => {
     findCoefficient,
     toggleAdaptMonthlyPayment,
     calculations
-  } = useSimplifiedEquipmentCalculator(selectedLeaser, selectedDuration, absorbingCategoryIds);
+  } = useSimplifiedEquipmentCalculator(selectedLeaser, selectedDuration, absorbingCategoryIds, ambassadorReducedMargin ?? 20);
 
   // Calcul de la marge totale depuis les équipements (liste ventilée : tient compte des offerts)
   const totalEquipmentMargin = ventilatedList.reduce((sum, eq) => {
@@ -655,7 +667,7 @@ const CreateOffer = () => {
       toast.error("Sélectionnez d'abord un bailleur (leaser).");
       return;
     }
-    const defaultMargin = 20;
+    const defaultMargin = ambassadorReducedMargin ?? 20;
     const newEquipments = suggestions.map((s) => {
       const purchasePrice = s.price || 0;
       // Mensualité de ligne = total (unitaire × quantité), comme la convention du calculateur.
@@ -700,7 +712,7 @@ const CreateOffer = () => {
       title: item.title,
       purchasePrice,
       quantity: 1,
-      margin: 20,
+      margin: ambassadorReducedMargin ?? 20,
       productId: item.product_id || undefined,
       sourceStockItemId: item.id,
       individualSerialNumber: item.serial_number || undefined,

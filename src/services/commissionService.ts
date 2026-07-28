@@ -16,8 +16,9 @@ export interface CommissionLevel {
   name: string;
   type: 'partner' | 'ambassador';
   is_default: boolean;
-  calculation_mode: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount';
+  calculation_mode: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount' | 'fixed_per_pc_reduced_margin';
   fixed_rate?: number; // Taux fixe utilisé quand calculation_mode = 'monthly_payment' ou 'fixed_per_pc'
+  margin_rate?: number; // Taux de marge (%) appliqué par défaut aux offres (mode fixed_per_pc_reduced_margin)
   created_at: string;
   updated_at: string;
   rates?: CommissionRate[];
@@ -127,9 +128,9 @@ export const getDefaultCommissionLevel = async (type: 'partner' | 'ambassador' =
 /**
  * Crée un niveau de commission
  */
-export const createCommissionLevel = async (levelData: { name: string; type: 'partner' | 'ambassador'; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount'; fixed_rate?: number }): Promise<CommissionLevel | null> => {
+export const createCommissionLevel = async (levelData: { name: string; type: 'partner' | 'ambassador'; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount' | 'fixed_per_pc_reduced_margin'; fixed_rate?: number; margin_rate?: number }): Promise<CommissionLevel | null> => {
   try {
-    const { name, type, is_default = false, calculation_mode = 'margin', fixed_rate } = levelData;
+    const { name, type, is_default = false, calculation_mode = 'margin', fixed_rate, margin_rate } = levelData;
     
     console.log("[createCommissionLevel] Creating commission level:", levelData);
     
@@ -149,7 +150,7 @@ export const createCommissionLevel = async (levelData: { name: string; type: 'pa
     const { data, error } = await supabase
       .from('commission_levels')
       .insert([
-        { name, type, is_default, calculation_mode, fixed_rate, company_id }
+        { name, type, is_default, calculation_mode, fixed_rate, margin_rate, company_id }
       ])
       .select();
     
@@ -169,9 +170,9 @@ export const createCommissionLevel = async (levelData: { name: string; type: 'pa
 /**
  * Met à jour un niveau de commission
  */
-export const updateCommissionLevel = async (id: string, levelData: { name: string; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount'; fixed_rate?: number }): Promise<CommissionLevel | null> => {
+export const updateCommissionLevel = async (id: string, levelData: { name: string; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc' | 'fixed_amount' | 'fixed_per_pc_reduced_margin'; fixed_rate?: number; margin_rate?: number }): Promise<CommissionLevel | null> => {
   try {
-    const { name, is_default = false, calculation_mode, fixed_rate } = levelData;
+    const { name, is_default = false, calculation_mode, fixed_rate, margin_rate } = levelData;
     
     console.log("[updateCommissionLevel] Updating commission level:", id, levelData);
     
@@ -199,6 +200,7 @@ export const updateCommissionLevel = async (id: string, levelData: { name: strin
     const updateData: any = { name, is_default };
     if (calculation_mode !== undefined) updateData.calculation_mode = calculation_mode;
     if (fixed_rate !== undefined) updateData.fixed_rate = fixed_rate;
+    if (margin_rate !== undefined) updateData.margin_rate = margin_rate;
     
     const { data, error } = await supabase
       .from('commission_levels')

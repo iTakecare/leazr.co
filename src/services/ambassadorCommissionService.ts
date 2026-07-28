@@ -148,6 +148,26 @@ export const calculateAmbassadorCommission = async (
       };
     }
 
+    // Mode "Marge réduite + forfait par PC" (hors support) : la commission est le
+    // forfait par PC ; le taux de marge réduit (margin_rate) est appliqué en amont
+    // à la création de l'offre (voir getAmbassadorReducedMarginRate).
+    if (calculationMode === 'fixed_per_pc_reduced_margin') {
+      const fixedAmountPerPC = commissionLevel.fixed_rate || 0;
+      const pcCount = await countPCsInEquipment(equipmentList || []);
+      const commissionAmount = Math.round(pcCount * fixedAmountPerPC);
+      const marginInfo = commissionLevel.margin_rate ? ` · marge ${commissionLevel.margin_rate}%` : '';
+
+      return {
+        amount: commissionAmount,
+        rate: fixedAmountPerPC,
+        levelName: pcCount === 0
+          ? `${commissionLevel.name} (Forfait: ${fixedAmountPerPC}€/PC${marginInfo})`
+          : `${commissionLevel.name} (${pcCount} PC × ${fixedAmountPerPC}€${marginInfo})`,
+        marginAmount,
+        pcCount
+      };
+    }
+
     // Mode "Forfait par PC"
     if (calculationMode === 'fixed_per_pc') {
       const fixedAmountPerPC = commissionLevel.fixed_rate || 0;
@@ -400,6 +420,30 @@ export const getAmbassadorCommissionInfo = async (ambassadorId: string) => {
     return data;
   } catch (error) {
     console.error("[getAmbassadorCommissionInfo] Error:", error);
+    return null;
+  }
+};
+
+/**
+ * Taux de marge réduit (%) à appliquer par défaut aux offres d'un ambassadeur
+ * dont le barème est en mode « Marge réduite + forfait par PC » (hors support).
+ * Retourne null si le barème n'est pas de ce mode ou n'a pas de taux configuré.
+ */
+export const getAmbassadorReducedMarginRate = async (
+  ambassadorId: string
+): Promise<number | null> => {
+  try {
+    const level = await getAmbassadorCommissionLevel(ambassadorId);
+    if (
+      level?.calculation_mode === 'fixed_per_pc_reduced_margin' &&
+      typeof level.margin_rate === 'number' &&
+      level.margin_rate > 0
+    ) {
+      return level.margin_rate;
+    }
+    return null;
+  } catch (error) {
+    console.error("[getAmbassadorReducedMarginRate] Error:", error);
     return null;
   }
 };

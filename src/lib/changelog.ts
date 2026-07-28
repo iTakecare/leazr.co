@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.88";
+export const ADMIN_VERSION = "1.3.89";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.89",
+    date: "2026-07-28",
+    title: "Nouveau barème ambassadeur « hors support » : marge réduite + forfait par PC",
+    items: [
+      "Nouveau mode de calcul dans Paramètres → Finances → Commissions : « Marge réduite + forfait par PC (hors support) », pour les ambassadeurs dont les clients ne bénéficient pas du support.",
+      "Le barème définit un taux de marge réduit (ex. 30 % au lieu de 40-50 %) appliqué par défaut aux lignes des offres de l'ambassadeur — le client paie moins, le support n'étant pas fourni. La marge reste modifiable ligne par ligne.",
+      "La commission de l'ambassadeur est un montant fixe par PC (catégories Laptop/Desktop), configurable dans le barème, affichée en temps réel à la création de l'offre.",
+      "S'applique aussi quand un admin crée une offre au nom d'un ambassadeur avec ce barème.",
+    ],
+  },
   {
     version: "1.3.88",
     date: "2026-07-28",

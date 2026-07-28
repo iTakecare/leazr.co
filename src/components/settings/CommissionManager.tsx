@@ -46,12 +46,13 @@ const getCalculationModeLabel = (mode: string): string => {
     case 'one_monthly_rounded_up': return '1 mensualité arrondie';
     case 'fixed_per_pc': return 'Forfait par PC';
     case 'fixed_amount': return 'Montant fixe';
+    case 'fixed_per_pc_reduced_margin': return 'Marge réduite + forfait/PC (hors support)';
     default: return mode;
   }
 };
 
 // Modes qui n'utilisent pas de table de taux
-const modesWithoutRateTable = ['fixed_per_pc', 'one_monthly_rounded_up', 'monthly_payment', 'fixed_amount'];
+const modesWithoutRateTable = ['fixed_per_pc', 'one_monthly_rounded_up', 'monthly_payment', 'fixed_amount', 'fixed_per_pc_reduced_margin'];
 
 const CommissionManager: React.FC = () => {
   // States pour les ambassadeurs
@@ -423,6 +424,14 @@ const CommissionManager: React.FC = () => {
                                 </p>
                               </>
                             )}
+                            {level.calculation_mode === 'fixed_per_pc_reduced_margin' && (
+                              <>
+                                <p className="text-lg font-semibold">Marge {level.margin_rate || 0}% + {level.fixed_rate || 0}€ par PC</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Offres hors support : marge par défaut réduite à {level.margin_rate || 0}% · Commission = Nombre de PC (Laptop/Desktop) × {level.fixed_rate || 0}€
+                                </p>
+                              </>
+                            )}
                           </div>
                         ) : (
                           // Affichage pour les modes avec table de taux (margin, purchase_price)
@@ -621,6 +630,14 @@ const CommissionManager: React.FC = () => {
                                 <p className="text-lg font-semibold">{level.fixed_rate || 0}€ (montant fixe)</p>
                                 <p className="text-sm text-muted-foreground">
                                   Commission fixe de {level.fixed_rate || 0}€ quel que soit le montant de la demande
+                                </p>
+                              </>
+                            )}
+                            {level.calculation_mode === 'fixed_per_pc_reduced_margin' && (
+                              <>
+                                <p className="text-lg font-semibold">Marge {level.margin_rate || 0}% + {level.fixed_rate || 0}€ par PC</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Offres hors support : marge par défaut réduite à {level.margin_rate || 0}% · Commission = Nombre de PC (Laptop/Desktop) × {level.fixed_rate || 0}€
                                 </p>
                               </>
                             )}

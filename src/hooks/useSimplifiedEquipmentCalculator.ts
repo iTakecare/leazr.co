@@ -13,7 +13,10 @@ import { applyVentilationToEquipmentList } from '@/utils/giftedVentilation';
 export const useSimplifiedEquipmentCalculator = (
   selectedLeaser: Leaser | null,
   duration: number = 36,
-  absorbingCategoryIds: Set<string> = new Set()
+  absorbingCategoryIds: Set<string> = new Set(),
+  // Marge par défaut des nouvelles lignes (ex. marge réduite du barème
+  // « hors support » d'un ambassadeur). 20 = marge standard historique.
+  defaultMargin: number = 20
 ) => {
   const leaser = selectedLeaser;
   
@@ -23,9 +26,23 @@ export const useSimplifiedEquipmentCalculator = (
     title: '',
     purchasePrice: 0,
     quantity: 1,
-    margin: 20,
+    margin: defaultMargin,
     monthlyPayment: 0,
   });
+
+  // Si la marge par défaut change (fetch du barème après le premier rendu,
+  // sélection d'un ambassadeur), l'appliquer à la ligne en cours tant qu'elle
+  // n'a pas été personnalisée.
+  const appliedDefaultMarginRef = useRef(defaultMargin);
+  useEffect(() => {
+    if (defaultMargin !== appliedDefaultMarginRef.current) {
+      const previousDefault = appliedDefaultMarginRef.current;
+      appliedDefaultMarginRef.current = defaultMargin;
+      setEquipment(prev =>
+        prev.margin === previousDefault ? { ...prev, margin: defaultMargin } : prev
+      );
+    }
+  }, [defaultMargin]);
   
   // États pour les calculs de l'équipement individuel
   const [monthlyPayment, setMonthlyPayment] = useState<number>(0);
@@ -278,7 +295,7 @@ export const useSimplifiedEquipmentCalculator = (
         title: '',
         purchasePrice: 0,
         quantity: 1,
-        margin: 20,
+        margin: defaultMargin,
         monthlyPayment: 0,
       });
       
@@ -317,7 +334,7 @@ export const useSimplifiedEquipmentCalculator = (
       title: '',
       purchasePrice: 0,
       quantity: 1,
-      margin: 20,
+      margin: defaultMargin,
       monthlyPayment: 0,
     });
     setTargetMonthlyPayment(0);
