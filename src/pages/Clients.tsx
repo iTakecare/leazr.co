@@ -33,7 +33,10 @@ import {
 const Clients = () => {
   const { navigateToAdmin } = useRoleNavigation();
   const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = useState("clients");
+  // ?tab=ambassadors permet d'arriver directement sur l'onglet Ambassadeurs
+  const [activeTab, setActiveTab] = useState(() =>
+    new URLSearchParams(window.location.search).get("tab") === "ambassadors" ? "ambassadors" : "clients"
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   // Ouverture auto de la modale "nouveau client" via ?create=1 (ex. bouton

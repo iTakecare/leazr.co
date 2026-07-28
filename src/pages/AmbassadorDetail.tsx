@@ -27,6 +27,14 @@ export default function AmbassadorDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Retour vers la page d'où l'on vient (CRM onglet Ambassadeurs, avec son
+  // affichage et son état) plutôt que vers l'ancienne page /ambassadors qui a
+  // une mise en page différente. Repli sur /ambassadors en accès direct (deep link).
+  const goBackToList = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/ambassadors");
+  };
+
   const fetchAmbassador = async () => {
     if (!id) {
       console.error("AmbassadorDetail - No ID provided");
@@ -96,7 +104,7 @@ export default function AmbassadorDetail() {
           L'ambassadeur demandé n'existe pas ou a été supprimé.
         </p>
         <div className="space-x-2">
-          <Button variant="outline" onClick={() => navigate("/ambassadors")}>
+          <Button variant="outline" onClick={goBackToList}>
             <ChevronLeft className="mr-1 h-4 w-4" />
             Retour à la liste
           </Button>
@@ -122,7 +130,7 @@ export default function AmbassadorDetail() {
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/ambassadors")} className="flex items-center">
+          <Button variant="outline" onClick={goBackToList} className="flex items-center">
             <ChevronLeft className="mr-1 h-4 w-4" />
             Retour
           </Button>

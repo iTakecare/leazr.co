@@ -53,6 +53,13 @@ const AmbassadorCreatePage = () => {
     }
   };
 
+  // Retour vers la page d'où l'on vient (CRM onglet Ambassadeurs) plutôt que
+  // vers l'ancienne page /ambassadors dont la mise en page diffère.
+  const goBackToList = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/ambassadors");
+  };
+
   return (
     <PageTransition>
       <Container>
@@ -60,7 +67,7 @@ const AmbassadorCreatePage = () => {
           <div className="flex items-center mb-6">
             <Button
               variant="ghost"
-              onClick={() => navigate("/ambassadors")}
+              onClick={goBackToList}
               className="mr-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -71,7 +78,7 @@ const AmbassadorCreatePage = () => {
 
           <AmbassadorForm
             onSubmit={onSubmit}
-            onCancel={() => navigate("/ambassadors")}
+            onCancel={goBackToList}
             isSubmitting={isSubmitting}
           />
         </div>
