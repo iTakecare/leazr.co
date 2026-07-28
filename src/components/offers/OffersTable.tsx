@@ -42,7 +42,8 @@ import {
   Mail,
   Upload,
   Phone,
-  Bot
+  Bot,
+  FileSpreadsheet
 } from "lucide-react";
 import {
   Tooltip,
@@ -66,6 +67,7 @@ import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/u
 import { useOffersReminders, ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 import { getOfferCallbackStatus } from "@/services/callLogService";
+import { exportOffersToExcel } from "@/services/offersExportService";
 
 type OfferSortColumn = 'dossier_number' | 'date' | 'last_activity' | 'client' | 'company' | 'type' | 'equipment' | 'source' | 'leaser' | 'leaser_request_number' | 'purchase_amount' | 'financed_amount' | 'margin_amount' | 'margin_percent' | 'commission' | 'monthly_payment' | 'status' | 'reminder';
 
@@ -387,6 +389,17 @@ const OffersTable: React.FC<OffersTableProps> = ({
   const someSelected = selectedOffers.size > 0 && !allSelected;
   const toggleAll = () =>
     setSelectedOffers(allSelected ? new Set() : new Set(sortedOffers.map((o: any) => o.id)));
+  const handleExportSelection = async () => {
+    const toExport = sortedOffers.filter((o: any) => selectedOffers.has(o.id));
+    try {
+      await exportOffersToExcel(toExport, "demandes_selection");
+      toast.success(`${toExport.length} demande(s) exportée(s) en Excel`);
+    } catch (error) {
+      console.error("Erreur lors de l'export Excel:", error);
+      toast.error("Erreur lors de l'export Excel");
+    }
+  };
+
   const selectedOfferList = sortedOffers
     .filter((o: any) => selectedOffers.has(o.id))
     .map((o: any) => {
@@ -401,6 +414,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
           <span className="text-sm text-violet-900 font-medium">{selectedOffers.size} demande(s) sélectionnée(s)</span>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => setSelectedOffers(new Set())}>Désélectionner</Button>
+            <Button variant="outline" size="sm" onClick={handleExportSelection}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Exporter en Excel
+            </Button>
             <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setCampaignOpen(true)}>
               <Bot className="w-4 h-4 mr-2" />
               Appeler en groupe avec Alex
