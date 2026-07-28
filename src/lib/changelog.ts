@@ -13,9 +13,31 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.86";
+export const ADMIN_VERSION = "1.3.88";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.88",
+    date: "2026-07-28",
+    title: "Grand ménage sécurité & stabilité",
+    items: [
+      "Toutes les vulnérabilités connues des composants techniques ont été corrigées (151 alertes → 0) : mises à jour de sécurité, remplacement de l'éditeur de texte riche et du moteur d'export Excel par des versions corrigées.",
+      "Moteur de build modernisé : l'application se construit 5× plus vite, les mises à jour arrivent donc plus rapidement en production.",
+      "Fini l'écran « Oops » après un déploiement : une fenêtre restée ouverte sur l'ancienne version se recharge maintenant toute seule.",
+      "Correctif d'un crash du tableau de bord admin lié aux notifications temps réel (apparu avec les mises à jour de sécurité, corrigé dans la foulée).",
+    ],
+  },
+  {
+    version: "1.3.87",
+    date: "2026-07-28",
+    title: "Stock : les coûts additionnels comptent partout",
+    items: [
+      "Les coûts additionnels d'un article (clavier, réparation, pièce…) sont désormais inclus dans la colonne Total de la liste du stock, y compris sur les lignes groupées et leurs unités (mention « +X € coûts »).",
+      "Dans la création d'offre, l'onglet Stock du catalogue affiche le prix coûts inclus (« dont +X € coûts »).",
+      "En ajoutant l'article à une offre, le prix d'achat repris est le coût réel (prix de base + coûts additionnels) : la marge et la mensualité se calculent enfin sur le bon montant.",
+      "Ajouter ou supprimer un coût met à jour immédiatement la liste du stock et le sélecteur d'offre.",
+    ],
+  },
   {
     version: "1.3.86",
     date: "2026-07-27",
@@ -868,9 +890,18 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
 ];
 
 // ────────────────────────── CLIENT (espace /client) ──────────────────────────
-export const CLIENT_VERSION = "1.2.0";
+export const CLIENT_VERSION = "1.3.1";
 
 export const CLIENT_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.1",
+    date: "2026-07-28",
+    title: "Plus de stabilité au quotidien",
+    items: [
+      "Mise à jour de sécurité complète des composants de votre espace.",
+      "Lorsqu'une mise à jour de Leazr est déployée pendant que votre fenêtre est ouverte, la page se recharge désormais automatiquement : plus d'écran d'erreur vous invitant à rafraîchir.",
+    ],
+  },
   {
     version: "1.3.0",
     date: "2026-07-14",
