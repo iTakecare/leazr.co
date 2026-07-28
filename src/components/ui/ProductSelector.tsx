@@ -15,7 +15,6 @@ import ProviderSelectorList, { type SelectableExternalService } from "./product-
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { StockItem } from "@/services/stockService";
-import { Headphones } from "lucide-react";
 
 interface ProductSelectorProps {
   isOpen: boolean;

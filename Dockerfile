@@ -1,4 +1,5 @@
-FROM node:20-alpine AS builder
+# Node 22 requis par Vite 8 (>= 20.19 ou >= 22.12)
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 

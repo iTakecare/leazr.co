@@ -23,21 +23,24 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // React core
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-          // UI libraries
-          "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-toast", "framer-motion"],
-          // Data fetching & forms
-          "vendor-data": ["@tanstack/react-query", "react-hook-form", "zod"],
-          // Supabase
-          "vendor-supabase": ["@supabase/supabase-js"],
-          // PDF libraries (chargées uniquement quand nécessaire)
-          "vendor-pdf": ["jspdf", "jspdf-autotable", "pdf-lib"],
-          // Charts
-          "vendor-charts": ["recharts"],
-          // Excel
-          "vendor-excel": ["exceljs", "xlsx"],
+        // Vite 8 / rolldown : advancedChunks remplace manualChunks (forme objet).
+        advancedChunks: {
+          groups: [
+            // React core
+            { name: "vendor-react", test: /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/ },
+            // UI libraries
+            { name: "vendor-ui", test: /node_modules[\\/](@radix-ui[\\/]react-(dialog|dropdown-menu|select|tabs|toast)|framer-motion)[\\/]/ },
+            // Data fetching & forms
+            { name: "vendor-data", test: /node_modules[\\/](@tanstack[\\/]react-query|react-hook-form|zod)[\\/]/ },
+            // Supabase
+            { name: "vendor-supabase", test: /node_modules[\\/]@supabase[\\/]/ },
+            // PDF libraries (chargées uniquement quand nécessaire)
+            { name: "vendor-pdf", test: /node_modules[\\/](jspdf|jspdf-autotable|pdf-lib)[\\/]/ },
+            // Charts
+            { name: "vendor-charts", test: /node_modules[\\/]recharts[\\/]/ },
+            // Excel
+            { name: "vendor-excel", test: /node_modules[\\/](exceljs|xlsx)[\\/]/ },
+          ],
         },
       },
     },
