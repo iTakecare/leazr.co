@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle, Mail, X } from "lucide-react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { rejectionTitle, rejectionBody, normalizeCommLang, type CommLang } from "@/lib/leasingEmailContent";
 import { supabase } from "@/integrations/supabase/client";
 

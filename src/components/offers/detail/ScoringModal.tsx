@@ -19,8 +19,8 @@ import {
   UserX
 } from "lucide-react";
 import { toast } from "sonner";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { getOfferById } from "@/services/offerService";
 import { sendLeasingRejectionEmail, sendNoFollowUpEmail } from "@/services/offers/offerEmail";
 import { updateOfferStatus } from "@/services/offers/offerStatus";

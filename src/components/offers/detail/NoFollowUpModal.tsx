@@ -17,8 +17,8 @@ import { sendNoFollowUpEmail } from "@/services/offers/offerEmail";
 import { noFollowUpSubject, noFollowUpBodyTemplate, normalizeCommLang, type CommLang } from "@/lib/leasingEmailContent";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 interface NoFollowUpModalProps {
   isOpen: boolean;
