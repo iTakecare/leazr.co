@@ -168,6 +168,40 @@ const AmbassadorCommissionLevelSelector = ({
                 }
               </div>
             )}
+
+            {/* Modes sans paliers : afficher le détail du calcul */}
+            {selectedLevel.calculation_mode === 'monthly_payment' && (
+              <p className="text-sm">
+                Commission = <span className="font-medium text-green-600">{selectedLevel.fixed_rate || 0}%</span> de la mensualité totale client
+              </p>
+            )}
+            {selectedLevel.calculation_mode === 'one_monthly_rounded_up' && (
+              <p className="text-sm">
+                Commission = <span className="font-medium text-green-600">1 mensualité client</span>, arrondie à l'euro supérieur
+              </p>
+            )}
+            {selectedLevel.calculation_mode === 'fixed_per_pc' && (
+              <p className="text-sm">
+                Commission = Nombre de PC (Laptop/Desktop) × <span className="font-medium text-green-600">{selectedLevel.fixed_rate || 0}€</span>
+              </p>
+            )}
+            {selectedLevel.calculation_mode === 'fixed_amount' && (
+              <p className="text-sm">
+                Commission fixe de <span className="font-medium text-green-600">{selectedLevel.fixed_rate || 0}€</span> par demande
+              </p>
+            )}
+            {selectedLevel.calculation_mode === 'fixed_per_pc_reduced_margin' && (
+              <div className="space-y-1 text-sm">
+                <p>
+                  Offres hors support : marge par défaut réduite à{' '}
+                  <span className="font-medium text-amber-600">{selectedLevel.margin_rate || 0}%</span>
+                </p>
+                <p>
+                  Commission = Nombre de PC (Laptop/Desktop) ×{' '}
+                  <span className="font-medium text-green-600">{selectedLevel.fixed_rate || 0}€</span>
+                </p>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

@@ -125,6 +125,33 @@ const CommissionLevelSelector = ({
                   }
                 </div>
               )}
+              {/* Modes sans paliers : détail du calcul */}
+              {commissionLevel.calculation_mode === 'monthly_payment' && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Commission = {commissionLevel.fixed_rate || 0}% de la mensualité totale client
+                </p>
+              )}
+              {commissionLevel.calculation_mode === 'one_monthly_rounded_up' && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Commission = 1 mensualité client, arrondie à l'euro supérieur
+                </p>
+              )}
+              {commissionLevel.calculation_mode === 'fixed_per_pc' && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Commission = Nombre de PC (Laptop/Desktop) × {commissionLevel.fixed_rate || 0}€
+                </p>
+              )}
+              {commissionLevel.calculation_mode === 'fixed_amount' && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Commission fixe de {commissionLevel.fixed_rate || 0}€ par demande
+                </p>
+              )}
+              {commissionLevel.calculation_mode === 'fixed_per_pc_reduced_margin' && (
+                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  <p>Offres hors support : marge par défaut réduite à {commissionLevel.margin_rate || 0}%</p>
+                  <p>Commission = Nombre de PC (Laptop/Desktop) × {commissionLevel.fixed_rate || 0}€</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-sm text-amber-600 mt-2">
