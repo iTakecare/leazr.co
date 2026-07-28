@@ -197,6 +197,18 @@ export const getAmbassadors = async (): Promise<Ambassador[]> => {
   }
 };
 
+/**
+ * Les formulaires envoient "" pour les champs uuid vides (ex. ambassadeur sans
+ * barème) — Postgres rejette "" pour une colonne uuid, on normalise en null.
+ */
+const sanitizeAmbassadorData = <T extends Partial<Ambassador>>(data: T): T => {
+  const sanitized: any = { ...data };
+  for (const key of ['commission_level_id', 'pdf_template_id', 'user_id']) {
+    if (sanitized[key] === '') sanitized[key] = null;
+  }
+  return sanitized;
+};
+
 export const createAmbassador = async (ambassadorData: Partial<Ambassador>): Promise<Ambassador | null> => {
   try {
     // Get current user's company_id
@@ -218,7 +230,7 @@ export const createAmbassador = async (ambassadorData: Partial<Ambassador>): Pro
     const { data, error } = await supabase
       .from('ambassadors')
       .insert({
-        ...ambassadorData,
+        ...sanitizeAmbassadorData(ambassadorData),
         company_id: profile.company_id
       })
       .select('*')
@@ -241,7 +253,7 @@ export const updateAmbassador = async (id: string, ambassadorData: Partial<Ambas
     const { data, error } = await supabase
       .from('ambassadors')
       .update({
-        ...ambassadorData,
+        ...sanitizeAmbassadorData(ambassadorData),
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
