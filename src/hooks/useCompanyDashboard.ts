@@ -594,8 +594,11 @@ export const useCompanyDashboard = (selectedYear?: number) => {
   useEffect(() => {
     if (!companyId) return;
 
+    // Nom unique par montage : supabase.channel() réutilise un canal existant de
+    // même nom, et realtime-js >= 2.15 interdit d'ajouter des callbacks après
+    // subscribe() → crash si le hook est monté deux fois avec un nom fixe.
     const channel = supabase
-      .channel('company-dashboard-changes')
+      .channel(`company-dashboard-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
