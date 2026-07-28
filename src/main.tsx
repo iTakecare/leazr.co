@@ -72,6 +72,21 @@ window.addEventListener("unhandledrejection", (event) => {
   }
 });
 
+// Après un déploiement, les fenêtres restées ouvertes référencent des chunks
+// dont le hash n'existe plus → l'import dynamique échoue. On recharge une fois
+// pour récupérer le nouveau build au lieu d'afficher l'écran d'erreur.
+window.addEventListener("vite:preloadError", (event) => {
+  const key = "leazr-preload-error-reload";
+  const last = Number(sessionStorage.getItem(key) || 0);
+  // Au plus un reload auto toutes les 30 s — si le chunk manque durablement,
+  // on laisse l'erreur remonter à l'ErrorBoundary plutôt que de boucler.
+  if (Date.now() - last > 30_000) {
+    sessionStorage.setItem(key, String(Date.now()));
+    event.preventDefault();
+    window.location.reload();
+  }
+});
+
 // Lance l'initialisation native (fire & forget — n'attend pas)
 initNative().catch(console.error);
 
