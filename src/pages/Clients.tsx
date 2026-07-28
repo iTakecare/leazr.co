@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from "react-router";
+import { useSearchParams, useNavigate } from "react-router";
 import { useRoleNavigation } from '@/hooks/useRoleNavigation';
+import { getAmbassadors } from "@/services/ambassadorService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, ShieldQuestion, Plus } from "lucide-react";
@@ -39,6 +40,35 @@ const Clients = () => {
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const navigate = useNavigate();
+
+  // Onglet Ambassadeurs : recherche, filtre de statut et compteur (même
+  // barre d'outils que l'ancienne page /ambassadors, conservée comme référence)
+  const [ambSearchTerm, setAmbSearchTerm] = useState("");
+  const [ambStatusFilter, setAmbStatusFilter] = useState<string>("all");
+  const [ambassadorCount, setAmbassadorCount] = useState<number>(0);
+  useEffect(() => {
+    if (activeTab !== "ambassadors") return;
+    getAmbassadors()
+      .then((ambassadors) => {
+        setAmbassadorCount(
+          ambStatusFilter === "all"
+            ? ambassadors.length
+            : ambassadors.filter((a) => a.status === ambStatusFilter).length
+        );
+      })
+      .catch(() => setAmbassadorCount(0));
+  }, [activeTab, ambStatusFilter]);
+
+  const getAmbStatusFilterLabel = () => {
+    switch (ambStatusFilter) {
+      case 'active': return 'Ambassadeurs actifs';
+      case 'inactive': return 'Ambassadeurs inactifs';
+      case 'lead': return 'Prospects';
+      default: return 'Tous les ambassadeurs';
+    }
+  };
+
   // Ouverture auto de la modale "nouveau client" via ?create=1 (ex. bouton
   // "Créer une fiche client" du Centre d'appels qui embarque cette page).
   const [searchParams] = useSearchParams();
@@ -212,11 +242,64 @@ const Clients = () => {
                   </TabsContent>
                   
                   <TabsContent value="ambassadors" className="mt-0">
-                    <div>
-                      <CardTitle className="text-xl">Ambassadeurs</CardTitle>
-                      <CardDescription>
-                        Gérez vos ambassadeurs et suivez leurs performances
-                      </CardDescription>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <CardTitle className="text-xl">Ambassadeurs</CardTitle>
+                        <CardDescription>
+                          Gérez vos ambassadeurs et suivez leurs performances
+                        </CardDescription>
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full sm:w-auto gap-2">
+                              <Filter className="h-4 w-4" />
+                              <span className="truncate">{getAmbStatusFilterLabel()}</span>
+                              <Badge variant="secondary" className="ml-1 text-xs">
+                                {ambassadorCount}
+                              </Badge>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-56">
+                            <DropdownMenuLabel>Filtrer par statut</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem onClick={() => setAmbStatusFilter('all')}>
+                                Tous les ambassadeurs
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setAmbStatusFilter('active')}>
+                                Ambassadeurs actifs
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setAmbStatusFilter('inactive')}>
+                                Ambassadeurs inactifs
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setAmbStatusFilter('lead')}>
+                                Prospects
+                              </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div className="relative flex-grow">
+                            <UserSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="Rechercher un ambassadeur..."
+                              value={ambSearchTerm}
+                              onChange={(e) => setAmbSearchTerm(e.target.value)}
+                              className="pl-9 w-full"
+                            />
+                          </div>
+                          <Button
+                            onClick={() => navigate('/ambassadors/create')}
+                            variant="default"
+                            size="sm"
+                            className="sm:ml-2 gap-1"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Nouvel ambassadeur</span>
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </TabsContent>
                   
@@ -234,7 +317,7 @@ const Clients = () => {
                     allClients={allClients}
                   />
                 }
-                {activeTab === "ambassadors" && <AmbassadorsList />}
+                {activeTab === "ambassadors" && <AmbassadorsList searchTerm={ambSearchTerm} statusFilter={ambStatusFilter} />}
               </CardContent>
             </Card>
           </motion.div>
