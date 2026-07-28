@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { useParams, useSearchParams, useLocation } from "react-router-dom";
+import { useParams, useSearchParams, useLocation } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { useMemo } from "react";

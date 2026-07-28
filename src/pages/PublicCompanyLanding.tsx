@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Package, ArrowRight, Star, Users, Award, Zap } from "lucide-react";

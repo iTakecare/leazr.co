@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { formatCurrency, formatDistanceToNow } from "@/utils/formatters";
 import { supabase } from "@/integrations/supabase/client";

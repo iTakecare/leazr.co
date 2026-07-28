@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, CheckCircle, Users, BarChart, Shield, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import Logo from '@/components/layout/Logo';
 import LandingHeader from '@/components/layout/LandingHeader';
 import Footer from '@/components/layout/Footer';

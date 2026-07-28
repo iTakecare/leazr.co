@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import { File, FileSignature, Menu, X } from 'lucide-react';
 import { useClientOffers } from '@/hooks/useClientOffers';
 import { Button } from '@/components/ui/button';

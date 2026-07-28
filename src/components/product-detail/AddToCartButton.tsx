@@ -5,7 +5,7 @@ import { ShoppingCart, Check } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { Product } from "@/types/catalog";
 import { toast } from "sonner";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 

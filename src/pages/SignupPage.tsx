@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import { toast } from 'sonner';
 import { getAvailableModules, createCompanyWithAdmin, PLANS, calculatePrice, type Module } from '@/services/companyService';
 

@@ -12,7 +12,7 @@ import { CreditNote, updateCreditNote, deleteCreditNote } from "@/services/credi
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { FileText, Calendar as CalendarIcon, MessageSquare, ExternalLink, Pencil, Trash2, Save, X, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

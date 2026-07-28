@@ -1,6 +1,6 @@
 
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { createOffer } from "@/services/offers";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";

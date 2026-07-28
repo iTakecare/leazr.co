@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, PhoneCall, Calendar, ExternalLink } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router";
 import { format, parseISO, isToday, isPast } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";

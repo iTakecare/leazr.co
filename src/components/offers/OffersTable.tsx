@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { formatCurrency } from "@/utils/formatters";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";

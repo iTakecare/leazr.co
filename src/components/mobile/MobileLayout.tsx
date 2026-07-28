@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import MobileHeader from "./MobileHeader";
 import MobileBottomNav from "./MobileBottomNav";
 import MobilePageContainer from "./MobilePageContainer";

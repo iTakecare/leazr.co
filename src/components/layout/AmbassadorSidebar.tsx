@@ -1,6 +1,6 @@
 
 import React, { useState, memo } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useCompanyContext } from "@/context/CompanyContext";

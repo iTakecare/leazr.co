@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Calendar, Euro, Eye, Building2, Truck, CalendarRange } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ClientContract } from "@/hooks/useClientContracts";
 import { formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
 

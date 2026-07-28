@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Product } from "@/types/catalog";
 import { useQuery } from "@tanstack/react-query";
 import { getCategories as fetchCategories } from "@/services/catalogService";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 
 export interface PublicFilterState {
   searchQuery: string;

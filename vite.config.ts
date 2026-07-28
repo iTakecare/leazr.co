@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
         advancedChunks: {
           groups: [
             // React core
-            { name: "vendor-react", test: /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/ },
+            { name: "vendor-react", test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/ },
             // UI libraries
             { name: "vendor-ui", test: /node_modules[\\/](@radix-ui[\\/]react-(dialog|dropdown-menu|select|tabs|toast)|framer-motion)[\\/]/ },
             // Data fetching & forms

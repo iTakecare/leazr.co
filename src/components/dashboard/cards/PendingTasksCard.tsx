@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClipboardList, FileWarning, Bell, AlertTriangle, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PendingTask } from '@/services/commercialDashboardService';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from "react-router";
 
 interface PendingTasksCardProps {
   tasks: PendingTask[];

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, Calculator, Shield, Box, ArrowRight, CheckCircle, TrendingUp, Database, Clock, Award, Star, Target, Zap, Building, Headphones, Book, Briefcase, Monitor, Server, Recycle, Share2, HelpCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import LandingHeader from '@/components/layout/LandingHeader';
 import Footer from '@/components/layout/Footer';
 

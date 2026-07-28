@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet } from "react-router";
 import { useBrokerData } from '@/hooks/useBrokerData';
 import { BrokerProvider } from '@/context/BrokerContext';
 import BrokerSidebar from './BrokerSidebar';

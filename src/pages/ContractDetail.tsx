@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import PageTransition from "@/components/layout/PageTransition";
 import ContractDetailHeader from "@/components/contracts/ContractDetailHeader";

@@ -17,7 +17,7 @@ import KpiAnalystTab from "@/components/gestion/KpiAnalystTab";
 import YukiComptaTab from "@/components/gestion/YukiComptaTab";
 import SupplierInvoicesTab from "@/components/invoicing/SupplierInvoicesTab";
 import { Button } from "@/components/ui/button";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { getCostCenters, CostCenter } from "@/services/costCenterService";
 

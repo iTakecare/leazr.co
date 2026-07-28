@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import { toast } from 'sonner';
 import CustomOfferGenerator from '@/components/offer/CustomOfferGenerator';
 import { ArrowLeft } from 'lucide-react';

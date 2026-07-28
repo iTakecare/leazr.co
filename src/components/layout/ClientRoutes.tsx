@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router";
 import ClientSidebar from "./ClientSidebar";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";

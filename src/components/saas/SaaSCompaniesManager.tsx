@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useSaaSCompanies } from "@/hooks/useSaaSCompanies";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 const SaaSCompaniesManager = () => {
   const [searchTerm, setSearchTerm] = useState("");

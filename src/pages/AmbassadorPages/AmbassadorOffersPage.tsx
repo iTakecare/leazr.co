@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Plus, Grid, List, Filter, Search } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 import OffersKanban from "@/components/offers/OffersKanban";

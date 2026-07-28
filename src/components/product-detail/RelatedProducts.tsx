@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import { getProductUpsells } from "@/services/catalogService";
 import { Product } from "@/types/catalog";

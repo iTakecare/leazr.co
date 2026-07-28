@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ShoppingBag, Phone, Mail, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';

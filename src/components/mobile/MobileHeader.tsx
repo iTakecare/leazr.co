@@ -5,7 +5,7 @@ import {
   Camera
 } from "lucide-react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 interface MobileHeaderProps {
   title?: string;

@@ -9,7 +9,7 @@ import { getCommissionLevels, CommissionLevel, getCommissionLevelWithRates } fro
 import { updateAmbassadorCommissionLevel } from "@/services/ambassadorService";
 import { BadgePercent, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 
 interface AmbassadorCommissionLevelSelectorProps {
   control: any;

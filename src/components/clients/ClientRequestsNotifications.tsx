@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink, AlertCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { formatCurrency, formatDistanceToNow } from "@/utils/formatters";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";

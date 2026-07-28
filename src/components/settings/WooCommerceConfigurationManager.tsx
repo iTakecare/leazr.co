@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Pencil, Trash2, TestTube, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { diagnoseAuthSession, fixAuthTransmission } from '@/utils/authDiagnostic';
 
 interface WooCommerceConfig {

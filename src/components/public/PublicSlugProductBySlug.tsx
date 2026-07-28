@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate } from "react-router";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { findProductBySlugDirectly } from '@/services/productServiceOptimized';

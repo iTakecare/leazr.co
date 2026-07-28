@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router";
 import { Plus, Filter, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Offer } from "@/hooks/offers/useFetchOffers";

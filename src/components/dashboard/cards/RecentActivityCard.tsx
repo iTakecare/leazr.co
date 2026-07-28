@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { ActivityItem } from '@/services/commercialDashboardService';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from "react-router";
 
 interface RecentActivityCardProps {
   activities: ActivityItem[];

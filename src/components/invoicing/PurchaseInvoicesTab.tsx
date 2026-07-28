@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ShoppingCart, Search, Eye, MoreHorizontal, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 interface PurchaseInvoicesTabProps {
   companyId: string | null;

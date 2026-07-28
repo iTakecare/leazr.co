@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import WaveLoader from "@/components/ui/WaveLoader";
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

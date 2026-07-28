@@ -3,7 +3,7 @@ import React from "react";
 import { AlertTriangle, Info, RefreshCw, Database, UserCheck, User } from "lucide-react";
 import { Button } from "../ui/button";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 

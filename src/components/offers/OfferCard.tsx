@@ -10,7 +10,7 @@ import {
   Building, Clock, PenLine, Trash2, Check, ExternalLink, Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import OfferTypeTag from "./OfferTypeTag";
 import { generateSignatureLink } from "@/services/offerService";
 import ReminderIndicator from "./ReminderIndicator";

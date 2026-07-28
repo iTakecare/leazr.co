@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useInvoices } from "@/hooks/useInvoices";
 import { useCreditNotes } from "@/hooks/useCreditNotes";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router";
 import InvoiceSortFilter, { InvoiceSortBy } from "@/components/invoicing/InvoiceSortFilter";
 import { CreditNotesList } from "@/components/invoicing/CreditNotesList";
 import { NewInvoiceDialog } from "@/components/invoicing/NewInvoiceDialog";

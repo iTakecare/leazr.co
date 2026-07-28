@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/tabs";
 import { Layers, Package, Tag, Edit, Trash2, Settings } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import VariantPriceManager from "./VariantPriceManager";
 import ProductSpecifications from "./ProductSpecifications";
 import { formatCurrency } from "@/utils/formatters";

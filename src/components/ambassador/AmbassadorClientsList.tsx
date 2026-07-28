@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Client } from "@/types/client";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import {
   Table,

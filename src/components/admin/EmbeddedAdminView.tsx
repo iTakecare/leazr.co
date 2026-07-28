@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from "react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { MemoryRouter, Routes, Route } from "react-router";
 import { Loader2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import AdminCreateOfferSwitch from "@/components/routing/AdminCreateOfferSwitch";

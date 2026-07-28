@@ -15,7 +15,7 @@ import { buildQueryFromEquipment } from "@/services/sourcing/buildQueryFromEquip
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router";
 import {
   OrderStatus,
   ORDER_STATUS_CONFIG,

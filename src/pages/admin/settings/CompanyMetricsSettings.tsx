@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ArrowLeft, Plus, GripVertical, Trash2, Save } from "lucide-react";
 import * as icons from 'lucide-react';
 import { IconPickerDialog } from '@/components/ui/icon-picker-dialog';

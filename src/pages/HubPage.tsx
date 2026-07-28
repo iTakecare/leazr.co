@@ -1,7 +1,7 @@
 
 import React from "react";
 import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 const HubPage = () => {
   const navigate = useNavigate();

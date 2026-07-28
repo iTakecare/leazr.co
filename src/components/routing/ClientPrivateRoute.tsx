@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, useParams, Outlet } from 'react-router-dom';
+import { Navigate, useParams, Outlet } from "react-router";
 import { useAuth } from '@/context/AuthContext';
 import { useCompanySlugAccess } from '@/hooks/useCompanySlugAccess';
 import { Loader2 } from 'lucide-react';

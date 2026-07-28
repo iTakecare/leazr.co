@@ -14,7 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePublicSimplifiedFilter } from "@/hooks/products/usePublicSimplifiedFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation } from "react-router";
 import { CompanyProvider } from "@/context/CompanyContext";
 import { useCart } from "@/context/CartContext";
 import { useSiteSettingsByCompanyId } from "@/hooks/useSiteSettings";

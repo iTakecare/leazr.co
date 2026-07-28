@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, Link, Navigate } from 'react-router-dom';
+import { useLocation, Link, Navigate } from "react-router";
 import { CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Container from '@/components/layout/Container';

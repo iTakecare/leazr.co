@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Calendar as CalendarIcon, User, Building2, Euro, FileText, Receipt, Pencil, Mail, MailCheck, Clock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ContractReferenceEditor } from "./ContractReferenceEditor";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Contract, getContractEquipment } from "@/services/contractService";

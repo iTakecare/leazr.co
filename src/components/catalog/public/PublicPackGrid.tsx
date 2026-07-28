@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { PublicPack } from "@/types/catalog";
 import PublicPackCard from "./PublicPackCard";
 import { Package } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 interface PublicPackGridProps {
   packs: PublicPack[];

@@ -1,6 +1,6 @@
 import React from 'react';
 import WaveLoader from "@/components/ui/WaveLoader";
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from "react-router";
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import ClientProductDetail from '@/components/catalog/client/ClientProductDetail';

@@ -33,7 +33,7 @@ import {
   Minimize2,
 } from "lucide-react";
 
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import VoiceCampaigns from "@/pages/admin/VoiceCampaigns";
 import VoiceStats from "@/pages/admin/VoiceStats";

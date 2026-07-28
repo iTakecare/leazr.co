@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProducts, deleteProduct } from "@/services/catalogService";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { useAuth } from "@/context/AuthContext";

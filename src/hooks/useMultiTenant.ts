@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from "react-router";
 import { getCurrentUserCompanyId, hasCompanyAccess, multiTenantServices } from '@/services/multiTenantService';
 import { isSystemRoute } from '@/utils/routeDetection';
 

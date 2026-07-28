@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from "react-router";
 import { useMultiTenant } from '@/hooks/useMultiTenant';
 import CompanyCustomizationService, { CompanyBranding } from '@/services/companyCustomizationService';
 import { isSystemRoute } from '@/utils/routeDetection';

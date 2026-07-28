@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";

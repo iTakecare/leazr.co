@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import WaveLoader from "@/components/ui/WaveLoader";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";

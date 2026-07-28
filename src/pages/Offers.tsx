@@ -3,7 +3,7 @@ import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
 import { Plus, Filter, Download, LayoutList, Trello } from "lucide-react";
 import { ExcelExportDialog } from "@/components/offers/ExcelExportDialog";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import PageTransition from "@/components/layout/PageTransition";
 import OffersTable from "@/components/offers/OffersTable";
 import KanbanView from "@/components/offers/KanbanView";

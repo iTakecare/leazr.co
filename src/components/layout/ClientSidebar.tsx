@@ -2,7 +2,7 @@ import React, { useState, memo, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSiteSettingsByCompanyId } from "@/hooks/useSiteSettings";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useClientRequestsCount } from "@/hooks/useClientRequests";
 import { useTicketReplyNotifications } from "@/hooks/useTicketReplyNotifications";

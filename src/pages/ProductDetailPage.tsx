@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
@@ -16,7 +16,7 @@ import { useAttributeHelpers } from "@/components/product-detail/ProductAttribut
 import { useCompanyDetection } from "@/hooks/useCompanyDetection";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();

@@ -3,7 +3,7 @@ import { SearchWithSuggestions } from "./SearchWithSuggestions";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router";
 import { safeRedirect } from "@/utils/fileUtils";
 
 interface CatalogSearchSectionProps {

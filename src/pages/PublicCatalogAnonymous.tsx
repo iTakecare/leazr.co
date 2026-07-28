@@ -17,7 +17,7 @@ import { usePublicSimplifiedFilter } from "@/hooks/products/usePublicSimplifiedF
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2, ShoppingCart } from "lucide-react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router";
 import { CompanyProvider } from "@/context/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettingsByCompanyId } from "@/hooks/useSiteSettings";

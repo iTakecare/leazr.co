@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Store, ArrowRight, Globe } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 interface Company {
   id: string;

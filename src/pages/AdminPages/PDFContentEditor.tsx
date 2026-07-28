@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { FileText, Save, Info, Sparkles, BarChart3, Building2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import { supabase } from '@/integrations/supabase/client';
 
 const PDFContentEditor: React.FC = () => {

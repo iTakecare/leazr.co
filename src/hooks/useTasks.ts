@@ -14,7 +14,7 @@ import {
   type TaskStatus,
 } from "@/services/taskService";
 import { toast } from "sonner";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { addDays, addWeeks, addMonths } from "date-fns";
 
 export function useTasks(filters?: TaskFilters) {

@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import { supabase } from '@/integrations/supabase/client';
 import Logo from '@/components/layout/Logo';
 

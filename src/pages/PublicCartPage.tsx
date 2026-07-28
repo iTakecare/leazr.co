@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useClientData } from "@/hooks/useClientData";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";

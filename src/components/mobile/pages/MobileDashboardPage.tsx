@@ -30,7 +30,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { getDashboardCallbacks, DashboardCallback } from "@/services/callLogService";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 // KPI Card for mobile
 interface MobileKPICardProps {

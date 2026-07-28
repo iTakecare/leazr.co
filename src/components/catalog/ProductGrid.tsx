@@ -2,7 +2,7 @@
 import React from "react";
 import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { AlertCircle } from "lucide-react";
 import ProductCard from "@/components/ui/ProductCard";
 import { useIsMobile } from "@/hooks/use-mobile";

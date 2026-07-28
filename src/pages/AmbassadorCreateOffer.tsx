@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import ClientInfo from "@/components/offer/ClientInfo";

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { FileText, ScrollText, ExternalLink, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";

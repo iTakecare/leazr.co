@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Target, Lightbulb, Shield, Users, Zap, Sparkles, TrendingUp, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import LandingHeader from '@/components/layout/LandingHeader';
 import Footer from '@/components/layout/Footer';
 import Logo from '@/components/layout/Logo';

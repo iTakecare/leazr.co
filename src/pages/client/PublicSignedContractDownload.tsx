@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import WaveLoader from "@/components/ui/WaveLoader";
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router";
 import { supabase } from '@/integrations/supabase/client';
 import { getSignedContractStoragePath } from '@/services/signedContractPdfPublicData';
 import { Loader2, FileDown, AlertCircle, Check } from 'lucide-react';

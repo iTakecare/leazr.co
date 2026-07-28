@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import WaveLoader from "@/components/ui/WaveLoader";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";

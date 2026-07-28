@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSafeNavigate } from "@/hooks/useSafeNavigate";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { ProductPack } from "@/types/pack";
 import { Product } from "@/types/catalog";

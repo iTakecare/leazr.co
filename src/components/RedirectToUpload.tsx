@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router";
 import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigate } from '@/hooks/useSafeNavigate';
 

@@ -32,7 +32,7 @@ import { useCompanyDashboard } from "@/hooks/useCompanyDashboard";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useCompanyBranding } from "@/context/CompanyBrandingContext";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import DashboardPDFExportModal from "./DashboardPDFExportModal";
 import MonthlyPurchasesModal from "./MonthlyPurchasesModal";
 import { RevenueForecastCard } from "./cards/RevenueForecastCard";

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import { useRef, useCallback } from 'react';
 
 interface NavigationHistory {

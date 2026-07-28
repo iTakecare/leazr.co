@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, Calculator, FileText, Package, ArrowRight } from 'lucide-react';

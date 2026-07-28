@@ -8,7 +8,7 @@ import { Product } from "@/types/catalog";
 import { createProductRequest } from "@/services/requestInfoService";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageIcon, Loader2 } from "lucide-react";

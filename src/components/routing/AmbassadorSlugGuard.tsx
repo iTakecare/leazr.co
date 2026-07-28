@@ -1,8 +1,8 @@
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, Navigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyProvider } from "@/context/CompanyContext";
-import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router";
 
 interface Company {
   id: string;

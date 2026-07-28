@@ -15,7 +15,7 @@ import {
   Clock,
   User,
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router";
 import { format, parseISO, isToday, isPast, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";

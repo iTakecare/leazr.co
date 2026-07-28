@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";

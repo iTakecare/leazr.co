@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, ChevronLeft, InfoIcon } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 import { createProductRequest } from '@/services/requestInfoService';
 import { useToast } from '@/hooks/use-toast';
 import { getProductPrice } from '@/utils/productPricing';

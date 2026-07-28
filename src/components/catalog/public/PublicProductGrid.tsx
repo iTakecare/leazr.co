@@ -7,7 +7,7 @@ import { useCompanyContext } from "@/context/CompanyContext";
 import { generateProductSlug } from "@/lib/utils";
 import { useSafeNavigate } from "@/hooks/useSafeNavigate";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 
 interface PublicProductGridProps {
   products: Product[];

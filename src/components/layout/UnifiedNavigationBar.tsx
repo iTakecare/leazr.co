@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, useLocation, Link } from "react-router-dom";
+import { useParams, useLocation, Link } from "react-router";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";

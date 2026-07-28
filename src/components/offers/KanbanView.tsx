@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Phone, Clock, Euro, Building2, FileText } from "lucide-react";

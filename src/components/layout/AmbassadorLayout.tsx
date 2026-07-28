@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router";
 import AmbassadorSidebar from "./AmbassadorSidebar";
 
 export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) => {

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import {
   BarChart3,
   Zap,

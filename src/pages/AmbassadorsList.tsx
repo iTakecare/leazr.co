@@ -3,7 +3,7 @@ import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus, RefreshCw } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";

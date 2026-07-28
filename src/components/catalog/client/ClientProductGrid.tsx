@@ -3,7 +3,7 @@ import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import ProductGridCardOptimized from "@/components/catalog/public/ProductGridCardOptimized";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 
 interface ClientProductGridProps {
   products: Product[];

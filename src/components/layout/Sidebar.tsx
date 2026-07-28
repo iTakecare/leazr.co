@@ -5,7 +5,7 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { 
   BarChart3,
   FileText,

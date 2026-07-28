@@ -1,4 +1,4 @@
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router";
 import PublicSlugCatalog from "@/components/public/PublicSlugCatalog";
 import PublicNotFound from "@/components/public/PublicNotFound";
 

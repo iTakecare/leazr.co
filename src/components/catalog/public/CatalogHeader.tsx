@@ -3,7 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import CatalogSearchSection from "./CatalogSearchSection";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { safeRedirect } from "@/utils/fileUtils";
 
 interface CatalogHeaderProps {

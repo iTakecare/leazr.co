@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import WaveLoader from "@/components/ui/WaveLoader";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";

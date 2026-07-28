@@ -4,7 +4,7 @@ import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Building, Users, TrendingUp, Shield, ArrowRight, CheckCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router";
 
 const EnterprisesSolutionsPage = () => {
   const navigate = useNavigate();

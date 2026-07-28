@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useParams, useLocation } from "react-router-dom";
+import { Link, useParams, useLocation } from "react-router";
 import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/layout/Logo";

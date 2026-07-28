@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySlugAccess } from "@/hooks/useCompanySlugAccess";
 import { Button } from "@/components/ui/button";

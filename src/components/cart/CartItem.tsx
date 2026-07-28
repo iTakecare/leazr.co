@@ -3,7 +3,7 @@ import { useCart } from "@/context/CartContext";
 import { formatCurrency } from "@/utils/formatters";
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Minus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Product } from "@/types/catalog";
 
 interface CartItemProps {
