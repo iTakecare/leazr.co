@@ -13,9 +13,21 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.1";
+export const ADMIN_VERSION = "1.5.2";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.2",
+    date: "2026-07-29",
+    title: "Module Financeur — Phase 3 bis : PDF final 3 signatures & relances auto",
+    items: [
+      "Quand la dernière contre-signature clôt la séquence, le PDF du contrat est régénéré avec les trois signatures (client, fournisseur/partenaire, financeur) : une section « Contre-signatures » avec nom, signature et date de chaque partie s'ajoute à la page de signatures.",
+      "Le contrat entièrement signé est envoyé automatiquement par email aux trois parties avec le lien de téléchargement du PDF.",
+      "Relances automatiques de signature : un cron quotidien (8h) relance par email le signataire de l'étape courante (client → lien de signature, partenaire → son portail, financeur → le détail de la demande), tous les 3 jours, maximum 3 relances. Il notifie aussi le contre-signataire qui vient de devenir « à son tour ».",
+      "Filet de sécurité : le cron finalise aussi les cérémonies terminées dont le PDF final n'aurait pas encore été régénéré.",
+      "Le tenant Winlease est créé et son compte administrateur financeur est actif.",
+    ],
+  },
   {
     version: "1.5.1",
     date: "2026-07-29",

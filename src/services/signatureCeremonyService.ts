@@ -107,7 +107,15 @@ export const signCeremonyStep = async (
     p_signer_name: signerName || null,
   });
   if (error) throw error;
-  return data as any;
+  const result = data as any;
+  // Cérémonie terminée → régénérer le PDF final avec les 3 signatures et
+  // l'envoyer aux parties (fire-and-forget ; le cron quotidien sert de filet).
+  if (result?.ceremony_status === 'completed') {
+    supabase.functions
+      .invoke('financing-signature', { body: { action: 'finalize', ceremonyId } })
+      .catch((e) => console.warn('Finalisation du PDF signé différée :', e));
+  }
+  return result;
 };
 
 // ── Registre des signataires autorisés ──

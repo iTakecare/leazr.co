@@ -201,17 +201,24 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('Missing authorization header');
 
+    // Appel interne (financing-signature, cron) : bearer = clé service_role exacte
+    const bearerToken = authHeader.replace(/^Bearer\s+/i, '');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const isServiceCall = serviceRoleKey.length > 0 && bearerToken === serviceRoleKey;
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      isServiceCall ? serviceRoleKey : (Deno.env.get('SUPABASE_ANON_KEY') ?? ''),
       {
         auth: { persistSession: false, autoRefreshToken: false },
         global: { headers: { Authorization: authHeader } },
       }
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) throw new Error('Unauthorized');
+    if (!isServiceCall) {
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      if (userError || !user) throw new Error('Unauthorized');
+    }
 
     const body = await req.json();
     const contractId = body.contractId;
@@ -262,6 +269,28 @@ serve(async (req) => {
       if (leaser) {
         leaserDisplayName = leaser.company_name || leaser.name;
         isSelfLeasing = leaser.is_own_company === true;
+      }
+    }
+
+    // Cérémonie de signature financeur (Winlease) : contre-signatures à embarquer
+    let ceremonySigners: any[] = [];
+    {
+      const { data: ceremony } = await supabaseClient
+        .from('signature_ceremonies')
+        .select('id')
+        .eq('contract_id', contractId)
+        .eq('document_type', 'contract')
+        .in('status', ['in_progress', 'completed'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (ceremony) {
+        const { data: signers } = await supabaseClient
+          .from('signature_ceremony_signers')
+          .select('role, name, status, signed_at, signature_data, step_order')
+          .eq('ceremony_id', ceremony.id)
+          .order('step_order');
+        ceremonySigners = signers || [];
       }
     }
 
@@ -714,6 +743,72 @@ serve(async (req) => {
       const eidasText = 'Conformément au règlement eIDAS (UE) n° 910/2014';
       const eidasW = helvetica.widthOfTextAtSize(eidasText, 6);
       sigPage.drawText(eidasText, { x: (PAGE_WIDTH - eidasW) / 2, y: metaY - 22, font: helvetica, size: 6, color: hexToRgb('#92400e') });
+    }
+
+    // ===== CONTRE-SIGNATURES (cérémonie financeur Winlease) =====
+    const counterSigners = ceremonySigners.filter((s: any) => s.role !== 'client');
+    if (counterSigners.length > 0) {
+      let ctPage = sigPage;
+      let ctY = Math.min(sigY, locataireStartY - 100) - (signatureData ? 60 : 30);
+      if (ctY < 200) {
+        ctPage = addPageWithHeader();
+        ctY = PAGE_HEIGHT - MARGIN - 55;
+        ctPage.drawText(pdfData.company_name, { x: MARGIN, y: 30, font: helvetica, size: 7, color: grayColor });
+      }
+
+      const ctTitle = 'Contre-signatures';
+      const ctTW = helveticaBold.widthOfTextAtSize(ctTitle, 10);
+      ctPage.drawText(ctTitle, { x: (PAGE_WIDTH - ctTW) / 2, y: ctY, font: helveticaBold, size: 10, color: darkColor });
+      ctY -= 20;
+
+      const roleLabels: Record<string, string> = {
+        partner: 'Le Fournisseur (partenaire)',
+        financeur: 'Le Financeur',
+      };
+      const ctColWidth = CONTENT_WIDTH / 2 - 20;
+      const topY = ctY;
+
+      for (let i = 0; i < Math.min(counterSigners.length, 2); i++) {
+        const signer = counterSigners[i];
+        const colX = i === 0 ? MARGIN : MARGIN + ctColWidth + 40;
+        let y = topY;
+
+        const label = roleLabels[signer.role] || signer.role;
+        const lW = helveticaBold.widthOfTextAtSize(label, 10);
+        ctPage.drawText(label, { x: colX + (ctColWidth - lW) / 2, y, font: helveticaBold, size: 10, color: darkColor });
+        y -= 15;
+
+        const nW = helvetica.widthOfTextAtSize(signer.name || '', 9);
+        ctPage.drawText(signer.name || '', { x: colX + (ctColWidth - nW) / 2, y, font: helvetica, size: 9, color: lightGrayColor });
+        y -= 12;
+
+        if (signer.status === 'signed' && signer.signature_data && signer.signature_data.startsWith('data:')) {
+          try {
+            const base64Part = signer.signature_data.split(',')[1];
+            const sigBytes = Uint8Array.from(atob(base64Part), (c) => c.charCodeAt(0));
+            const img = signer.signature_data.includes('image/png')
+              ? await doc.embedPng(sigBytes)
+              : await doc.embedJpg(sigBytes);
+            ctPage.drawImage(img, { x: colX + 30, y: y - 60, width: 150, height: 60 });
+            y -= 70;
+          } catch (e) {
+            console.warn('[GENERATE-SIGNED-CONTRACT-PDF] Could not embed counter-signature:', e);
+            ctPage.drawLine({ start: { x: colX + 20, y: y - 40 }, end: { x: colX + ctColWidth - 20, y: y - 40 }, thickness: 1, color: grayColor });
+            y -= 50;
+          }
+          if (signer.signed_at) {
+            const dText = `Signé le ${formatDateFull(signer.signed_at)}`;
+            const dW = helvetica.widthOfTextAtSize(dText, 7);
+            ctPage.drawText(dText, { x: colX + (ctColWidth - dW) / 2, y, font: helvetica, size: 7, color: grayColor });
+          }
+        } else {
+          ctPage.drawLine({ start: { x: colX + 20, y: y - 40 }, end: { x: colX + ctColWidth - 20, y: y - 40 }, thickness: 1, color: grayColor });
+          y -= 50;
+          const pText = 'En attente de signature';
+          const pW = helvetica.widthOfTextAtSize(pText, 7);
+          ctPage.drawText(pText, { x: colX + (ctColWidth - pW) / 2, y, font: helvetica, size: 7, color: grayColor });
+        }
+      }
     }
 
     // Footer

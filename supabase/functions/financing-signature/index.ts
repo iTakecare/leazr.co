@@ -14,6 +14,8 @@
 // (signature qualifiée) se fera au niveau de la cérémonie (provider='oksign').
 //
 // Actions : start {offerId, signatory{first_name,last_name,email,phone}} | resend {ceremonyId}
+//         | finalize {ceremonyId} (régénère le PDF avec les 3 signatures + email aux parties)
+//         | remind_pending (cron quotidien : relances auto + finalisation de rattrapage)
 import { requireElevatedAccess } from "../_shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get('ITAKECARE_RESEND_API') || Deno.env.get('RESEND_API_KEY');
@@ -31,6 +33,139 @@ const json = (body: unknown, status = 200) =>
   });
 
 const ACCEPTED_STATUSES = ['internal_approved', 'leaser_approved', 'approved', 'accepted', 'validated'];
+
+const REMINDER_INTERVAL_DAYS = 3;
+const MAX_REMINDERS = 3;
+
+async function sendResendEmail(payload: Record<string, unknown>) {
+  if (!RESEND_API_KEY) throw new Error('ITAKECARE_RESEND_API non configurée');
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_API_KEY}` },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    throw new Error(`Envoi email échoué: ${t.slice(0, 300)}`);
+  }
+}
+
+// Email de relance/notification pour un contre-signataire (partenaire ou financeur)
+async function sendCounterSignEmail(opts: {
+  to: string;
+  role: 'partner' | 'financeur';
+  signerName: string;
+  companyName: string;
+  clientName: string | null;
+  contractNumber: string | null;
+  actionUrl: string;
+}) {
+  const { to, role, signerName, companyName, clientName, contractNumber, actionUrl } = opts;
+  const who = role === 'partner' ? 'fournisseur/partenaire' : 'financeur';
+  const html = `
+<div style="font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b;">
+  <h2 style="color: #0f172a;">Contre-signature attendue</h2>
+  <p>Bonjour ${signerName.split(' ')[0] || ''},</p>
+  <p>Le contrat de financement${contractNumber ? ` <strong>${contractNumber}</strong>` : ''}${clientName ? ` de <strong>${clientName}</strong>` : ''} attend votre contre-signature en tant que ${who}.</p>
+  <p style="text-align: center; margin: 28px 0;">
+    <a href="${actionUrl}" style="background: #4f46e5; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+      Contre-signer le contrat
+    </a>
+  </p>
+  <p style="font-size: 12px; color: #94a3b8;">Si le bouton ne fonctionne pas, copiez ce lien : ${actionUrl}</p>
+</div>`;
+  await sendResendEmail({
+    from: `${companyName} <noreply@itakecare.be>`,
+    to: [to],
+    subject: `${companyName} — contrat${contractNumber ? ` ${contractNumber}` : ''} à contre-signer`,
+    html,
+  });
+}
+
+// Email final : contrat entièrement signé, PDF disponible
+async function sendCompletedEmail(opts: {
+  to: string[];
+  companyName: string;
+  contractNumber: string | null;
+  pdfUrl: string | null;
+}) {
+  const { to, companyName, contractNumber, pdfUrl } = opts;
+  const html = `
+<div style="font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b;">
+  <h2 style="color: #0f172a;">Contrat entièrement signé ✅</h2>
+  <p>Le contrat de financement${contractNumber ? ` <strong>${contractNumber}</strong>` : ''} a été signé par les trois parties (client, fournisseur et ${companyName}).</p>
+  ${pdfUrl ? `<p style="text-align: center; margin: 28px 0;">
+    <a href="${pdfUrl}" style="background: #16a34a; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+      Télécharger le contrat signé (PDF)
+    </a>
+  </p>` : ''}
+  <p style="font-size: 13px; color: #64748b;">Conservez ce document : il fait foi entre les parties.</p>
+</div>`;
+  await sendResendEmail({
+    from: `${companyName} <noreply@itakecare.be>`,
+    to,
+    subject: `${companyName} — contrat${contractNumber ? ` ${contractNumber}` : ''} signé par toutes les parties`,
+    html,
+  });
+}
+
+// Régénère le PDF signé (avec les contre-signatures) puis le distribue.
+// Retourne l'URL du PDF ou null.
+async function finalizeCeremony(supabase: any, ceremony: any): Promise<string | null> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+  const resp = await fetch(`${supabaseUrl}/functions/v1/generate-signed-contract-pdf`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+    },
+    body: JSON.stringify({ contractId: ceremony.contract_id, action: 'upload' }),
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    throw new Error(`Régénération PDF échouée: ${t.slice(0, 300)}`);
+  }
+  const { url: pdfUrl } = await resp.json();
+
+  const { data: contract } = await supabase
+    .from('contracts')
+    .select('contract_number')
+    .eq('id', ceremony.contract_id)
+    .single();
+  const { data: company } = await supabase
+    .from('companies')
+    .select('name')
+    .eq('id', ceremony.company_id)
+    .single();
+  const { data: signers } = await supabase
+    .from('signature_ceremony_signers')
+    .select('email')
+    .eq('ceremony_id', ceremony.id);
+
+  const recipients = [...new Set((signers || []).map((s: any) => s.email).filter(Boolean))] as string[];
+  if (recipients.length) {
+    try {
+      await sendCompletedEmail({
+        to: recipients,
+        companyName: company?.name || 'Votre financeur',
+        contractNumber: contract?.contract_number || null,
+        pdfUrl: pdfUrl || null,
+      });
+    } catch (e) {
+      console.error('Email contrat signé non envoyé:', e);
+    }
+  }
+
+  await supabase
+    .from('signature_ceremonies')
+    .update({ final_pdf_generated_at: new Date().toISOString() })
+    .eq('id', ceremony.id);
+
+  return pdfUrl || null;
+}
 
 async function sendSignatureEmail(opts: {
   to: string;
@@ -142,8 +277,121 @@ const handler = async (req: Request): Promise<Response> => {
         duration: contract.contract_duration,
         signUrl,
       });
-      await supabase.from('signature_ceremony_signers').update({ status: 'notified' }).eq('id', signer.id).eq('status', 'pending');
+      await supabase
+        .from('signature_ceremony_signers')
+        .update({ status: signer.status === 'pending' ? 'notified' : signer.status, last_reminded_at: new Date().toISOString() })
+        .eq('id', signer.id);
       return json({ success: true });
+    }
+
+    // ── Finalisation : PDF avec les 3 signatures + email aux parties ──
+    if (action === 'finalize') {
+      const { ceremonyId } = body;
+      const { data: ceremony } = await supabase
+        .from('signature_ceremonies')
+        .select('id, company_id, contract_id, status, final_pdf_generated_at')
+        .eq('id', ceremonyId)
+        .maybeSingle();
+      if (!ceremony) return json({ success: false, error: 'Cérémonie introuvable' }, 404);
+      if (ceremony.status !== 'completed') return json({ success: false, error: 'Cérémonie non terminée' }, 400);
+      if (!ceremony.contract_id) return json({ success: false, error: 'Cérémonie sans contrat' }, 400);
+
+      const pdfUrl = await finalizeCeremony(supabase, ceremony);
+      return json({ success: true, pdf_url: pdfUrl });
+    }
+
+    // ── Cron quotidien : relances + finalisation de rattrapage ──
+    if (action === 'remind_pending') {
+      if (!access.context.isServiceRole && !['admin', 'super_admin'].includes(access.context.role)) {
+        return json({ success: false, error: 'Réservé au cron ou aux admins' }, 403);
+      }
+
+      const cutoff = new Date(Date.now() - REMINDER_INTERVAL_DAYS * 24 * 3600 * 1000).toISOString();
+      const results = { reminded: 0, finalized: 0, skipped: 0, errors: [] as string[] };
+
+      const { data: ceremonies } = await supabase
+        .from('signature_ceremonies')
+        .select('id, company_id, contract_id, offer_id, current_step, status, final_pdf_generated_at')
+        .eq('document_type', 'contract')
+        .in('status', ['in_progress', 'completed']);
+
+      for (const ceremony of ceremonies || []) {
+        try {
+          // Rattrapage : cérémonie terminée sans PDF final régénéré
+          if (ceremony.status === 'completed') {
+            if (!ceremony.final_pdf_generated_at && ceremony.contract_id) {
+              await finalizeCeremony(supabase, ceremony);
+              results.finalized++;
+            }
+            continue;
+          }
+
+          const { data: signer } = await supabase
+            .from('signature_ceremony_signers')
+            .select('*')
+            .eq('ceremony_id', ceremony.id)
+            .eq('step_order', ceremony.current_step)
+            .maybeSingle();
+          if (!signer || signer.status === 'signed' || signer.status === 'refused' || !signer.email) {
+            results.skipped++;
+            continue;
+          }
+          if (signer.reminder_count >= MAX_REMINDERS) { results.skipped++; continue; }
+          if (signer.last_reminded_at && signer.last_reminded_at > cutoff) { results.skipped++; continue; }
+
+          const { data: contract } = await supabase
+            .from('contracts')
+            .select('contract_signature_token, contract_number, monthly_payment, contract_duration, client_name')
+            .eq('id', ceremony.contract_id)
+            .single();
+          const { data: company } = await supabase
+            .from('companies')
+            .select('name, slug')
+            .eq('id', ceremony.company_id)
+            .single();
+
+          if (signer.role === 'client') {
+            await sendSignatureEmail({
+              to: signer.email,
+              signerFirstName: signer.name?.split(' ')[0] || '',
+              companyName: company.name,
+              contractNumber: contract.contract_number,
+              monthlyPayment: contract.monthly_payment,
+              duration: contract.contract_duration,
+              signUrl: `${PUBLIC_BASE_URL}/${company.slug}/contract/${contract.contract_signature_token}/sign`,
+            });
+          } else {
+            const actionUrl = signer.role === 'partner'
+              ? `${PUBLIC_BASE_URL}/${company.slug}/partenaire/requests/${ceremony.offer_id}`
+              : `${PUBLIC_BASE_URL}/${company.slug}/financeur/offers/${ceremony.offer_id}`;
+            await sendCounterSignEmail({
+              to: signer.email,
+              role: signer.role,
+              signerName: signer.name || '',
+              companyName: company.name,
+              clientName: contract.client_name,
+              contractNumber: contract.contract_number,
+              actionUrl,
+            });
+          }
+
+          await supabase
+            .from('signature_ceremony_signers')
+            .update({
+              status: signer.status === 'pending' ? 'notified' : signer.status,
+              last_reminded_at: new Date().toISOString(),
+              reminder_count: (signer.reminder_count || 0) + 1,
+            })
+            .eq('id', signer.id);
+          results.reminded++;
+        } catch (e) {
+          console.error(`Relance cérémonie ${ceremony.id} échouée:`, e);
+          results.errors.push(`${ceremony.id}: ${(e as Error).message}`);
+        }
+      }
+
+      console.log('remind_pending:', JSON.stringify(results));
+      return json({ success: true, ...results });
     }
 
     // ── Lancement du pack contractuel ──
@@ -343,7 +591,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
       await supabase
         .from('signature_ceremony_signers')
-        .update({ status: 'notified' })
+        .update({ status: 'notified', last_reminded_at: new Date().toISOString() })
         .eq('ceremony_id', ceremony.id)
         .eq('step_order', 1);
     } catch (emailError) {
