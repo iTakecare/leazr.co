@@ -5,6 +5,7 @@ import type { Client as ClientType } from '@/types/client';
 import { toast } from 'sonner';
 import { getCurrentUserCompanyId } from '@/services/multiTenantService';
 import { checkDataIsolation } from '@/utils/crmCacheUtils';
+import { matchesPhoneSearch } from '@/utils/phoneSearch';
 
 export const useClients = () => {
   const [clients, setClients] = useState<ClientType[]>([]);
@@ -62,7 +63,8 @@ export const useClients = () => {
       searchTerm === "" ||
       (client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase()));
+      (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      matchesPhoneSearch(client.phone, searchTerm);
     
     const matchesStatus = 
       selectedStatus === "all" ||

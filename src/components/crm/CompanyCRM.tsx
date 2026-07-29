@@ -28,6 +28,7 @@ import {
   Trash2
 } from "lucide-react";
 import { useCompanyCRM } from "@/hooks/useCompanyDashboard";
+import { matchesPhoneSearch } from "@/utils/phoneSearch";
 
 const CompanyCRM = () => {
   const { 
@@ -251,10 +252,11 @@ const CompanyCRM = () => {
                 <TableBody>
                   {clients
                     .filter(client => 
-                      !searchTerm || 
+                      !searchTerm ||
                       client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                       client.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      client.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                      client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      matchesPhoneSearch(client.phone, searchTerm)
                     )
                     .map((client) => (
                       <TableRow key={client.id}>

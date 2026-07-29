@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.4";
+export const ADMIN_VERSION = "1.5.5";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.5",
+    date: "2026-07-29",
+    title: "CRM : recherche de clients par numéro de téléphone",
+    items: [
+      "La recherche du CRM trouve maintenant les clients par téléphone, ce qui ne fonctionnait pas du tout auparavant (seuls nom, email et société étaient cherchés).",
+      "Le matching est tolérant : peu importe le format stocké ou tapé (0493…, +32 493…, 0032493…, espaces, points, tirets), et la recherche partielle fonctionne — les résultats s'affinent au fur et à mesure que vous tapez le numéro (dès 3 chiffres).",
+    ],
+  },
   {
     version: "1.5.4",
     date: "2026-07-29",
