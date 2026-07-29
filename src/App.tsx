@@ -135,6 +135,7 @@ const FinanceurContracts = lazy(() => import("@/pages/financeur/FinanceurContrac
 const FinanceurClients = lazy(() => import("@/pages/financeur/FinanceurClients"));
 const FinanceurPartners = lazy(() => import("@/pages/financeur/FinanceurPartners"));
 const FinanceurGrids = lazy(() => import("@/pages/financeur/FinanceurGrids"));
+const FinanceurSigners = lazy(() => import("@/pages/financeur/FinanceurSigners"));
 
 // Financing partner (portail partenaire/broker d'un financeur)
 import FinancingPartnerPrivateRoute from "@/components/routing/FinancingPartnerPrivateRoute";
@@ -333,6 +334,7 @@ const AppRoutes = () => {
         <Route path="contracts/:id" element={<ContractDetail />} />
         <Route path="partners" element={<FinanceurPartners />} />
         <Route path="grids" element={<FinanceurGrids />} />
+        <Route path="signers" element={<FinanceurSigners />} />
         <Route index element={<Navigate to="dashboard" replace />} />
       </Route>
     </Route>

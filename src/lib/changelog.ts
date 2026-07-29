@@ -13,9 +13,22 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.4.2";
+export const ADMIN_VERSION = "1.5.0";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.0",
+    date: "2026-07-29",
+    title: "Module Financeur (Winlease) — Phase 3 : contrat & signatures en séquence",
+    items: [
+      "Dès qu'une demande de financement est acceptée, le partenaire (ou l'équipe financeur) renseigne le signataire du client final : le contrat est généré automatiquement (numérotation, équipements, mensualité) et le signataire reçoit son lien de signature par email, partenaire en copie.",
+      "Séquence de signature en 3 étapes suivie en temps réel : 1. client final (lien de signature en ligne), 2. fournisseur/partenaire (contre-signature depuis son portail), 3. financeur (contre-signature depuis le détail de la demande). Le contrat passe en « signé » quand les trois parties ont signé.",
+      "La signature du client via son lien fait automatiquement progresser la séquence (déclencheur en base) ; bouton de relance du signataire en attente.",
+      "Nouveau registre « Signataires » dans l'espace financeur : le gérant (signataire par défaut) et les délégués avec pouvoir de signature (document lié), utilisés pour l'étape financeur et le futur routage itsme.",
+      "Intégration OKSign (signature qualifiée itsme) préparée : l'adaptateur est déployé et s'activera avec la clé API — les cérémonies basculeront alors de la signature électronique interne vers itsme sans changer le parcours.",
+      "Sécurité : chaque étape ne peut être signée que par la bonne personne (client via son lien personnel, partenaire apporteur authentifié, membre de l'équipe financeur).",
+    ],
+  },
   {
     version: "1.4.2",
     date: "2026-07-29",

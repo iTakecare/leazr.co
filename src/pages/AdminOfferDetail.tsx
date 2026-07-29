@@ -56,6 +56,7 @@ import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
 import { CallHistory } from "@/components/offers/CallHistory";
 import { OfferAISummary } from "@/components/offers/detail/OfferAISummary";
 import FinancingAnalysisCard from "@/components/offers/detail/FinancingAnalysisCard";
+import FinancingSignatureCard from "@/components/financing/FinancingSignatureCard";
 import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
 import SendGoogleReviewModal from "@/components/offers/detail/SendGoogleReviewModal";
 import TaskDialog from "@/components/tasks/TaskDialog";
@@ -841,7 +842,10 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <OfferAISummary offerId={offer.id} />
                     {offer.type === 'financing_request' && (
-                      <FinancingAnalysisCard offer={offer} />
+                      <>
+                        <FinancingAnalysisCard offer={offer} />
+                        <FinancingSignatureCard offer={offer} />
+                      </>
                     )}
                     <ClientSection offer={offer} />
                     <EquipmentSwapNotice offerId={offer.id} />

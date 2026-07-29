@@ -8,6 +8,7 @@ import {
   FileCheck,
   Handshake,
   Grid3X3,
+  PenLine,
   type LucideIcon
 } from 'lucide-react';
 import SidebarMenuItem from './SidebarMenuItem';
@@ -58,6 +59,11 @@ const FinanceurSidebar: React.FC = () => {
       icon: Grid3X3,
       label: "Grilles de coefficients",
       href: `${basePrefix}/grids`
+    },
+    {
+      icon: PenLine,
+      label: "Signataires",
+      href: `${basePrefix}/signers`
     },
   ];
 

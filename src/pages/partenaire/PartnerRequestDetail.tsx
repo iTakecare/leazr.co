@@ -9,13 +9,14 @@ import {
 } from '@/components/ui/table';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { useFinancingPartner } from '@/components/layout/FinancingPartnerLayout';
+import PartnerSignatureSection from '@/components/financing/PartnerSignatureSection';
 import { getMyRequestDetail } from '@/services/financingPartnerService';
 import { getPartnerStatusInfo } from './partnerStatus';
 import { formatCurrency } from '@/utils/formatters';
 
 const PartnerRequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { basePrefix } = useFinancingPartner();
+  const { basePrefix, partner } = useFinancingPartner();
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof getMyRequestDetail>>>(null);
   const [loading, setLoading] = useState(true);
 
@@ -113,6 +114,12 @@ const PartnerRequestDetail: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <PartnerSignatureSection
+        offerId={offer.id}
+        workflowStatus={offer.workflow_status}
+        partnerContactName={partner.contact_name || partner.name}
+      />
 
       {offer.remarks && (
         <Card>
