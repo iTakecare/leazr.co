@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.0";
+export const ADMIN_VERSION = "1.5.1";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.1",
+    date: "2026-07-29",
+    title: "Maintenance sécurité : dépendances de l'extension Chrome",
+    items: [
+      "Correction des 10 vulnérabilités signalées par GitHub Dependabot (5 élevées, 4 modérées, 1 faible), toutes situées dans les dépendances de l'extension Chrome de sourcing : mise à jour de vite (5→6.4.3), @crxjs/vite-plugin (2.7.1), rollup, esbuild, postcss, ws et @babel/core.",
+      "Aucun impact fonctionnel : l'extension et l'application se compilent à l'identique, npm audit à zéro vulnérabilité sur les deux projets.",
+    ],
+  },
   {
     version: "1.5.0",
     date: "2026-07-29",
