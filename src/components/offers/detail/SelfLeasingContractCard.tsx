@@ -173,7 +173,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
           leaser_name: leaser?.company_name || leaser?.name,
           leaser_id: leaser?.id,
           monthly_payment: offer.monthly_payment,
-          lease_duration: offer.duration || 36,
+          contract_duration: offer.duration || 36,
           status: 'pending',
           signature_status: 'draft',
           is_self_leasing: true,

@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.4.1";
+export const ADMIN_VERSION = "1.4.2";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.4.2",
+    date: "2026-07-29",
+    title: "Correctif : génération de contrat self-leasing",
+    items: [
+      "Le bouton « Générer le contrat » d'une offre self-leasing échouait à cause d'une colonne obsolète (lease_duration) : la durée est maintenant enregistrée dans la bonne colonne (contract_duration) et la génération fonctionne à nouveau.",
+    ],
+  },
   {
     version: "1.4.1",
     date: "2026-07-29",
