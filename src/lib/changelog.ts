@@ -13,9 +13,18 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.3";
+export const ADMIN_VERSION = "1.5.4";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.4",
+    date: "2026-07-29",
+    title: "Grenke : connexion au proxy résiliente (double chemin)",
+    items: [
+      "Panne du 29/07 résolue : le tunnel sécurisé vers le proxy Grenke (Tailscale Funnel) avait perdu son enregistrement DNS public, bloquant toutes les actions Grenke (« Configuration e-signature indisponible », statuts, soumissions). Le tunnel a été réenregistré et fonctionne à nouveau.",
+      "Blindage pour l'avenir : en cas d'échec de connexion (DNS/TCP/TLS), l'API Grenke bascule automatiquement sur le chemin direct grenke-proxy.itakecare.be, et inversement — plus aucun des deux chemins n'est un point de défaillance unique.",
+    ],
+  },
   {
     version: "1.5.3",
     date: "2026-07-29",

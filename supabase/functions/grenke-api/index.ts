@@ -45,7 +45,12 @@ const corsHeaders = {
 // Tailscale's edge, so inbound filtering at Hostinger no longer matters. The
 // nginx proxy + mTLS to Grenke are unchanged; Funnel just fronts it. To revert
 // to the direct host, set GRENKE_PROXY_BASE back to https://grenke-proxy.itakecare.be.
-const GRENKE_PROXY_BASE = "https://grenke-proxy.tail334e63.ts.net";
+// Base primaire (Funnel Tailscale) surchargeable par env, avec repli
+// automatique sur l'hôte direct : le 29/07/2026 le DNS du Funnel a cessé de
+// résoudre (partout, y compris depuis le VPS) alors que le proxy nginx direct
+// répondait — grenkeFetch alterne donc de base à chaque échec de connexion.
+const GRENKE_PROXY_BASE = Deno.env.get("GRENKE_PROXY_BASE") || "https://grenke-proxy.tail334e63.ts.net";
+const GRENKE_PROXY_FALLBACK_BASE = Deno.env.get("GRENKE_PROXY_FALLBACK_BASE") || "https://grenke-proxy.itakecare.be";
 
 const GRENKE_UPSTREAM_PATH = {
   // The proxy is a single host; we encode the target environment in the
@@ -426,7 +431,6 @@ async function grenkeFetch(
     );
   }
 
-  const url = GRENKE_PROXY_BASE + GRENKE_UPSTREAM_PATH[environment] + path;
   const method = (init.method ?? "GET").toUpperCase();
   const isIdempotent = method === "GET" || method === "HEAD";
 
@@ -443,7 +447,9 @@ async function grenkeFetch(
   // we retry ONLY connect-phase throws, never an HTTP response, so we can never
   // double-submit a financing request. 4xx is a real client error → returned as-is.
   let lastErr: unknown;
+  let base = GRENKE_PROXY_BASE;
   for (let attempt = 1; attempt <= GRENKE_FETCH_MAX_ATTEMPTS; attempt++) {
+    const url = base + GRENKE_UPSTREAM_PATH[environment] + path;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), GRENKE_FETCH_TIMEOUT_MS);
     try {
@@ -464,6 +470,12 @@ async function grenkeFetch(
       const retryable = attempt < GRENKE_FETCH_MAX_ATTEMPTS && (isIdempotent || isConnectPhaseError(e));
       console.warn(`[grenke-api] grenkeFetch attempt ${attempt} failed (${msg}); retryable=${retryable}`);
       if (!retryable) break;
+      // Échec de connexion (DNS/TCP/TLS, jamais parvenu au proxy) → tenter
+      // l'autre base au prochain essai (Funnel ↔ hôte direct).
+      if (isConnectPhaseError(e)) {
+        base = base === GRENKE_PROXY_BASE ? GRENKE_PROXY_FALLBACK_BASE : GRENKE_PROXY_BASE;
+        console.warn(`[grenke-api] bascule de base proxy → ${base}`);
+      }
       await new Promise((r) => setTimeout(r, 700 * attempt)); // 0.7s, 1.4s backoff
     }
   }
