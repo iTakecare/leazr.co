@@ -81,6 +81,9 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
   const [partner, setPartner] = useState<Signer>({ title: "Mr", first_name: "", last_name: "", email: "", mobile: "" });
   const [signerOptions, setSignerOptions] = useState<SignerOption[]>([]);
   const [selectedSignerId, setSelectedSignerId] = useState<string>("client");
+  // Bypass admin : autorise l'envoi malgré des documents non validés ou une
+  // vérification impossible (le serveur reçoit ignore_documents).
+  const [forceSend, setForceSend] = useState(false);
 
   useEffect(() => {
     void init();
@@ -177,6 +180,7 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
     const ok = window.confirm(
       `Envoyer le contrat pour signature DocuSign à :\n\n` +
       `  ${signer.first_name} ${signer.last_name}\n  ${signer.email}\n\n` +
+      (forceSend && !canSend ? `⚠️ Envoi forcé sans validation complète des documents.\n\n` : ``) +
       `Le client recevra une invitation DocuSign. Continuer ?`,
     );
     if (!ok) return;
@@ -195,6 +199,7 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
             customer: signer,
             partner,
             use_delivery_confirmation: true,
+            ignore_documents: forceSend,
           },
         },
       });
@@ -275,7 +280,16 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
       </div>
 
       {/* Document checklist */}
-      {pending.length > 0 ? (
+      {config?.success === false ? (
+        <Alert variant="default" className="border-red-500/30 bg-red-50/30">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800 text-sm">Configuration e-signature indisponible</AlertTitle>
+          <AlertDescription className="text-xs text-red-700">
+            {config?.message ?? config?.error ?? "Erreur inconnue"}
+            <p className="mt-1">Un admin peut tout de même forcer l'envoi ci-dessous.</p>
+          </AlertDescription>
+        </Alert>
+      ) : pending.length > 0 ? (
         <Alert variant="default" className="border-amber-500/30 bg-amber-50/30">
           <AlertCircle className="h-4 w-4 text-amber-600" />
           <AlertTitle className="text-amber-800 text-sm">Documents en attente de validation</AlertTitle>
@@ -288,7 +302,7 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
                 </li>
               ))}
             </ul>
-            <p className="mt-1">L'envoi sera possible une fois tous les documents validés.</p>
+            <p className="mt-1">L'envoi sera possible une fois tous les documents validés — ou forcé par un admin ci-dessous.</p>
           </AlertDescription>
         </Alert>
       ) : (
@@ -317,11 +331,27 @@ export default function GrenkeESignaturePanel({ offerId, onSent }: GrenkeESignat
       )}
       {signerForm(partner, setPartner, "Signataire fournisseur (iTakecare)")}
 
+      {/* Bypass admin quand l'envoi est bloqué (docs en attente ou config KO) */}
+      {!canSend && (
+        <label className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50/50 border border-amber-500/30 rounded-md p-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={forceSend}
+            onChange={(e) => setForceSend(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            <strong>Envoyer quand même (admin)</strong> — ignorer la validation des
+            documents et lancer la signature DocuSign malgré tout.
+          </span>
+        </label>
+      )}
+
       <Button
         size="sm"
         className="w-full"
         onClick={handleSend}
-        disabled={sending || !canSend}
+        disabled={sending || (!canSend && !forceSend)}
       >
         {sending ? <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> : <PenLine className="h-3.5 w-3.5 mr-2" />}
         Envoyer pour signature DocuSign

@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.2";
+export const ADMIN_VERSION = "1.5.3";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.3",
+    date: "2026-07-29",
+    title: "Signature Grenke : envoi forcé par un admin",
+    items: [
+      "Nouveau bypass admin dans le panneau « Envoyer le contrat pour signature (DocuSign) » : quand l'envoi est bloqué (documents non validés ou vérification impossible), une case « Envoyer quand même (admin) » permet de lancer la signature malgré tout, avec confirmation explicite.",
+      "Si la configuration e-signature Grenke ne peut pas être chargée, le panneau affiche désormais l'erreur réelle au lieu d'un bouton grisé sans explication (et d'un message « tous les documents validés » trompeur).",
+      "Correctif signature client : après la signature d'un contrat en propre, la génération du PDF signé échouait dans le navigateur (« Erreur PDF : WebAssembly… Content Security Policy ») — la politique de sécurité autorise maintenant les modules WebAssembly (moteur de mise en page du PDF), sans ouvrir l'eval JavaScript.",
+    ],
+  },
   {
     version: "1.5.2",
     date: "2026-07-29",

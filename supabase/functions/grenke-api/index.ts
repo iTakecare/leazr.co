@@ -2563,13 +2563,16 @@ async function handleStartESignature(
   const env = (offer.grenke_environment as Environment) || environment;
 
   // --- Server-side document gate ---
+  // Un admin peut passer outre (ignore_documents) : le panel n'est accessible
+  // qu'à l'équipe, et Grenke fait de toute façon sa propre analyse du dossier.
+  const ignoreDocuments = payload.ignore_documents === true;
   const { data: docs } = await adminSupabase
     .from("offer_documents")
     .select("document_type, status")
     .eq("offer_id", offerId);
   const pendingDocs = ((docs ?? []) as Array<{ document_type: string; status: string }>)
     .filter((d) => d.status === "pending" || d.status === "rejected");
-  if (pendingDocs.length > 0) {
+  if (pendingDocs.length > 0 && !ignoreDocuments) {
     return jsonResponse({
       success: false,
       error: "documents_pending",
