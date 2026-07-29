@@ -95,6 +95,26 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('📧 Envoi de l\'email via Resend...');
 
+    const emailPayload: any = {
+      from: 'iTakecare <noreply@itakecare.be>',
+      to: [offer.client_email],
+      subject: emailTitle,
+      html: htmlContent,
+    };
+
+    // Demande apportée par un partenaire/broker (module financeur) : le mettre en copie
+    if (offer.financing_partner_id) {
+      const { data: fp } = await supabase
+        .from('financing_partners')
+        .select('email')
+        .eq('id', offer.financing_partner_id)
+        .maybeSingle();
+      if (fp?.email && fp.email !== offer.client_email) {
+        emailPayload.cc = [fp.email];
+        console.log('📧 Partenaire apporteur en CC:', fp.email);
+      }
+    }
+
     // Envoyer l'email via Resend
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -102,12 +122,7 @@ const handler = async (req: Request): Promise<Response> => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
-      body: JSON.stringify({
-        from: 'iTakecare <noreply@itakecare.be>',
-        to: [offer.client_email],
-        subject: emailTitle,
-        html: htmlContent,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     if (!resendResponse.ok) {

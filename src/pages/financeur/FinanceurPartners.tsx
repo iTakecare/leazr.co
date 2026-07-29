@@ -101,6 +101,7 @@ const FinanceurPartners: React.FC = () => {
           vat_number: form.vat_number,
           status: form.status,
           coefficient_grid_id: form.coefficient_grid_id || null,
+          outstanding_limit: (form as any).outstanding_limit ?? null,
           notes: form.notes,
         });
         toast.success('Partenaire mis à jour');
@@ -275,6 +276,16 @@ const FinanceurPartners: React.FC = () => {
             <div>
               <Label>N° TVA</Label>
               <Input value={form.vat_number || ''} onChange={(e) => setForm({ ...form, vat_number: e.target.value })} />
+            </div>
+            <div>
+              <Label>Limite d'encours (€)</Label>
+              <Input
+                type="number"
+                step="1000"
+                placeholder="Illimitée"
+                value={(form as any).outstanding_limit ?? ''}
+                onChange={(e) => setForm({ ...form, outstanding_limit: e.target.value === '' ? null : Number(e.target.value) } as any)}
+              />
             </div>
             <div className="col-span-2">
               <Label>Grille de coefficients</Label>

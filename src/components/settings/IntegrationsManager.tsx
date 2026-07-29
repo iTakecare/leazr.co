@@ -11,6 +11,7 @@ import GrenkeIntegrationCard from './GrenkeIntegrationCard';
 import TulipIntegrationCard from './TulipIntegrationCard';
 import BillitIntegrationSettings from './BillitIntegrationSettings';
 import YukiIntegrationSettings from './YukiIntegrationSettings';
+import GraydonIntegrationSettings from './GraydonIntegrationSettings';
 
 interface Integration {
   id: string;
@@ -344,9 +345,8 @@ const integrations: Integration[] = [
     name: 'Graydon-CreditSafe',
     description: 'Vérification de solvabilité et données d\'entreprises (Belgique/France)',
     logoUrl: 'https://logo.clearbit.com/creditsafe.com',
-    status: 'inactive',
-    category: 'Vérification',
-    comingSoon: true
+    status: 'available',
+    category: 'Vérification'
   },
   {
     id: 'companyweb',
@@ -618,7 +618,11 @@ const IntegrationsManager = () => {
               <YukiIntegrationSettings />
             )}
 
-            {selectedIntegration && !['woocommerce', 'companyweb', 'adios', 'grenke', 'tulip', 'billit', 'yuki'].includes(selectedIntegration) && (
+            {selectedIntegration === 'graydon-creditsafe' && (
+              <GraydonIntegrationSettings />
+            )}
+
+            {selectedIntegration && !['woocommerce', 'companyweb', 'adios', 'grenke', 'tulip', 'billit', 'yuki', 'graydon-creditsafe'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>

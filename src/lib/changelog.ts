@@ -13,9 +13,22 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.4.0";
+export const ADMIN_VERSION = "1.4.1";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.4.1",
+    date: "2026-07-29",
+    title: "Module Financeur (Winlease) — Phase 2 : scoring & décision",
+    items: [
+      "Panneau « Analyse financeur » sur chaque demande de financement : rapport de solvabilité Graydon-CreditSafe (score, limite de crédit conseillée, alerte si le montant demandé la dépasse), score KYC interne et âge de la société.",
+      "Encours en temps réel : montant accepté cumulé du client final et du partenaire apporteur, projection avec la demande en cours, limites d'encours paramétrables par client (directement dans le panneau) et par partenaire (fiche partenaire) avec alerte de dépassement.",
+      "Recommandation IA de décision : l'IA synthétise crédit, KYC, encours et cohérence du dossier en un score A/B/C/D motivé, avec points d'attention, signaux positifs et conditions suggérées (documents, caution, acompte). Persistée sur la demande.",
+      "Intégration Graydon-CreditSafe activable dans Paramètres → Intégrations (identifiants Creditsafe Connect par société, bouton de test).",
+      "Les emails d'acceptation et de refus d'une demande apportée par un partenaire/broker le mettent automatiquement en copie.",
+      "La décision (acceptation / demande de documents / refus motivé / sans suite) se prend via le workflow d'analyse existant, inchangé.",
+    ],
+  },
   {
     version: "1.4.0",
     date: "2026-07-29",

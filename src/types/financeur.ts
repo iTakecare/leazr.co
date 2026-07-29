@@ -40,6 +40,7 @@ export interface FinancingPartner {
   country?: string | null;
   status: string;
   coefficient_grid_id?: string | null;
+  outstanding_limit?: number | null;
   notes?: string | null;
   has_user_account?: boolean;
   user_account_created_at?: string | null;

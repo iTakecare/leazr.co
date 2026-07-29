@@ -261,6 +261,19 @@ serve(async (req) => {
       text: textContent,
     };
 
+    // Demande apportée par un partenaire/broker (module financeur) : le mettre en copie
+    if (offer.financing_partner_id) {
+      const { data: fp } = await supabase
+        .from('financing_partners')
+        .select('email')
+        .eq('id', offer.financing_partner_id)
+        .maybeSingle();
+      if (fp?.email && fp.email !== clientEmail) {
+        emailPayload.cc = [fp.email];
+        console.log('[LEASING-ACCEPTANCE] Partenaire apporteur en CC:', fp.email);
+      }
+    }
+
     // Add attachment only if requested and available
     console.log('[LEASING-ACCEPTANCE] PDF attachment available:', !!pdfAttachment);
     console.log('[LEASING-ACCEPTANCE] Include PDF attachment requested:', includePdfAttachment);
