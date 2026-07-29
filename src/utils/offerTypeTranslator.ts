@@ -23,6 +23,8 @@ export const translateOfferType = (type: string | undefined | null, partnerName?
       return partnerName ? `Partenaire - ${partnerName}` : "Partenaire";
     case 'self_leasing':
       return "Location propre";
+    case 'financing_request':
+      return partnerName ? `Financement - ${partnerName}` : "Dem. financement";
     default:
       return type;
   }

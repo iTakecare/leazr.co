@@ -13,9 +13,22 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.3.89";
+export const ADMIN_VERSION = "1.4.0";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.4.0",
+    date: "2026-07-29",
+    title: "Module Financeur (Winlease) — Phase 1 : portails financeur & partenaires",
+    items: [
+      "Nouveau type de société « financeur » (bailleur type Winlease) avec son propre espace : dashboard, demandes, clients, contrats, partenaires et grilles de coefficients.",
+      "Gestion des partenaires et brokers apporteurs : fiche complète, statut, création du compte d'accès par email d'invitation, attribution d'une grille de coefficients.",
+      "Grilles de coefficients multiples (tranches montant × durée) attribuables par partenaire/broker, avec grille par défaut et aperçu de la mensualité pour 1 000 €.",
+      "Portail partenaire/broker : dépôt d'une demande de financement (client final + équipements + durée) avec mensualité calculée en direct depuis SA grille, suivi de ses demandes et de leur statut.",
+      "Sécurité : le coefficient est recalculé côté serveur depuis la grille du partenaire (anti-falsification) et un partenaire ne voit que SES demandes, SES clients et SA grille (isolation RLS complète).",
+      "Les demandes arrivent chez le financeur comme des offres classiques (type « Dem. financement ») et suivent le workflow d'analyse existant.",
+    ],
+  },
   {
     version: "1.3.89",
     date: "2026-07-28",

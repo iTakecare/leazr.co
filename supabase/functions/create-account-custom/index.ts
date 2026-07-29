@@ -9,7 +9,7 @@ const corsHeaders = {
 
 interface CreateAccountRequest {
   email: string;
-  entityType: 'partner' | 'ambassador' | 'client';
+  entityType: 'partner' | 'ambassador' | 'client' | 'financing_partner';
   entityId: string;
   companyId: string;
   firstName?: string;
@@ -127,7 +127,8 @@ const handler = async (req: Request): Promise<Response> => {
     const roleMapping = {
       'partner': 'partner',
       'ambassador': 'ambassador',
-      'client': 'client'
+      'client': 'client',
+      'financing_partner': 'partner'
     };
     
     const { error: roleError } = await supabase
@@ -151,8 +152,9 @@ const handler = async (req: Request): Promise<Response> => {
     // 4. Mettre à jour l'entité avec user_id et has_user_account
     const tableMap = {
       'partner': 'partners',
-      'ambassador': 'ambassadors', 
-      'client': 'clients'
+      'ambassador': 'ambassadors',
+      'client': 'clients',
+      'financing_partner': 'financing_partners'
     };
 
     const { error: updateError } = await supabase
@@ -271,7 +273,8 @@ const handler = async (req: Request): Promise<Response> => {
     const entityNames = {
       'partner': 'partenaire',
       'ambassador': 'ambassadeur',
-      'client': 'client'
+      'client': 'client',
+      'financing_partner': 'partenaire'
     };
 
     let emailContent;

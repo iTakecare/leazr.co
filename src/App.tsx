@@ -126,6 +126,23 @@ const BrokerAnalytics = lazy(() => import("@/pages/broker/BrokerAnalytics"));
 const BrokerCreateOffer = lazy(() => import("@/pages/broker/BrokerCreateOffer"));
 const BrokerSettings = lazy(() => import("@/pages/broker/BrokerSettings"));
 
+// Financeur (Winlease) components
+import FinanceurPrivateRoute from "@/components/routing/FinanceurPrivateRoute";
+import FinanceurLayout from "@/components/layout/FinanceurLayout";
+const FinanceurDashboard = lazy(() => import("@/pages/financeur/FinanceurDashboard"));
+const FinanceurOffers = lazy(() => import("@/pages/financeur/FinanceurOffers"));
+const FinanceurContracts = lazy(() => import("@/pages/financeur/FinanceurContracts"));
+const FinanceurClients = lazy(() => import("@/pages/financeur/FinanceurClients"));
+const FinanceurPartners = lazy(() => import("@/pages/financeur/FinanceurPartners"));
+const FinanceurGrids = lazy(() => import("@/pages/financeur/FinanceurGrids"));
+
+// Financing partner (portail partenaire/broker d'un financeur)
+import FinancingPartnerPrivateRoute from "@/components/routing/FinancingPartnerPrivateRoute";
+import FinancingPartnerLayout from "@/components/layout/FinancingPartnerLayout";
+const PartnerRequests = lazy(() => import("@/pages/partenaire/PartnerRequests"));
+const PartnerNewRequest = lazy(() => import("@/pages/partenaire/PartnerNewRequest"));
+const PartnerRequestDetail = lazy(() => import("@/pages/partenaire/PartnerRequestDetail"));
+
 
 // Ambassador management pages
 const AmbassadorsList = lazy(() => import("@/pages/AmbassadorsList"));
@@ -303,6 +320,33 @@ const AppRoutes = () => {
       </Route>
     </Route>
     
+    {/* ⚠️ MULTI-TENANT FINANCEUR ROUTES (Winlease) ⚠️ */}
+    <Route path="/:companySlug/financeur/*" element={<FinanceurPrivateRoute />}>
+      <Route path="" element={<FinanceurLayout />}>
+        <Route path="dashboard" element={<FinanceurDashboard />} />
+        <Route path="offers" element={<FinanceurOffers />} />
+        <Route path="offers/:id" element={<AdminOfferDetail />} />
+        <Route path="clients" element={<FinanceurClients />} />
+        <Route path="clients/:id" element={<ClientDetail />} />
+        <Route path="clients/edit/:id" element={<ClientEditPage />} />
+        <Route path="contracts" element={<FinanceurContracts />} />
+        <Route path="contracts/:id" element={<ContractDetail />} />
+        <Route path="partners" element={<FinanceurPartners />} />
+        <Route path="grids" element={<FinanceurGrids />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+      </Route>
+    </Route>
+
+    {/* ⚠️ MULTI-TENANT PARTENAIRE FINANCEMENT ROUTES ⚠️ */}
+    <Route path="/:companySlug/partenaire/*" element={<FinancingPartnerPrivateRoute />}>
+      <Route path="" element={<FinancingPartnerLayout />}>
+        <Route path="requests" element={<PartnerRequests />} />
+        <Route path="requests/:id" element={<PartnerRequestDetail />} />
+        <Route path="new-request" element={<PartnerNewRequest />} />
+        <Route index element={<Navigate to="requests" replace />} />
+      </Route>
+    </Route>
+
     {/* ⚠️ MULTI-TENANT ADMIN ROUTES ⚠️ */}
     <Route path="/:companySlug/admin/*" element={<AdminPrivateRoute />}>
       {/* Admin routes with Layout */}

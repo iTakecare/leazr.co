@@ -72,7 +72,13 @@ const Login = () => {
           console.log("🔀 LOGIN REDIRECT - Slug récupéré:", companySlug);
 
           // Redirection basée sur le rôle
-          if (userRole === 'admin') {
+          if (userRole === 'partner') {
+            console.log("🔀 LOGIN REDIRECT - Redirection partenaire financement");
+            navigate(`/${companySlug}/partenaire/requests`, { replace: true });
+          } else if (userRole === 'admin' && user.company_type === 'financeur') {
+            console.log("🔀 LOGIN REDIRECT - Redirection financeur");
+            navigate(`/${companySlug}/financeur/dashboard`, { replace: true });
+          } else if (userRole === 'admin') {
             console.log("🔀 LOGIN REDIRECT - Redirection admin");
             navigate(`/${companySlug}/admin/dashboard`, { replace: true });
           } else if (userRole === 'client') {
