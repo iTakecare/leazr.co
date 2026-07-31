@@ -296,16 +296,20 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
             <Badge className="bg-red-100 text-red-700 border-red-200">{toOrder} à commander</Badge>
             <Badge className="bg-orange-100 text-orange-700 border-orange-200">{ordered} commandé(s)</Badge>
             <Badge className="bg-green-100 text-green-700 border-green-200">{received} reçu(s)</Badge>
-            <Button
-              size="sm"
-              className="h-8 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
-              disabled={toOrder === 0}
-              title={toOrder === 0 ? "Aucun équipement à commander" : "Envoyer la commande à Chapp"}
-              onClick={() => setChappOpen(true)}
-            >
-              <Send className="h-4 w-4" />
-              Envoyer à Chapp
-            </Button>
+            {/* Commande Chapp réservée aux contrats : sur une offre (demande
+                encore en analyse) on ne commande pas le matériel. */}
+            {sourceType !== "offer" && (
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={toOrder === 0}
+                title={toOrder === 0 ? "Aucun équipement à commander" : "Envoyer la commande à Chapp"}
+                onClick={() => setChappOpen(true)}
+              >
+                <Send className="h-4 w-4" />
+                Envoyer à Chapp
+              </Button>
+            )}
           </div>
         </div>
         <CardDescription>{received}/{total} équipements reçus</CardDescription>

@@ -13,9 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.5";
+export const ADMIN_VERSION = "1.5.6";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.6",
+    date: "2026-07-31",
+    title: "Détail d'offre : bouton « Envoyer à Chapp » retiré",
+    items: [
+      "Le bouton « Envoyer à Chapp » du suivi des commandes fournisseurs n'apparaît plus sur le détail d'une offre (une demande encore en analyse ne se commande pas) ; il reste disponible sur les contrats.",
+    ],
+  },
   {
     version: "1.5.5",
     date: "2026-07-29",
