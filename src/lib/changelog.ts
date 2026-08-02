@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.7";
+export const ADMIN_VERSION = "1.5.8";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.8",
+    date: "2026-08-02",
+    title: "Transcription des appels : bascule de Whisper vers ElevenLabs Scribe",
+    items: [
+      "La transcription vocale des enregistrements d'appels (softphone et Centre d'appels) ne passe plus par OpenAI Whisper (compte à sec) mais par ElevenLabs Scribe — plus aucune fonctionnalité de Leazr ne dépend du compte OpenAI.",
+      "Bonus : Scribe fait de la diarisation (détection des locuteurs) — les tours de parole « Conseiller : / Client : » sont maintenant fiabilisés au lieu d'être devinés, la correction des noms propres et le résumé restant assurés par Claude.",
+      "Testé sur un appel réel : transcription, résumé et suggestions d'actions (lien demande, documents à réclamer, rappel) complets.",
+    ],
+  },
   {
     version: "1.5.7",
     date: "2026-08-02",

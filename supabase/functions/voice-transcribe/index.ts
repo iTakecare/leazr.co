@@ -1,5 +1,5 @@
 // =====================================================================
-// voice-transcribe — transcription FR (OpenAI Whisper) + résumé & actions
+// voice-transcribe — transcription FR (ElevenLabs Scribe) + résumé & actions
 // (Claude) d'un enregistrement d'appel, écrits dans voice_calls.
 //
 // Déclenché par voice-recording (Bearer service_role) ; appelable aussi à
@@ -35,8 +35,8 @@ serve(async (req) => {
       .from("voice_calls").select("id, company_id, recording_path, offer_id, client_id").eq("id", body.voice_call_id).maybeSingle();
     if (!call?.recording_path) return json({ success: false, error: "no_recording" }, 404);
 
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiKey) return json({ success: false, error: "openai_not_configured" }, 412);
+    const elevenLabsKey = Deno.env.get("ELEVENLABS_API_KEY");
+    if (!elevenLabsKey) return json({ success: false, error: "elevenlabs_not_configured" }, 412);
 
     // Contexte (nom client + société) pour guider la reconnaissance.
     let clientName = ""; let companyName = "iTakecare";
@@ -52,26 +52,49 @@ serve(async (req) => {
     const { data: file, error: dlErr } = await admin.storage.from("call-recordings").download(call.recording_path);
     if (dlErr || !file) return json({ success: false, error: "download_failed", message: dlErr?.message }, 500);
 
-    // 2) Whisper (français) — le `prompt` biaise la reconnaissance vers le
-    //    vocabulaire métier et les noms propres (sinon "Gianni de iTakecare"
-    //    devient "Janine de ITKF"…).
-    const whisperPrompt = `Conversation téléphonique en français entre un conseiller de ${orgName} (société de leasing de matériel informatique) et un client${clientName ? ` nommé ${clientName}` : ""}. Termes fréquents : ${orgName}, Leazr, leasing, demande de financement, mensualité, Grenke, dossier, carte d'identité, bilan, extrait de rôle, documents, MacBook, ordinateur, partenaires financiers.`;
+    // 2) ElevenLabs Scribe (français) — diarisation activée (2 locuteurs) :
+    //    on reconstruit la transcription par tours de parole, l'étape Claude
+    //    corrige ensuite les noms propres (pas de biasing vocabulaire chez
+    //    Scribe, contrairement au `prompt` Whisper).
     const fd = new FormData();
     fd.append("file", file, "call.mp3");
-    fd.append("model", "whisper-1");
-    fd.append("language", "fr");
-    fd.append("prompt", whisperPrompt);
-    fd.append("temperature", "0");
-    const wResp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    fd.append("model_id", "scribe_v1");
+    fd.append("language_code", "fr");
+    fd.append("diarize", "true");
+    fd.append("num_speakers", "2");
+    fd.append("tag_audio_events", "false");
+    const wResp = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
       method: "POST",
-      headers: { Authorization: `Bearer ${openaiKey}` },
+      headers: { "xi-api-key": elevenLabsKey },
       body: fd,
     });
     if (!wResp.ok) {
       const t = await wResp.text();
-      return json({ success: false, error: "whisper_failed", message: t.slice(0, 300) }, 502);
+      return json({ success: false, error: "scribe_failed", message: t.slice(0, 300) }, 502);
     }
-    const rawTranscription = ((await wResp.json()) as { text?: string }).text ?? "";
+    const scribe = (await wResp.json()) as {
+      text?: string;
+      words?: Array<{ text?: string; type?: string; speaker_id?: string }>;
+    };
+    // Transcription brute : par tours de parole si la diarisation a marché,
+    // sinon le texte plat.
+    let rawTranscription = scribe.text ?? "";
+    if (Array.isArray(scribe.words) && scribe.words.some((w) => w.speaker_id)) {
+      const turns: string[] = [];
+      let curSpeaker = ""; let curText = "";
+      for (const w of scribe.words) {
+        if (w.type === "audio_event") continue;
+        const sp = w.speaker_id ?? curSpeaker;
+        if (sp !== curSpeaker && curText.trim()) {
+          turns.push(`[${curSpeaker || "?"}] ${curText.trim()}`);
+          curText = "";
+        }
+        curSpeaker = sp;
+        curText += w.text ?? "";
+      }
+      if (curText.trim()) turns.push(`[${curSpeaker || "?"}] ${curText.trim()}`);
+      if (turns.length) rawTranscription = turns.join("\n");
+    }
     let transcription = rawTranscription;
 
     // 3) Claude : CORRIGE la transcription (noms/société mal reconnus) +
@@ -87,7 +110,7 @@ serve(async (req) => {
         offers = (o ?? []).map((x) => ({ id: x.id, numero: x.offer_number ?? x.dossier_number, statut: x.workflow_status }));
       }
       const sys = "Tu es l'assistant CRM de Leazr (leasing IT B2B). Tu réponds uniquement par un objet JSON valide.";
-      const usr = `Transcription BRUTE (Whisper) d'un appel téléphonique. Elle contient des erreurs de reconnaissance, surtout sur les noms propres et la société.
+      const usr = `Transcription BRUTE (ElevenLabs Scribe) d'un appel téléphonique. Elle contient des erreurs de reconnaissance, surtout sur les noms propres et la société. Les tours de parole sont éventuellement préfixés par des étiquettes de locuteur type "[speaker_0]".
 
 Contexte certain :
 - Société : ${orgName}
@@ -98,7 +121,7 @@ Transcription brute :
 """${rawTranscription.slice(0, 8000)}"""
 
 Donne :
-- "transcription" : la transcription CORRIGÉE en français — corrige les noms propres mal reconnus (ex. remplace une mauvaise graphie du nom de la société par "${orgName}", du client par "${clientName || "le client"}"), la ponctuation et les évidences ; NE réécris PAS le sens, ne supprime rien, garde le style parlé. Idéalement préfixe les répliques par "Conseiller :" / "Client :" si c'est clair.
+- "transcription" : la transcription CORRIGÉE en français — corrige les noms propres mal reconnus (ex. remplace une mauvaise graphie du nom de la société par "${orgName}", du client par "${clientName || "le client"}"), la ponctuation et les évidences ; NE réécris PAS le sens, ne supprime rien, garde le style parlé. Remplace les étiquettes "[speaker_N]" par "Conseiller :" / "Client :" quand c'est clair (le conseiller est celui qui représente ${orgName}).
 - "summary" : 2-3 phrases résumant l'appel et ce qui a été convenu.
 - "actions" : suggestions parmi {kind, payload, reason} :
   • "task" {"title","description","due_in_days","priority":"low|medium|high"} si une action humaine est attendue
