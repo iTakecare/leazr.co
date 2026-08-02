@@ -7,9 +7,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const ANTHROPIC_MODEL = "claude-haiku-4-5-20251001";
+
+const SUMMARY_SCHEMA = {
+  type: "object",
+  properties: {
+    situation: {
+      type: "string",
+      description: "Résumé de la situation actuelle en 2-3 phrases (ton: professionnel, factuel)",
+    },
+    risk_level: { type: "string", enum: ["faible", "moyen", "élevé"] },
+    risk_reason: {
+      type: "string",
+      description: "Explication courte du niveau de risque (1 phrase)",
+    },
+    key_points: {
+      type: "array",
+      items: { type: "string" },
+      description: "3 à 4 points clés maximum",
+    },
+    next_action: {
+      type: "string",
+      description: "Action concrète recommandée pour faire avancer le dossier (1 phrase)",
+    },
+    recommendation: {
+      type: "string",
+      description: "Recommandation stratégique globale (2-3 phrases)",
+    },
+  },
+  required: ["situation", "risk_level", "risk_reason", "key_points", "next_action", "recommendation"],
+  additionalProperties: false,
+};
 
 // Map status codes to French labels
 const STATUS_LABELS: Record<string, string> = {
@@ -332,24 +364,15 @@ ${notesText}
 ${historyText}
 `.trim();
 
-    // ── 7. Call OpenAI ─────────────────────────────────────────────────────
-    if (!openaiApiKey) {
-      throw new Error("OPENAI_API_KEY not configured");
+    // ── 7. Call Claude ─────────────────────────────────────────────────────
+    if (!anthropicApiKey) {
+      throw new Error("ANTHROPIC_API_KEY not configured");
     }
 
     const systemPrompt = `Tu es un assistant commercial expert en leasing et financement d'équipements professionnels.
-Tu analyses des dossiers de financement et fournis un résumé structuré en JSON.
-Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, sans code block, sans explication.`;
+Tu analyses des dossiers de financement et fournis un résumé structuré.`;
 
-    const userPrompt = `Analyse ce dossier de financement et réponds avec un JSON ayant exactement ces clés:
-{
-  "situation": "Résumé de la situation actuelle en 2-3 phrases (ton: professionnel, factuel)",
-  "risk_level": "faible" | "moyen" | "élevé",
-  "risk_reason": "Explication courte du niveau de risque (1 phrase)",
-  "key_points": ["Point clé 1", "Point clé 2", "Point clé 3"] (max 4 points),
-  "next_action": "Action concrète recommandée pour faire avancer le dossier (1 phrase)",
-  "recommendation": "Recommandation stratégique globale (2-3 phrases)"
-}
+    const userPrompt = `Analyse ce dossier de financement et rends ton résumé structuré.
 
 CONSIGNES IMPORTANTES :
 - Si la section "Données société (KYC)" est remplie, utilise-la EN PRIORITÉ pour évaluer le risque (score KYC, forme juridique, âge de la société en mois, secteur d'activité, alertes BCE éventuelles).
@@ -368,38 +391,41 @@ Voici les données du dossier:
 
 ${context}`;
 
-    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${openaiApiKey}`,
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.4,
-        max_tokens: 600,
+        model: ANTHROPIC_MODEL,
+        max_tokens: 1500,
+        system: systemPrompt,
+        output_config: {
+          format: { type: "json_schema", schema: SUMMARY_SCHEMA },
+        },
+        messages: [{ role: "user", content: userPrompt }],
       }),
     });
 
-    if (!openaiRes.ok) {
-      const err = await openaiRes.text();
-      throw new Error(`OpenAI error: ${err}`);
+    if (!claudeRes.ok) {
+      const err = await claudeRes.text();
+      throw new Error(`Claude API error ${claudeRes.status}: ${err.slice(0, 500)}`);
     }
 
-    const openaiData = await openaiRes.json();
-    const rawContent = openaiData.choices[0].message.content.trim();
+    const claudeData = await claudeRes.json();
+    if (claudeData.stop_reason === "refusal") {
+      throw new Error("Analyse refusée par le modèle (stop_reason: refusal)");
+    }
+    const rawContent = (claudeData.content || []).find((c: any) => c.type === "text")?.text;
+    if (!rawContent) throw new Error("Réponse Claude vide");
 
-    // Parse JSON — strip accidental markdown if present
     let summary;
     try {
-      const cleaned = rawContent.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
-      summary = JSON.parse(cleaned);
+      summary = JSON.parse(rawContent);
     } catch {
-      throw new Error(`Could not parse OpenAI response as JSON: ${rawContent}`);
+      throw new Error(`Could not parse Claude response as JSON: ${rawContent}`);
     }
 
     return new Response(

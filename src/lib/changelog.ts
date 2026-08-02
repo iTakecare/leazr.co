@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.6";
+export const ADMIN_VERSION = "1.5.7";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.7",
+    date: "2026-08-02",
+    title: "Résumé IA du dossier & fiches produits IA : bascule sur Claude",
+    items: [
+      "Correctif : le « Résumé IA du dossier » sur les offres échouait (« Edge Function returned a non-2xx status code ») car le crédit OpenAI était épuisé — le statut KYC affiché dans ce résumé disparaissait avec. La génération passe désormais par Claude (Anthropic), déjà utilisé partout ailleurs dans Leazr.",
+      "La génération IA des descriptions et spécifications de fiches produits (catalogue) bascule aussi d'OpenAI vers Claude, avec le même comportement.",
+      "Fiabilité accrue du résumé : le format JSON de l'analyse est désormais garanti par le modèle (schéma structuré), plus d'erreurs de parsing.",
+      "Note : la transcription vocale des appels (Whisper) reste sur OpenAI et nécessite de recréditer le compte OpenAI pour refonctionner.",
+    ],
+  },
   {
     version: "1.5.6",
     date: "2026-07-31",

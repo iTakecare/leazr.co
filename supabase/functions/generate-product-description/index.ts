@@ -7,8 +7,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+
+const ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001';
+
+async function callClaude(system: string, user: string, maxTokens: number, temperature?: number): Promise<string> {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': anthropicApiKey!,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: maxTokens,
+      system,
+      ...(temperature !== undefined ? { temperature } : {}),
+      messages: [{ role: 'user', content: user }],
+    }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Claude API error ${res.status}: ${t.slice(0, 500)}`);
+  }
+  const data = await res.json();
+  const text = (data.content || []).find((c: any) => c.type === 'text')?.text;
+  if (!text) throw new Error('Réponse Claude vide');
+  return text.trim();
+}
 
 serve(async (req) => {
   console.log('Received request to generate product description');
@@ -78,8 +106,8 @@ serve(async (req) => {
       }
     }
     
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key is not configured');
+    if (!anthropicApiKey) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
     }
     
     let description = '';
@@ -88,7 +116,7 @@ serve(async (req) => {
 
     // Générer les spécifications si demandées
     if (includeSpecifications) {
-      console.log('Generating technical specifications with OpenAI...');
+      console.log('Generating technical specifications with Claude...');
       
       const specPrompt = `
 Tu es un expert en spécifications techniques pour matériel informatique reconditionné.
@@ -127,61 +155,37 @@ Format de réponse attendu (JSON uniquement):
 Réponds UNIQUEMENT avec le JSON, sans texte d'introduction ni d'explication.
 `;
 
-      const specResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'Tu es un expert en spécifications techniques. Tu réponds uniquement en JSON valide sans texte supplémentaire.'
-            },
-            {
-              role: 'user',
-              content: specPrompt
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 400,
-        }),
-      });
+      try {
+        const specContent = await callClaude(
+          'Tu es un expert en spécifications techniques. Tu réponds uniquement en JSON valide sans texte supplémentaire.',
+          specPrompt,
+          600,
+          0.3,
+        );
 
-      if (specResponse.ok) {
-        const specData = await specResponse.json();
-        const specContent = specData.choices[0].message.content.trim();
-        
-        try {
-          // Nettoyer le contenu pour extraire le JSON
-          const jsonMatch = specContent.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            specifications = JSON.parse(jsonMatch[0]);
-            console.log('Successfully generated specifications:', specifications);
-          } else {
-            throw new Error('No JSON found in response');
-          }
-        } catch (parseError) {
-          console.error('Error parsing specifications JSON:', parseError);
-          console.log('Raw specification content:', specContent);
-          // Fallback: créer des spécifications de base
-          specifications = {
-            "État": "Reconditionné Grade A",
-            "Garantie": "12 mois",
-            "Type": "Matériel professionnel",
-            "Reconditionnement": "Testé et vérifié"
-          };
+        // Nettoyer le contenu pour extraire le JSON
+        const jsonMatch = specContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          specifications = JSON.parse(jsonMatch[0]);
+          console.log('Successfully generated specifications:', specifications);
+        } else {
+          throw new Error('No JSON found in response');
         }
-      } else {
-        console.error('OpenAI specifications API error:', specResponse.status);
+      } catch (specError) {
+        console.error('Error generating/parsing specifications:', specError);
+        // Fallback: créer des spécifications de base
+        specifications = {
+          "État": "Reconditionné Grade A",
+          "Garantie": "12 mois",
+          "Type": "Matériel professionnel",
+          "Reconditionnement": "Testé et vérifié"
+        };
       }
     }
 
     // Générer la description si pas de spécifications demandées OU en plus des spécifications
     if (!includeSpecifications) {
-      console.log('Generating SEO-optimized leasing description with OpenAI...');
+      console.log('Generating SEO-optimized leasing description with Claude...');
       
       // Calculer la mensualité minimum des variantes
       const monthlyPriceText = minMonthlyPrice > 0 
@@ -215,32 +219,13 @@ Ton style doit être:
 Mets l'accent sur les bénéfices pour l'entreprise et la solution de leasing.
 `;
 
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'Tu es un expert en rédaction commerciale spécialisé dans le leasing professionnel. Tu écris des descriptions de produits optimisées pour convaincre les entreprises de choisir le leasing.'
-            },
-            {
-              role: 'user',
-              content: descriptionPrompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 500,
-        }),
-      });
-
-      if (openaiResponse.ok) {
-        const openaiData = await openaiResponse.json();
-        description = openaiData.choices[0].message.content;
+      try {
+        description = await callClaude(
+          'Tu es un expert en rédaction commerciale spécialisé dans le leasing professionnel. Tu écris des descriptions de produits optimisées pour convaincre les entreprises de choisir le leasing.',
+          descriptionPrompt,
+          800,
+          0.7,
+        );
         console.log('Description generated successfully in French');
         
         // Générer la description courte
@@ -260,34 +245,19 @@ ${description}
 Génère uniquement la description courte, sans introduction ni explication.
 `;
 
-        const shortDescriptionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: 'Tu es un expert en rédaction de résumés produits pour le web. Tu crées des descriptions courtes, percutantes et optimisées SEO.'
-              },
-              {
-                role: 'user',
-                content: shortDescriptionPrompt
-              }
-            ],
-            temperature: 0.5,
-            max_tokens: 150,
-          }),
-        });
-
-        if (shortDescriptionResponse.ok) {
-          const shortDescriptionData = await shortDescriptionResponse.json();
-          shortDescription = shortDescriptionData.choices[0].message.content;
+        try {
+          shortDescription = await callClaude(
+            'Tu es un expert en rédaction de résumés produits pour le web. Tu crées des descriptions courtes, percutantes et optimisées SEO.',
+            shortDescriptionPrompt,
+            300,
+            0.5,
+          );
           console.log('Short description generated successfully');
+        } catch (shortErr) {
+          console.error('Error generating short description:', shortErr);
         }
+      } catch (descErr) {
+        console.error('Error generating description:', descErr);
       }
     }
     
@@ -297,7 +267,7 @@ Génère uniquement la description courte, sans introduction ni explication.
         description: description || null,
         shortDescription: shortDescription || null,
         specifications: specifications,
-        model: 'gpt-4o-mini',
+        model: ANTHROPIC_MODEL,
         usedPerplexity: usedPerplexity,
         minMonthlyPrice: minMonthlyPrice || null
       }),
