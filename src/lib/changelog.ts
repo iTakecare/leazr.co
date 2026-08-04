@@ -19,6 +19,17 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.6.2",
     date: "2026-08-04",
+    title: "Opportunités : étape « En attente de documents » et gisement à réactiver",
+    items: [
+      "Nouvelle étape « En attente de documents » entre « Proposition envoyée » et « Négociation » : attendre une décision et attendre des pièces ne sont pas la même action commerciale. 56 dossiers y basculent, ils étaient jusqu'ici noyés dans les propositions.",
+      "« Négociation » ne désigne plus que le passage chez le financeur et remonte à 85 % de probabilité.",
+      "Les affaires closes ont désormais un vrai motif : « jamais joint » pour les dossiers sans suite, « financement refusé » pour les refus du bailleur. La distinction change le pilotage — un dossier jamais traité n'est pas un dossier perdu.",
+      "Nouveau filtre « À réactiver » : les 212 affaires perdues faute de réponse, de moins de 6 mois, dont le client n'a jamais signé chez nous. C'est le gisement encore récupérable, environ 25 000 € de mensualités.",
+    ],
+  },
+  {
+    version: "1.6.2",
+    date: "2026-08-04",
     title: "Enregistrement des offres et des clients nettement plus rapide",
     items: [
       "Chaque modification d'une offre — un simple changement de statut — déclenchait en coulisse la reconstruction complète d'une table de travail interne (« demandes en attente ») : plusieurs centaines de lignes effacées puis réécrites, à chaque fois. Même chose à chaque modification d'une fiche client.",

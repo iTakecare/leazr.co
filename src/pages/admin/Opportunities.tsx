@@ -1,6 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Plus, Search, LayoutGrid, List, AlertTriangle, TrendingUp, Briefcase, Trophy } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  LayoutGrid,
+  List,
+  AlertTriangle,
+  TrendingUp,
+  Briefcase,
+  Trophy,
+  RotateCcw,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,6 +50,7 @@ const Opportunities: React.FC = () => {
   const [ownerFilter, setOwnerFilter] = useState<string>(ALL);
   const [statusFilter, setStatusFilter] = useState<OpportunityFilters['status']>('open');
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [reactivationOnly, setReactivationOnly] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const resolvedOwner =
@@ -51,8 +62,9 @@ const Opportunities: React.FC = () => {
       ownerId: resolvedOwner,
       status: statusFilter,
       overdueOnly: overdueOnly || undefined,
+      tags: reactivationOnly ? ['reactivation'] : undefined,
     }),
-    [search, resolvedOwner, statusFilter, overdueOnly]
+    [search, resolvedOwner, statusFilter, overdueOnly, reactivationOnly]
   );
 
   const { data: stages = [], isLoading: stagesLoading } = usePipelineStages();
@@ -198,6 +210,27 @@ const Opportunities: React.FC = () => {
           En retard
         </Button>
 
+        {/* Affaires perdues faute de réponse, encore fraîches, client jamais
+            signé : le gisement à retravailler. Elles sont closes, donc la vue
+            bascule d'office en liste. */}
+        <Button
+          variant={reactivationOnly ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => {
+            const next = !reactivationOnly;
+            setReactivationOnly(next);
+            if (next) {
+              setStatusFilter('lost');
+              setView('list');
+            } else {
+              setStatusFilter('open');
+            }
+          }}
+        >
+          <RotateCcw className="mr-1.5 h-4 w-4" />
+          À réactiver
+        </Button>
+
         <Tabs value={view} onValueChange={(v) => setView(v as 'kanban' | 'list')}>
           <TabsList>
             <TabsTrigger value="kanban" disabled={statusFilter !== 'open'}>
@@ -226,11 +259,13 @@ const Opportunities: React.FC = () => {
         <div className="space-y-3">
           {statusFilter !== 'open' && (
             <p className="text-xs text-muted-foreground">
-              {statusFilter === 'won'
-                ? 'Affaires signées — offre convertie en contrat, financée ou facturée.'
-                : statusFilter === 'lost'
-                  ? 'Affaires closes sans suite ou refusées.'
-                  : 'Toutes les affaires, closes comprises.'}
+              {reactivationOnly
+                ? "Perdues faute de réponse, moins de 6 mois, client jamais signé — le gisement encore récupérable."
+                : statusFilter === 'won'
+                  ? 'Affaires signées — offre convertie en contrat, financée ou facturée.'
+                  : statusFilter === 'lost'
+                    ? 'Affaires closes sans suite ou refusées.'
+                    : 'Toutes les affaires, closes comprises.'}
               {opportunities.length >= 300 && ' 300 plus récentes affichées.'}
             </p>
           )}
