@@ -687,6 +687,10 @@ serve(async (req) => {
 
     // RGPD messaging consent (WhatsApp / SMS) — même logique : on horodate
     // messaging_opt_in_at une seule fois (préserve la date d'origine).
+    // ATTENTION : `data` sort de createProductRequestSchema.parse(), et zod
+    // supprime les clés non déclarées. Tout champ lu ici DOIT être déclaré dans
+    // _shared/validationSchemas.ts, sinon il vaut silencieusement undefined —
+    // c'est exactement ce qui a désactivé ce bloc du 10/06 au 04/08/2026.
     if (data.messaging_consent === true) {
       const { error: msgConsentError } = await supabaseAdmin
         .from('clients')

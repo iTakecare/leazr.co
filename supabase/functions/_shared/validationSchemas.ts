@@ -174,6 +174,11 @@ export const createProductRequestSchema = z.object({
   // contactable by the Alex voice assistant — voice-call-start checks
   // clients.voice_consent_given_at IS NOT NULL before initiating a call.
   voice_consent: z.boolean().optional(),
+  // Messaging consent (RGPD opt-in) for WhatsApp / SMS. Same contract as
+  // voice_consent: create-product-request stamps clients.messaging_opt_in_at.
+  // Must stay declared here — zod strips undeclared keys, which silently
+  // dropped this field for every public-form submission until 04/08/2026.
+  messaging_consent: z.boolean().optional(),
   notes: z.string().trim().max(2000, 'Notes trop longues').optional(),
   request_type: z.enum(['quote', 'order'], { errorMap: () => ({ message: 'Type de requête invalide' }) }).optional(),
   

@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.6.4";
+export const ADMIN_VERSION = "1.6.5";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.6.5",
+    date: "2026-08-04",
+    title: "Le consentement WhatsApp/SMS du formulaire public est enfin enregistré",
+    items: [
+      "Le formulaire public envoyait bien le consentement messagerie coché par le prospect, mais le contrôle de validité de l'API supprimait silencieusement ce champ, jamais déclaré : la case était donc cochée pour rien depuis le 10/06.",
+      "Aucun consentement n'a été perdu à tort : la vérification en base montre que les 155 opt-in existants ont tous été saisis à la main depuis la fiche client, aucun ne venait du formulaire. Rien n'a donc été rétro-daté — un consentement ne s'invente pas.",
+      "À noter pour la suite : le tunnel de commande principal n'affiche plus de case de consentement (retirée le 09/05/2026 et jamais remise). Tant qu'elle n'est pas rétablie, seul le formulaire « demande d'information » du catalogue peut collecter un opt-in automatiquement.",
+    ],
+  },
   {
     version: "1.6.4",
     date: "2026-08-04",
