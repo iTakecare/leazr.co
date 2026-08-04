@@ -175,12 +175,14 @@ console.log(`✅ ${contactsCount ?? 0} contacts`);
 //     l'UPDATE : le rattachement offre <-> opportunité est déterministe.
 //     Le workflow de financement est projeté sur le cycle de vente — une offre
 //     signifie qu'on a au minimum chiffré, donc jamais en dessous de « Qualifié ».
-// `refresh_admin_pending_requests_on_offers` est un trigger FOR EACH ROW sur
-// offers qui VIDE ET RECONSTRUIT intégralement la table admin_pending_requests
-// à chaque ligne touchée. Écrire opportunity_id sur 300 offres déclencherait
-// donc 300 reconstructions complètes — c'est ce qui faisait exploser le
-// statement_timeout. On le neutralise et on rafraîchit une seule fois à la fin.
-await disableTrigger('offers', 'refresh_admin_pending_requests_on_offers');
+// Ce backfill neutralisait ici `refresh_admin_pending_requests_on_offers`, un
+// trigger FOR EACH ROW qui reconstruisait intégralement admin_pending_requests
+// à chaque ligne touchée : écrire opportunity_id sur 300 offres déclenchait 300
+// reconstructions complètes, d'où le statement_timeout. Le trigger, la fonction
+// et la table ont été supprimés depuis (voir
+// supabase/migrations/20260804150000_drop_admin_pending_requests.sql) — plus
+// rien à neutraliser. Le découpage en lots reste nécessaire pour
+// sync_opportunity_stage, qui interroge pipeline_stages ligne à ligne.
 
 const OPP_BATCH = 300;
 let offersTodo = await pending('offers', 'opportunity_id');
@@ -210,11 +212,14 @@ while (offersTodo > 0) {
       join public.pipeline_stages ps
         on ps.company_id = o.company_id
        and ps.key = case
-            when o.workflow_status in ('leaser_approved','contract_sent','signed','financed','accepted') then 'won'
-            when o.workflow_status in ('rejected','internal_rejected','leaser_rejected','refused','cancelled','without_follow_up') then 'lost'
+            when o.converted_to_contract is true
+              or exists (select 1 from public.contracts ct where ct.offer_id = o.id)
+              then 'won'
+            when o.workflow_status in ('financed','invoicing','contract_signed','contract_sent','accepted','signed','completed','validated','leaser_approved') then 'won'
+            when o.workflow_status in ('without_follow_up','internal_rejected','leaser_rejected','rejected','refused','cancelled') then 'lost'
             when o.workflow_status in ('internal_approved','leaser_introduced','leaser_pending','leaser_docs_requested') then 'negotiation'
-            when o.workflow_status in ('sent','sent_to_client','info_requested','internal_docs_requested') then 'proposal'
-            else 'qualified'
+            when o.workflow_status in ('sent','sent_to_client','viewed','info_requested','internal_docs_requested') then 'proposal'
+            else 'new'
            end
       where o.company_id is not null
         and o.opportunity_id is null
@@ -254,11 +259,7 @@ while (offersTodo > 0) {
 }
 console.log(`\n✅ Opportunités créées`);
 
-await enableTrigger('offers', 'refresh_admin_pending_requests_on_offers');
-
 // 2c) Owner des clients : le créateur de leur offre la plus récente.
-//     `clients` porte le MÊME trigger de reconstruction intégrale.
-await disableTrigger('clients', 'refresh_admin_pending_requests_on_clients');
 await run(
   `
   update public.clients c
@@ -272,15 +273,7 @@ await run(
    where c.id = sub.client_id and c.owner_id is null;`,
   'Attribution des clients'
 );
-await enableTrigger('clients', 'refresh_admin_pending_requests_on_clients');
 console.log('✅ Clients attribués à un commercial');
-
-// Une seule reconstruction, après tout le backfill
-await run(
-  `select public.refresh_admin_pending_requests();`,
-  'Rafraîchissement de admin_pending_requests'
-);
-console.log('✅ admin_pending_requests rafraîchie');
 
 // ─── 3) Projection de l'historique, par lots ─────────────────────────────────
 //

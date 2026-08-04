@@ -17,7 +17,10 @@ const SELECT_WITH_RELATIONS = `
 
 export const getOpportunities = async (
   companyId: string,
-  filters: OpportunityFilters = {}
+  filters: OpportunityFilters = {},
+  // Les affaires closes se comptent en centaines : sans plafond, la vue liste
+  // téléchargerait tout l'historique commercial à chaque affichage.
+  limit = 300
 ): Promise<OpportunityWithRelations[]> => {
   try {
     let query = db
@@ -42,7 +45,9 @@ export const getOpportunities = async (
       query = query.or(`name.ilike.${term},description.ilike.${term}`);
     }
 
-    const { data, error } = await query.order('updated_at', { ascending: false });
+    const { data, error } = await query
+      .order('updated_at', { ascending: false })
+      .limit(limit);
 
     if (error) {
       console.error('❌ Error fetching opportunities:', error);
@@ -267,6 +272,48 @@ export const getPipelineSummary = async (
     };
   } catch (error) {
     console.error('❌ Exception building pipeline summary:', error);
+    return empty;
+  }
+};
+
+export interface OutcomeSummary {
+  won: { count: number; monthly: number };
+  lost: { count: number; monthly: number };
+}
+
+/**
+ * Affaires closes. Elles ne sont pas rendues en colonnes de kanban — plusieurs
+ * centaines de cartes gagnées noieraient les affaires en cours — mais résumées
+ * en deux tuiles.
+ */
+export const getOutcomeSummary = async (
+  companyId: string,
+  ownerId?: string | null
+): Promise<OutcomeSummary> => {
+  const empty: OutcomeSummary = { won: { count: 0, monthly: 0 }, lost: { count: 0, monthly: 0 } };
+  try {
+    let query = db
+      .from('opportunities')
+      .select('status, estimated_monthly_payment')
+      .eq('company_id', companyId)
+      .in('status', ['won', 'lost']);
+
+    if (ownerId) query = query.eq('owner_id', ownerId);
+
+    const { data, error } = await query;
+    if (error || !data) {
+      console.error('❌ Error fetching outcome summary:', error);
+      return empty;
+    }
+
+    return (data as any[]).reduce((acc, row) => {
+      const bucket = row.status === 'won' ? acc.won : acc.lost;
+      bucket.count += 1;
+      bucket.monthly += row.estimated_monthly_payment ?? 0;
+      return acc;
+    }, structuredClone(empty));
+  } catch (error) {
+    console.error('❌ Exception fetching outcome summary:', error);
     return empty;
   }
 };

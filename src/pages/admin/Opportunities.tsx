@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Plus, Search, LayoutGrid, List, AlertTriangle, TrendingUp, Users } from 'lucide-react';
+import { Plus, Search, LayoutGrid, List, AlertTriangle, TrendingUp, Briefcase, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
@@ -19,6 +18,7 @@ import {
   useOpportunities,
   usePipelineStages,
   useOpportunityMutations,
+  useOutcomeSummary,
 } from '@/hooks/crm/useOpportunities';
 import PipelineKanban from '@/components/crm/opportunities/PipelineKanban';
 import OpportunityDialog from '@/components/crm/opportunities/OpportunityDialog';
@@ -28,8 +28,7 @@ import type { OpportunityFilters, OpportunityWithRelations } from '@/services/cr
 const ALL = '__all__';
 const MINE = '__mine__';
 
-const formatEuro = (value: number) =>
-  value.toLocaleString('fr-BE', { maximumFractionDigits: 0 });
+const formatEuro = (value: number) => value.toLocaleString('fr-BE', { maximumFractionDigits: 0 });
 
 const Opportunities: React.FC = () => {
   const navigate = useNavigate();
@@ -58,34 +57,39 @@ const Opportunities: React.FC = () => {
 
   const { data: stages = [], isLoading: stagesLoading } = usePipelineStages();
   const { data: opportunities = [], isLoading } = useOpportunities(filters);
+  const { data: outcomes } = useOutcomeSummary(resolvedOwner);
   const { data: profiles = [] } = useCompanyProfiles();
   const { moveStage } = useOpportunityMutations();
 
-  // Le kanban n'affiche que les étapes ouvertes : gagné/perdu sont des issues,
-  // pas des colonnes où l'on empile des cartes.
+  // Gagné/Perdu sont des issues, pas des colonnes où empiler des cartes.
   const openStages = useMemo(() => stages.filter((s) => !s.is_won && !s.is_lost), [stages]);
 
   const totals = useMemo(() => {
-    const monthly = opportunities.reduce(
-      (sum, o) => sum + (o.estimated_monthly_payment ?? 0),
-      0
-    );
     const stageById = new Map(stages.map((s) => [s.id, s]));
-    const weighted = opportunities.reduce((sum, o) => {
+    const openOnes = opportunities.filter((o) => o.status === 'open');
+    const monthly = openOnes.reduce((sum, o) => sum + (o.estimated_monthly_payment ?? 0), 0);
+    const weighted = openOnes.reduce((sum, o) => {
       const probability = o.stage_id ? stageById.get(o.stage_id)?.probability ?? 0 : 0;
       return sum + ((o.estimated_monthly_payment ?? 0) * probability) / 100;
     }, 0);
-    const overdue = opportunities.filter(
+    const overdue = openOnes.filter(
       (o) => o.next_action_at && new Date(o.next_action_at) < new Date()
     ).length;
-    return { monthly, weighted, overdue, count: opportunities.length };
+    return { monthly, weighted, overdue, count: openOnes.length };
   }, [opportunities, stages]);
 
   const openDetail = (opportunity: OpportunityWithRelations) =>
     navigate(`/${companySlug}/admin/opportunities/${opportunity.id}`);
 
+  const showOutcome = (status: 'won' | 'lost') => {
+    setStatusFilter(status);
+    setView('list');
+  };
+
+  const isKanban = view === 'kanban' && statusFilter === 'open';
+
   return (
-    <div className="space-y-5 p-6">
+    <div className="space-y-4 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Opportunités</h1>
@@ -101,44 +105,42 @@ const Opportunities: React.FC = () => {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <Users className="h-5 w-5 text-slate-400" />
+          <CardContent className="flex items-center gap-3 p-3.5">
+            <Briefcase className="h-4 w-4 text-slate-400" />
             <div>
-              <p className="text-xs text-muted-foreground">Opportunités</p>
-              <p className="text-xl font-bold">{totals.count}</p>
+              <p className="text-xs text-muted-foreground">Affaires en cours</p>
+              <p className="text-lg font-bold">{totals.count}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <TrendingUp className="h-5 w-5 text-slate-400" />
+          <CardContent className="flex items-center gap-3 p-3.5">
+            <TrendingUp className="h-4 w-4 text-slate-400" />
             <div>
               <p className="text-xs text-muted-foreground">Pipeline (mensuel)</p>
-              <p className="text-xl font-bold">{formatEuro(totals.monthly)} €</p>
+              <p className="text-lg font-bold">{formatEuro(totals.monthly)} €</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <TrendingUp className="h-5 w-5 text-emerald-500" />
+          <CardContent className="flex items-center gap-3 p-3.5">
+            <Trophy className="h-4 w-4 text-emerald-500" />
             <div>
               <p className="text-xs text-muted-foreground">Prévisionnel pondéré</p>
-              <p className="text-xl font-bold text-emerald-600">
+              <p className="text-lg font-bold text-emerald-600">
                 {formatEuro(totals.weighted)} €
               </p>
             </div>
           </CardContent>
         </Card>
         <Card className={totals.overdue > 0 ? 'border-red-200' : undefined}>
-          <CardContent className="flex items-center gap-3 p-4">
+          <CardContent className="flex items-center gap-3 p-3.5">
             <AlertTriangle
-              className={`h-5 w-5 ${totals.overdue > 0 ? 'text-red-500' : 'text-slate-400'}`}
+              className={`h-4 w-4 ${totals.overdue > 0 ? 'text-red-500' : 'text-slate-400'}`}
             />
             <div>
               <p className="text-xs text-muted-foreground">Actions en retard</p>
-              <p
-                className={`text-xl font-bold ${totals.overdue > 0 ? 'text-red-600' : ''}`}
-              >
+              <p className={`text-lg font-bold ${totals.overdue > 0 ? 'text-red-600' : ''}`}>
                 {totals.overdue}
               </p>
             </div>
@@ -147,7 +149,7 @@ const Opportunities: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[220px] flex-1">
+        <div className="relative min-w-[200px] flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             value={search}
@@ -158,7 +160,7 @@ const Opportunities: React.FC = () => {
         </div>
 
         <Select value={ownerFilter} onValueChange={setOwnerFilter}>
-          <SelectTrigger className="w-[190px]">
+          <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -198,7 +200,7 @@ const Opportunities: React.FC = () => {
 
         <Tabs value={view} onValueChange={(v) => setView(v as 'kanban' | 'list')}>
           <TabsList>
-            <TabsTrigger value="kanban">
+            <TabsTrigger value="kanban" disabled={statusFilter !== 'open'}>
               <LayoutGrid className="h-4 w-4" />
             </TabsTrigger>
             <TabsTrigger value="list">
@@ -208,42 +210,45 @@ const Opportunities: React.FC = () => {
         </Tabs>
       </div>
 
-      {view === 'kanban' && statusFilter === 'open' ? (
+      {isKanban ? (
         <PipelineKanban
           stages={openStages}
           opportunities={opportunities}
           loading={isLoading || stagesLoading}
           onMove={(id, stageId) => moveStage.mutate({ id, stageId })}
           onOpen={openDetail}
+          won={outcomes?.won}
+          lost={outcomes?.lost}
+          onShowWon={() => showOutcome('won')}
+          onShowLost={() => showOutcome('lost')}
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
-          {!isLoading && opportunities.length === 0 && (
-            <p className="text-sm text-muted-foreground">Aucune opportunité pour ces filtres.</p>
+        <div className="space-y-3">
+          {statusFilter !== 'open' && (
+            <p className="text-xs text-muted-foreground">
+              {statusFilter === 'won'
+                ? 'Affaires signées — offre convertie en contrat, financée ou facturée.'
+                : statusFilter === 'lost'
+                  ? 'Affaires closes sans suite ou refusées.'
+                  : 'Toutes les affaires, closes comprises.'}
+              {opportunities.length >= 300 && ' 300 plus récentes affichées.'}
+            </p>
           )}
-          {opportunities.map((o) => (
-            <div key={o.id} className="space-y-1">
-              <OpportunityCard opportunity={o} onClick={() => openDetail(o)} />
-              {o.stage && (
-                <Badge
-                  variant="outline"
-                  className="text-[10px]"
-                  style={{ borderColor: o.stage.color, color: o.stage.color }}
-                >
-                  {o.stage.label}
-                </Badge>
-              )}
-            </div>
-          ))}
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
+            {!isLoading && opportunities.length === 0 && (
+              <p className="text-sm text-muted-foreground">Aucune opportunité pour ces filtres.</p>
+            )}
+            {opportunities.map((o) => (
+              <OpportunityCard
+                key={o.id}
+                opportunity={o}
+                showStage
+                onClick={() => openDetail(o)}
+              />
+            ))}
+          </div>
         </div>
-      )}
-
-      {view === 'kanban' && statusFilter !== 'open' && (
-        <p className="text-xs text-muted-foreground">
-          Le kanban ne présente que les affaires en cours — basculez en vue liste pour consulter
-          les affaires gagnées ou perdues.
-        </p>
       )}
 
       <OpportunityDialog open={dialogOpen} onOpenChange={setDialogOpen} />

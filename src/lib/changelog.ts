@@ -13,9 +13,22 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.6.0";
+export const ADMIN_VERSION = "1.6.1";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.6.1",
+    date: "2026-08-04",
+    title: "Opportunités : correction du classement des affaires",
+    items: [
+      "Correctif majeur : des affaires déjà signées, financées ou facturées étaient rangées au milieu du pipeline comme si elles étaient encore à vendre. La règle est désormais qu'une offre convertie en contrat est gagnée, quel que soit son statut de workflow — 339 dossiers étaient concernés.",
+      "Les 101 demandes en facturation et les dossiers « contrat signé » basculent en Gagné ; les dossiers « sans suite » et refusés basculent en Perdu. Le pipeline passe de 194 à 80 affaires réellement en cours.",
+      "Les brouillons et tout statut non reconnu vont désormais en « Nouveau » et non plus dans un fourre-tout au milieu du pipeline.",
+      "Deux tuiles « Gagné » et « Perdu » apparaissent en fin de tableau avec leur montant : un clic bascule en vue liste sur ces affaires. Elles ne sont volontairement pas des colonnes — plusieurs centaines de cartes noieraient les affaires en cours.",
+      "Cartes plus compactes et colonnes qui défilent sur elles-mêmes : la page ne s'allonge plus avec l'étape la plus fournie. Au-delà de 12 affaires, un bouton « voir les N autres » déplie la colonne.",
+      "Dans une colonne, les affaires sont triées par action la plus urgente, puis par montant.",
+    ],
+  },
   {
     version: "1.6.0",
     date: "2026-08-04",

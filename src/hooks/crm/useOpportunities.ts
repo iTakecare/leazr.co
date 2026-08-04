@@ -12,13 +12,20 @@ import {
   setNextAction,
   deleteOpportunity,
   getPipelineSummary,
+  getOutcomeSummary,
   getDueActions,
   type CreateOpportunityInput,
 } from '@/services/crm/opportunityService';
 import { getPipelineStages } from '@/services/crm/pipelineService';
 import type { Opportunity, OpportunityFilters, CrmChannel } from '@/services/crm/types';
 
-const invalidateKeys = ['opportunities', 'pipeline-summary', 'due-actions', 'crm-activities'];
+const invalidateKeys = [
+  'opportunities',
+  'pipeline-summary',
+  'outcome-summary',
+  'due-actions',
+  'crm-activities',
+];
 
 export function usePipelineStages() {
   const { companyId } = useMultiTenant();
@@ -52,6 +59,15 @@ export function usePipelineSummary(ownerId?: string | null) {
   return useQuery({
     queryKey: ['pipeline-summary', companyId, ownerId],
     queryFn: () => getPipelineSummary(companyId!, ownerId),
+    enabled: !!companyId,
+  });
+}
+
+export function useOutcomeSummary(ownerId?: string | null) {
+  const { companyId } = useMultiTenant();
+  return useQuery({
+    queryKey: ['outcome-summary', companyId, ownerId],
+    queryFn: () => getOutcomeSummary(companyId!, ownerId),
     enabled: !!companyId,
   });
 }

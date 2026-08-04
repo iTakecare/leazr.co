@@ -121,66 +121,6 @@ export type Database = {
           },
         ]
       }
-      admin_pending_requests: {
-        Row: {
-          amount: number | null
-          client_company: string | null
-          client_contact_email: string | null
-          client_email: string | null
-          client_id: string | null
-          client_name: string | null
-          coefficient: number | null
-          commission: number | null
-          converted_to_contract: boolean | null
-          created_at: string | null
-          equipment_description: string | null
-          id: string | null
-          monthly_payment: number | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-          workflow_status: string | null
-        }
-        Insert: {
-          amount?: number | null
-          client_company?: string | null
-          client_contact_email?: string | null
-          client_email?: string | null
-          client_id?: string | null
-          client_name?: string | null
-          coefficient?: number | null
-          commission?: number | null
-          converted_to_contract?: boolean | null
-          created_at?: string | null
-          equipment_description?: string | null
-          id?: string | null
-          monthly_payment?: number | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          workflow_status?: string | null
-        }
-        Update: {
-          amount?: number | null
-          client_company?: string | null
-          client_contact_email?: string | null
-          client_email?: string | null
-          client_id?: string | null
-          client_name?: string | null
-          coefficient?: number | null
-          commission?: number | null
-          converted_to_contract?: boolean | null
-          created_at?: string | null
-          equipment_description?: string | null
-          id?: string | null
-          monthly_payment?: number | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          workflow_status?: string | null
-        }
-        Relationships: []
-      }
       ambassador_activity_logs: {
         Row: {
           action_type: string
@@ -11505,7 +11445,6 @@ export type Database = {
           old_selling_price: number
         }[]
       }
-      refresh_admin_pending_requests: { Args: never; Returns: undefined }
       render_email_template: {
         Args: { template_content: string; variables: Json }
         Returns: string
