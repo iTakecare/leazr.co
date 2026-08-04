@@ -15,6 +15,7 @@
 -- Voir scripts/apply-crm-phase1.mjs
 -- ============================================================================
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 1) Étapes de pipeline (configurables par tenant)
 -- ---------------------------------------------------------------------------
@@ -82,6 +83,7 @@ create trigger trg_companies_seed_pipeline
   after insert on public.companies
   for each row execute function public.seed_default_pipeline_stages();
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 2) Contacts — personnes physiques, existent AVANT tout client
 -- ---------------------------------------------------------------------------
@@ -129,6 +131,7 @@ create index if not exists idx_contacts_client    on public.contacts(client_id);
 create index if not exists idx_contacts_owner     on public.contacts(owner_id);
 create index if not exists idx_contacts_tags      on public.contacts using gin(tags);
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 3) Opportunités — le pivot du pipeline commercial
 -- ---------------------------------------------------------------------------
@@ -204,6 +207,7 @@ alter table public.clients
   add column if not exists first_contact_at timestamptz;
 create index if not exists idx_clients_owner on public.clients(owner_id);
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 4) crm_activities — la timeline unifiée, tous canaux
 -- ---------------------------------------------------------------------------
@@ -250,6 +254,7 @@ create index if not exists idx_crm_activities_contact     on public.crm_activiti
 create index if not exists idx_crm_activities_offer       on public.crm_activities(offer_id, occurred_at desc);
 create index if not exists idx_crm_activities_type        on public.crm_activities(company_id, type, occurred_at desc);
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 5) updated_at automatique
 -- ---------------------------------------------------------------------------
@@ -270,6 +275,7 @@ drop trigger if exists trg_opportunities_updated_at on public.opportunities;
 create trigger trg_opportunities_updated_at before update on public.opportunities
   for each row execute function public.touch_crm_updated_at();
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 6) Cohérence d'étape : status, dates et historisation du changement
 -- ---------------------------------------------------------------------------
@@ -378,6 +384,7 @@ create trigger trg_crm_activities_touch
   after insert on public.crm_activities
   for each row execute function public.touch_crm_last_activity();
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 7) RLS — même pattern que le reste du repo
 -- ---------------------------------------------------------------------------
@@ -420,6 +427,7 @@ begin
   end loop;
 end $$;
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 8) Backfill — l'existant devient du pipeline, rien ne se perd
 -- ---------------------------------------------------------------------------
@@ -530,101 +538,17 @@ update public.clients c
   ) sub
  where c.id = sub.client_id and c.owner_id is null;
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 9) Projection de l'historique dans la timeline
 --
--- Le trigger de rafraîchissement de last_activity_at est neutralisé le temps du
--- backfill : sinon chaque activité projetée déclenche un UPDATE ligne à ligne
--- sur opportunities (des dizaines de milliers d'écritures inutiles). On
--- recalcule la valeur en une passe à la fin.
+-- Volontairement ABSENTE de cette migration : projeter tout l'historique
+-- (emails IMAP, messages WhatsApp/SMS) dépasse le statement_timeout de
+-- Postgres. scripts/apply-crm-phase1.mjs s'en charge par lots, trigger de
+-- rafraîchissement de last_activity_at neutralisé le temps du backfill.
 -- ---------------------------------------------------------------------------
 
-alter table public.crm_activities disable trigger trg_crm_activities_touch;
-
--- Notes d'offre
-insert into public.crm_activities (company_id, opportunity_id, client_id, offer_id, type, direction, occurred_at, actor_id, body, source_table, source_id)
-select o.company_id, o.opportunity_id, o.client_id, o.id, 'note', 'internal', n.created_at, n.created_by, n.content, 'offer_notes', n.id
-  from public.offer_notes n
-  join public.offers o on o.id = n.offer_id
- where o.company_id is not null
-on conflict do nothing;
-
--- Appels loggés manuellement
-insert into public.crm_activities (company_id, opportunity_id, client_id, offer_id, type, direction, channel, occurred_at, actor_id, subject, body, outcome, payload, source_table, source_id)
-select l.company_id, o.opportunity_id, o.client_id, l.offer_id, 'call', 'out', 'phone', l.called_at, l.created_by,
-       case l.status when 'reached' then 'Contact établi'
-                     when 'voicemail' then 'Répondeur'
-                     else 'Sans réponse' end,
-       l.notes, l.status,
-       jsonb_build_object('callback_date', l.callback_date),
-       'offer_call_logs', l.id
-  from public.offer_call_logs l
-  join public.offers o on o.id = l.offer_id
-on conflict do nothing;
-
--- Appels Alex / softphone
-insert into public.crm_activities (company_id, opportunity_id, client_id, offer_id, type, direction, channel, occurred_at, actor_id, actor_label, subject, body, outcome, payload, source_table, source_id)
-select vc.company_id, o.opportunity_id, vc.client_id, vc.offer_id, 'voice_ai',
-       case when vc.direction = 'inbound' then 'in' else 'out' end,
-       'voice', vc.created_at, vc.initiated_by,
-       case when vc.initiated_by is null then 'Alex (IA)' else null end,
-       coalesce(vc.summary, 'Appel ' || coalesce(vc.status, '')),
-       vc.transcription, vc.outcome,
-       jsonb_build_object('duration_seconds', vc.duration_seconds, 'status', vc.status, 'recording_url', vc.recording_url),
-       'voice_calls', vc.id
-  from public.voice_calls vc
-  left join public.offers o on o.id = vc.offer_id
-on conflict do nothing;
-
--- Emails IMAP (rattachés via linked_client_id posé en Phase 0, ou via l'offre)
-insert into public.crm_activities (company_id, opportunity_id, client_id, offer_id, type, direction, channel, occurred_at, subject, body, payload, source_table, source_id)
-select e.company_id, o.opportunity_id, coalesce(e.linked_client_id, o.client_id), e.linked_offer_id, 'email',
-       'in', 'email', coalesce(e.received_at, e.created_at), e.subject,
-       left(coalesce(e.body_text, ''), 4000),
-       jsonb_build_object('from', e.from_address, 'from_name', e.from_name, 'to', e.to_address),
-       'synced_emails', e.id
-  from public.synced_emails e
-  left join public.offers o on o.id = e.linked_offer_id
- where e.linked_client_id is not null or e.linked_offer_id is not null
-on conflict do nothing;
-
--- Messages WhatsApp / SMS / chat web
-insert into public.crm_activities (company_id, opportunity_id, client_id, type, direction, channel, occurred_at, subject, body, payload, source_table, source_id)
-select conv.company_id,
-       (select opp.id from public.opportunities opp
-         where opp.client_id = conv.client_id and opp.company_id = conv.company_id
-         order by opp.created_at desc limit 1),
-       conv.client_id,
-       case conv.channel when 'whatsapp' then 'whatsapp' when 'sms' then 'sms' else 'note' end,
-       case when m.direction = 'inbound' then 'in' else 'out' end,
-       coalesce(conv.channel, 'web'),
-       m.created_at, null, m.message,
-       jsonb_build_object('sender_name', m.sender_name, 'sender_type', m.sender_type, 'message_type', m.message_type),
-       'chat_messages', m.id
-  from public.chat_messages m
-  join public.chat_conversations conv on conv.id = m.conversation_id
- where conv.client_id is not null
-on conflict do nothing;
-
-alter table public.crm_activities enable trigger trg_crm_activities_touch;
-
--- Recalcul en une passe de last_activity_at
-update public.opportunities o
-   set last_activity_at = greatest(coalesce(o.last_activity_at, a.max_at), a.max_at)
-  from (select opportunity_id, max(occurred_at) as max_at
-          from public.crm_activities
-         where opportunity_id is not null
-         group by opportunity_id) a
- where o.id = a.opportunity_id;
-
-update public.contacts c
-   set last_activity_at = a.max_at
-  from (select contact_id, max(occurred_at) as max_at
-          from public.crm_activities
-         where contact_id is not null
-         group by contact_id) a
- where c.id = a.contact_id;
-
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 10) Alimentation continue de la timeline
 -- ---------------------------------------------------------------------------

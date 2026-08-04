@@ -13,16 +13,33 @@
 -- <SERVICE_ROLE_KEY> est substitué à l'application par scripts/apply-crm-phase0.mjs
 -- ============================================================================
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 1) Emails IMAP -> client
 -- ---------------------------------------------------------------------------
 
 alter table public.synced_emails
-  add column if not exists linked_client_id uuid references public.clients(id) on delete set null;
+  add column if not exists linked_client_id uuid references public.clients(id) on delete set null,
+  -- Marqueur de passage du backfill : une adresse qui ne correspond à aucun
+  -- client reste à NULL, il faut donc distinguer « pas encore examiné » de
+  -- « examiné, sans correspondance » pour que le batch converge.
+  add column if not exists linked_client_checked_at timestamptz;
 
 create index if not exists idx_synced_emails_linked_client
   on public.synced_emails(linked_client_id);
+create index if not exists idx_synced_emails_link_pending
+  on public.synced_emails(id) where linked_client_checked_at is null;
 
+-- Index de support de match_email_to_client : sans eux, chaque appel fait trois
+-- seq scans sur clients/collaborators et le backfill part en timeout.
+create index if not exists idx_clients_company_lower_email
+  on public.clients(company_id, lower(email)) where email is not null;
+create index if not exists idx_clients_company_email_domain
+  on public.clients(company_id, split_part(lower(email), '@', 2)) where email is not null;
+create index if not exists idx_collaborators_lower_email
+  on public.collaborators(lower(email)) where email is not null;
+
+-- @@SPLIT@@
 -- Domaines grand public : on ne rattache JAMAIS un client par domaine sur
 -- ceux-là (sinon tous les gmail.com tombent sur le même client).
 create or replace function public.is_generic_email_domain(p_domain text)
@@ -102,6 +119,7 @@ begin
 end;
 $$;
 
+-- @@SPLIT@@
 -- Auto-rattachement à l'insertion (mail-sync n'a rien à faire de plus)
 create or replace function public.autolink_synced_email_client()
 returns trigger
@@ -116,6 +134,9 @@ begin
       new.linked_client_id := public.match_email_to_client(new.company_id, new.to_address);
     end if;
   end if;
+  -- Les nouvelles lignes sont traitées à l'insertion : le backfill par lots
+  -- n'a pas à repasser dessus.
+  new.linked_client_checked_at := now();
   return new;
 end;
 $$;
@@ -125,14 +146,11 @@ create trigger trg_synced_emails_autolink_client
   before insert on public.synced_emails
   for each row execute function public.autolink_synced_email_client();
 
--- Backfill de l'historique
-update public.synced_emails e
-   set linked_client_id = coalesce(
-         public.match_email_to_client(e.company_id, e.from_address),
-         public.match_email_to_client(e.company_id, e.to_address)
-       )
- where e.linked_client_id is null;
+-- Le backfill de l'historique n'est PAS fait ici : sur un volume d'emails
+-- réel il dépasse le statement_timeout. Il est exécuté par lots de 2000 par
+-- scripts/apply-crm-phase0.mjs, qui boucle jusqu'à épuisement.
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 2) contact_submissions : colonnes de triage
 -- ---------------------------------------------------------------------------
@@ -150,6 +168,7 @@ create index if not exists idx_contact_submissions_company_status
 create index if not exists idx_contact_submissions_created
   on public.contact_submissions(created_at desc);
 
+-- @@SPLIT@@
 -- ---------------------------------------------------------------------------
 -- 3) Crons de rappel (les deux fonctions existaient sans jamais tourner)
 -- ---------------------------------------------------------------------------
