@@ -41,7 +41,10 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
     company: "",
     message: "",
     hasClientAccount: false,
-    contactConsent: false,
+    // Deux finalités distinctes = deux consentements distincts (appels /
+    // messagerie écrite), stockés dans deux colonnes séparées côté client.
+    voiceConsent: false,
+    messagingConsent: false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -94,9 +97,9 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         duration: duration,
         phone: formData.phone,
         has_client_account: formData.hasClientAccount,
-        // Consentement à être recontacté par téléphone (agent IA) et messagerie.
-        voice_consent: formData.contactConsent,
-        messaging_consent: formData.contactConsent,
+        // Consentements RGPD, indépendants l'un de l'autre.
+        voice_consent: formData.voiceConsent,
+        messaging_consent: formData.messagingConsent,
       };
       
       console.log("Envoi de la demande de produit...", requestData);
@@ -251,14 +254,27 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
 
             <div className="flex items-start space-x-2">
               <Checkbox
-                id="contactConsent"
-                checked={formData.contactConsent}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, contactConsent: !!checked }))}
+                id="voiceConsent"
+                checked={formData.voiceConsent}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, voiceConsent: !!checked }))}
                 className="mt-0.5"
               />
-              <Label htmlFor="contactConsent" className="text-sm text-muted-foreground leading-snug">
-                J'accepte d'être recontacté(e) au sujet de ma demande par téléphone
-                (y compris par assistant vocal), WhatsApp ou SMS.
+              <Label htmlFor="voiceConsent" className="text-sm text-muted-foreground leading-snug">
+                J'accepte d'être appelé(e) au sujet de ma demande, y compris par
+                notre assistant vocal automatisé.
+              </Label>
+            </div>
+
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="messagingConsent"
+                checked={formData.messagingConsent}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, messagingConsent: !!checked }))}
+                className="mt-0.5"
+              />
+              <Label htmlFor="messagingConsent" className="text-sm text-muted-foreground leading-snug">
+                J'accepte d'être recontacté(e) au sujet de ma demande par WhatsApp
+                ou SMS.
               </Label>
             </div>
           </div>

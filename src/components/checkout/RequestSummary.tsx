@@ -1,5 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { ShoppingBag, ChevronLeft, InfoIcon } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
@@ -44,6 +46,14 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  // Consentements RGPD, volontairement SÉPARÉS : appels (dont assistant vocal
+  // IA) et messagerie écrite sont deux finalités distinctes, stockées dans deux
+  // colonnes distinctes (clients.voice_consent_given_at / messaging_opt_in_at)
+  // et pilotables séparément depuis la fiche client. Cocher l'un ne doit pas
+  // valoir consentement pour l'autre. Aucun des deux ne conditionne l'envoi de
+  // la demande — un consentement conditionné n'est pas librement donné.
+  const [voiceConsent, setVoiceConsent] = React.useState(false);
+  const [messagingConsent, setMessagingConsent] = React.useState(false);
 
   // Utiliser la logique centralisée pour obtenir les prix corrects
   const totalPurchaseAmount = items.reduce((total, item) => {
@@ -119,6 +129,10 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         quantity: items.reduce((sum, item) => sum + item.quantity, 0),
         duration: 36, // Durée fixe de 36 mois
         has_client_account: contactData.has_client_account,
+        // Consentements RGPD cochés ci-dessous — horodatés par
+        // create-product-request sur la fiche client.
+        voice_consent: voiceConsent,
+        messaging_consent: messagingConsent,
         message: `Financement demandé pour ${formatCurrency(financedAmount)} avec une marge de ${formatCurrency(marginAmount)} (${defaultMargin}%)`
       };
 
@@ -300,24 +314,41 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
           </div>
         </div>
 
-        {/*
-          Voice-AI consent checkbox removed 2026-05-09: the voice-call feature
-          (Alex assistant via ElevenLabs) is not yet wired end-to-end — the
-          voice_calls table doesn't exist in prod, the voice-call-* edge
-          functions are not deployed, and the create-product-request edge
-          function does not store voice_consent. Showing a consent checkbox
-          while silently dropping the value is a RGPD transparency issue
-          (collect-only-what-you-need / fair processing).
+        <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+          <p className="text-sm font-medium">Comment souhaitez-vous être recontacté(e) ?</p>
 
-          When the voice-calls feature is finalized, restore the checkbox AND:
-            1. apply migrations 20260428120000 + 20260428130000
-            2. commit + deploy supabase/functions/voice-call-{start,webhook}
-               + voice-tool-report-blockers + _shared/elevenlabs.ts
-            3. apply the WIP stash so create-product-request actually writes
-               clients.voice_consent_given_at
-            4. add an admin UI to launch calls + view history
-          See: git stash list → "WIP voice-calls + iOS xcode".
-        */}
+          <div className="flex items-start space-x-2">
+            <Checkbox
+              id="voiceConsent"
+              checked={voiceConsent}
+              onCheckedChange={(checked) => setVoiceConsent(!!checked)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="voiceConsent" className="text-sm text-muted-foreground leading-snug font-normal">
+              J'accepte d'être appelé(e) au sujet de ma demande, y compris par
+              notre assistant vocal automatisé.
+            </Label>
+          </div>
+
+          <div className="flex items-start space-x-2">
+            <Checkbox
+              id="messagingConsent"
+              checked={messagingConsent}
+              onCheckedChange={(checked) => setMessagingConsent(!!checked)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="messagingConsent" className="text-sm text-muted-foreground leading-snug font-normal">
+              J'accepte d'être recontacté(e) au sujet de ma demande par WhatsApp
+              ou SMS.
+            </Label>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Facultatif : votre demande est envoyée dans tous les cas, et nous
+            vous répondrons par e-mail. Vous pouvez retirer votre accord à tout
+            moment en nous le demandant.
+          </p>
+        </div>
       </div>
       
       <div className="flex justify-between pt-4">

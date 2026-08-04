@@ -13,9 +13,21 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.6.5";
+export const ADMIN_VERSION = "1.6.6";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.6.6",
+    date: "2026-08-04",
+    title: "Le tunnel de commande redemande le consentement — en deux cases distinctes",
+    items: [
+      "La case de consentement du tunnel de commande, retirée le 09/05/2026 parce que l'assistant vocal n'était pas encore branché, est rétablie : Alex est en service depuis le 10/06 et WhatsApp/SMS aussi. Conséquence mesurée avant correction : sur 108 demandes venues du site, aucune n'avait jamais horodaté le moindre consentement.",
+      "Une seule case ne couvre plus les deux usages : « être appelé, y compris par notre assistant vocal automatisé » et « être recontacté par WhatsApp ou SMS » sont désormais deux cases séparées. Ce sont deux finalités différentes, et le RGPD demande de pouvoir accepter l'une sans l'autre — c'est aussi ce que la fiche client permet déjà avec ses deux interrupteurs.",
+      "Même découpage appliqué au formulaire « demande d'information » du catalogue, qui regroupait les deux dans une seule phrase.",
+      "Les deux cases restent facultatives : la demande part même si rien n'est coché. Un consentement qu'on ne peut pas refuser n'en est pas un.",
+      "Le prospect qui coche voit désormais sa fiche client horodatée automatiquement : plus besoin de basculer l'interrupteur à la main avant de lancer un appel ou un message.",
+    ],
+  },
   {
     version: "1.6.5",
     date: "2026-08-04",
