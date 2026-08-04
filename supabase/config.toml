@@ -231,7 +231,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.task-reminders]
-verify_jwt = false
+# Déclenchée par le cron `task-reminders-daily` avec un Bearer service_role.
+# La fonction n'a aucune vérification interne : on laisse la plateforme exiger
+# un JWT valide, sinon l'endpoint d'envoi d'emails est ouvert à tous.
+verify_jwt = true
 
 [functions.generate-signed-contract-pdf]
 verify_jwt = false

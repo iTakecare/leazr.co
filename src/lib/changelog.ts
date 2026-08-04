@@ -13,9 +13,25 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.9";
+export const ADMIN_VERSION = "1.6.0";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.6.0",
+    date: "2026-08-04",
+    title: "CRM d'acquisition : les opportunités entrent dans Leazr",
+    items: [
+      "Nouveau menu « Opportunités » : un vrai pipeline commercial, avec kanban glisser-déposer, vue liste, filtres par commercial (« Mon portefeuille »), par statut et « en retard ». Jusqu'ici, seul le workflow de financement d'une demande était suivi — un prospect qu'on chasse depuis des mois, sans offre chiffrée, était invisible.",
+      "Une opportunité peut exister sans aucune offre, et une même affaire peut porter plusieurs offres (relance, nouvelle version, renouvellement).",
+      "Chaque opportunité porte sa prochaine action : quand, par quel canal (appel, email, WhatsApp, SMS, rendez-vous, LinkedIn, appel Alex) et pour faire quoi. Les actions échues remontent en tête de colonne et sont comptées en haut de page.",
+      "Fiche opportunité avec journal unifié des interactions : appels loggés, appels Alex, emails de la messagerie, WhatsApp/SMS, notes et changements d'étape s'affichent au même endroit, automatiquement.",
+      "Prévisionnel pondéré par la probabilité réelle de chaque étape (configurable) au lieu de pourcentages figés dans le code.",
+      "Clôture d'une affaire avec motif de perte (pas de budget, concurrent, financement refusé, jamais joint…) pour alimenter l'analyse commerciale.",
+      "Reprise complète de l'existant : chaque demande a été convertie en opportunité, avec son commercial, son montant et son historique — rien n'a été perdu.",
+      "Les emails de la messagerie sont de nouveau rattachés automatiquement au bon client (par email exact, par collaborateur, ou par domaine d'entreprise quand il n'y a aucune ambiguïté).",
+      "Correctif important : les rappels de tâches et les rappels de callbacks commerciaux existaient mais n'étaient jamais envoyés — ils partent désormais chaque matin en semaine.",
+    ],
+  },
   {
     version: "1.5.9",
     date: "2026-08-04",

@@ -6,9 +6,10 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useLocation } from "react-router";
-import { 
+import {
   BarChart3,
   FileText,
+  Target,
   Settings,
   Menu,
   X,
@@ -82,6 +83,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         label: "Principal",
         items: [
           { icon: BarChart3, label: "Dashboard", href: `${basePrefix}/admin/dashboard`, moduleSlug: "dashboard", alwaysVisible: true },
+          { icon: Target, label: "Opportunités", href: `${basePrefix}/admin/opportunities`, moduleSlug: "crm", alwaysVisible: true },
           { icon: UserCheck, label: "CRM", href: `${basePrefix}/admin/clients`, moduleSlug: "crm" },
           { icon: ClipboardList, label: "Demandes", href: `${basePrefix}/admin/offers`, moduleSlug: "offers" },
           { icon: FileText, label: "Contrats", href: `${basePrefix}/admin/contracts`, moduleSlug: "contracts" },
