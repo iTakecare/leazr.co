@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
 import { PostalCodeInput } from "@/components/form/PostalCodeInput";
+import NewClientOpportunityDialog from "@/components/crm/opportunities/NewClientOpportunityDialog";
 interface CreateClientDialogProps {
   onClientCreated?: () => void;
   open?: boolean;
@@ -25,6 +26,13 @@ const CreateClientDialog = ({
 }: CreateClientDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Proposé après création (mode admin) : ouvrir l'affaire dans la foulée.
+  // Le mode ambassadeur ne gère pas de pipeline, il n'est pas concerné.
+  const [createdClient, setCreatedClient] = useState<{
+    id: string;
+    name: string;
+    company?: string | null;
+  } | null>(null);
   const {
     user
   } = useAuth();
@@ -135,6 +143,13 @@ const CreateClientDialog = ({
         setOpen(false);
         resetForm();
         onClientCreated?.();
+        if (data?.id) {
+          setCreatedClient({
+            id: data.id,
+            name: data.name ?? fullName,
+            company: data.company ?? null,
+          });
+        }
       }
     } catch (error) {
       console.error('Erreur:', error);
@@ -230,19 +245,36 @@ const CreateClientDialog = ({
         </div>
       </form>
     </DialogContent>;
+  // La modale d'ouverture d'affaire vit en dehors du Dialog de création : celui-ci
+  // se referme au succès, elle doit lui survivre.
+  const opportunityPrompt = (
+    <NewClientOpportunityDialog
+      open={!!createdClient}
+      onOpenChange={(o) => !o && setCreatedClient(null)}
+      client={createdClient}
+      onSkip={() => setCreatedClient(null)}
+    />
+  );
+
   if (isControlled) {
-    return <Dialog open={isOpen} onOpenChange={setOpen}>
-        {dialogContent}
-      </Dialog>;
+    return <>
+        <Dialog open={isOpen} onOpenChange={setOpen}>
+          {dialogContent}
+        </Dialog>
+        {opportunityPrompt}
+      </>;
   }
-  return <Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouveau client
-        </Button>
-      </DialogTrigger>
-      {dialogContent}
-    </Dialog>;
+  return <>
+      <Dialog open={isOpen} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouveau client
+          </Button>
+        </DialogTrigger>
+        {dialogContent}
+      </Dialog>
+      {opportunityPrompt}
+    </>;
 };
 export default CreateClientDialog;
