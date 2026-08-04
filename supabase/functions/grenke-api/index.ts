@@ -23,7 +23,7 @@
 // See: docs/grenke-api/INTEGRATION.md
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { encode as base64Encode, decode as base64Decode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
+import { decode as base64Decode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -2722,6 +2722,25 @@ function tokensSubset(small: string[], big: Set<string>): boolean {
 // =====================================================================
 const GRENKE_DOCUMENT_CATEGORY = 300;
 
+// Grenke rejects oversized payloads and a file this big can't be encoded inside
+// one worker anyway — skip it with an explicit message rather than being killed.
+const GRENKE_DOCUMENT_MAX_BYTES = 20 * 1024 * 1024;
+
+// Base64-encode without burning the worker's CPU budget. deno_std's pure-JS
+// `encode` walks the buffer 3 bytes at a time appending to a string: on a 5 MB
+// PDF that alone blows past the edge function's CPU limit and the invocation
+// dies with "Function failed due to not having enough compute resources".
+// `btoa` is a native op; 8190 is a multiple of 3, so every chunk encodes to a
+// padding-free block that can simply be concatenated.
+const B64_CHUNK = 8190;
+function bytesToBase64(bytes: Uint8Array): string {
+  const parts: string[] = [];
+  for (let i = 0; i < bytes.length; i += B64_CHUNK) {
+    parts.push(btoa(String.fromCharCode(...bytes.subarray(i, i + B64_CHUNK))));
+  }
+  return parts.join("");
+}
+
 async function handleUploadDocuments(
   adminSupabase: ReturnType<typeof createClient>,
   companyId: string,
@@ -2772,8 +2791,17 @@ async function handleUploadDocuments(
         results.push({ id: doc.id, name: doc.file_name, ok: false, error: "download_failed" });
         continue;
       }
+      if (blob.size > GRENKE_DOCUMENT_MAX_BYTES) {
+        results.push({
+          id: doc.id,
+          name: doc.file_name,
+          ok: false,
+          error: `too_large (${(blob.size / 1024 / 1024).toFixed(1)} Mo, max ${GRENKE_DOCUMENT_MAX_BYTES / 1024 / 1024} Mo)`,
+        });
+        continue;
+      }
       const bytes = new Uint8Array(await blob.arrayBuffer());
-      const content = base64Encode(bytes);
+      const content = bytesToBase64(bytes);
 
       let resp: Response;
       try {

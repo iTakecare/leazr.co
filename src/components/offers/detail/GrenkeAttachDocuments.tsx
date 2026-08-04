@@ -42,6 +42,7 @@ export default function GrenkeAttachDocuments({ offerId }: Props) {
   const [sending, setSending] = useState(false);
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -64,31 +65,58 @@ export default function GrenkeAttachDocuments({ offerId }: Props) {
 
   const chosenIds = docs.filter((d) => selected[d.id]).map((d) => d.id);
 
+  // One invocation per document: base64-encoding a multi-MB PDF is what costs the
+  // edge function its CPU budget, so batching several files into a single call
+  // got the worker killed ("not having enough compute resources"). Sequential
+  // single-document calls keep every invocation small and let a failing file
+  // fail alone instead of taking the whole batch down.
+  const sendOne = async (id: string): Promise<{ ok: boolean; message?: string }> => {
+    const { data, error } = await supabase.functions.invoke("grenke-api", {
+      body: { action: "upload_document", environment: "production", offer_id: offerId, payload: { document_ids: [id] } },
+    });
+    let body = (data ?? null) as
+      | { success?: boolean; message?: string; error?: string; results?: Array<{ ok: boolean; error?: string }> }
+      | null;
+    if (error) {
+      const ctx = (error as unknown as { context?: Response }).context;
+      if (ctx?.json) { try { body = await ctx.json(); } catch { /* */ } }
+    }
+    if (body?.success) return { ok: true };
+    const detail = body?.results?.find((r) => !r.ok)?.error;
+    return { ok: false, message: detail ?? body?.message ?? body?.error ?? error?.message ?? "Erreur inconnue" };
+  };
+
   const handleSend = async () => {
     if (chosenIds.length === 0) {
       toast.error("Sélectionnez au moins un document.");
       return;
     }
+    const failures: Array<{ name: string; message: string }> = [];
     try {
       setSending(true);
-      const { data, error } = await supabase.functions.invoke("grenke-api", {
-        body: { action: "upload_document", environment: "production", offer_id: offerId, payload: { document_ids: chosenIds } },
-      });
-      let body = (data ?? null) as { success?: boolean; sent?: number; total?: number; message?: string; error?: string } | null;
-      if (error) {
-        const ctx = (error as unknown as { context?: Response }).context;
-        if (ctx?.json) { try { body = await ctx.json(); } catch { /* */ } }
+      for (const [i, id] of chosenIds.entries()) {
+        const doc = docs.find((d) => d.id === id);
+        setProgress({ done: i, total: chosenIds.length });
+        const res = await sendOne(id);
+        if (!res.ok) failures.push({ name: doc?.file_name ?? id, message: res.message ?? "Erreur inconnue" });
       }
-      if (body?.success) {
-        toast.success(`${body.sent}/${body.total} document(s) envoyé(s) à Grenke ✅`);
+      setProgress({ done: chosenIds.length, total: chosenIds.length });
+
+      const sent = chosenIds.length - failures.length;
+      if (failures.length === 0) {
+        toast.success(`${sent}/${chosenIds.length} document(s) envoyé(s) à Grenke ✅`);
         setOpen(false);
       } else {
         toast.error(
           <div>
-            <strong>Envoi échoué</strong>
-            <p className="text-sm mt-1">{body?.message ?? body?.error ?? "Erreur inconnue"}</p>
+            <strong>{sent > 0 ? `${sent}/${chosenIds.length} envoyé(s), ${failures.length} en échec` : "Envoi échoué"}</strong>
+            <ul className="text-sm mt-1 list-disc pl-4">
+              {failures.map((f) => (
+                <li key={f.name}><span className="font-medium">{f.name}</span> — {f.message}</li>
+              ))}
+            </ul>
           </div>,
-          { duration: 12000 },
+          { duration: 15000 },
         );
       }
     } catch (e) {
@@ -96,6 +124,7 @@ export default function GrenkeAttachDocuments({ offerId }: Props) {
       toast.error("Erreur inattendue");
     } finally {
       setSending(false);
+      setProgress(null);
     }
   };
 
@@ -146,7 +175,9 @@ export default function GrenkeAttachDocuments({ offerId }: Props) {
           )}
 
           <div className="flex items-center justify-between gap-2 pt-2">
-            <span className="text-xs text-muted-foreground">{chosenIds.length} sélectionné(s)</span>
+            <span className="text-xs text-muted-foreground">
+              {progress ? `Envoi ${Math.min(progress.done + 1, progress.total)}/${progress.total}…` : `${chosenIds.length} sélectionné(s)`}
+            </span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
               <Button size="sm" onClick={handleSend} disabled={sending || chosenIds.length === 0} className="gap-1.5">

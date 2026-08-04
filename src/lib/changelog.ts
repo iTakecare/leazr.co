@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.6.3";
+export const ADMIN_VERSION = "1.6.4";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.6.4",
+    date: "2026-08-04",
+    title: "Envoi des pièces à Grenke : fin des échecs sur les gros PDF",
+    items: [
+      "« Joindre des documents » renvoyait « Function failed due to not having enough compute resources » dès qu'un dossier contenait un PDF volumineux — un bilan de 5 Mo suffisait à faire tomber l'envoi, et les cinq pièces échouaient ensemble.",
+      "Les pièces partent désormais une par une : chaque envoi reste léger, et une pièce qui échoue n'entraîne plus les autres. La modale affiche l'avancement (« Envoi 3/5… ») et nomme précisément les documents en échec.",
+      "L'encodage des fichiers a été remplacé par une méthode nettement moins gourmande, et un fichier au-delà de 20 Mo est maintenant refusé avec un message clair au lieu de faire échouer tout l'envoi.",
+      "Même correction à la soumission du dossier : les pièces cochées lors de l'envoi à Grenke suivent le même traitement.",
+    ],
+  },
   {
     version: "1.6.3",
     date: "2026-08-04",

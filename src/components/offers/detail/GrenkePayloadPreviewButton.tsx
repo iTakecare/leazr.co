@@ -273,18 +273,27 @@ export default function GrenkePayloadPreviewButton({
         // Attach the selected documents now that the dossier (financingId) exists.
         const docIds = offerDocs.filter((d) => selectedDocs[d.id]).map((d) => d.id);
         if (docIds.length > 0) {
-          try {
-            const { data: upData, error: upErr } = await supabase.functions.invoke("grenke-api", {
-              body: { action: "upload_document", environment: "production", offer_id: offerId, payload: { document_ids: docIds } },
-            });
-            let up = (upData ?? null) as { success?: boolean; sent?: number; total?: number; message?: string } | null;
-            if (upErr) { const ctx = (upErr as unknown as { context?: Response }).context; if (ctx?.json) { try { up = await ctx.json(); } catch { /* */ } } }
-            if (up?.success) toast.success(`${up.sent}/${up.total} document(s) joint(s) au dossier Grenke 📎`);
-            else toast.warning(`Dossier soumis, mais l'envoi des documents a échoué : ${up?.message ?? "erreur"}. Tu peux réessayer via « Joindre des documents ».`, { duration: 12000 });
-          } catch (upe) {
-            console.error("[GrenkePayloadPreview] document upload error:", upe);
-            toast.warning("Dossier soumis, mais l'envoi des documents a échoué. Tu peux réessayer via « Joindre des documents ».", { duration: 12000 });
+          // One call per document: base64-encoding several multi-MB PDFs inside a
+          // single invocation exhausts the edge function's CPU/memory budget and
+          // the worker is killed ("not enough compute resources").
+          let sent = 0;
+          const failed: string[] = [];
+          for (const docId of docIds) {
+            try {
+              const { data: upData, error: upErr } = await supabase.functions.invoke("grenke-api", {
+                body: { action: "upload_document", environment: "production", offer_id: offerId, payload: { document_ids: [docId] } },
+              });
+              let up = (upData ?? null) as { success?: boolean; message?: string } | null;
+              if (upErr) { const ctx = (upErr as unknown as { context?: Response }).context; if (ctx?.json) { try { up = await ctx.json(); } catch { /* */ } } }
+              if (up?.success) sent++;
+              else failed.push(offerDocs.find((d) => d.id === docId)?.file_name ?? docId);
+            } catch (upe) {
+              console.error("[GrenkePayloadPreview] document upload error:", upe);
+              failed.push(offerDocs.find((d) => d.id === docId)?.file_name ?? docId);
+            }
           }
+          if (failed.length === 0) toast.success(`${sent}/${docIds.length} document(s) joint(s) au dossier Grenke 📎`);
+          else toast.warning(`Dossier soumis. ${sent}/${docIds.length} document(s) joint(s) — échec : ${failed.join(", ")}. Tu peux réessayer via « Joindre des documents ».`, { duration: 12000 });
         }
 
         // Merge with the workflow: submitting to Grenke IS "introduce to leaser".
