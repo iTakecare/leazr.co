@@ -13,9 +13,21 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.6.1";
+export const ADMIN_VERSION = "1.6.2";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.6.2",
+    date: "2026-08-04",
+    title: "Enregistrement des offres et des clients nettement plus rapide",
+    items: [
+      "Chaque modification d'une offre — un simple changement de statut — déclenchait en coulisse la reconstruction complète d'une table de travail interne (« demandes en attente ») : plusieurs centaines de lignes effacées puis réécrites, à chaque fois. Même chose à chaque modification d'une fiche client.",
+      "Cette table n'était affichée nulle part dans Leazr : elle se recopiait depuis les offres et les clients sans jamais être lue. Elle a été supprimée, avec les deux automatismes qui l'entretenaient.",
+      "Effet mesuré : 9,6 millions de lignes écrites en pure perte pour maintenir 626 lignes utiles. Enregistrer une offre est désormais immédiat, et les traitements groupés (imports, reprises de données) ne tombent plus en erreur de délai dépassé.",
+      "Au passage, un cloisonnement manquant est corrigé : cette table interne ne séparait pas les sociétés, un administrateur pouvait donc théoriquement y voir les demandes d'un autre tenant.",
+      "Aucune donnée perdue : les offres, les clients et leur historique sont strictement inchangés.",
+    ],
+  },
   {
     version: "1.6.1",
     date: "2026-08-04",
