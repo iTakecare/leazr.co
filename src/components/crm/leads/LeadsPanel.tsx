@@ -31,7 +31,10 @@ import { useLeads, useLeadMutations } from '@/hooks/crm/useLeads';
 import LeadImportDialog from '@/components/crm/leads/LeadImportDialog';
 import type { LeadFilters, RawLead } from '@/services/crm/leadService';
 
-const SOURCE_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
+const SOURCE_META: Record<
+  string,
+  { label: string; icon: React.ComponentType<{ className?: string }> }
+> = {
   meta: { label: 'Meta', icon: Facebook },
   website_form: { label: 'Formulaire site', icon: Globe },
   csv_import: { label: 'Import', icon: FileSpreadsheet },
@@ -39,7 +42,11 @@ const SOURCE_META: Record<string, { label: string; icon: React.ComponentType<{ c
   api: { label: 'API', icon: Globe },
 };
 
-const Leads: React.FC = () => {
+/**
+ * File des contacts entrants à qualifier. Vit comme un onglet de l'écran
+ * Opportunités : un lead n'est qu'une affaire qui n'a pas encore été acceptée.
+ */
+const LeadsPanel: React.FC = () => {
   const navigate = useNavigate();
   const { companySlug } = useParams<{ companySlug: string }>();
 
@@ -67,20 +74,7 @@ const Leads: React.FC = () => {
     'Lead sans nom';
 
   return (
-    <div className="space-y-4 p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
-          <p className="text-sm text-muted-foreground">
-            Les contacts entrants et les listes importées, avant qu'ils ne deviennent des affaires.
-          </p>
-        </div>
-        <Button onClick={() => setImportOpen(true)}>
-          <Upload className="mr-2 h-4 w-4" />
-          Importer une liste
-        </Button>
-      </div>
-
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[200px] flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -102,6 +96,10 @@ const Leads: React.FC = () => {
             <SelectItem value="all">Tous</SelectItem>
           </SelectContent>
         </Select>
+        <Button onClick={() => setImportOpen(true)}>
+          <Upload className="mr-2 h-4 w-4" />
+          Importer une liste
+        </Button>
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
@@ -110,7 +108,9 @@ const Leads: React.FC = () => {
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
             <Inbox className="h-8 w-8 text-slate-300" />
-            <p className="text-sm font-medium">Aucun lead {status === 'new' ? 'à qualifier' : ''}</p>
+            <p className="text-sm font-medium">
+              Aucun lead {status === 'new' ? 'à qualifier' : ''}
+            </p>
             <p className="max-w-md text-sm text-muted-foreground">
               Importez une liste de prospection, ou branchez le formulaire de votre site — les
               soumissions arriveront ici automatiquement. Les demandes Meta, elles, créent déjà
@@ -227,4 +227,4 @@ const Leads: React.FC = () => {
   );
 };
 
-export default Leads;
+export default LeadsPanel;

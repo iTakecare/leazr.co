@@ -13,17 +13,17 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.7.0";
+export const ADMIN_VERSION = "1.7.1";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.7.0",
+    version: "1.7.1",
     date: "2026-08-04",
     title: "Leads et séquences de relance automatiques",
     items: [
       "Correctif critique : depuis la mise en place des opportunités, une nouvelle demande n'en créait aucune — le pipeline se serait vidé de lui-même. Toute demande crée désormais son opportunité, ou rejoint celle du client si une affaire est déjà ouverte (une relance ne crée plus de doublon).",
       "Le statut d'une demande fait suivre l'étape de l'affaire automatiquement : une demande financée bascule en Gagné, un dossier sans suite en Perdu, sans intervention.",
-      "Nouveau menu « Leads » : la file des contacts entrants à qualifier. Un clic crée le contact et l'opportunité, avec l'origine tracée dans la timeline.",
+      "L'écran Opportunités gagne un onglet « Leads » : la file des contacts entrants à qualifier, avec une pastille indiquant combien attendent. Un clic crée le contact et l'opportunité, avec l'origine tracée dans la timeline.",
       "Import de listes de prospection en CSV : les colonnes sont reconnues automatiquement (prénom, nom, email, téléphone, société, TVA), en français comme en anglais. Réimporter le même fichier ne crée pas de doublons.",
       "Nouveau menu « Séquences » : des cadences de relance automatiques enchaînant email, WhatsApp, SMS, tâche d'appel et appel Alex, avec le délai de votre choix entre chaque étape.",
       "Déclenchement automatique possible : à la création d'une affaire (filtrable par source — utile pour rappeler un lead Meta dans la minute), à l'entrée dans une étape, ou à l'ajout d'un tag comme « reactivation ».",

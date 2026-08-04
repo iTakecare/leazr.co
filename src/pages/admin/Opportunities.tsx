@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
 import { useCompanyProfiles } from '@/hooks/useTasks';
 import {
@@ -33,6 +33,8 @@ import {
 import PipelineKanban from '@/components/crm/opportunities/PipelineKanban';
 import OpportunityDialog from '@/components/crm/opportunities/OpportunityDialog';
 import OpportunityCard from '@/components/crm/opportunities/OpportunityCard';
+import LeadsPanel from '@/components/crm/leads/LeadsPanel';
+import { useLeads } from '@/hooks/crm/useLeads';
 import type { OpportunityFilters, OpportunityWithRelations } from '@/services/crm/types';
 
 const ALL = '__all__';
@@ -52,6 +54,9 @@ const Opportunities: React.FC = () => {
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [reactivationOnly, setReactivationOnly] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  // Un lead n'est qu'une affaire pas encore acceptée : les deux vivent dans le
+  // même écran, on ne fait que changer d'onglet.
+  const [tab, setTab] = useState<'pipeline' | 'leads'>('pipeline');
 
   const resolvedOwner =
     ownerFilter === ALL ? null : ownerFilter === MINE ? user?.id ?? null : ownerFilter;
@@ -72,6 +77,8 @@ const Opportunities: React.FC = () => {
   const { data: outcomes } = useOutcomeSummary(resolvedOwner);
   const { data: profiles = [] } = useCompanyProfiles();
   const { moveStage } = useOpportunityMutations();
+  const { data: newLeads = [] } = useLeads({ status: 'new' });
+  const pendingLeads = newLeads.length;
 
   // Gagné/Perdu sont des issues, pas des colonnes où empiler des cartes.
   const openStages = useMemo(() => stages.filter((s) => !s.is_won && !s.is_lost), [stages]);
@@ -109,11 +116,32 @@ const Opportunities: React.FC = () => {
             Le pipeline commercial — de la prise de contact à la signature.
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvelle opportunité
-        </Button>
+        {tab === 'pipeline' && (
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nouvelle opportunité
+          </Button>
+        )}
       </div>
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as 'pipeline' | 'leads')}>
+        <TabsList>
+          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="leads">
+            Leads
+            {pendingLeads > 0 && (
+              <span className="ml-1.5 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                {pendingLeads}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {tab === 'leads' ? (
+        <LeadsPanel />
+      ) : (
+      <>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -284,6 +312,9 @@ const Opportunities: React.FC = () => {
             ))}
           </div>
         </div>
+      )}
+
+      </>
       )}
 
       <OpportunityDialog open={dialogOpen} onOpenChange={setDialogOpen} />

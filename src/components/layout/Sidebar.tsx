@@ -10,7 +10,6 @@ import {
   BarChart3,
   FileText,
   Target,
-  Inbox,
   Repeat,
   Settings,
   Menu,
@@ -85,7 +84,6 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         label: "Principal",
         items: [
           { icon: BarChart3, label: "Dashboard", href: `${basePrefix}/admin/dashboard`, moduleSlug: "dashboard", alwaysVisible: true },
-          { icon: Inbox, label: "Leads", href: `${basePrefix}/admin/leads`, moduleSlug: "crm", alwaysVisible: true },
           { icon: Target, label: "Opportunités", href: `${basePrefix}/admin/opportunities`, moduleSlug: "crm", alwaysVisible: true },
           { icon: Repeat, label: "Séquences", href: `${basePrefix}/admin/sequences`, moduleSlug: "crm", alwaysVisible: true },
           { icon: UserCheck, label: "CRM", href: `${basePrefix}/admin/clients`, moduleSlug: "crm" },
