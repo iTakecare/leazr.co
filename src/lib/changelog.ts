@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.6.2";
+export const ADMIN_VERSION = "1.6.3";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.6.3",
+    date: "2026-08-04",
+    title: "Le numéro d'entreprise du client s'affiche enfin dans l'affaire",
+    items: [
+      "Nouvelle carte « Client » dans la fiche d'une opportunité : raison sociale, numéro d'entreprise, email, téléphone et adresse, plus un accès direct à la fiche client.",
+      "Le numéro d'entreprise saisi par le prospect sur le formulaire public était bien enregistré, mais la fiche affaire ne le demandait tout simplement pas à la base : on croyait donc qu'il n'avait pas été communiqué.",
+      "Quand le numéro est réellement absent, la carte l'annonce en clair (« N° d'entreprise non communiqué ») au lieu de laisser un vide ambigu — la distinction compte pour lancer un score ou une consultation BCE.",
+    ],
+  },
   {
     version: "1.6.2",
     date: "2026-08-04",

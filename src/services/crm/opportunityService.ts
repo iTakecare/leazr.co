@@ -10,7 +10,7 @@ import type {
 const SELECT_WITH_RELATIONS = `
   *,
   stage:pipeline_stages!opportunities_stage_id_fkey (id, key, label, color, probability, is_won, is_lost),
-  client:clients!opportunities_client_id_fkey (id, name, company, email),
+  client:clients!opportunities_client_id_fkey (id, name, company, email, vat_number, phone, address, postal_code, city, country),
   contact:contacts!opportunities_primary_contact_id_fkey (id, first_name, last_name, email, phone),
   owner:profiles!opportunities_owner_id_fkey (id, first_name, last_name)
 `;

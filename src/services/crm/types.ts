@@ -135,7 +135,19 @@ export interface Opportunity {
 /** Opportunité enrichie des libellés utiles à l'affichage (jointures côté service). */
 export interface OpportunityWithRelations extends Opportunity {
   stage?: Pick<PipelineStage, 'id' | 'key' | 'label' | 'color' | 'probability' | 'is_won' | 'is_lost'> | null;
-  client?: { id: string; name: string; company: string | null; email: string | null } | null;
+  client?: {
+    id: string;
+    name: string;
+    company: string | null;
+    email: string | null;
+    /** Numéro d'entreprise / BCE — saisi sur le formulaire public, affiché dans la fiche affaire. */
+    vat_number: string | null;
+    phone: string | null;
+    address: string | null;
+    postal_code: string | null;
+    city: string | null;
+    country: string | null;
+  } | null;
   contact?: Pick<Contact, 'id' | 'first_name' | 'last_name' | 'email' | 'phone'> | null;
   owner?: { id: string; first_name: string | null; last_name: string | null } | null;
   offers_count?: number;

@@ -14,6 +14,10 @@ import {
   Euro,
   FileText,
   StickyNote,
+  Hash,
+  MapPin,
+  ExternalLink,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -251,6 +255,79 @@ const OpportunityDetail: React.FC = () => {
         </div>
 
         <div className="space-y-4">
+          {/* Fiche client — le numéro d'entreprise est saisi sur le formulaire
+              public : il doit être lisible ici sans ouvrir la fiche client. */}
+          {opportunity.client && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-base">Client</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() =>
+                    navigate(`/${companySlug}/admin/clients/${opportunity.client!.id}`)
+                  }
+                >
+                  <ExternalLink className="mr-1 h-3 w-3" />
+                  Fiche
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p className="flex items-center gap-2 font-medium">
+                  <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  {opportunity.client.company || opportunity.client.name}
+                </p>
+
+                {opportunity.client.vat_number ? (
+                  <p className="flex items-center gap-2 text-muted-foreground">
+                    <Hash className="h-3.5 w-3.5 shrink-0" />
+                    <span className="select-all">N° d'entreprise : {opportunity.client.vat_number}</span>
+                  </p>
+                ) : (
+                  <p className="flex items-center gap-2 text-amber-600">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    N° d'entreprise non communiqué
+                  </p>
+                )}
+
+                {opportunity.client.email && (
+                  <a
+                    href={`mailto:${opportunity.client.email}`}
+                    className="flex items-center gap-2 truncate text-primary hover:underline"
+                  >
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    {opportunity.client.email}
+                  </a>
+                )}
+
+                {opportunity.client.phone && (
+                  <a
+                    href={`tel:${opportunity.client.phone}`}
+                    className="flex items-center gap-2 text-primary hover:underline"
+                  >
+                    <Phone className="h-3.5 w-3.5 shrink-0" />
+                    {opportunity.client.phone}
+                  </a>
+                )}
+
+                {(opportunity.client.address || opportunity.client.city) && (
+                  <p className="flex items-start gap-2 text-muted-foreground">
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      {opportunity.client.address}
+                      {opportunity.client.address && <br />}
+                      {[opportunity.client.postal_code, opportunity.client.city]
+                        .filter(Boolean)
+                        .join(' ')}
+                      {opportunity.client.country ? `, ${opportunity.client.country}` : ''}
+                    </span>
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Prochaine action</CardTitle>
