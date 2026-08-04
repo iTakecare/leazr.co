@@ -32,12 +32,48 @@ const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Instructions à rejouer avant de quitter sur erreur. Le backfill neutralise
+ * des triggers ; les laisser désactivés parce que le script s'est arrêté en
+ * cours de route laisserait la base dans un état incohérent.
+ */
+const cleanups = [];
+
 const run = async (sql, label) => {
   const { error } = await sb.rpc('execute_sql', { sql });
   if (error) {
     console.error(`❌ ${label} :`, error.message);
+    for (const { sql: cleanupSql, label: cleanupLabel } of cleanups.reverse()) {
+      const { error: cleanupError } = await sb.rpc('execute_sql', { sql: cleanupSql });
+      console.error(
+        cleanupError
+          ? `⚠️  ${cleanupLabel} a échoué : ${cleanupError.message} — à rejouer à la main`
+          : `↩️  ${cleanupLabel}`
+      );
+    }
     process.exit(1);
   }
+};
+
+/** Neutralise un trigger et enregistre sa réactivation comme nettoyage. */
+const disableTrigger = async (table, trigger) => {
+  await run(
+    `alter table public.${table} disable trigger ${trigger};`,
+    `Neutralisation de ${trigger}`
+  );
+  cleanups.push({
+    sql: `alter table public.${table} enable trigger ${trigger};`,
+    label: `Réactivation de ${trigger}`,
+  });
+};
+
+const enableTrigger = async (table, trigger) => {
+  await run(
+    `alter table public.${table} enable trigger ${trigger};`,
+    `Réactivation de ${trigger}`
+  );
+  const index = cleanups.findIndex((c) => c.sql.includes(trigger));
+  if (index >= 0) cleanups.splice(index, 1);
 };
 
 const countActivities = async (sourceTable) => {
@@ -139,6 +175,13 @@ console.log(`✅ ${contactsCount ?? 0} contacts`);
 //     l'UPDATE : le rattachement offre <-> opportunité est déterministe.
 //     Le workflow de financement est projeté sur le cycle de vente — une offre
 //     signifie qu'on a au minimum chiffré, donc jamais en dessous de « Qualifié ».
+// `refresh_admin_pending_requests_on_offers` est un trigger FOR EACH ROW sur
+// offers qui VIDE ET RECONSTRUIT intégralement la table admin_pending_requests
+// à chaque ligne touchée. Écrire opportunity_id sur 300 offres déclencherait
+// donc 300 reconstructions complètes — c'est ce qui faisait exploser le
+// statement_timeout. On le neutralise et on rafraîchit une seule fois à la fin.
+await disableTrigger('offers', 'refresh_admin_pending_requests_on_offers');
+
 const OPP_BATCH = 300;
 let offersTodo = await pending('offers', 'opportunity_id');
 const offersInitial = offersTodo;
@@ -211,7 +254,11 @@ while (offersTodo > 0) {
 }
 console.log(`\n✅ Opportunités créées`);
 
-// 2c) Owner des clients : le créateur de leur offre la plus récente
+await enableTrigger('offers', 'refresh_admin_pending_requests_on_offers');
+
+// 2c) Owner des clients : le créateur de leur offre la plus récente.
+//     `clients` porte le MÊME trigger de reconstruction intégrale.
+await disableTrigger('clients', 'refresh_admin_pending_requests_on_clients');
 await run(
   `
   update public.clients c
@@ -225,7 +272,15 @@ await run(
    where c.id = sub.client_id and c.owner_id is null;`,
   'Attribution des clients'
 );
+await enableTrigger('clients', 'refresh_admin_pending_requests_on_clients');
 console.log('✅ Clients attribués à un commercial');
+
+// Une seule reconstruction, après tout le backfill
+await run(
+  `select public.refresh_admin_pending_requests();`,
+  'Rafraîchissement de admin_pending_requests'
+);
+console.log('✅ admin_pending_requests rafraîchie');
 
 // ─── 3) Projection de l'historique, par lots ─────────────────────────────────
 //
@@ -233,10 +288,7 @@ console.log('✅ Clients attribués à un commercial');
 // backfill : sinon chaque activité projetée déclenche un UPDATE ligne à ligne
 // sur opportunities. On recalcule la valeur en une passe à la fin.
 
-await run(
-  `alter table public.crm_activities disable trigger trg_crm_activities_touch;`,
-  'Neutralisation du trigger'
-);
+await disableTrigger('crm_activities', 'trg_crm_activities_touch');
 
 const BATCH = 2000;
 
@@ -351,10 +403,7 @@ for (const source of BATCHED_SOURCES) {
   console.log(`\r✅ ${source.label} : ${before} projetés          `);
 }
 
-await run(
-  `alter table public.crm_activities enable trigger trg_crm_activities_touch;`,
-  'Réactivation du trigger'
-);
+await enableTrigger('crm_activities', 'trg_crm_activities_touch');
 
 console.log('⏳ Recalcul de la dernière activité…');
 await run(
