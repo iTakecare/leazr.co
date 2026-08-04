@@ -13,9 +13,20 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.8.0";
+export const ADMIN_VERSION = "1.8.1";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.8.1",
+    date: "2026-08-04",
+    title: "L'offre signée part automatiquement au client et à vous",
+    items: [
+      "Dès qu'un client signe en ligne, le PDF signé (certificat de signature inclus) est archivé dans les documents du dossier, envoyé au client dans sa langue de communication, et envoyé au commercial du dossier avec le récapitulatif de la signature. Jusqu'ici le PDF n'atterrissait que sur le poste du signataire : la preuve existait, personne ne la recevait.",
+      "Si la génération du PDF échoue, les emails partent quand même — avec le lien vers l'offre en ligne, et un avertissement explicite côté équipe. Une signature doit toujours prévenir quelqu'un.",
+      "L'envoi est verrouillé : un rechargement de page ou un double clic ne renvoie pas une seconde fois.",
+      "L'événement apparaît dans la timeline de l'affaire, au milieu des appels et des emails.",
+    ],
+  },
   {
     version: "1.8.0",
     date: "2026-08-04",
@@ -1171,9 +1182,17 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
 ];
 
 // ────────────────────────── CLIENT (espace /client) ──────────────────────────
-export const CLIENT_VERSION = "1.4.0";
+export const CLIENT_VERSION = "1.4.1";
 
 export const CLIENT_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.4.1",
+    date: "2026-08-04",
+    title: "Vous recevez votre offre signée par email",
+    items: [
+      "Dès que vous signez votre offre en ligne, une copie signée vous est envoyée par email, avec son certificat de signature. Vous n'avez plus besoin de penser à télécharger le document.",
+    ],
+  },
   {
     version: "1.4.0",
     date: "2026-08-04",

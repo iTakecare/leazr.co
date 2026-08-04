@@ -381,3 +381,9 @@ verify_jwt = false
 # user-agent sont lus dans les en-têtes côté serveur pour que le certificat ne
 # repose pas sur des valeurs fournies par le navigateur.
 verify_jwt = false
+
+[functions.signed-offer-delivery]
+# Archivage + envoi de l'offre signée, déclenché par la page de signature
+# publique (client anonyme). La fonction refuse d'agir si l'offre n'est pas
+# réellement signée, et l'envoi est verrouillé par offers.signed_pdf_sent_at.
+verify_jwt = false

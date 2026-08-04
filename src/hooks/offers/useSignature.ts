@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { saveOfferSignature } from "@/services/offers/offerSignature";
+import { archiveAndSendSignedOffer } from "@/services/offers/signedOfferDelivery";
 
 export interface UseSignatureResult {
   signerName: string;
@@ -85,6 +86,21 @@ export const useSignature = (
           } catch (pdfError) {
             console.error("Erreur lors de la génération du PDF après signature:", pdfError);
             toast.error("La signature a été enregistrée mais une erreur est survenue lors de la génération du PDF.");
+          }
+
+          // Archivage dans le dossier + envoi au client et à l'équipe. Séparé du
+          // téléchargement ci-dessus, qui ne dépose le PDF que sur le poste du
+          // signataire : sans cette étape, la preuve existe mais personne ne la
+          // reçoit. Volontairement silencieux en cas d'échec — la signature est
+          // déjà enregistrée, on ne va pas inquiéter le client sur une étape
+          // interne.
+          try {
+            const delivery = await archiveAndSendSignedOffer(offerId);
+            if (delivery.clientEmailSent) {
+              toast.success("Une copie signée vous a été envoyée par email.");
+            }
+          } catch (deliveryError) {
+            console.error("Erreur lors de l'envoi de l'offre signée:", deliveryError);
           }
         }, 1500);
       } else {
