@@ -51,6 +51,7 @@ import {
 } from '@/hooks/crm/useCrmActivities';
 import ActivityTimeline from '@/components/crm/opportunities/ActivityTimeline';
 import OpportunityDialog from '@/components/crm/opportunities/OpportunityDialog';
+import SequenceEnrollCard from '@/components/crm/sequences/SequenceEnrollCard';
 import { CHANNEL_LABELS, LOST_REASONS, type CrmChannel } from '@/services/crm/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -428,6 +429,11 @@ const OpportunityDetail: React.FC = () => {
               )}
             </CardContent>
           </Card>
+
+          <SequenceEnrollCard
+            opportunityId={opportunity.id}
+            disabled={opportunity.status !== 'open'}
+          />
 
           <Card>
             <CardHeader className="pb-3">

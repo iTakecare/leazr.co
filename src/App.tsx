@@ -87,6 +87,8 @@ const EquipmentOrders = lazy(() => import("@/pages/admin/EquipmentOrders"));
 const StockManagement = lazy(() => import("@/pages/admin/StockManagement"));
 const Tasks = lazy(() => import("@/pages/admin/Tasks"));
 const Opportunities = lazy(() => import("@/pages/admin/Opportunities"));
+const Leads = lazy(() => import("@/pages/admin/Leads"));
+const Sequences = lazy(() => import("@/pages/admin/Sequences"));
 const OpportunityDetail = lazy(() => import("@/pages/admin/OpportunityDetail"));
 const SupportPage = lazy(() => import("@/pages/admin/SupportPage"));
 const PhoneCallCenter = lazy(() => import("@/pages/admin/PhoneCallCenter"));
@@ -401,6 +403,8 @@ const AppRoutes = () => {
       <Route path="crm" element={<Layout><CRMPage /></Layout>} />
       {/* Pipeline commercial — l'opportunité est le pivot du cycle de vente,
           indépendante de l'offre (cf. supabase/migrations/…_crm_phase1_opportunities.sql) */}
+      <Route path="leads" element={<Layout><Leads /></Layout>} />
+      <Route path="sequences" element={<Layout><Sequences /></Layout>} />
       <Route path="opportunities" element={<Layout><Opportunities /></Layout>} />
       <Route path="opportunities/:id" element={<Layout><OpportunityDetail /></Layout>} />
       <Route path="aide" element={<Layout><HelpPage /></Layout>} />

@@ -369,3 +369,9 @@ verify_jwt = false
 [functions.document-request]
 # Demande de documents multi-canal — JWT utilisateur (transmis aux fonctions appelées).
 verify_jwt = true
+
+[functions.sequence-dispatch]
+# Dispatcher des séquences CRM — cron toutes les 5 min. Vérifie lui-même que
+# l'appelant porte la clé service_role : un JWT utilisateur ordinaire ne doit
+# pas pouvoir déclencher des envois.
+verify_jwt = false
