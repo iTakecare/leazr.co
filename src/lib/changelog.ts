@@ -13,9 +13,21 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.5.8";
+export const ADMIN_VERSION = "1.5.9";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.5.9",
+    date: "2026-08-04",
+    title: "App iOS/iPadOS : préparation de la mise en ligne TestFlight",
+    items: [
+      "Le projet natif iOS (Capacitor) est prêt à être archivé et envoyé sur TestFlight : l'app cible iPhone et iPad (iOS 15 minimum), avec l'icône et le splash screen Leazr.",
+      "Ajout des autorisations système obligatoires : micro (softphone et Centre d'appels — sans cette déclaration, iOS ferme l'app au premier appel), appareil photo et photothèque (photographier ou joindre un document à un dossier).",
+      "Déclaration de conformité chiffrement (l'app n'utilise que HTTPS standard) : plus de questionnaire export à remplir à chaque envoi de build.",
+      "Versions natives iOS et Android alignées sur la version de Leazr (1.5.9) au lieu du 1.0 par défaut.",
+      "Reste à faire côté compte Apple : adhésion au Apple Developer Program, création de la fiche app (Bundle ID co.leazr.app), sélection de l'équipe de signature dans Xcode et activation de la capacité Push Notifications.",
+    ],
+  },
   {
     version: "1.5.8",
     date: "2026-08-02",

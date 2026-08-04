@@ -22,15 +22,23 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Leazr utilise l'appareil photo pour prendre en photo vos documents (pièces d'identité, factures, bons de livraison) et les joindre à un dossier.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Leazr utilise le micro pour passer et recevoir des appels depuis le softphone et le Centre d'appels.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Leazr accède à vos photos pour joindre des documents existants à un dossier.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
