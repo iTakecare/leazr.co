@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Phone, UserPlus } from 'lucide-react';
 import { ClientLogoUploader } from '@/components/clients/ClientLogoUploader';
 import AmbassadorSelector from '@/components/ui/AmbassadorSelector';
+import NewClientOpportunityDialog from '@/components/crm/opportunities/NewClientOpportunityDialog';
 
 
 const ClientForm = () => {
@@ -24,6 +25,14 @@ const ClientForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isEdit = Boolean(id);
+
+  // Après création, on propose d'ouvrir l'affaire dans la foulée : un client
+  // sans opportunité n'apparaît dans aucun pipeline et personne ne le relance.
+  const [createdClient, setCreatedClient] = useState<{
+    id: string;
+    name: string;
+    company?: string | null;
+  } | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -206,8 +215,16 @@ const ClientForm = () => {
             })
             .catch((err) => console.warn('[auto-kyc] exception:', err));
         }
+        if (newClient?.id) {
+          setCreatedClient({
+            id: newClient.id,
+            name: newClient.name ?? fullName,
+            company: newClient.company ?? null,
+          });
+          return;   // la navigation est prise en charge par la modale
+        }
       }
-      
+
       navigate(-1);
     } catch (error) {
       console.error('Error saving client:', error);
@@ -246,6 +263,16 @@ const ClientForm = () => {
 
   return (
     <div className="container mx-auto p-6">
+      <NewClientOpportunityDialog
+        open={!!createdClient}
+        onOpenChange={(open) => !open && setCreatedClient(null)}
+        client={createdClient}
+        onSkip={() => {
+          setCreatedClient(null);
+          navigate(-1);
+        }}
+      />
+
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <Button

@@ -13,9 +13,19 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.7.1";
+export const ADMIN_VERSION = "1.7.2";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.7.2",
+    date: "2026-08-04",
+    title: "Créer un client propose d'ouvrir l'affaire dans la foulée",
+    items: [
+      "À l'enregistrement d'un nouveau client, une fenêtre propose d'ouvrir immédiatement une opportunité : intitulé prérempli, étape de départ, commercial, source, mensualité estimée et prochaine action. Sans cette étape, le client existe en base mais n'apparaît dans aucun pipeline et personne n'est relancé à son sujet.",
+      "La même fenêtre permet de lancer une séquence de relance sur cette affaire dès sa création — la cadence démarre aussitôt et s'arrête dès que le client répond.",
+      "« Plus tard » reste possible : on revient à l'écran précédent sans rien créer, et l'affaire peut toujours être ouverte ensuite depuis les Opportunités.",
+    ],
+  },
   {
     version: "1.7.1",
     date: "2026-08-04",
