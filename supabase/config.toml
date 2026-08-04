@@ -375,3 +375,9 @@ verify_jwt = true
 # l'appelant porte la clé service_role : un JWT utilisateur ordinaire ne doit
 # pas pouvoir déclencher des envois.
 verify_jwt = false
+
+[functions.sign-offer]
+# Signature publique d'une offre par un client non authentifié. L'IP et le
+# user-agent sont lus dans les en-têtes côté serveur pour que le certificat ne
+# repose pas sur des valeurs fournies par le navigateur.
+verify_jwt = false

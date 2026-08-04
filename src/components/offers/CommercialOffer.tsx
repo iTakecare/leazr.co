@@ -4,6 +4,8 @@ import { parseEquipmentDescription } from '@/lib/equipmentDescription';
 import './CommercialOffer.css';
 import './CommercialOfferPDFMode.css';
 
+import SignatureCertificatePage, { type SignatureCertificateData } from './SignatureCertificatePage';
+
 interface CommercialOfferProps {
   // Données de base
   offerNumber?: string;
@@ -24,6 +26,10 @@ interface CommercialOfferProps {
   companyPhone?: string;
   companyVatNumber?: string;
   validityDays?: number;
+
+  // Signature en ligne : absente tant que le client n'a pas signé. Sa présence
+  // ajoute une page de certificat en fin de PDF, et elle seule.
+  signature?: SignatureCertificateData | null;
   
   // Équipements
   equipment?: Array<{
@@ -242,6 +248,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   companyPhone = '',
   companyVatNumber = '',
   validityDays = 10,
+  signature = null,
   equipment = [],
   externalServices = [],
   promoProducts = [],
@@ -1836,6 +1843,13 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
           ].filter(Boolean).join(' • ')}</p>
         </div>
       </div>
+
+      {/* Certificat de signature — ajouté SEULEMENT si l'offre a été signée en
+          ligne. Le moteur PDF boucle sur les `.page`, il le reprend donc sans
+          rien avoir à savoir de la signature. */}
+      {signature?.signatureData && signature?.signedAt && (
+        <SignatureCertificatePage {...signature} companyName={signature.companyName || companyName} />
+      )}
     </div>
   );
 };

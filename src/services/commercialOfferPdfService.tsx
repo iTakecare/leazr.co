@@ -311,6 +311,23 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
       companyVatNumber: companyBranding.companyVatNumber || '',
       showPrintButton: false,
       isPDFMode: true,
+      // Renseigné uniquement si le client a signé en ligne : c'est cette
+      // présence qui déclenche la page de certificat en fin de PDF.
+      signature:
+        offerData.signature_data && offerData.signed_at
+          ? {
+              signatureData: offerData.signature_data as string,
+              signerName: (offerData.signer_name as string) || offerData.client_name || '',
+              signedAt: offerData.signed_at as string,
+              signerIp: (offerData as any).signer_ip ?? null,
+              signerUserAgent: (offerData as any).signer_user_agent ?? null,
+              payloadHash: (offerData as any).signature_payload_hash ?? null,
+              certificateId: (offerData as any).signature_certificate_id ?? null,
+              offerNumber: offerData.dossier_number || offerId,
+              clientCompany:
+                (offerData as any).client_company || clientRecord?.company || '',
+            }
+          : null,
       isPurchase: isPurchase,
       totalSellingPrice: totalSellingPriceCanonical,
       equipment: equipmentData.map((eq: any) => ({

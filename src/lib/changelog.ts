@@ -13,9 +13,21 @@ export interface ChangelogEntry {
 }
 
 // ─────────────────────────── ADMIN (espace /admin) ───────────────────────────
-export const ADMIN_VERSION = "1.7.3";
+export const ADMIN_VERSION = "1.8.0";
 
 export const ADMIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.8.0",
+    date: "2026-08-04",
+    title: "Certificat de signature électronique annexé au PDF d'offre",
+    items: [
+      "Quand un client signe son offre en ligne, le PDF généré comporte désormais une page supplémentaire : certificat de signature avec le nom du signataire, la date et l'heure (fuseau de Bruxelles), l'adresse IP, le navigateur utilisé et la signature manuscrite. Une offre non signée produit le PDF habituel, sans cette page.",
+      "Correctif : l'adresse IP du signataire n'était en réalité jamais enregistrée. Le code passait systématiquement une valeur vide, avec un commentaire annonçant une collecte côté serveur qui n'a jamais été faite — la seule offre signée en base n'avait aucune IP. Elle est maintenant relevée par le serveur, dans les en-têtes de la requête, et ne peut donc plus être falsifiée depuis le navigateur.",
+      "Ajout d'une empreinte SHA-256 du contenu signé (montants, durée, liste des équipements), imprimée sur le certificat. C'est elle qui distingue « le client a signé » de « le client a signé CECI » : si l'offre est modifiée après coup, l'empreinte ne correspond plus.",
+      "Chaque signature reçoit un numéro de certificat lisible (SIG-<dossier>-<date>) et le certificat rappelle le cadre eIDAS.",
+      "Les signatures antérieures à cette version restent valides mais afficheront « adresse IP non enregistrée » : la donnée n'avait pas été collectée.",
+    ],
+  },
   {
     version: "1.7.3",
     date: "2026-08-04",
@@ -1159,9 +1171,18 @@ export const ADMIN_CHANGELOG: ChangelogEntry[] = [
 ];
 
 // ────────────────────────── CLIENT (espace /client) ──────────────────────────
-export const CLIENT_VERSION = "1.3.1";
+export const CLIENT_VERSION = "1.4.0";
 
 export const CLIENT_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.4.0",
+    date: "2026-08-04",
+    title: "Votre offre signée en ligne est accompagnée d'un certificat",
+    items: [
+      "Lorsque vous signez votre offre en ligne, le PDF que vous recevez comporte une page de certificat : votre nom, la date et l'heure exactes de la signature, et votre signature manuscrite.",
+      "Ce certificat comporte également une empreinte numérique du contenu signé — montants, durée et équipements — qui garantit que le document ne peut pas être modifié après votre signature sans que cela se voie.",
+    ],
+  },
   {
     version: "1.3.1",
     date: "2026-07-28",

@@ -32,23 +32,31 @@ export const saveOfferSignature = async (
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      // Utilisateur non authentifié - utiliser la fonction RPC sécurisée pour les signatures publiques
-      console.log("Signature publique - utilisation de la fonction RPC sécurisée");
-      
-      const { data, error } = await supabase.rpc('sign_offer_public', {
-        p_offer_id: offerId,
-        p_signature_data: signatureData,
-        p_signer_name: signerName.trim(),
-        p_signer_ip: ipAddress || null
+      // Signature publique : on passe par l'edge function `sign-offer` et NON
+      // par la RPC en direct. L'adresse IP et le navigateur y sont lus dans les
+      // en-têtes de la requête, côté serveur — s'ils venaient d'ici, n'importe
+      // qui pourrait les inventer et le certificat de signature ne prouverait
+      // plus rien. L'empreinte du contenu signé y est calculée de même.
+      console.log("Signature publique - edge function sign-offer");
+
+      const { data, error } = await supabase.functions.invoke('sign-offer', {
+        body: {
+          offer_id: offerId,
+          signature_data: signatureData,
+          signer_name: signerName.trim(),
+        },
       });
 
       if (error) {
         console.error("Erreur lors de la signature publique:", error);
         throw new Error(error.message);
       }
+      if (data && data.success !== true) {
+        throw new Error(data.error ?? "Signature refusée");
+      }
 
-      console.log("Signature publique enregistrée avec succès pour l'offre:", offerId);
-      return data === true;
+      console.log("Signature publique enregistrée pour l'offre:", offerId, "IP:", data?.ip);
+      return true;
     }
 
     // Utilisateur authentifié - utiliser le processus normal
