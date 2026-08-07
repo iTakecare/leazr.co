@@ -16,9 +16,13 @@ const config: CapacitorConfig = {
       splashImmersive: true,
     },
     StatusBar: {
-      style: "DEFAULT",
+      style: "LIGHT",
       backgroundColor: "#10b981",
-      overlaysWebView: false,
+      // true : la WebView s'étend SOUS la barre d'état, et c'est le header de
+      // l'app qui fournit le fond (il gère déjà env(safe-area-inset-top)).
+      // À false, on voyait le fond vert du splash screen apparaître en haut —
+      // le défaut le plus visible sur l'écran d'accueil.
+      overlaysWebView: true,
     },
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],

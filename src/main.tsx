@@ -64,7 +64,13 @@ async function initNative() {
   // ── StatusBar ─────────────────────────────────────────────────────────────
   try {
     const { StatusBar, Style } = await import("@capacitor/status-bar");
-    await StatusBar.setStyle({ style: Style.Default });
+    // Style.Light = texte sombre, adapté au header clair de l'app.
+    await StatusBar.setStyle({ style: Style.Light });
+    if (platform === "ios") {
+      // La WebView passe sous la barre d'état : c'est le header qui fournit
+      // le fond, via son padding safe-area.
+      await StatusBar.setOverlaysWebView({ overlay: true });
+    }
     if (platform === "android") {
       await StatusBar.setBackgroundColor({ color: "#10b981" });
     }
