@@ -7,10 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0A5EF5D77664E7707BDA2EA7 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DF05D95A9EBA8860D8DBB8 /* MainTabView.swift */; };
 		1771175964AD92FB5993656F /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1F7A59542BE49F8BF78F2A /* LoginView.swift */; };
+		1B0D6B50859F8508D2C0DF36 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E841052BF0F6EE02165321 /* Models.swift */; };
+		21068A2F2B259426AE801A2E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46380AF088DAB40EFBECE741 /* DashboardView.swift */; };
+		452B92E5393CDB26EFA738C5 /* OffersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1723DCC3D2E4252542E22513 /* OffersView.swift */; };
 		65A1FD1C9B46E2AF7DEC23D1 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07884D978BA112AF0E83306F /* LockScreen.swift */; };
 		686AA662811EE4338AEB95EE /* Supabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4FDDD8B5CC41B5F71E94EA7 /* Supabase.swift */; };
-		6B3CFE92639804567331FB70 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E48C8355F5E62C66E0B53B3 /* HomeView.swift */; };
 		750308946C6D605A6625F90D /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */; };
 		8C9020ABA0FFA0D5A8CDBAB2 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA847C5B5FF2DC3208A4477 /* RootView.swift */; };
 		A33AC86D646F947ACF40063E /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17BCE13BEE2375330A930CF8 /* AuthStore.swift */; };
@@ -24,12 +27,15 @@
 
 /* Begin PBXFileReference section */
 		07884D978BA112AF0E83306F /* LockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreen.swift; sourceTree = "<group>"; };
-		0E48C8355F5E62C66E0B53B3 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		13F752071430CA35A5268483 /* Leazr.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Leazr.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1723DCC3D2E4252542E22513 /* OffersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffersView.swift; sourceTree = "<group>"; };
 		17BCE13BEE2375330A930CF8 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
 		2F0E4EC1AED84EE49AB3DC76 /* BiometricService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricService.swift; sourceTree = "<group>"; };
 		31F4B5CF4B4FFA52FF1EA431 /* LeazrApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeazrApp.swift; sourceTree = "<group>"; };
+		46380AF088DAB40EFBECE741 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		86E841052BF0F6EE02165321 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		A4FDDD8B5CC41B5F71E94EA7 /* Supabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Supabase.swift; sourceTree = "<group>"; };
+		C0DF05D95A9EBA8860D8DBB8 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		C413154B612BEFD0ECD6DB93 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		CF1F7A59542BE49F8BF78F2A /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -55,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				31F4B5CF4B4FFA52FF1EA431 /* LeazrApp.swift */,
+				C0DF05D95A9EBA8860D8DBB8 /* MainTabView.swift */,
 				FEA847C5B5FF2DC3208A4477 /* RootView.swift */,
 			);
 			path = App;
@@ -90,19 +97,12 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		4842A25C173FE9B5A9A28D0D /* Home */ = {
-			isa = PBXGroup;
-			children = (
-				0E48C8355F5E62C66E0B53B3 /* HomeView.swift */,
-			);
-			path = Home;
-			sourceTree = "<group>";
-		};
 		70C5AA23697989F2A48DB8F5 /* Features */ = {
 			isa = PBXGroup;
 			children = (
 				C13BAAC018EF1AAFD36DA37F /* Auth */,
-				4842A25C173FE9B5A9A28D0D /* Home */,
+				BD783690F62CDFC0767B3419 /* Dashboard */,
+				B789DCD528D029F70187A498 /* Offers */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -113,6 +113,22 @@
 				0C0A74D84FB5A6A407204F61 /* Leazr */,
 				ED7F832CA0640CD2C3C2E229 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		B789DCD528D029F70187A498 /* Offers */ = {
+			isa = PBXGroup;
+			children = (
+				1723DCC3D2E4252542E22513 /* OffersView.swift */,
+			);
+			path = Offers;
+			sourceTree = "<group>";
+		};
+		BD783690F62CDFC0767B3419 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				46380AF088DAB40EFBECE741 /* DashboardView.swift */,
+			);
+			path = Dashboard;
 			sourceTree = "<group>";
 		};
 		C13BAAC018EF1AAFD36DA37F /* Auth */ = {
@@ -130,6 +146,7 @@
 				17BCE13BEE2375330A930CF8 /* AuthStore.swift */,
 				2F0E4EC1AED84EE49AB3DC76 /* BiometricService.swift */,
 				C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */,
+				86E841052BF0F6EE02165321 /* Models.swift */,
 				A4FDDD8B5CC41B5F71E94EA7 /* Supabase.swift */,
 			);
 			path = Core;
@@ -222,11 +239,14 @@
 				A33AC86D646F947ACF40063E /* AuthStore.swift in Sources */,
 				E66784F95B6114A23B281584 /* BiometricService.swift in Sources */,
 				E560E4760846EF1A3E7BADE9 /* Components.swift in Sources */,
-				6B3CFE92639804567331FB70 /* HomeView.swift in Sources */,
+				21068A2F2B259426AE801A2E /* DashboardView.swift in Sources */,
 				750308946C6D605A6625F90D /* Keychain.swift in Sources */,
 				C3ABCA156C953EDF405BC2C6 /* LeazrApp.swift in Sources */,
 				65A1FD1C9B46E2AF7DEC23D1 /* LockScreen.swift in Sources */,
 				1771175964AD92FB5993656F /* LoginView.swift in Sources */,
+				0A5EF5D77664E7707BDA2EA7 /* MainTabView.swift in Sources */,
+				1B0D6B50859F8508D2C0DF36 /* Models.swift in Sources */,
+				452B92E5393CDB26EFA738C5 /* OffersView.swift in Sources */,
 				8C9020ABA0FFA0D5A8CDBAB2 /* RootView.swift in Sources */,
 				686AA662811EE4338AEB95EE /* Supabase.swift in Sources */,
 				AE5C45B19416BA85E3535204 /* Theme.swift in Sources */,

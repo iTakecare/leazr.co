@@ -22,7 +22,7 @@ struct RootView: View {
                     .transition(.opacity)
 
             case .signedIn:
-                HomeView()
+                MainTabView()
                     .transition(.opacity)
             }
         }
