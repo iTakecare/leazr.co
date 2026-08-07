@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Créer sous-domaine iTakecare</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Création du sous-domaine itakecare.leazr.co</h1>
+    <button onclick="createSubdomain()">Créer le sous-domaine</button>
+    <div id="result"></div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://cifbetjefyfocafanlhv.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw'
+        );
+
+        async function createSubdomain() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '⏳ Création en cours...';
+
+            try {
+                const { data, error } = await supabase.functions.invoke('create-cloudflare-subdomain', {
+                    body: {
+                        companyId: 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0',
+                        companyName: 'iTakecare',
+                        subdomain: 'itakecare'
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                resultDiv.innerHTML = `
+                    <div style="color: green;">
+                        ✅ Sous-domaine créé avec succès !<br>
+                        Domaine: ${data.fullDomain}<br>
+                        ID Cloudflare: ${data.cloudflareRecordId || 'N/A'}
+                    </div>
+                `;
+
+                console.log('Résultat:', data);
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div style="color: red;">
+                        ❌ Erreur: ${error.message}
+                    </div>
+                `;
+                console.error('Erreur:', error);
+            }
+        }
+    </script>
+</body>
+</html>

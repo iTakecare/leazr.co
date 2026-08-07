@@ -1,0 +1,50 @@
+{
+	"appId": "co.leazr.app",
+	"appName": "Leazr",
+	"webDir": "dist",
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 1800,
+			"launchAutoHide": true,
+			"backgroundColor": "#10b981",
+			"androidScaleType": "CENTER_CROP",
+			"showSpinner": false,
+			"splashFullScreen": true,
+			"splashImmersive": true
+		},
+		"StatusBar": {
+			"style": "LIGHT",
+			"backgroundColor": "#10b981",
+			"overlaysWebView": true
+		},
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		}
+	},
+	"android": {
+		"allowMixedContent": false,
+		"captureInput": true,
+		"webContentsDebuggingEnabled": false,
+		"appendUserAgent": "LeazrApp/1.0 Android"
+	},
+	"ios": {
+		"contentInset": "never",
+		"scrollEnabled": false,
+		"appendUserAgent": "LeazrApp/1.0 iOS"
+	},
+	"server": {
+		"androidScheme": "https"
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"HapticsPlugin",
+		"KeyboardPlugin",
+		"PushNotificationsPlugin",
+		"SplashScreenPlugin",
+		"StatusBarPlugin"
+	]
+}

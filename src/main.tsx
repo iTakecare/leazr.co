@@ -3,107 +3,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import "./styles/native.css";
 import { clearAppCache } from "./utils/cacheCleanup";
 
 // Nettoyer le cache au démarrage
 clearAppCache();
 
-// Initialisation Capacitor (iOS / Android uniquement)
-async function initNative() {
-  const { Capacitor } = await import("@capacitor/core");
-  if (!Capacitor.isNativePlatform()) return;
-
-  const platform = Capacitor.getPlatform(); // "android" | "ios"
-
-  // ── Marqueurs CSS ─────────────────────────────────────────────────────────
-  // Toute la couche native.css est verrouillée derrière `.native-app` : c'est
-  // ici, et seulement ici, qu'elle s'active.
-  document.documentElement.classList.add("native-app", `platform-${platform}`);
-
-  // ── Verrouiller le zoom ───────────────────────────────────────────────────
-  // Le pincer-zoomer sur une app trahit immédiatement la WebView. On le coupe
-  // en natif uniquement — le site web garde son viewport accessible.
-  const viewport = document.querySelector('meta[name="viewport"]');
-  viewport?.setAttribute(
-    "content",
-    "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-  );
-
-  // ── Clavier ───────────────────────────────────────────────────────────────
-  // Sans ça, le clavier masque les champs du bas sans que rien ne se décale.
-  try {
-    const { Keyboard, KeyboardResize } = await import("@capacitor/keyboard");
-    await Keyboard.setResizeMode({ mode: KeyboardResize.None });
-    await Keyboard.setAccessoryBarVisible({ isVisible: false });
-
-    Keyboard.addListener("keyboardWillShow", (info) => {
-      document.documentElement.style.setProperty(
-        "--keyboard-height",
-        `${info.keyboardHeight}px`
-      );
-      document.documentElement.classList.add("keyboard-open");
-    });
-
-    Keyboard.addListener("keyboardWillHide", () => {
-      document.documentElement.style.setProperty("--keyboard-height", "0px");
-      document.documentElement.classList.remove("keyboard-open");
-    });
-  } catch (e) {
-    console.warn("[Native] Keyboard:", e);
-  }
-
-  // ── SplashScreen ──────────────────────────────────────────────────────────
-  try {
-    const { SplashScreen } = await import("@capacitor/splash-screen");
-    await SplashScreen.hide({ fadeOutDuration: 300 });
-  } catch (e) {
-    console.warn("[Native] SplashScreen:", e);
-  }
-
-  // ── StatusBar ─────────────────────────────────────────────────────────────
-  try {
-    const { StatusBar, Style } = await import("@capacitor/status-bar");
-    // Style.Light = texte sombre, adapté au header clair de l'app.
-    await StatusBar.setStyle({ style: Style.Light });
-    if (platform === "ios") {
-      // La WebView passe sous la barre d'état : c'est le header qui fournit
-      // le fond, via son padding safe-area.
-      await StatusBar.setOverlaysWebView({ overlay: true });
-    }
-    if (platform === "android") {
-      await StatusBar.setBackgroundColor({ color: "#10b981" });
-    }
-  } catch (e) {
-    console.warn("[Native] StatusBar:", e);
-  }
-
-  // ── Android back button ──────────────────────────────────────────────────
-  if (platform === "android") {
-    try {
-      const { App: CapApp } = await import("@capacitor/app");
-      CapApp.addListener("backButton", ({ canGoBack }) => {
-        if (canGoBack) {
-          window.history.back();
-        } else {
-          CapApp.exitApp();
-        }
-      });
-    } catch (e) {
-      console.warn("[Native] App backButton:", e);
-    }
-  }
-
-  // ── App state change (pause / resume) ────────────────────────────────────
-  try {
-    const { App: CapApp } = await import("@capacitor/app");
-    CapApp.addListener("appStateChange", ({ isActive }) => {
-      console.log("[Native] App state:", isActive ? "active" : "background");
-    });
-  } catch (e) {
-    console.warn("[Native] AppStateChange:", e);
-  }
-}
 
 // Prevent Vite HMR WebSocket errors from causing blank screens
 window.addEventListener("unhandledrejection", (event) => {
@@ -130,9 +34,6 @@ window.addEventListener("vite:preloadError", (event) => {
     window.location.reload();
   }
 });
-
-// Lance l'initialisation native (fire & forget — n'attend pas)
-initNative().catch(console.error);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

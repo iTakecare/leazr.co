@@ -3,7 +3,6 @@
  *
  * Gestion unifiée des notifications push :
  *  • Sur navigateur web → Web Push (VAPID)
- *  • Sur iOS / Android (Capacitor) → FCM / APNs via @capacitor/push-notifications
  *
  * ⚠️  Pour les plateformes natives, un projet Firebase est requis :
  *     Android : google-services.json dans android/app/
@@ -18,18 +17,11 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 const VAPID_PUBLIC_KEY =
   "BPjaXneHAhDEVqvqo74JHWK3cmwdaZZgh9MrVsYTRzD8r8OOZn1RS5vbgIolwnM8GmYq6VffIBpuKLPGtv_WEmo";
 
-// Détection Capacitor (dynamique pour éviter les erreurs sur le web)
-let _isNative = false;
-let _platform = "web";
-try {
-  const cap = (window as any).Capacitor;
-  if (cap?.isNativePlatform?.()) {
-    _isNative = true;
-    _platform = cap.getPlatform?.() ?? "native";
-  }
-} catch (_) {
-  // pas de Capacitor, on reste sur web
-}
+// L'application est désormais exclusivement web : le wrapper Capacitor a été
+// retiré au profit de l'app native SwiftUI (voir apple/). Les notifications
+// passent donc uniquement par Web Push.
+const _isNative = false as const;
+const _platform = "web";
 
 export const isNativePlatform = _isNative;
 
@@ -99,26 +91,6 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     registerSW();
   }, [isWebPushSupported]);
 
-  // ── Native: check existing permission & token (Capacitor) ────────────────
-  useEffect(() => {
-    if (!_isNative) return;
-
-    const checkNativePermission = async () => {
-      try {
-        const { PushNotifications } = await import("@capacitor/push-notifications");
-        const { receive } = await PushNotifications.checkPermissions();
-        setPermission(receive === "granted" ? "granted" : receive === "denied" ? "denied" : "default");
-        // If already granted, consider subscribed (token may have been saved before)
-        setIsSubscribed(receive === "granted");
-      } catch (e) {
-        console.warn("[Native] PushNotifications.checkPermissions:", e);
-        setPermission("unsupported");
-      }
-    };
-
-    checkNativePermission();
-  }, []);
-
   // ── Save subscription helpers ─────────────────────────────────────────────
 
   /** Web Push subscription → push_subscriptions table */
@@ -165,52 +137,6 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
   const subscribe = useCallback(async (): Promise<boolean> => {
     setIsLoading(true);
-
-    // ── Native (Capacitor) ────────────────────────────────────────────────
-    if (_isNative) {
-      try {
-        const { PushNotifications } = await import("@capacitor/push-notifications");
-
-        // Request permission
-        let perm = await PushNotifications.checkPermissions();
-        if (perm.receive === "prompt") {
-          perm = await PushNotifications.requestPermissions();
-        }
-        if (perm.receive !== "granted") {
-          setPermission("denied");
-          return false;
-        }
-        setPermission("granted");
-
-        // Set up listeners before register()
-        return await new Promise<boolean>((resolve) => {
-          // Success: we receive the FCM token
-          PushNotifications.addListener("registration", async (token) => {
-            console.log("[Native] FCM token:", token.value);
-            await saveNativeToken(token.value);
-            setIsSubscribed(true);
-            resolve(true);
-          });
-
-          // Error
-          PushNotifications.addListener("registrationError", (err) => {
-            console.error("[Native] Registration error:", err);
-            resolve(false);
-          });
-
-          // Trigger registration
-          PushNotifications.register().catch((e) => {
-            console.error("[Native] Register failed:", e);
-            resolve(false);
-          });
-        });
-      } catch (e) {
-        console.error("[Native] Push subscribe failed:", e);
-        return false;
-      } finally {
-        setIsLoading(false);
-      }
-    }
 
     // ── Web Push (VAPID) ──────────────────────────────────────────────────
     if (!isWebPushSupported || !registration) {
