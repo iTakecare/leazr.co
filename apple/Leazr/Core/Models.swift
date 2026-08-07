@@ -37,6 +37,72 @@ struct DashboardMetrics: Decodable, Sendable {
     }
 }
 
+/// Données financières d'un mois, issues de la RPC `get_monthly_financial_data`.
+struct MonthlyFinancialData: Decodable, Identifiable, Sendable {
+    let monthName: String
+    let monthNumber: Int
+    let revenue: Double
+    let directSalesRevenue: Double
+    let selfLeasingRevenue: Double
+    let purchases: Double
+    let contractsCount: Int
+    let offersCount: Int
+
+    var id: Int { monthNumber }
+
+    /// Le chiffre d'affaires total agrège leasing, ventes directes et
+    /// self-leasing — même formule que le dashboard web.
+    var totalRevenue: Double { revenue + directSalesRevenue + selfLeasingRevenue }
+
+    enum CodingKeys: String, CodingKey {
+        case monthName = "month_name"
+        case monthNumber = "month_number"
+        case revenue
+        case directSalesRevenue = "direct_sales_revenue"
+        case selfLeasingRevenue = "self_leasing_revenue"
+        case purchases
+        case contractsCount = "contracts_count"
+        case offersCount = "offers_count"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        monthName = try c.decodeIfPresent(String.self, forKey: .monthName) ?? ""
+        monthNumber = try c.decodeIfPresent(Int.self, forKey: .monthNumber) ?? 0
+        revenue = try c.decodeIfPresent(Double.self, forKey: .revenue) ?? 0
+        directSalesRevenue = try c.decodeIfPresent(Double.self, forKey: .directSalesRevenue) ?? 0
+        selfLeasingRevenue = try c.decodeIfPresent(Double.self, forKey: .selfLeasingRevenue) ?? 0
+        purchases = try c.decodeIfPresent(Double.self, forKey: .purchases) ?? 0
+        contractsCount = try c.decodeIfPresent(Int.self, forKey: .contractsCount) ?? 0
+        offersCount = try c.decodeIfPresent(Int.self, forKey: .offersCount) ?? 0
+    }
+
+    /// Abréviation du mois pour l'axe du graphique.
+    var shortLabel: String {
+        guard monthNumber >= 1, monthNumber <= 12 else { return "" }
+        return ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"][monthNumber - 1]
+    }
+}
+
+/// Totaux annuels, calculés comme dans le web (marge = CA − achats).
+struct YearTotals {
+    let revenue: Double
+    let purchases: Double
+    let margin: Double
+    let marginRate: Double
+    let contracts: Int
+    let offers: Int
+
+    init(_ months: [MonthlyFinancialData]) {
+        revenue = months.reduce(0) { $0 + $1.totalRevenue }
+        purchases = months.reduce(0) { $0 + $1.purchases }
+        margin = revenue - purchases
+        marginRate = revenue > 0 ? (margin / revenue) * 100 : 0
+        contracts = months.reduce(0) { $0 + $1.contractsCount }
+        offers = months.reduce(0) { $0 + $1.offersCount }
+    }
+}
+
 /// Une offre, dans sa forme de liste.
 struct Offer: Decodable, Identifiable, Sendable {
     let id: String

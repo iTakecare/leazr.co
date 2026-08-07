@@ -1,3 +1,4 @@
+import Charts
 import Foundation
 import Observation
 import SwiftUI
@@ -7,51 +8,87 @@ import Supabase
 @Observable
 final class DashboardStore {
     private(set) var metrics: DashboardMetrics?
+    private(set) var months: [MonthlyFinancialData] = []
     private(set) var isLoading = false
     var errorMessage: String?
+
+    var year: Int = Calendar.current.component(.year, from: .now) {
+        didSet { Task { await loadMonthly() } }
+    }
+
+    var totals: YearTotals { YearTotals(months) }
+
+    /// Les cinq dernières années, comme le sélecteur du web.
+    var yearOptions: [Int] {
+        let current = Calendar.current.component(.year, from: .now)
+        return (0..<5).map { current - $0 }
+    }
 
     func load() async {
         isLoading = true
         defer { isLoading = false }
+        async let a: Void = loadMetrics()
+        async let b: Void = loadMonthly()
+        _ = await (a, b)
+    }
 
+    private func loadMetrics() async {
         do {
-            // Même RPC que le web : le calcul reste côté serveur.
             let rows: [DashboardMetrics] = try await Backend.client
                 .rpc("get_company_dashboard_metrics")
                 .execute()
                 .value
             metrics = rows.first
-            errorMessage = nil
         } catch {
             errorMessage = "Impossible de charger les indicateurs."
+        }
+    }
+
+    private func loadMonthly() async {
+        do {
+            months = try await Backend.client
+                .rpc("get_monthly_financial_data", params: ["p_year": year])
+                .execute()
+                .value
+            errorMessage = nil
+        } catch {
+            errorMessage = "Impossible de charger les données financières."
         }
     }
 }
 
 struct DashboardView: View {
 
-    @Environment(AuthStore.self) private var auth
     @State private var store = DashboardStore()
+    @State private var tab: Tab = .financial
+
+    enum Tab: String, CaseIterable {
+        case financial = "Financier"
+        case commercial = "Commercial"
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 14) {
+                VStack(spacing: 16) {
                     if let error = store.errorMessage {
                         ErrorBanner(message: error)
                     }
 
-                    if let m = store.metrics {
-                        highlight(m)
-                        grid(m)
-                    } else if store.isLoading {
-                        ProgressView()
-                            .tint(Theme.mutedForeground)
-                            .padding(.top, 60)
+                    yearPicker
+
+                    Picker("Vue", selection: $tab) {
+                        ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+
+                    switch tab {
+                    case .financial:  financialSection
+                    case .commercial: commercialSection
                     }
                 }
                 .padding(20)
-                .frame(maxWidth: 640)
+                .frame(maxWidth: 700)
                 .frame(maxWidth: .infinity)
             }
             .background(Theme.background.ignoresSafeArea())
@@ -62,18 +99,108 @@ struct DashboardView: View {
         }
     }
 
-    // MARK: - Sous-vues
+    // MARK: - Année
 
-    /// Le chiffre d'affaires, mis en avant : c'est celui qu'on regarde en premier.
-    private func highlight(_ m: DashboardMetrics) -> some View {
+    private var yearPicker: some View {
+        Menu {
+            ForEach(store.yearOptions, id: \.self) { y in
+                Button("\(String(y))") { store.year = y }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(String(store.year))
+                    .font(.system(size: 15, weight: .semibold))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(Theme.foreground)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Theme.surface)
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // MARK: - Financier
+
+    private var financialSection: some View {
+        let t = store.totals
+
+        return VStack(spacing: 14) {
+            HighlightCard(
+                label: "Chiffre d'affaires \(String(store.year))",
+                value: Format.currency(t.revenue)
+            )
+
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)],
+                spacing: 14
+            ) {
+                StatTile(icon: "cart.fill", label: "Achats totaux", value: Format.currency(t.purchases))
+                StatTile(icon: "chart.line.uptrend.xyaxis", label: "Marge brute", value: Format.currency(t.margin))
+                StatTile(icon: "percent", label: "Taux de marge", value: String(format: "%.1f %%", t.marginRate))
+                StatTile(icon: "doc.text.fill", label: "Contrats", value: "\(t.contracts)")
+            }
+
+            if !store.months.isEmpty {
+                RevenueChart(months: store.months)
+            }
+        }
+    }
+
+    // MARK: - Commercial
+
+    private var commercialSection: some View {
+        let t = store.totals
+        let m = store.metrics
+
+        return VStack(spacing: 14) {
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)],
+                spacing: 14
+            ) {
+                StatTile(icon: "doc.text.fill", label: "Offres", value: "\(m?.totalOffers ?? 0)")
+                StatTile(icon: "clock.fill", label: "En attente", value: "\(m?.pendingOffers ?? 0)")
+                StatTile(icon: "checkmark.seal.fill", label: "Contrats actifs", value: "\(m?.activeContracts ?? 0)")
+                StatTile(icon: "person.2.fill", label: "Clients", value: "\(m?.totalClients ?? 0)")
+            }
+
+            SummaryCard(rows: [
+                ("Offres \(String(store.year))", "\(t.offers)"),
+                ("Contrats \(String(store.year))", "\(t.contracts)"),
+                ("Taux de conversion", conversionRate),
+            ])
+        }
+    }
+
+    private var conversionRate: String {
+        let t = store.totals
+        guard t.offers > 0 else { return "—" }
+        return String(format: "%.1f %%", Double(t.contracts) / Double(t.offers) * 100)
+    }
+}
+
+// MARK: - Composants
+
+/// Bloc de tête : le chiffre qu'on regarde en premier.
+struct HighlightCard: View {
+    let label: String
+    let value: String
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Chiffre d'affaires")
+            Text(label)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(.white.opacity(0.85))
 
-            Text(Format.currency(m.totalRevenue))
-                .font(.system(size: 36, weight: .bold, design: .rounded))
+            Text(value)
+                .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
                 .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -82,28 +209,106 @@ struct DashboardView: View {
             RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [Theme.primary, Theme.primary.opacity(0.75)],
+                        colors: [Theme.primary, Theme.primary.opacity(0.72)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
         )
     }
+}
 
-    private func grid(_ m: DashboardMetrics) -> some View {
-        LazyVGrid(
-            columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)],
-            spacing: 14
-        ) {
-            StatTile(icon: "doc.text.fill", label: "Offres", value: "\(m.totalOffers)")
-            StatTile(icon: "clock.fill", label: "En attente", value: "\(m.pendingOffers)")
-            StatTile(icon: "checkmark.seal.fill", label: "Contrats actifs", value: "\(m.activeContracts)")
-            StatTile(icon: "person.2.fill", label: "Clients", value: "\(m.totalClients)")
+/// Évolution mensuelle du chiffre d'affaires — Swift Charts, impossible à
+/// rendre aussi finement dans une WebView.
+struct RevenueChart: View {
+    let months: [MonthlyFinancialData]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Évolution mensuelle")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.foreground)
+
+            Chart(months) { m in
+                BarMark(
+                    x: .value("Mois", m.shortLabel),
+                    y: .value("CA", m.totalRevenue)
+                )
+                .foregroundStyle(Theme.primary.gradient)
+                .cornerRadius(5)
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading) { value in
+                    AxisGridLine().foregroundStyle(Theme.border)
+                    AxisValueLabel {
+                        if let v = value.as(Double.self) {
+                            Text(compact(v))
+                                .font(.system(size: 10))
+                                .foregroundStyle(Theme.mutedForeground)
+                        }
+                    }
+                }
+            }
+            .chartXAxis {
+                AxisMarks { value in
+                    AxisValueLabel {
+                        if let s = value.as(String.self) {
+                            Text(s)
+                                .font(.system(size: 10))
+                                .foregroundStyle(Theme.mutedForeground)
+                        }
+                    }
+                }
+            }
+            .frame(height: 190)
         }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.surface)
+        )
+    }
+
+    /// Axe lisible : 120 k plutôt que 120 000.
+    private func compact(_ v: Double) -> String {
+        if v >= 1_000_000 { return String(format: "%.1f M", v / 1_000_000) }
+        if v >= 1_000 { return "\(Int(v / 1_000)) k" }
+        return "\(Int(v))"
     }
 }
 
-/// Tuile d'indicateur — format carré, lisible d'un coup d'œil.
+struct SummaryCard: View {
+    let rows: [(String, String)]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                HStack {
+                    Text(row.0)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Theme.mutedForeground)
+                    Spacer()
+                    Text(row.1)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.foreground)
+                }
+                .padding(.vertical, 13)
+
+                if index < rows.count - 1 {
+                    Divider().overlay(Theme.border)
+                }
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.surface)
+        )
+    }
+}
+
 struct StatTile: View {
     let icon: String
     let label: String
@@ -118,8 +323,10 @@ struct StatTile: View {
             Spacer(minLength: 0)
 
             Text(value)
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.foreground)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
 
             Text(label)
                 .font(.system(size: 13))
