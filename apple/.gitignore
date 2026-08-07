@@ -1,10 +1,12 @@
-# Le projet Xcode est généré par XcodeGen à partir de project.yml.
-# On ne le versionne pas : il se régénère à l'identique avec `xcodegen generate`,
-# ce qui supprime les conflits de merge sur project.pbxproj.
-Leazr.xcodeproj/
-*.xcworkspace/
+# Le projet Xcode est généré par XcodeGen depuis project.yml, mais il EST
+# versionné : Xcode Cloud clone le dépôt et doit trouver un .xcodeproj pour
+# pouvoir compiler. Après toute modification de project.yml, relancer
+# `xcodegen generate` depuis ce dossier et committer le résultat.
 
 # Artefacts de compilation
 DerivedData/
 build/
 .swiftpm/
+*.xcworkspace/xcuserdata/
+Leazr.xcodeproj/xcuserdata/
+Leazr.xcodeproj/project.xcworkspace/xcuserdata/
