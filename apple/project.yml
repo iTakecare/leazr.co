@@ -10,6 +10,19 @@ options:
   createIntermediateGroups: true
   groupSortPosition: top
 
+# Schéma PARTAGÉ (généré dans xcshareddata) : sans lui, Xcode place le schéma
+# dans xcuserdata, qui n'est pas versionné — Xcode Cloud ne voit alors aucun
+# schéma à compiler et affiche « No results ».
+schemes:
+  Leazr:
+    build:
+      targets:
+        Leazr: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+
 packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift
