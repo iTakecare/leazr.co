@@ -73,10 +73,10 @@ targets:
 
     settings:
       base:
-        # Reprend le bundle de l'ancienne app Capacitor : l'app native la
-        # remplace sur la même fiche App Store Connect, avec son groupe
-        # TestFlight et ses testeurs déjà configurés.
-        PRODUCT_BUNDLE_IDENTIFIER: co.leazr.app
+        # Fiche « Leazr Native », dont Xcode a créé le workflow Xcode Cloud.
+        # L'ancienne fiche « Leazr » (co.leazr.app) est un vestige du wrapper
+        # Capacitor supprimé ; elle pourra être retirée, et celle-ci renommée.
+        PRODUCT_BUNDLE_IDENTIFIER: co.leazr.ios
         PRODUCT_NAME: Leazr
         # 2.0 : rupture assumée avec la lignée 1.8.x du wrapper Capacitor.
         MARKETING_VERSION: "2.0"
