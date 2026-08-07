@@ -18,8 +18,12 @@ const MobilePageContainer: React.FC<MobilePageContainerProps> = ({
 }) => {
   return (
     <div
+      // `app-scroll` : en natif, c'est ce conteneur — et lui seul — qui défile.
+      // Les data-* pilotent les marges système (voir styles/native.css).
+      data-no-header={!hasHeader}
+      data-no-bottom-nav={!hasBottomNav}
       className={cn(
-        "flex flex-col min-h-screen w-full bg-background momentum-scroll",
+        "app-scroll flex flex-col min-h-screen w-full bg-background momentum-scroll",
         hasHeader && "pt-14", // Header height
         hasBottomNav && "pb-20", // Bottom nav height + safe area
         !noPadding && "px-4",

@@ -1,0 +1,146 @@
+/*
+ * Comportements natifs iOS / Android (Capacitor).
+ *
+ * Tout est verrouillé derrière `html.native-app`, classe posée par main.tsx
+ * uniquement sur plateforme native. Le site web n'est jamais affecté.
+ *
+ * Objectif : supprimer les signaux qui trahissent une WebView — rebond
+ * élastique du document, surlignage bleu au tap, loupe de sélection, zoom
+ * au focus d'un champ.
+ */
+
+/* ── 1. Verrouiller le document ────────────────────────────────────────────
+ * Le rebond élastique vient du fait que <body> défile. On le fige : seuls
+ * les conteneurs marqués `.app-scroll` défilent, comme dans une vraie app.
+ */
+html.native-app,
+html.native-app body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: fixed;
+  overscroll-behavior: none;
+  /* Empêche le redimensionnement du texte en rotation paysage */
+  -webkit-text-size-adjust: 100%;
+}
+
+html.native-app #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── 2. Gommer les réflexes navigateur ────────────────────────────────── */
+html.native-app {
+  /* Pas de flash gris/bleu au toucher */
+  -webkit-tap-highlight-color: transparent;
+  /* Pas de menu « Copier / Rechercher » au appui long */
+  -webkit-touch-callout: none;
+  /* Pas de sélection de texte accidentelle en défilant */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* …mais on rétablit la sélection là où elle est légitime. */
+html.native-app input,
+html.native-app textarea,
+html.native-app [contenteditable="true"],
+html.native-app [data-selectable] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* ── 3. Pas de zoom au focus d'un champ ───────────────────────────────────
+ * iOS zoome automatiquement si la police du champ fait moins de 16px.
+ * `max()` conserve les tailles plus grandes définies par le design.
+ */
+html.native-app input,
+html.native-app textarea,
+html.native-app select {
+  font-size: max(16px, 1em);
+}
+
+/* ── 4. Conteneurs défilants ──────────────────────────────────────────────
+ * `overscroll-behavior: contain` évite qu'un défilement arrivé en butée
+ * ne se propage au parent — la chaîne de rebond typique du web.
+ */
+html.native-app .app-shell {
+  height: 100dvh;
+  overflow: hidden;
+  position: relative;
+}
+
+html.native-app .app-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Tout conteneur applicatif qui défile hérite du même comportement. */
+html.native-app [data-scrollable] {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ── 5. Zones sûres (encoche, Dynamic Island, barre d'accueil) ─────────── */
+html.native-app .app-scroll {
+  padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+html.native-app .app-scroll[data-no-header="true"] {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+html.native-app .app-scroll[data-no-bottom-nav="true"] {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── 6. Cibles tactiles et retour visuel ──────────────────────────────────
+ * Sans :hover sur mobile, c'est l'état :active qui donne la sensation de
+ * réactivité. Transition courte pour rester nerveux.
+ */
+html.native-app button,
+html.native-app a[role="button"],
+html.native-app [data-pressable] {
+  transition: opacity 100ms ease-out, transform 100ms ease-out;
+}
+
+html.native-app button:active,
+html.native-app a[role="button"]:active,
+html.native-app [data-pressable]:active {
+  opacity: 0.6;
+}
+
+/* ── 7. Barres système ───────────────────────────────────────────────────
+ * Le header et la bottom nav sont en position fixe : on leur ajoute les
+ * marges système pour qu'ils ne passent pas sous l'encoche ni sous la barre
+ * d'accueil.
+ */
+html.native-app .app-header {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+html.native-app .app-bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── 8. Clavier ──────────────────────────────────────────────────────────
+ * Variable alimentée par le plugin Keyboard (voir main.tsx) : permet de
+ * décaler le contenu au lieu de le laisser masqué sous le clavier.
+ */
+html.native-app {
+  --keyboard-height: 0px;
+}
+
+html.native-app.keyboard-open .app-scroll {
+  padding-bottom: calc(var(--keyboard-height) + 1rem);
+}
+
+html.native-app.keyboard-open .app-bottom-nav {
+  transform: translateY(100%);
+  transition: transform 200ms ease-out;
+}

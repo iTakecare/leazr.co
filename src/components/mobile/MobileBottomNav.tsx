@@ -10,6 +10,7 @@ import {
   Users 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { haptics } from "@/lib/haptics";
 
 interface NavItem {
   icon: React.ElementType;
@@ -136,7 +137,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border safe-bottom overflow-visible">
+    <nav className="app-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border safe-bottom overflow-visible">
       <div className="flex items-center justify-around h-16 px-2 overflow-visible">
         {items.map((item) => {
           const active = isActive(item.href);
@@ -147,6 +148,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               <Link
                 key={item.href}
                 to={item.href}
+                onClick={() => haptics.tap("medium")}
                 className="relative flex items-center justify-center -mt-8"
               >
                 <motion.div
@@ -164,6 +166,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             <Link
               key={item.href}
               to={item.href}
+              onClick={() => haptics.tap()}
               className="flex flex-col items-center justify-center flex-1 py-2 touch-target"
             >
               <motion.div

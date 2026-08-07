@@ -37,7 +37,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
   const companyName = settings?.company_name || "Leazr";
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border safe-top">
+    <header className="app-header fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border safe-top">
       <div className="flex items-center justify-between h-14 px-4">
         {/* Left side - Scanner or spacer */}
         <div className="w-10 flex items-center justify-start">

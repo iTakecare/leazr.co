@@ -44,7 +44,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   const { companySlug, userRole } = getCompanySlugAndRole();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-shell min-h-screen bg-background">
       {/* Offline Indicator */}
       <OfflineIndicator />
       

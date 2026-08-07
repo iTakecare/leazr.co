@@ -34,8 +34,13 @@ const config: CapacitorConfig = {
   },
 
   ios: {
-    contentInset: "automatic",
-    scrollEnabled: true,
+    // "never" : les marges système sont gérées en CSS via env(safe-area-inset-*),
+    // ce qui donne un contrôle exact plutôt que l'ajustement automatique WebKit.
+    contentInset: "never",
+    // Le point clé du rendu natif : la WebView elle-même ne défile plus, donc
+    // plus de rebond élastique sur la page. Seuls les conteneurs .app-scroll
+    // défilent, comme dans une application UIKit.
+    scrollEnabled: false,
     appendUserAgent: "LeazrApp/1.0 iOS",
   },
 

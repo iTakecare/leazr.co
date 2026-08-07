@@ -3,6 +3,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "./styles/native.css";
 import { clearAppCache } from "./utils/cacheCleanup";
 
 // Nettoyer le cache au démarrage
@@ -14,6 +15,43 @@ async function initNative() {
   if (!Capacitor.isNativePlatform()) return;
 
   const platform = Capacitor.getPlatform(); // "android" | "ios"
+
+  // ── Marqueurs CSS ─────────────────────────────────────────────────────────
+  // Toute la couche native.css est verrouillée derrière `.native-app` : c'est
+  // ici, et seulement ici, qu'elle s'active.
+  document.documentElement.classList.add("native-app", `platform-${platform}`);
+
+  // ── Verrouiller le zoom ───────────────────────────────────────────────────
+  // Le pincer-zoomer sur une app trahit immédiatement la WebView. On le coupe
+  // en natif uniquement — le site web garde son viewport accessible.
+  const viewport = document.querySelector('meta[name="viewport"]');
+  viewport?.setAttribute(
+    "content",
+    "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  );
+
+  // ── Clavier ───────────────────────────────────────────────────────────────
+  // Sans ça, le clavier masque les champs du bas sans que rien ne se décale.
+  try {
+    const { Keyboard, KeyboardResize } = await import("@capacitor/keyboard");
+    await Keyboard.setResizeMode({ mode: KeyboardResize.None });
+    await Keyboard.setAccessoryBarVisible({ isVisible: false });
+
+    Keyboard.addListener("keyboardWillShow", (info) => {
+      document.documentElement.style.setProperty(
+        "--keyboard-height",
+        `${info.keyboardHeight}px`
+      );
+      document.documentElement.classList.add("keyboard-open");
+    });
+
+    Keyboard.addListener("keyboardWillHide", () => {
+      document.documentElement.style.setProperty("--keyboard-height", "0px");
+      document.documentElement.classList.remove("keyboard-open");
+    });
+  } catch (e) {
+    console.warn("[Native] Keyboard:", e);
+  }
 
   // ── SplashScreen ──────────────────────────────────────────────────────────
   try {
