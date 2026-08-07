@@ -132,23 +132,12 @@ struct Offer: Decodable, Identifiable, Sendable {
         status = try c.decodeIfPresent(String.self, forKey: .status) ?? "draft"
         dossierNumber = try c.decodeIfPresent(String.self, forKey: .dossierNumber)
 
-        // Postgres renvoie de l'ISO 8601 avec une précision variable sur les
-        // fractions de seconde : on tente les deux formes plutôt que d'imposer
-        // un format et perdre la date.
         if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
-            createdAt = Self.isoWithFraction.date(from: raw) ?? Self.iso.date(from: raw)
+            createdAt = Format.parseDate(raw)
         } else {
             createdAt = nil
         }
     }
-
-    private static let isoWithFraction: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-
-    private static let iso = ISO8601DateFormatter()
 }
 
 // MARK: - Présentation
@@ -190,4 +179,260 @@ enum Format {
         f.timeStyle = .none
         return f.string(from: value)
     }
+
+    /// Postgres renvoie de l'ISO 8601 avec une précision variable sur les
+    /// fractions de seconde, et parfois une simple date. On essaie les trois
+    /// formes plutôt que d'en imposer une et perdre la valeur.
+    static func parseDate(_ raw: String) -> Date? {
+        if let d = isoWithFraction.date(from: raw) { return d }
+        if let d = iso.date(from: raw) { return d }
+        return dayOnly.date(from: raw)
+    }
+
+    private static let isoWithFraction: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let iso = ISO8601DateFormatter()
+
+    private static let dayOnly: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+}
+
+// MARK: - Rappels
+
+/// Rappel téléphonique en attente, issu de `offer_call_logs`.
+///
+/// Le web ne remonte que les appels sans réponse ou tombés sur messagerie dont
+/// la date de rappel est échue : ce sont ceux qui demandent une action.
+struct Callback: Decodable, Identifiable, Sendable {
+    let id: String
+    let offerId: String?
+    let callbackDate: Date?
+    let clientName: String
+
+    private struct NestedOffer: Decodable {
+        let clientName: String?
+        let dossierNumber: String?
+        enum CodingKeys: String, CodingKey {
+            case clientName = "client_name"
+            case dossierNumber = "dossier_number"
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case offerId = "offer_id"
+        case callbackDate = "callback_date"
+        case offers
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        offerId = try c.decodeIfPresent(String.self, forKey: .offerId)
+
+        if let raw = try c.decodeIfPresent(String.self, forKey: .callbackDate) {
+            callbackDate = Format.parseDate(raw)
+        } else {
+            callbackDate = nil
+        }
+
+        let offer = try c.decodeIfPresent(NestedOffer.self, forKey: .offers)
+        clientName = offer?.clientName ?? "Client inconnu"
+    }
+
+    /// Un rappel dont la date est passée (hors aujourd'hui) est en retard.
+    var isOverdue: Bool {
+        guard let callbackDate else { return false }
+        return callbackDate < Calendar.current.startOfDay(for: .now)
+    }
+}
+
+// MARK: - Prévisionnel
+
+/// Statistiques de contrats par statut (`get_contract_statistics_by_status`).
+struct ContractStatistics: Decodable, Sendable {
+    let status: String
+    let count: Int
+    let totalRevenue: Double
+    let totalPurchases: Double
+    let totalMargin: Double
+
+    enum CodingKeys: String, CodingKey {
+        case status, count
+        case totalRevenue = "total_revenue"
+        case totalPurchases = "total_purchases"
+        case totalMargin = "total_margin"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        status = try c.decodeIfPresent(String.self, forKey: .status) ?? ""
+        count = try c.decodeIfPresent(Int.self, forKey: .count) ?? 0
+        totalRevenue = try c.decodeIfPresent(Double.self, forKey: .totalRevenue) ?? 0
+        totalPurchases = try c.decodeIfPresent(Double.self, forKey: .totalPurchases) ?? 0
+        totalMargin = try c.decodeIfPresent(Double.self, forKey: .totalMargin) ?? 0
+    }
+}
+
+// MARK: - Contrats
+
+struct Contract: Decodable, Identifiable, Sendable {
+    let id: String
+    let clientName: String
+    let monthlyPayment: Double
+    let status: String
+    let leaserName: String
+    let contractNumber: String?
+    let equipmentDescription: String?
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, status
+        case clientName = "client_name"
+        case monthlyPayment = "monthly_payment"
+        case leaserName = "leaser_name"
+        case contractNumber = "contract_number"
+        case equipmentDescription = "equipment_description"
+        case createdAt = "created_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        clientName = try c.decodeIfPresent(String.self, forKey: .clientName) ?? "Client inconnu"
+        monthlyPayment = try c.decodeIfPresent(Double.self, forKey: .monthlyPayment) ?? 0
+        status = try c.decodeIfPresent(String.self, forKey: .status) ?? ""
+        leaserName = try c.decodeIfPresent(String.self, forKey: .leaserName) ?? ""
+        contractNumber = try c.decodeIfPresent(String.self, forKey: .contractNumber)
+        equipmentDescription = try c.decodeIfPresent(String.self, forKey: .equipmentDescription)
+        if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
+            createdAt = Format.parseDate(raw)
+        } else {
+            createdAt = nil
+        }
+    }
+
+    var statusLabel: String {
+        switch status {
+        case "contract_sent":      return "Envoyé"
+        case "contract_signed":    return "Signé"
+        case "equipment_ordered":  return "Commandé"
+        case "delivered":          return "Livré"
+        case "active":             return "Actif"
+        case "completed":          return "Terminé"
+        default:                   return status.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+}
+
+// MARK: - Clients
+
+struct Client: Decodable, Identifiable, Sendable {
+    let id: String
+    let name: String
+    let email: String?
+    let company: String?
+    let status: String?
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, email, company, status
+        case createdAt = "created_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Sans nom"
+        email = try c.decodeIfPresent(String.self, forKey: .email)
+        company = try c.decodeIfPresent(String.self, forKey: .company)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
+            createdAt = Format.parseDate(raw)
+        } else {
+            createdAt = nil
+        }
+    }
+
+    /// Initiales pour l'avatar, sans dépendre d'une image distante.
+    var initials: String {
+        let parts = name.split(separator: " ").prefix(2)
+        return parts.compactMap { $0.first.map(String.init) }.joined().uppercased()
+    }
+}
+
+// MARK: - Catalogue
+
+struct Product: Decodable, Identifiable, Sendable {
+    let id: String
+    let name: String
+    let price: Double
+    let monthlyPrice: Double?
+    let brandName: String?
+    let categoryName: String?
+    let imageURL: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, price
+        case monthlyPrice = "monthly_price"
+        case brandName = "brand_name"
+        case categoryName = "category_name"
+        case imageURL = "image_url"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Sans nom"
+        price = try c.decodeIfPresent(Double.self, forKey: .price) ?? 0
+        monthlyPrice = try c.decodeIfPresent(Double.self, forKey: .monthlyPrice)
+        brandName = try c.decodeIfPresent(String.self, forKey: .brandName)
+        categoryName = try c.decodeIfPresent(String.self, forKey: .categoryName)
+        imageURL = try c.decodeIfPresent(String.self, forKey: .imageURL)
+    }
+}
+
+// MARK: - Facturation
+
+struct Invoice: Decodable, Identifiable, Sendable {
+    let id: String
+    let amount: Double
+    let invoiceNumber: String?
+    let leaserName: String
+    let status: String?
+    let invoiceDate: Date?
+    let paidAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, amount, status
+        case invoiceNumber = "invoice_number"
+        case leaserName = "leaser_name"
+        case invoiceDate = "invoice_date"
+        case paidAt = "paid_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        amount = try c.decodeIfPresent(Double.self, forKey: .amount) ?? 0
+        invoiceNumber = try c.decodeIfPresent(String.self, forKey: .invoiceNumber)
+        leaserName = try c.decodeIfPresent(String.self, forKey: .leaserName) ?? ""
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        if let raw = try c.decodeIfPresent(String.self, forKey: .invoiceDate) {
+            invoiceDate = Format.parseDate(raw)
+        } else { invoiceDate = nil }
+        if let raw = try c.decodeIfPresent(String.self, forKey: .paidAt) {
+            paidAt = Format.parseDate(raw)
+        } else { paidAt = nil }
+    }
+
+    var isPaid: Bool { paidAt != nil }
 }

@@ -9,6 +9,8 @@ import Supabase
 final class DashboardStore {
     private(set) var metrics: DashboardMetrics?
     private(set) var months: [MonthlyFinancialData] = []
+    private(set) var callbacks: [Callback] = []
+    private(set) var forecast: ContractStatistics?
     private(set) var isLoading = false
     var errorMessage: String?
 
@@ -29,7 +31,8 @@ final class DashboardStore {
         defer { isLoading = false }
         async let a: Void = loadMetrics()
         async let b: Void = loadMonthly()
-        _ = await (a, b)
+        async let c: Void = loadCallbacks()
+        _ = await (a, b, c)
     }
 
     private func loadMetrics() async {
@@ -44,12 +47,41 @@ final class DashboardStore {
         }
     }
 
+    /// Rappels échus : mêmes critères que le web — appels sans réponse ou
+    /// tombés sur messagerie, dont la date de rappel est atteinte.
+    private func loadCallbacks() async {
+        let today = ISO8601DateFormatter.string(
+            from: .now, timeZone: .current, formatOptions: [.withFullDate]
+        )
+        do {
+            callbacks = try await Backend.client
+                .from("offer_call_logs")
+                .select("id, offer_id, callback_date, offers(client_name, dossier_number)")
+                .in("status", values: ["voicemail", "no_answer"])
+                .not("callback_date", operator: .is, value: "null")
+                .lte("callback_date", value: today)
+                .order("callback_date", ascending: true)
+                .limit(20)
+                .execute()
+                .value
+        } catch {
+            callbacks = []
+        }
+    }
+
     private func loadMonthly() async {
         do {
             months = try await Backend.client
                 .rpc("get_monthly_financial_data", params: ["p_year": year])
                 .execute()
                 .value
+
+            let stats: [ContractStatistics] = try await Backend.client
+                .rpc("get_contract_statistics_by_status", params: ["p_year": year])
+                .execute()
+                .value
+            forecast = stats.first { $0.status == "forecast" }
+
             errorMessage = nil
         } catch {
             errorMessage = "Impossible de charger les données financières."
@@ -73,6 +105,10 @@ struct DashboardView: View {
                 VStack(spacing: 16) {
                     if let error = store.errorMessage {
                         ErrorBanner(message: error)
+                    }
+
+                    if !store.callbacks.isEmpty {
+                        CallbacksBanner(callbacks: store.callbacks)
                     }
 
                     yearPicker
@@ -143,6 +179,10 @@ struct DashboardView: View {
                 StatTile(icon: "chart.line.uptrend.xyaxis", label: "Marge brute", value: Format.currency(t.margin))
                 StatTile(icon: "percent", label: "Taux de marge", value: String(format: "%.1f %%", t.marginRate))
                 StatTile(icon: "doc.text.fill", label: "Contrats", value: "\(t.contracts)")
+            }
+
+            if let f = store.forecast, f.count > 0 {
+                ForecastCard(stats: f)
             }
 
             if !store.months.isEmpty {
@@ -373,5 +413,100 @@ struct ProfileMenu: ToolbarContent {
                     .font(.system(size: 20))
             }
         }
+    }
+}
+
+/// Bandeau des rappels échus — l'équivalent du bandeau rouge du dashboard web.
+struct CallbacksBanner: View {
+    let callbacks: [Callback]
+
+    private var overdue: [Callback] { callbacks.filter(\.isOverdue) }
+
+    private var tint: Color { overdue.isEmpty ? .orange : Theme.destructive }
+
+    private var title: String {
+        overdue.isEmpty
+            ? "\(callbacks.count) rappel(s) aujourd'hui"
+            : "\(overdue.count) rappel(s) en retard"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: overdue.isEmpty ? "phone.fill" : "exclamationmark.triangle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                Spacer()
+            }
+            .foregroundStyle(tint)
+
+            // On n'en montre que cinq : au-delà, le bandeau prend toute la page
+            // au lieu d'alerter.
+            ForEach(callbacks.prefix(5)) { callback in
+                HStack {
+                    Text(callback.clientName)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Theme.foreground)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 8)
+
+                    Text(callback.isOverdue ? "En retard" : "Aujourd'hui")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(callback.isOverdue ? Theme.destructive : .orange)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Theme.surface)
+                )
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(tint.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .strokeBorder(tint.opacity(0.35), lineWidth: 1)
+        )
+    }
+}
+
+/// Prévisionnel : les dossiers engagés mais pas encore réalisés.
+struct ForecastCard: View {
+    let stats: ContractStatistics
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Theme.primary)
+                Text("Prévisionnel")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.foreground)
+                Spacer()
+                Text("\(stats.count) dossier(s)")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.mutedForeground)
+            }
+            .padding(.bottom, 6)
+
+            DetailRow(label: "Chiffre d'affaires", value: Format.currency(stats.totalRevenue))
+            Divider().overlay(Theme.border)
+            DetailRow(label: "Achats", value: Format.currency(stats.totalPurchases))
+            Divider().overlay(Theme.border)
+            DetailRow(label: "Marge", value: Format.currency(stats.totalMargin), emphasis: true)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.surface)
+        )
     }
 }

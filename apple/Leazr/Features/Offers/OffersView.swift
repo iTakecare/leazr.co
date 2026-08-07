@@ -74,7 +74,12 @@ struct OffersView: View {
                 }
 
                 ForEach(store.filtered) { offer in
-                    OfferRow(offer: offer)
+                    NavigationLink {
+                        OfferDetailView(offer: offer)
+                    } label: {
+                        OfferRow(offer: offer)
+                    }
+                    .buttonStyle(PressableStyle())
                 }
             }
             .padding(20)
@@ -177,5 +182,43 @@ struct StatusBadge: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(Capsule().fill(tint.opacity(0.14)))
+    }
+}
+
+/// Détail d'une offre.
+struct OfferDetailView: View {
+    let offer: Offer
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                HighlightCard(
+                    label: "Mensualité",
+                    value: Format.currency(offer.monthlyPayment)
+                )
+
+                Card {
+                    VStack(spacing: 0) {
+                        DetailRow(label: "Client", value: offer.clientName)
+                        Divider().overlay(Theme.border)
+                        DetailRow(label: "Statut", value: offer.statusLabel)
+                        if let dossier = offer.dossierNumber {
+                            Divider().overlay(Theme.border)
+                            DetailRow(label: "N° de dossier", value: dossier)
+                        }
+                        Divider().overlay(Theme.border)
+                        DetailRow(label: "Montant financé", value: Format.currency(offer.amount), emphasis: true)
+                        Divider().overlay(Theme.border)
+                        DetailRow(label: "Créée le", value: Format.date(offer.createdAt))
+                    }
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 700)
+            .frame(maxWidth: .infinity)
+        }
+        .background(Theme.background.ignoresSafeArea())
+        .navigationTitle(offer.clientName)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
