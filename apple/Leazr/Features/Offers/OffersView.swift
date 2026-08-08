@@ -20,7 +20,7 @@ final class OffersStore {
         do {
             offers = try await Backend.client
                 .from("offers")
-                .select("id, client_name, amount, monthly_payment, status, dossier_number, created_at")
+                .select("id, client_name, amount, monthly_payment, status, workflow_status, dossier_number, created_at")
                 .order("created_at", ascending: false)
                 .limit(100)
                 .execute()

@@ -152,7 +152,7 @@ struct OfferDetailView: View {
 
     /// Statut affiché : celui du serveur, ou celui qu'on vient d'appliquer.
     private var effectiveStatus: String {
-        currentStatus.isEmpty ? offer.status : currentStatus
+        currentStatus.isEmpty ? offer.currentStep : currentStatus
     }
 
     private var currentStepLabel: String {
@@ -429,7 +429,7 @@ final class WorkflowStore {
     func load(offerType: String = "client_request") async {
         guard let companyId = await Session.shared.resolve() else { return }
 
-        let templates: [WorkflowTemplate] = (try? await Backend.client
+        var templates: [WorkflowTemplate] = (try? await Backend.client
             .from("workflow_templates")
             .select("id, name, offer_type")
             .eq("company_id", value: companyId)
@@ -437,6 +437,19 @@ final class WorkflowStore {
             .eq("is_active", value: true)
             .limit(1)
             .execute().value) ?? []
+
+        // Repli : le type d'offre peut différer de celui qu'on suppose. Plutôt
+        // que de n'afficher aucune étape, on prend le modèle par défaut.
+        if templates.isEmpty {
+            templates = (try? await Backend.client
+                .from("workflow_templates")
+                .select("id, name, offer_type")
+                .eq("company_id", value: companyId)
+                .eq("is_active", value: true)
+                .order("is_default", ascending: false)
+                .limit(1)
+                .execute().value) ?? []
+        }
 
         guard let template = templates.first else { return }
 

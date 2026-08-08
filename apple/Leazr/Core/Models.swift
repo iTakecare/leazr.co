@@ -117,6 +117,9 @@ struct Offer: Decodable, Identifiable, Sendable {
     let amount: Double
     let monthlyPayment: Double
     let status: String
+    /// Étape dans le workflow de la société. Distincte de `status`, qui reste
+    /// le statut commercial : c'est elle que suit le visualiseur du web.
+    let workflowStatus: String?
     let dossierNumber: String?
     let createdAt: Date?
 
@@ -126,6 +129,7 @@ struct Offer: Decodable, Identifiable, Sendable {
         case amount
         case monthlyPayment = "monthly_payment"
         case status
+        case workflowStatus = "workflow_status"
         case dossierNumber = "dossier_number"
         case createdAt = "created_at"
     }
@@ -137,6 +141,7 @@ struct Offer: Decodable, Identifiable, Sendable {
         amount = try c.decodeIfPresent(Double.self, forKey: .amount) ?? 0
         monthlyPayment = try c.decodeIfPresent(Double.self, forKey: .monthlyPayment) ?? 0
         status = try c.decodeIfPresent(String.self, forKey: .status) ?? "draft"
+        workflowStatus = try c.decodeIfPresent(String.self, forKey: .workflowStatus)
         dossierNumber = try c.decodeIfPresent(String.self, forKey: .dossierNumber)
 
         if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
@@ -150,6 +155,9 @@ struct Offer: Decodable, Identifiable, Sendable {
 // MARK: - Présentation
 
 extension Offer {
+    /// Étape courante : le workflow prime, avec repli sur le statut.
+    var currentStep: String { workflowStatus ?? status }
+
     /// Libellé lisible du statut, aligné sur le vocabulaire du web.
     var statusLabel: String {
         switch status {
@@ -475,21 +483,29 @@ struct OfferEquipment: Decodable, Identifiable, Sendable {
 /// filtrent la lecture, mais une écriture doit désigner sa société.
 struct NewOffer: Encodable, Sendable {
     let companyId: String
+    let clientId: String?
     let clientName: String
     let clientEmail: String?
     let equipmentDescription: String?
     let amount: Double
     let monthlyPayment: Double
+    let coefficient: Double
     let duration: Int
+    let estimatedBudget: Double?
+    let discountValue: Double?
 
     enum CodingKeys: String, CodingKey {
         case companyId = "company_id"
+        case clientId = "client_id"
         case clientName = "client_name"
         case clientEmail = "client_email"
         case equipmentDescription = "equipment_description"
         case amount
         case monthlyPayment = "monthly_payment"
+        case coefficient
         case duration
+        case estimatedBudget = "estimated_budget"
+        case discountValue = "discount_value"
     }
 }
 

@@ -75,7 +75,7 @@ final class ClientDetailStore {
 
         offers = (try? await Backend.client
             .from("offers")
-            .select("id, client_name, amount, monthly_payment, status, dossier_number, created_at")
+            .select("id, client_name, amount, monthly_payment, status, workflow_status, dossier_number, created_at")
             .eq("client_name", value: clientName)
             .order("created_at", ascending: false)
             .limit(50)
