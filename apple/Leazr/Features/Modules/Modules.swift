@@ -5,7 +5,7 @@ import SwiftUI
 struct ClientsView: View {
     @State private var store = ListStore<Client>(
         table: "clients",
-        columns: "id, name, email, company, status, phone, contact_name, vat_number, address, city, postal_code, country, notes, created_at",
+        columns: Client.columns,
         pageSize: 500,
         searchColumns: ["name", "company", "email", "contact_name", "vat_number"],
         matches: { c, q in
@@ -65,6 +65,10 @@ struct ClientsView: View {
                     }
 
                     Spacer(minLength: 0)
+
+                    // La lettre seule suffit dans une liste : elle se lit d'un
+                    // coup d'œil et le libellé tiendrait mal sur la ligne.
+                    KycScoreBadge(letter: client.kycScore, showLabel: false)
                 }
             }
             }

@@ -416,12 +416,26 @@ struct Client: Decodable, Identifiable, Sendable {
     let notes: String?
     let createdAt: Date?
 
+    /// Score KYC interne A/B/C/D calculé par `computeClientKycScore`, avec ses
+    /// motifs. C'est la lettre que le web affiche en tête de fiche.
+    let kycScore: String?
+    let kycScoreReasons: [String]
+    let kycScoreComputedAt: Date?
+
+    /// Colonnes d'une fiche client complète.
+    static let columns = """
+        id, name, email, company, status, phone, contact_name, vat_number,         address, city, postal_code, country, notes, created_at, kyc_score,         kyc_score_reasons, kyc_score_computed_at
+        """
+
     enum CodingKeys: String, CodingKey {
         case id, name, email, company, status, phone, address, city, country, notes
         case contactName = "contact_name"
         case vatNumber = "vat_number"
         case postalCode = "postal_code"
         case createdAt = "created_at"
+        case kycScore = "kyc_score"
+        case kycScoreReasons = "kyc_score_reasons"
+        case kycScoreComputedAt = "kyc_score_computed_at"
     }
 
     init(from decoder: Decoder) throws {
@@ -442,6 +456,14 @@ struct Client: Decodable, Identifiable, Sendable {
         if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
             createdAt = Format.parseDate(raw)
         } else { createdAt = nil }
+
+        kycScore = try c.decodeIfPresent(String.self, forKey: .kycScore)
+        // `kyc_score_reasons` est du jsonb libre : un contenu inattendu ne doit
+        // pas faire échouer le décodage de toute la fiche client.
+        kycScoreReasons = (try? c.decodeIfPresent([String].self, forKey: .kycScoreReasons)) as? [String] ?? []
+        if let raw = try c.decodeIfPresent(String.self, forKey: .kycScoreComputedAt) {
+            kycScoreComputedAt = Format.parseDate(raw)
+        } else { kycScoreComputedAt = nil }
     }
 
     /// Adresse postale sur une ligne, pour affichage et ouverture dans Plans.

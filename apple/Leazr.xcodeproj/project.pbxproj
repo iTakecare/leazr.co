@@ -16,6 +16,7 @@
 		1B0D6B50859F8508D2C0DF36 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E841052BF0F6EE02165321 /* Models.swift */; };
 		1B1D102B45672B1EBBE4A200 /* ContractService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F569435F5CF63531F58DBA9 /* ContractService.swift */; };
 		21068A2F2B259426AE801A2E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46380AF088DAB40EFBECE741 /* DashboardView.swift */; };
+		2453AC205CA13D7DC313895B /* KycScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC03BF0FF774A0F65F838EFC /* KycScore.swift */; };
 		2E42B2A6C447ECA575E5ECBB /* CreateOfferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F553EE778580553E436235E /* CreateOfferView.swift */; };
 		318BDC3C18376CC220863B93 /* ContractModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7DBAA2CA106D3A79738E53F /* ContractModels.swift */; };
 		32BBDAF7B0EDB599170F850A /* Signature.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEDB5BB98190D6391D5AB23A /* Signature.swift */; };
@@ -110,6 +111,7 @@
 		D3CE2FB7818B397D8EDB0D33 /* OfferStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferStatus.swift; sourceTree = "<group>"; };
 		D3D8B0AAEA1A81CEA2A37BAB /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		D9D30815FFD767385F117684 /* InvoiceDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoiceDetailScreen.swift; sourceTree = "<group>"; };
+		DC03BF0FF774A0F65F838EFC /* KycScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KycScore.swift; sourceTree = "<group>"; };
 		E18DC0EF37FFBC4D6DC261D3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E5DA416A37DF745C8B2DAFEF /* OfferActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferActions.swift; sourceTree = "<group>"; };
 		E8E146A0E5C823413E2BD71B /* OpportunityForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpportunityForm.swift; sourceTree = "<group>"; };
@@ -300,6 +302,7 @@
 			isa = PBXGroup;
 			children = (
 				BE13001A8EFD293047757156 /* EquipmentList.swift */,
+				DC03BF0FF774A0F65F838EFC /* KycScore.swift */,
 				A98C64CD5582E4AA491D10EA /* ListScreen.swift */,
 			);
 			path = Shared;
@@ -419,6 +422,7 @@
 				861B6586D552EDADDBEADF09 /* InvoiceSheets.swift in Sources */,
 				84BFE4A7396EC2040C633417 /* InvoicingView.swift in Sources */,
 				750308946C6D605A6625F90D /* Keychain.swift in Sources */,
+				2453AC205CA13D7DC313895B /* KycScore.swift in Sources */,
 				C3ABCA156C953EDF405BC2C6 /* LeazrApp.swift in Sources */,
 				C9AD6A6A1019107FFD741665 /* ListScreen.swift in Sources */,
 				65A1FD1C9B46E2AF7DEC23D1 /* LockScreen.swift in Sources */,

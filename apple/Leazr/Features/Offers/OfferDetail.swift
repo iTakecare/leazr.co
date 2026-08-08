@@ -11,6 +11,8 @@ final class OfferDetailStore {
     private(set) var calls: [CallLog] = []
     private(set) var signature: OfferSignature?
     private(set) var commission: Commission?
+    /// Fiche client rattachée : c'est elle qui porte le score KYC.
+    private(set) var client: Client?
     private(set) var isWorking = false
     var errorMessage: String?
 
@@ -31,13 +33,25 @@ final class OfferDetailStore {
         }
     }
 
-    func load(offerId: String) async {
+    func load(offerId: String, clientId: String?) async {
         async let e: Void = loadEquipment(offerId)
         async let d: Void = loadDocuments(offerId)
         async let c: Void = loadCalls(offerId)
         async let s: Void = loadSignature(offerId)
         async let m: Void = loadCommission(offerId)
-        _ = await (e, d, c, s, m)
+        async let k: Void = loadClient(clientId)
+        _ = await (e, d, c, s, m, k)
+    }
+
+    private func loadClient(_ clientId: String?) async {
+        guard let clientId else { return }
+        let rows: [Client] = (try? await Backend.client
+            .from("clients")
+            .select(Client.columns)
+            .eq("id", value: clientId)
+            .limit(1)
+            .execute().value) ?? []
+        client = rows.first
     }
 
     private func loadCommission(_ offerId: String) async {
@@ -189,7 +203,7 @@ struct OfferDetailView: View {
                 case .summary:   summarySection
                 case .actions:
                     OfferActionsSection(offer: offer, signature: store.signature) {
-                        await store.load(offerId: offer.id)
+                        await store.load(offerId: offer.id, clientId: offer.clientId)
                         logs = await workflow.loadLogs(offerId: offer.id)
                     }
                 case .documents: documentsSection
@@ -261,15 +275,15 @@ struct OfferDetailView: View {
         }
         .sheet(isPresented: $isRequestingDocuments) {
             DocumentRequestSheet(offerId: offer.id) {
-                await store.load(offerId: offer.id)
+                await store.load(offerId: offer.id, clientId: offer.clientId)
             }
         }
         .task {
-            await store.load(offerId: offer.id)
+            await store.load(offerId: offer.id, clientId: offer.clientId)
             await workflow.load(for: offer)
             logs = await workflow.loadLogs(offerId: offer.id)
         }
-        .refreshable { await store.load(offerId: offer.id) }
+        .refreshable { await store.load(offerId: offer.id, clientId: offer.clientId) }
     }
 
     /// Statut affiché : celui du serveur, ou celui qu'on vient d'appliquer.
@@ -281,7 +295,7 @@ struct OfferDetailView: View {
     /// effets de bord — un contrat créé ou du stock relibéré doit se voir.
     private func refreshAfterTransition(_ result: OfferStatusService.Result) async {
         logs = await workflow.loadLogs(offerId: offer.id)
-        await store.load(offerId: offer.id)
+        await store.load(offerId: offer.id, clientId: offer.clientId)
 
         var notes: [String] = []
         if result.contractId != nil { notes.append("Contrat créé") }
@@ -344,6 +358,13 @@ struct OfferDetailView: View {
 
                 TertiaryButton(title: "Changer d'étape", systemImage: "arrow.right.circle") {
                     isChangingStep = true
+                }
+            }
+
+            if let letter = store.client?.kycScore, !letter.isEmpty {
+                HStack {
+                    KycScoreBadge(letter: letter)
+                    Spacer(minLength: 0)
                 }
             }
 
@@ -552,6 +573,16 @@ struct OfferDetailView: View {
 
     private var analysisSection: some View {
         VStack(spacing: 14) {
+            // Le KYC du client conditionne l'acceptation du dossier : il
+            // ouvre l'analyse, avant le résumé et l'encours.
+            if let client = store.client {
+                KycScoreCard(
+                    letter: client.kycScore,
+                    reasons: client.kycScoreReasons,
+                    computedAt: client.kycScoreComputedAt
+                )
+            }
+
             OfferAISummaryCard(offerId: offer.id)
             FinancingAnalysisCard(offer: offer)
 

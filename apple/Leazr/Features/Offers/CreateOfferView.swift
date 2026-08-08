@@ -401,7 +401,7 @@ struct ClientPicker: View {
 
     @State private var store = ListStore<Client>(
         table: "clients",
-        columns: "id, name, email, company, status, phone, contact_name, vat_number, address, city, postal_code, country, notes, created_at",
+        columns: Client.columns,
         pageSize: 500,
         // Un client hors des premières lignes doit rester trouvable : la
         // recherche interroge le serveur, pas seulement ce qui est chargé.

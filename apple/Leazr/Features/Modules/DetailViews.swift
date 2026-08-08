@@ -136,6 +136,14 @@ struct ClientDetailView: View {
                     )
                 }
 
+                // Le score KYC conditionne l'acceptation du dossier chez le
+                // bailleur : il se lit avant les coordonnées.
+                KycScoreCard(
+                    letter: client.kycScore,
+                    reasons: client.kycScoreReasons,
+                    computedAt: client.kycScoreComputedAt
+                )
+
                 // Actions directes : appeler, écrire, itinéraire. C'est ce
                 // qu'on veut d'une fiche client sur un téléphone.
                 ContactActions(client: client)
@@ -293,6 +301,8 @@ struct ClientDetailView: View {
             Text(client.company ?? client.name)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.foreground)
+
+            KycScoreBadge(letter: client.kycScore)
         }
         .padding(.top, 4)
     }
