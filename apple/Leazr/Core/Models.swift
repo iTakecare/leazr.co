@@ -356,6 +356,9 @@ struct Contract: Decodable, Identifiable, Sendable {
     let contractNumber: String?
     let equipmentDescription: String?
     let createdAt: Date?
+    /// Durée et date de début : servent aux filtres avancés de la liste.
+    let contractDuration: Int?
+    let contractStartDate: Date?
 
     enum CodingKeys: String, CodingKey {
         case id, status
@@ -365,6 +368,8 @@ struct Contract: Decodable, Identifiable, Sendable {
         case contractNumber = "contract_number"
         case equipmentDescription = "equipment_description"
         case createdAt = "created_at"
+        case contractDuration = "contract_duration"
+        case contractStartDate = "contract_start_date"
     }
 
     init(from decoder: Decoder) throws {
@@ -376,23 +381,20 @@ struct Contract: Decodable, Identifiable, Sendable {
         leaserName = try c.decodeIfPresent(String.self, forKey: .leaserName) ?? ""
         contractNumber = try c.decodeIfPresent(String.self, forKey: .contractNumber)
         equipmentDescription = try c.decodeIfPresent(String.self, forKey: .equipmentDescription)
+        contractDuration = try c.decodeIfPresent(Int.self, forKey: .contractDuration)
         if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
             createdAt = Format.parseDate(raw)
         } else {
             createdAt = nil
         }
+        if let raw = try c.decodeIfPresent(String.self, forKey: .contractStartDate) {
+            contractStartDate = Format.parseDate(raw)
+        } else {
+            contractStartDate = nil
+        }
     }
 
-    var statusLabel: String {
-        switch status {
-        case "contract_sent":      return "Envoyé"
-        case "contract_signed":    return "Signé"
-        case "equipment_ordered":  return "Commandé"
-        case "delivered":          return "Livré"
-        case "active":             return "Actif"
-        case "completed":          return "Terminé"
-        default:                   return status.replacingOccurrences(of: "_", with: " ").capitalized
-        }
+    var statusLabel: String { ContractWorkflow.label(status)
     }
 }
 
