@@ -78,10 +78,17 @@ struct MonthlyFinancialData: Decodable, Identifiable, Sendable {
     }
 
     /// Abréviation du mois pour l'axe du graphique.
+    ///
+    /// Trois lettres, pas une : Swift Charts regroupe les catégories de même
+    /// libellé, si bien que « M » fusionnait Mars et Mai, et « J » Janvier,
+    /// Juin et Juillet.
     var shortLabel: String {
         guard monthNumber >= 1, monthNumber <= 12 else { return "" }
-        return ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"][monthNumber - 1]
+        return ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
+                "Juil", "Août", "Sep", "Oct", "Nov", "Déc"][monthNumber - 1]
     }
+
+    var margin: Double { totalRevenue - purchases }
 }
 
 /// Totaux annuels, calculés comme dans le web (marge = CA − achats).
@@ -906,4 +913,9 @@ struct DraftEquipment: Identifiable, Sendable {
     var financed: Double {
         Financing.financedAmount(purchasePrice: purchasePrice, marginPercent: margin) * Double(quantity)
     }
+}
+
+
+extension MonthlyFinancialData: Equatable {
+    static func == (a: Self, b: Self) -> Bool { a.monthNumber == b.monthNumber }
 }

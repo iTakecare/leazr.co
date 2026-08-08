@@ -226,66 +226,6 @@ struct HighlightCard: View {
     }
 }
 
-/// Évolution mensuelle du chiffre d'affaires — Swift Charts, impossible à
-/// rendre aussi finement dans une WebView.
-struct RevenueChart: View {
-    let months: [MonthlyFinancialData]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Évolution mensuelle")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.foreground)
-
-            Chart(months) { m in
-                BarMark(
-                    x: .value("Mois", m.shortLabel),
-                    y: .value("CA", m.totalRevenue)
-                )
-                .foregroundStyle(Theme.primary.gradient)
-                .cornerRadius(5)
-            }
-            .chartYAxis {
-                AxisMarks(position: .leading) { value in
-                    AxisGridLine().foregroundStyle(Theme.border)
-                    AxisValueLabel {
-                        if let v = value.as(Double.self) {
-                            Text(compact(v))
-                                .font(.system(size: 10))
-                                .foregroundStyle(Theme.mutedForeground)
-                        }
-                    }
-                }
-            }
-            .chartXAxis {
-                AxisMarks { value in
-                    AxisValueLabel {
-                        if let s = value.as(String.self) {
-                            Text(s)
-                                .font(.system(size: 10))
-                                .foregroundStyle(Theme.mutedForeground)
-                        }
-                    }
-                }
-            }
-            .frame(height: 190)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .fill(Theme.surface)
-        )
-    }
-
-    /// Axe lisible : 120 k plutôt que 120 000.
-    private func compact(_ v: Double) -> String {
-        if v >= 1_000_000 { return String(format: "%.1f M", v / 1_000_000) }
-        if v >= 1_000 { return "\(Int(v / 1_000)) k" }
-        return "\(Int(v))"
-    }
-}
-
 struct SummaryCard: View {
     let rows: [(String, String)]
 
@@ -505,6 +445,180 @@ struct MonthlyBreakdown: View {
     private func compact(_ v: Double) -> String {
         if abs(v) >= 1_000_000 { return String(format: "%.1fM", v / 1_000_000) }
         if abs(v) >= 1_000 { return String(format: "%.0fk", v / 1_000) }
+        return String(format: "%.0f", v)
+    }
+}
+
+/// Évolution mensuelle : chiffre d'affaires, achats et marge.
+///
+/// Trois séries plutôt qu'une : la marge ne se lit pas sur une barre de CA
+/// isolée, c'est l'écart avec les achats qui la donne. La légende et les
+/// valeurs au-dessus des barres évitent d'avoir à deviner l'échelle.
+struct RevenueChart: View {
+
+    let months: [MonthlyFinancialData]
+    @State private var selected: MonthlyFinancialData?
+
+    private enum Series: String, CaseIterable, Plottable {
+        case revenue = "Chiffre d'affaires"
+        case purchases = "Achats"
+        case margin = "Marge"
+
+        var color: Color {
+            switch self {
+            case .revenue:   return Theme.primary
+            case .purchases: return Theme.amber
+            case .margin:    return Theme.emerald
+            }
+        }
+    }
+
+    /// On ne trace que les mois ayant une activité : douze barres dont huit
+    /// vides écrasent l'échelle et n'apprennent rien.
+    private var active: [MonthlyFinancialData] {
+        months.filter { $0.totalRevenue > 0 || $0.purchases > 0 }
+    }
+
+    private func value(_ m: MonthlyFinancialData, _ s: Series) -> Double {
+        switch s {
+        case .revenue:   return m.totalRevenue
+        case .purchases: return m.purchases
+        case .margin:    return m.margin
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            header
+
+            if active.isEmpty {
+                EmptyHint(icon: "chart.bar", label: "Aucune donnée sur l'année")
+            } else {
+                chart
+                legend
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.surface)
+        )
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Évolution mensuelle")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.foreground)
+
+            Text(selected.map { "\($0.shortLabel) · \(Format.currency($0.totalRevenue)) de CA" }
+                 ?? "Touchez une barre pour le détail")
+                .font(.system(size: 13))
+                .foregroundStyle(selected == nil ? Theme.mutedForeground : Theme.primary)
+                .animation(.easeOut(duration: 0.15), value: selected?.id)
+        }
+    }
+
+    private var chart: some View {
+        // Défilement horizontal : sur douze mois et trois séries, comprimer
+        // dans la largeur de l'écran rendrait les barres illisibles.
+        ScrollView(.horizontal, showsIndicators: false) {
+            Chart {
+                ForEach(active) { m in
+                    ForEach(Series.allCases, id: \.self) { s in
+                        BarMark(
+                            x: .value("Mois", m.shortLabel),
+                            y: .value("Montant", value(m, s))
+                        )
+                        .foregroundStyle(by: .value("Série", s.rawValue))
+                        .position(by: .value("Série", s.rawValue))
+                        .cornerRadius(4)
+                        .opacity(selected == nil || selected?.id == m.id ? 1 : 0.35)
+                    }
+
+                    // Étiquette de CA au-dessus du groupe : la valeur exacte
+                    // sans avoir à viser l'axe.
+                    if let first = Series.allCases.first {
+                        RuleMark(x: .value("Mois", m.shortLabel))
+                            .opacity(0)
+                            .annotation(position: .top, alignment: .center) {
+                                Text(compact(value(m, first)))
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Theme.mutedForeground)
+                            }
+                    }
+                }
+            }
+            .chartForegroundStyleScale([
+                Series.revenue.rawValue: Series.revenue.color,
+                Series.purchases.rawValue: Series.purchases.color,
+                Series.margin.rawValue: Series.margin.color,
+            ])
+            .chartLegend(.hidden)
+            .chartYAxis {
+                AxisMarks(position: .leading) { value in
+                    AxisGridLine().foregroundStyle(Theme.border.opacity(0.6))
+                    AxisValueLabel {
+                        if let v = value.as(Double.self) {
+                            Text(compact(v))
+                                .font(.system(size: 10))
+                                .foregroundStyle(Theme.mutedForeground)
+                        }
+                    }
+                }
+            }
+            .chartXAxis {
+                AxisMarks { value in
+                    AxisValueLabel {
+                        if let s = value.as(String.self) {
+                            Text(s)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(Theme.mutedForeground)
+                        }
+                    }
+                }
+            }
+            .chartOverlay { proxy in
+                GeometryReader { geo in
+                    Rectangle().fill(.clear).contentShape(Rectangle())
+                        .onTapGesture { location in
+                            guard let plot = proxy.plotFrame else { return }
+                            let x = location.x - geo[plot].origin.x
+                            guard let label: String = proxy.value(atX: x) else { return }
+                            let hit = active.first { $0.shortLabel == label }
+                            withAnimation(.easeOut(duration: 0.15)) {
+                                selected = (selected?.id == hit?.id) ? nil : hit
+                            }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                }
+            }
+            .frame(width: max(340, CGFloat(active.count) * 78), height: 230)
+            .padding(.top, 14)
+        }
+    }
+
+    private var legend: some View {
+        HStack(spacing: 16) {
+            ForEach(Series.allCases, id: \.self) { s in
+                HStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(s.color)
+                        .frame(width: 11, height: 11)
+                    Text(s.rawValue)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Theme.mutedForeground)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// Échelle lisible : 120 k plutôt que 120 000.
+    private func compact(_ v: Double) -> String {
+        if abs(v) >= 1_000_000 { return String(format: "%.1f M", v / 1_000_000) }
+        if abs(v) >= 1_000 { return String(format: "%.0f k", v / 1_000) }
         return String(format: "%.0f", v)
     }
 }
