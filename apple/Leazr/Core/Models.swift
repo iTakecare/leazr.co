@@ -485,3 +485,184 @@ struct NewOffer: Encodable, Sendable {
         case duration
     }
 }
+
+// MARK: - Documents d'une offre
+
+struct OfferDocument: Decodable, Identifiable, Sendable {
+    let id: String
+    let fileName: String
+    let documentType: String
+    let status: String
+    let fileSize: Int
+    let adminNotes: String?
+    let uploadedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, status
+        case fileName = "file_name"
+        case documentType = "document_type"
+        case fileSize = "file_size"
+        case adminNotes = "admin_notes"
+        case uploadedAt = "uploaded_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        fileName = try c.decodeIfPresent(String.self, forKey: .fileName) ?? "Document"
+        documentType = try c.decodeIfPresent(String.self, forKey: .documentType) ?? ""
+        status = try c.decodeIfPresent(String.self, forKey: .status) ?? "pending"
+        fileSize = try c.decodeIfPresent(Int.self, forKey: .fileSize) ?? 0
+        adminNotes = try c.decodeIfPresent(String.self, forKey: .adminNotes)
+        if let raw = try c.decodeIfPresent(String.self, forKey: .uploadedAt) {
+            uploadedAt = Format.parseDate(raw)
+        } else { uploadedAt = nil }
+    }
+
+    var statusLabel: String {
+        switch status {
+        case "approved", "validated": return "Validé"
+        case "rejected":              return "Refusé"
+        case "pending":               return "À valider"
+        default:                      return status.capitalized
+        }
+    }
+
+    var isPending: Bool { status == "pending" }
+
+    /// Libellé lisible du type, le web stockant des identifiants techniques.
+    var typeLabel: String {
+        documentType
+            .replacingOccurrences(of: "_", with: " ")
+            .capitalized
+    }
+
+    var readableSize: String {
+        guard fileSize > 0 else { return "" }
+        return ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
+    }
+}
+
+// MARK: - Journal d'appels
+
+struct CallLog: Decodable, Identifiable, Sendable {
+    let id: String
+    let status: String
+    let notes: String?
+    let calledAt: Date?
+    let callbackDate: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, status, notes
+        case calledAt = "called_at"
+        case callbackDate = "callback_date"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        status = try c.decodeIfPresent(String.self, forKey: .status) ?? ""
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
+        if let raw = try c.decodeIfPresent(String.self, forKey: .calledAt) {
+            calledAt = Format.parseDate(raw)
+        } else { calledAt = nil }
+        if let raw = try c.decodeIfPresent(String.self, forKey: .callbackDate) {
+            callbackDate = Format.parseDate(raw)
+        } else { callbackDate = nil }
+    }
+
+    var statusLabel: String {
+        switch status {
+        case "answered":   return "Répondu"
+        case "voicemail":  return "Messagerie"
+        case "no_answer":  return "Sans réponse"
+        case "busy":       return "Occupé"
+        default:           return status.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+}
+
+// MARK: - KYC
+
+struct KYCReport: Decodable, Identifiable, Sendable {
+    let id: String
+    let status: String
+    let source: String
+    let analyzedAt: Date?
+    let errorMessage: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, status, source
+        case analyzedAt = "analyzed_at"
+        case errorMessage = "error_message"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        status = try c.decodeIfPresent(String.self, forKey: .status) ?? ""
+        source = try c.decodeIfPresent(String.self, forKey: .source) ?? ""
+        errorMessage = try c.decodeIfPresent(String.self, forKey: .errorMessage)
+        if let raw = try c.decodeIfPresent(String.self, forKey: .analyzedAt) {
+            analyzedAt = Format.parseDate(raw)
+        } else { analyzedAt = nil }
+    }
+
+    var statusLabel: String {
+        switch status {
+        case "completed", "analyzed": return "Analysé"
+        case "processing":            return "En cours"
+        case "failed", "error":       return "Échec"
+        case "pending":               return "En attente"
+        default:                      return status.capitalized
+        }
+    }
+}
+
+// MARK: - Support
+
+struct SupportTicket: Decodable, Identifiable, Sendable {
+    let id: String
+    let subject: String
+    let status: String
+    let priority: String
+    let category: String?
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, subject, status, priority, category
+        case createdAt = "created_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        subject = try c.decodeIfPresent(String.self, forKey: .subject) ?? "Sans objet"
+        status = try c.decodeIfPresent(String.self, forKey: .status) ?? ""
+        priority = try c.decodeIfPresent(String.self, forKey: .priority) ?? ""
+        category = try c.decodeIfPresent(String.self, forKey: .category)
+        if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
+            createdAt = Format.parseDate(raw)
+        } else { createdAt = nil }
+    }
+
+    var statusLabel: String {
+        switch status {
+        case "open":        return "Ouvert"
+        case "in_progress": return "En cours"
+        case "resolved":    return "Résolu"
+        case "closed":      return "Fermé"
+        default:            return status.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+
+    var priorityLabel: String {
+        switch priority {
+        case "urgent": return "Urgent"
+        case "high":   return "Haute"
+        case "medium": return "Moyenne"
+        case "low":    return "Basse"
+        default:       return priority.capitalized
+        }
+    }
+}

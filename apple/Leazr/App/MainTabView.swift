@@ -10,7 +10,7 @@ struct MainTabView: View {
     @State private var selection: Tab = .dashboard
 
     enum Tab: Hashable {
-        case dashboard, offers, contracts, clients, catalog, invoices
+        case dashboard, offers, contracts, clients, catalog, invoices, support, settings
     }
 
     var body: some View {
@@ -38,6 +38,14 @@ struct MainTabView: View {
             InvoicesView()
                 .tabItem { Label("Facturation", systemImage: "eurosign.circle.fill") }
                 .tag(Tab.invoices)
+
+            SupportView()
+                .tabItem { Label("Support", systemImage: "lifepreserver.fill") }
+                .tag(Tab.support)
+
+            SettingsView()
+                .tabItem { Label("Réglages", systemImage: "gearshape.fill") }
+                .tag(Tab.settings)
         }
         .tint(Theme.primary)
         .onChange(of: selection) { _, _ in

@@ -9,7 +9,6 @@ import Supabase
 final class DashboardStore {
     private(set) var metrics: DashboardMetrics?
     private(set) var months: [MonthlyFinancialData] = []
-    private(set) var callbacks: [Callback] = []
     private(set) var forecast: ContractStatistics?
     private(set) var isLoading = false
     var errorMessage: String?
@@ -31,8 +30,7 @@ final class DashboardStore {
         defer { isLoading = false }
         async let a: Void = loadMetrics()
         async let b: Void = loadMonthly()
-        async let c: Void = loadCallbacks()
-        _ = await (a, b, c)
+        _ = await (a, b)
     }
 
     private func loadMetrics() async {
@@ -44,28 +42,6 @@ final class DashboardStore {
             metrics = rows.first
         } catch {
             errorMessage = "Impossible de charger les indicateurs."
-        }
-    }
-
-    /// Rappels échus : mêmes critères que le web — appels sans réponse ou
-    /// tombés sur messagerie, dont la date de rappel est atteinte.
-    private func loadCallbacks() async {
-        let today = ISO8601DateFormatter.string(
-            from: .now, timeZone: .current, formatOptions: [.withFullDate]
-        )
-        do {
-            callbacks = try await Backend.client
-                .from("offer_call_logs")
-                .select("id, offer_id, callback_date, offers(client_name, dossier_number)")
-                .in("status", values: ["voicemail", "no_answer"])
-                .not("callback_date", operator: .is, value: "null")
-                .lte("callback_date", value: today)
-                .order("callback_date", ascending: true)
-                .limit(20)
-                .execute()
-                .value
-        } catch {
-            callbacks = []
         }
     }
 
@@ -105,10 +81,6 @@ struct DashboardView: View {
                 VStack(spacing: 16) {
                     if let error = store.errorMessage {
                         ErrorBanner(message: error)
-                    }
-
-                    if !store.callbacks.isEmpty {
-                        CallbacksBanner(callbacks: store.callbacks)
                     }
 
                     yearPicker
@@ -175,10 +147,10 @@ struct DashboardView: View {
                 columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)],
                 spacing: 14
             ) {
-                StatTile(icon: "cart.fill", label: "Achats totaux", value: Format.currency(t.purchases))
-                StatTile(icon: "chart.line.uptrend.xyaxis", label: "Marge brute", value: Format.currency(t.margin))
-                StatTile(icon: "percent", label: "Taux de marge", value: String(format: "%.1f %%", t.marginRate))
-                StatTile(icon: "doc.text.fill", label: "Contrats", value: "\(t.contracts)")
+                StatTile(icon: "cart.fill", tint: Theme.amber, label: "Achats totaux", value: Format.currency(t.purchases))
+                StatTile(icon: "chart.line.uptrend.xyaxis", tint: Theme.emerald, label: "Marge brute", value: Format.currency(t.margin))
+                StatTile(icon: "percent", tint: Theme.violet, label: "Taux de marge", value: String(format: "%.1f %%", t.marginRate))
+                StatTile(icon: "doc.text.fill", tint: Theme.sky, label: "Contrats", value: "\(t.contracts)")
             }
 
             if let f = store.forecast, f.count > 0 {
@@ -202,10 +174,10 @@ struct DashboardView: View {
                 columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)],
                 spacing: 14
             ) {
-                StatTile(icon: "doc.text.fill", label: "Offres", value: "\(m?.totalOffers ?? 0)")
-                StatTile(icon: "clock.fill", label: "En attente", value: "\(m?.pendingOffers ?? 0)")
-                StatTile(icon: "checkmark.seal.fill", label: "Contrats actifs", value: "\(m?.activeContracts ?? 0)")
-                StatTile(icon: "person.2.fill", label: "Clients", value: "\(m?.totalClients ?? 0)")
+                StatTile(icon: "doc.text.fill", tint: Theme.sky, label: "Offres", value: "\(m?.totalOffers ?? 0)")
+                StatTile(icon: "clock.fill", tint: Theme.amber, label: "En attente", value: "\(m?.pendingOffers ?? 0)")
+                StatTile(icon: "checkmark.seal.fill", tint: Theme.emerald, label: "Contrats actifs", value: "\(m?.activeContracts ?? 0)")
+                StatTile(icon: "person.2.fill", tint: Theme.violet, label: "Clients", value: "\(m?.totalClients ?? 0)")
             }
 
             SummaryCard(rows: [
@@ -229,6 +201,7 @@ struct DashboardView: View {
 struct HighlightCard: View {
     let label: String
     let value: String
+    var tint: Color = Theme.primary
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -247,13 +220,7 @@ struct HighlightCard: View {
         .padding(22)
         .background(
             RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Theme.primary, Theme.primary.opacity(0.72)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(Theme.gradient(tint))
         )
     }
 }
@@ -351,14 +318,17 @@ struct SummaryCard: View {
 
 struct StatTile: View {
     let icon: String
+    var tint: Color = Theme.primary
     let label: String
     let value: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(Theme.primary)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(tint))
 
             Spacer(minLength: 0)
 
@@ -413,66 +383,6 @@ struct ProfileMenu: ToolbarContent {
                     .font(.system(size: 20))
             }
         }
-    }
-}
-
-/// Bandeau des rappels échus — l'équivalent du bandeau rouge du dashboard web.
-struct CallbacksBanner: View {
-    let callbacks: [Callback]
-
-    private var overdue: [Callback] { callbacks.filter(\.isOverdue) }
-
-    private var tint: Color { overdue.isEmpty ? .orange : Theme.destructive }
-
-    private var title: String {
-        overdue.isEmpty
-            ? "\(callbacks.count) rappel(s) aujourd'hui"
-            : "\(overdue.count) rappel(s) en retard"
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: overdue.isEmpty ? "phone.fill" : "exclamationmark.triangle.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                Spacer()
-            }
-            .foregroundStyle(tint)
-
-            // On n'en montre que cinq : au-delà, le bandeau prend toute la page
-            // au lieu d'alerter.
-            ForEach(callbacks.prefix(5)) { callback in
-                HStack {
-                    Text(callback.clientName)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Theme.foreground)
-                        .lineLimit(1)
-
-                    Spacer(minLength: 8)
-
-                    Text(callback.isOverdue ? "En retard" : "Aujourd'hui")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(callback.isOverdue ? Theme.destructive : .orange)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Theme.surface)
-                )
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .fill(tint.opacity(0.10))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .strokeBorder(tint.opacity(0.35), lineWidth: 1)
-        )
     }
 }
 

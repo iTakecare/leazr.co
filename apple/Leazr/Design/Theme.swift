@@ -51,6 +51,49 @@ enum Theme {
         dark: Color(red: 0.973, green: 0.443, blue: 0.443)
     )
 
+    // MARK: - Palette d'accents
+
+    /// Chaque module a sa couleur. Ce n'est pas décoratif : sur une app qu'on
+    /// consulte vite, la couleur identifie l'écran avant même la lecture.
+    static let violet = dynamic(
+        light: Color(red: 0.494, green: 0.290, blue: 0.898),
+        dark: Color(red: 0.655, green: 0.545, blue: 0.980)
+    )
+
+    static let teal = dynamic(
+        light: Color(red: 0.031, green: 0.616, blue: 0.612),
+        dark: Color(red: 0.176, green: 0.831, blue: 0.749)
+    )
+
+    static let amber = dynamic(
+        light: Color(red: 0.851, green: 0.467, blue: 0.023),
+        dark: Color(red: 0.984, green: 0.749, blue: 0.141)
+    )
+
+    static let rose = dynamic(
+        light: Color(red: 0.882, green: 0.114, blue: 0.408),
+        dark: Color(red: 0.984, green: 0.443, blue: 0.635)
+    )
+
+    static let emerald = dynamic(
+        light: Color(red: 0.020, green: 0.588, blue: 0.412),
+        dark: Color(red: 0.204, green: 0.827, blue: 0.600)
+    )
+
+    static let sky = dynamic(
+        light: Color(red: 0.007, green: 0.518, blue: 0.780),
+        dark: Color(red: 0.220, green: 0.741, blue: 0.973)
+    )
+
+    /// Dégradé doux pour les cartes de tête, à partir d'une couleur d'accent.
+    static func gradient(_ color: Color) -> LinearGradient {
+        LinearGradient(
+            colors: [color, color.opacity(0.70)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     // MARK: - Formes
 
     /// Rayon des champs et boutons. Généreux : c'est ce qui distingue une

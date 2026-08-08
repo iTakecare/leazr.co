@@ -64,6 +64,7 @@ struct ProductDetailView: View {
 final class ClientDetailStore {
     private(set) var offers: [Offer] = []
     private(set) var contracts: [Contract] = []
+    private(set) var kyc: [KYCReport] = []
     private(set) var isLoading = false
 
     /// On rapproche par nom : c'est la clé que remplissent offres et contrats,
@@ -89,6 +90,17 @@ final class ClientDetailStore {
             .limit(50)
             .execute()
             .value) ?? []
+    }
+
+    /// Rapports KYC du client — analyse d'identité et de solvabilité.
+    func loadKYC(clientId: String) async {
+        kyc = (try? await Backend.client
+            .from("client_kyc_reports")
+            .select("id, status, source, analyzed_at, error_message")
+            .eq("client_id", value: clientId)
+            .order("created_at", ascending: false)
+            .limit(10)
+            .execute().value) ?? []
     }
 
     var monthlyTotal: Double { contracts.reduce(0) { $0 + $1.monthlyPayment } }
@@ -123,6 +135,34 @@ struct ClientDetailView: View {
                         }
                         Divider().overlay(Theme.border)
                         DetailRow(label: "Client depuis", value: Format.date(client.createdAt))
+                    }
+                }
+
+                if !store.kyc.isEmpty {
+                    SectionHeader(title: "KYC", count: store.kyc.count)
+                    ForEach(store.kyc) { report in
+                        Card {
+                            HStack {
+                                Image(systemName: "checkmark.shield.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(Theme.teal)
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(report.statusLabel)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(Theme.foreground)
+                                    Text(report.source.capitalized)
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Theme.mutedForeground)
+                                }
+
+                                Spacer()
+
+                                Text(Format.date(report.analyzedAt))
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Theme.mutedForeground)
+                            }
+                        }
                     }
                 }
 
@@ -172,7 +212,10 @@ struct ClientDetailView: View {
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle(client.name)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await store.load(clientName: client.name) }
+        .task {
+            await store.load(clientName: client.name)
+            await store.loadKYC(clientId: client.id)
+        }
     }
 
     private var header: some View {
