@@ -3,60 +3,6 @@ import Observation
 import SwiftUI
 import Supabase
 
-// MARK: - Fiche produit
-
-struct ProductDetailView: View {
-    let product: Product
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // Visuel plein cadre : c'est ce qu'on regarde en premier sur
-                // une fiche produit.
-                AsyncImage(url: product.imageURL.flatMap(URL.init)) { image in
-                    image.resizable().scaledToFit()
-                } placeholder: {
-                    Image(systemName: "shippingbox.fill")
-                        .font(.system(size: 46))
-                        .foregroundStyle(Theme.mutedForeground)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 220)
-                .background(
-                    RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                        .fill(Theme.surface)
-                )
-
-                if let monthly = product.monthlyPrice, monthly > 0 {
-                    HighlightCard(label: "Mensualité", value: Format.currency(monthly))
-                }
-
-                Card {
-                    VStack(spacing: 0) {
-                        DetailRow(label: "Produit", value: product.name)
-                        if let brand = product.brandName {
-                            Divider().overlay(Theme.border)
-                            DetailRow(label: "Marque", value: brand)
-                        }
-                        if let category = product.categoryName {
-                            Divider().overlay(Theme.border)
-                            DetailRow(label: "Catégorie", value: category)
-                        }
-                        Divider().overlay(Theme.border)
-                        DetailRow(label: "Prix d'achat", value: Format.currency(product.price), emphasis: true)
-                    }
-                }
-            }
-            .padding(20)
-            .frame(maxWidth: 700)
-            .frame(maxWidth: .infinity)
-        }
-        .background(Theme.background.ignoresSafeArea())
-        .navigationTitle(product.name)
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
 // MARK: - Fiche client
 
 @MainActor

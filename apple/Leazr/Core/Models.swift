@@ -950,7 +950,7 @@ struct EquipmentItem: Decodable, Identifiable, Sendable {
 }
 
 /// Valeur JSON hétérogène réduite à sa représentation textuelle.
-private struct AnyCodableValue: Decodable, CustomStringConvertible {
+struct AnyCodableValue: Decodable, CustomStringConvertible {
     let description: String
 
     init(from decoder: Decoder) throws {
