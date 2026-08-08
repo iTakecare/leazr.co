@@ -814,3 +814,96 @@ enum WorkflowScoring {
         }
     }
 }
+
+// MARK: - Bailleurs et coefficients
+
+struct Leaser: Decodable, Identifiable, Sendable {
+    let id: String
+    let name: String
+    let availableDurations: [Int]?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+        case availableDurations = "available_durations"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Bailleur"
+        availableDurations = try c.decodeIfPresent([Int].self, forKey: .availableDurations)
+    }
+
+    var durations: [Int] {
+        let d = availableDurations ?? []
+        return d.isEmpty ? [12, 24, 36, 48, 60] : d.sorted()
+    }
+}
+
+struct LeaserRange: Decodable, Identifiable, Sendable {
+    let id: String
+    let min: Double
+    let max: Double
+    let coefficient: Double
+    let durationMonths: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, min, max, coefficient
+        case durationMonths = "duration_months"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        min = try c.decodeIfPresent(Double.self, forKey: .min) ?? 0
+        max = try c.decodeIfPresent(Double.self, forKey: .max) ?? 0
+        coefficient = try c.decodeIfPresent(Double.self, forKey: .coefficient) ?? 0
+        durationMonths = try c.decodeIfPresent(Int.self, forKey: .durationMonths) ?? 36
+    }
+}
+
+/// Calcul de la mensualité, repris du web (`leaserCalculator.ts` et
+/// `calculator.ts`). C'est une règle métier : elle doit rester identique des
+/// deux côtés, sous peine de proposer des montants différents au même client.
+enum Financing {
+
+    /// Coefficient de repli quand aucun barème ne correspond, comme le web.
+    static let fallbackCoefficient = 3.16
+
+    /// Cherche la tranche qui contient le montant, en privilégiant celle qui
+    /// correspond aussi à la durée demandée.
+    static func coefficient(ranges: [LeaserRange], amount: Double, duration: Int) -> Double {
+        let matching = ranges.filter { amount >= $0.min && amount <= $0.max }
+
+        if let exact = matching.first(where: { $0.durationMonths == duration }) {
+            return exact.coefficient
+        }
+        if let any = matching.first {
+            return any.coefficient
+        }
+        return ranges.first?.coefficient ?? fallbackCoefficient
+    }
+
+    /// Mensualité = montant financé × coefficient / 100.
+    static func monthlyPayment(amount: Double, coefficient: Double) -> Double {
+        ((amount * coefficient) / 100 * 100).rounded() / 100
+    }
+
+    /// Montant financé = prix d'achat majoré de la marge.
+    static func financedAmount(purchasePrice: Double, marginPercent: Double) -> Double {
+        ((purchasePrice * (1 + marginPercent / 100)) * 100).rounded() / 100
+    }
+}
+
+/// Ligne d'équipement en cours de saisie.
+struct DraftEquipment: Identifiable, Sendable {
+    let id = UUID()
+    var title: String
+    var purchasePrice: Double
+    var quantity: Int
+    var margin: Double
+
+    var financed: Double {
+        Financing.financedAmount(purchasePrice: purchasePrice, marginPercent: margin) * Double(quantity)
+    }
+}

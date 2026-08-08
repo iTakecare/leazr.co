@@ -15,6 +15,7 @@
 		38EA40CB51C96BA7037C8A36 /* OfferDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B6C1BB3AF15E59220DF0DD /* OfferDetail.swift */; };
 		3B0D25F6A60FB88C1CE036CC /* DetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5FC880A0231FA91C406E378 /* DetailViews.swift */; };
 		452B92E5393CDB26EFA738C5 /* OffersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1723DCC3D2E4252542E22513 /* OffersView.swift */; };
+		5257A9665D0C341867E3F43F /* ProductPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 105156D405D7D398B8B39455 /* ProductPicker.swift */; };
 		65A1FD1C9B46E2AF7DEC23D1 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07884D978BA112AF0E83306F /* LockScreen.swift */; };
 		686AA662811EE4338AEB95EE /* Supabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4FDDD8B5CC41B5F71E94EA7 /* Supabase.swift */; };
 		750308946C6D605A6625F90D /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */; };
@@ -35,6 +36,7 @@
 
 /* Begin PBXFileReference section */
 		07884D978BA112AF0E83306F /* LockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreen.swift; sourceTree = "<group>"; };
+		105156D405D7D398B8B39455 /* ProductPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductPicker.swift; sourceTree = "<group>"; };
 		13F752071430CA35A5268483 /* Leazr.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Leazr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1723DCC3D2E4252542E22513 /* OffersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffersView.swift; sourceTree = "<group>"; };
 		17BCE13BEE2375330A930CF8 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
@@ -149,6 +151,7 @@
 				7F553EE778580553E436235E /* CreateOfferView.swift */,
 				A8B6C1BB3AF15E59220DF0DD /* OfferDetail.swift */,
 				1723DCC3D2E4252542E22513 /* OffersView.swift */,
+				105156D405D7D398B8B39455 /* ProductPicker.swift */,
 			);
 			path = Offers;
 			sourceTree = "<group>";
@@ -293,6 +296,7 @@
 				F2307108469EAAD275D30E8F /* Modules.swift in Sources */,
 				38EA40CB51C96BA7037C8A36 /* OfferDetail.swift in Sources */,
 				452B92E5393CDB26EFA738C5 /* OffersView.swift in Sources */,
+				5257A9665D0C341867E3F43F /* ProductPicker.swift in Sources */,
 				8C9020ABA0FFA0D5A8CDBAB2 /* RootView.swift in Sources */,
 				7A7B0842DBD1D016E09EDE67 /* Session.swift in Sources */,
 				686AA662811EE4338AEB95EE /* Supabase.swift in Sources */,

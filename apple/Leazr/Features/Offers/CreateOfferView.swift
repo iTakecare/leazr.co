@@ -14,6 +14,7 @@ struct CreateOfferView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model = NewOfferModel()
     @State private var step: Step = .client
+    @State private var isPickingProduct = false
 
     var onCreated: () -> Void = {}
 
@@ -74,6 +75,10 @@ struct CreateOfferView: View {
                     Button("Annuler") { dismiss() }
                 }
             }
+            .sheet(isPresented: $isPickingProduct) {
+                ProductPicker { model.lines.append($0) }
+            }
+            .task { await model.loadLeasers() }
         }
     }
 
@@ -103,17 +108,57 @@ struct CreateOfferView: View {
     }
 
     private var equipmentStep: some View {
-        VStack(spacing: 18) {
-            FormSection(title: "Description du matériel") {
-                LeazrTextArea(
-                    placeholder: "Ex : 3 MacBook Pro 14\", 2 écrans 27\"",
-                    text: $model.equipment
+        VStack(spacing: 14) {
+            Button { isPickingProduct = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Ajouter un produit du catalogue")
+                }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+                        .fill(Theme.primary.opacity(0.12))
                 )
             }
+            .buttonStyle(PressableStyle())
 
-            // Le récapitulatif se met à jour en direct : on voit l'effet de
-            // chaque saisie sans changer d'écran.
-            if model.amount > 0 {
+            ForEach(model.lines) { line in
+                Card {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text(line.title)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Theme.foreground)
+                            Spacer(minLength: 8)
+                            Button {
+                                model.lines.removeAll { $0.id == line.id }
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Theme.destructive)
+                            }
+                            .buttonStyle(PressableStyle())
+                        }
+
+                        HStack {
+                            Text("×\(line.quantity) · marge \(Int(line.margin)) %")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.mutedForeground)
+                            Spacer()
+                            Text(Format.currency(line.financed))
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Theme.foreground)
+                        }
+                    }
+                }
+            }
+
+            if model.lines.isEmpty {
+                EmptyHint(icon: "shippingbox", label: "Aucun équipement")
+            } else {
                 Card {
                     VStack(spacing: 0) {
                         DetailRow(label: "Montant financé", value: Format.currency(model.amount))
@@ -127,26 +172,32 @@ struct CreateOfferView: View {
 
     private var termsStep: some View {
         VStack(spacing: 18) {
-            FormSection(title: "Financement") {
-                LeazrField(
-                    icon: "eurosign",
-                    placeholder: "Montant financé",
-                    text: $model.amountText,
-                    keyboardType: .decimalPad
-                )
-                LeazrField(
-                    icon: "calendar",
-                    placeholder: "Mensualité",
-                    text: $model.monthlyText,
-                    keyboardType: .decimalPad
-                )
+            if !model.leasers.isEmpty {
+                FormSection(title: "Bailleur") {
+                    Picker("Bailleur", selection: Binding(
+                        get: { model.selectedLeaser?.id ?? "" },
+                        set: { id in
+                            model.selectedLeaser = model.leasers.first { $0.id == id }
+                            Task { await model.loadRanges() }
+                        }
+                    )) {
+                        ForEach(model.leasers) { Text($0.name).tag($0.id) }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(Theme.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .frame(height: 52)
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+                            .fill(Theme.surface)
+                    )
+                }
             }
 
             FormSection(title: "Durée") {
-                // Les durées de leasing sont normées : un sélecteur segmenté
-                // évite une saisie libre qui n'apporterait rien.
                 Picker("Durée", selection: $model.duration) {
-                    ForEach([12, 24, 36, 48, 60], id: \.self) {
+                    ForEach(model.selectedLeaser?.durations ?? [12, 24, 36, 48, 60], id: \.self) {
                         Text("\($0)").tag($0)
                     }
                 }
@@ -157,9 +208,15 @@ struct CreateOfferView: View {
                     .foregroundStyle(Theme.mutedForeground)
             }
 
+            // Le coefficient est affiché : c'est lui qui explique la
+            // mensualité, et le commercial doit pouvoir le justifier.
             Card {
                 VStack(spacing: 0) {
                     DetailRow(label: "Client", value: model.clientName.isEmpty ? "—" : model.clientName)
+                    Divider().overlay(Theme.border)
+                    DetailRow(label: "Montant financé", value: Format.currency(model.amount))
+                    Divider().overlay(Theme.border)
+                    DetailRow(label: "Coefficient", value: String(format: "%.2f", model.coefficient))
                     Divider().overlay(Theme.border)
                     DetailRow(label: "Durée", value: "\(model.duration) mois")
                     Divider().overlay(Theme.border)
@@ -233,15 +290,64 @@ final class NewOfferModel {
     var clientEmail = ""
     var businessSector = ""
     var equipment = ""
-    var amountText = ""
-    var monthlyText = ""
+    var lines: [DraftEquipment] = []
+    var leasers: [Leaser] = []
+    var ranges: [LeaserRange] = []
+    var selectedLeaser: Leaser?
     var duration = 36
 
     private(set) var isSaving = false
     var errorMessage: String?
 
-    var amount: Double { Self.number(amountText) }
-    var monthly: Double { Self.number(monthlyText) }
+    /// Montant financé : somme des lignes, marge incluse.
+    var amount: Double { lines.reduce(0) { $0 + $1.financed } }
+
+    /// Coefficient issu du barème du bailleur, pour ce montant et cette durée.
+    var coefficient: Double {
+        Financing.coefficient(ranges: ranges, amount: amount, duration: duration)
+    }
+
+    var monthly: Double {
+        Financing.monthlyPayment(amount: amount, coefficient: coefficient)
+    }
+
+    /// Description sérialisée, au format attendu par le web.
+    var equipmentJSON: String? {
+        guard !lines.isEmpty else { return equipment.isEmpty ? nil : equipment }
+        let payload = lines.map { line in
+            [
+                "title": line.title,
+                "purchasePrice": line.purchasePrice,
+                "quantity": line.quantity,
+                "margin": line.margin,
+                "monthlyPayment": Financing.monthlyPayment(
+                    amount: line.financed, coefficient: coefficient
+                ),
+            ] as [String: Any]
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    func loadLeasers() async {
+        guard let companyId = await Session.shared.resolve() else { return }
+        leasers = (try? await Backend.client
+            .from("leasers")
+            .select("id, name, available_durations")
+            .eq("company_id", value: companyId)
+            .execute().value) ?? []
+        selectedLeaser = leasers.first
+        await loadRanges()
+    }
+
+    func loadRanges() async {
+        guard let leaser = selectedLeaser else { ranges = []; return }
+        ranges = (try? await Backend.client
+            .from("leaser_ranges")
+            .select("id, min, max, coefficient, duration_months")
+            .eq("leaser_id", value: leaser.id)
+            .execute().value) ?? []
+    }
 
     var hasClient: Bool { !clientName.trimmingCharacters(in: .whitespaces).isEmpty }
     var canSubmit: Bool { hasClient && !isSaving }
@@ -260,7 +366,7 @@ final class NewOfferModel {
             companyId: companyId,
             clientName: clientName.trimmingCharacters(in: .whitespaces),
             clientEmail: clientEmail.isEmpty ? nil : clientEmail,
-            equipmentDescription: equipment.isEmpty ? nil : equipment,
+            equipmentDescription: equipmentJSON,
             amount: amount,
             monthlyPayment: monthly,
             duration: duration
@@ -277,11 +383,6 @@ final class NewOfferModel {
         }
     }
 
-    /// Accepte la virgule décimale : sur un clavier français, c'est ce que
-    /// l'utilisateur tape naturellement.
-    private static func number(_ raw: String) -> Double {
-        Double(raw.replacingOccurrences(of: ",", with: ".")) ?? 0
-    }
 }
 
 // MARK: - Composants
