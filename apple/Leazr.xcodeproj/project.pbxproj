@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		026E8001714E396B8B527DCF /* InvoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8DCC6F112B88D868F25F0E1 /* InvoiceService.swift */; };
 		0767B54D4D48F26B5D6F40A0 /* ContractEquipmentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD924446EA8D4631B12842AE /* ContractEquipmentViews.swift */; };
 		0A5EF5D77664E7707BDA2EA7 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DF05D95A9EBA8860D8DBB8 /* MainTabView.swift */; };
 		0CEA68A77A68696CA082C9CE /* OfferGrenke.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED42239FB3FB368F4833D0C5 /* OfferGrenke.swift */; };
@@ -36,12 +37,16 @@
 		7A7B0842DBD1D016E09EDE67 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C10B734FD7CD6C650387A80 /* Session.swift */; };
 		7ECE2F064401FF8B5989B99D /* SupportAndSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56372CF221DDF33B31B7F1 /* SupportAndSettings.swift */; };
 		82DB37171C02213969DBBC89 /* Dialer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE7D4ECC8A29650C37690F46 /* Dialer.swift */; };
+		84BFE4A7396EC2040C633417 /* InvoicingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34634FE7A617B48535B916D6 /* InvoicingView.swift */; };
 		85DBF7FDD565B0F5FCDD012E /* ContractsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1FD9D81F4B2F9E166CCC752 /* ContractsListView.swift */; };
+		861B6586D552EDADDBEADF09 /* InvoiceSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = C910C27816F52CB018BD786D /* InvoiceSheets.swift */; };
 		8C9020ABA0FFA0D5A8CDBAB2 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA847C5B5FF2DC3208A4477 /* RootView.swift */; };
+		9A54DBCF27C63E1D0475D00E /* InvoiceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1D20D918AA92956559B805 /* InvoiceModels.swift */; };
 		9B3D69F70A473C6CB702E687 /* OffersKanban.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB7CC1F3F9D0FED2259DF13 /* OffersKanban.swift */; };
 		A33AC86D646F947ACF40063E /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17BCE13BEE2375330A930CF8 /* AuthStore.swift */; };
 		A542118233725E68A781D587 /* Scoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8F515CE7EB29AB05A29821 /* Scoring.swift */; };
 		A837F389D8C58D0B494FB385 /* EditOffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30F2B85A21AF7A68A197C953 /* EditOffer.swift */; };
+		AB0C2936C8B0346A12C1516A /* InvoiceDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D30815FFD767385F117684 /* InvoiceDetailScreen.swift */; };
 		AE5C45B19416BA85E3535204 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D8B0AAEA1A81CEA2A37BAB /* Theme.swift */; };
 		BD9960D641332B47DF707869 /* OfferStatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 456FDA78B4D2BE7010551F3F /* OfferStatusService.swift */; };
 		C3ABCA156C953EDF405BC2C6 /* LeazrApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F4B5CF4B4FFA52FF1EA431 /* LeazrApp.swift */; };
@@ -71,6 +76,7 @@
 		2F0E4EC1AED84EE49AB3DC76 /* BiometricService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricService.swift; sourceTree = "<group>"; };
 		30F2B85A21AF7A68A197C953 /* EditOffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditOffer.swift; sourceTree = "<group>"; };
 		31F4B5CF4B4FFA52FF1EA431 /* LeazrApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeazrApp.swift; sourceTree = "<group>"; };
+		34634FE7A617B48535B916D6 /* InvoicingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoicingView.swift; sourceTree = "<group>"; };
 		3C10B734FD7CD6C650387A80 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		401375ED2CC7D6B1B2A74076 /* OpportunityDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpportunityDetail.swift; sourceTree = "<group>"; };
 		456FDA78B4D2BE7010551F3F /* OfferStatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferStatusService.swift; sourceTree = "<group>"; };
@@ -96,11 +102,14 @@
 		C0DF05D95A9EBA8860D8DBB8 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		C413154B612BEFD0ECD6DB93 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		C8DCC6F112B88D868F25F0E1 /* InvoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoiceService.swift; sourceTree = "<group>"; };
+		C910C27816F52CB018BD786D /* InvoiceSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoiceSheets.swift; sourceTree = "<group>"; };
 		C9C6FFA6F72F8F102957B36F /* ContractPanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractPanels.swift; sourceTree = "<group>"; };
 		CEDB5BB98190D6391D5AB23A /* Signature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signature.swift; sourceTree = "<group>"; };
 		CF1F7A59542BE49F8BF78F2A /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		D3CE2FB7818B397D8EDB0D33 /* OfferStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferStatus.swift; sourceTree = "<group>"; };
 		D3D8B0AAEA1A81CEA2A37BAB /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		D9D30815FFD767385F117684 /* InvoiceDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoiceDetailScreen.swift; sourceTree = "<group>"; };
 		E18DC0EF37FFBC4D6DC261D3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E5DA416A37DF745C8B2DAFEF /* OfferActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferActions.swift; sourceTree = "<group>"; };
 		E8E146A0E5C823413E2BD71B /* OpportunityForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpportunityForm.swift; sourceTree = "<group>"; };
@@ -111,6 +120,7 @@
 		FCF099E54122E558384E6DEF /* OfferInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferInsights.swift; sourceTree = "<group>"; };
 		FDB7CC1F3F9D0FED2259DF13 /* OffersKanban.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffersKanban.swift; sourceTree = "<group>"; };
 		FEA847C5B5FF2DC3208A4477 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		FF1D20D918AA92956559B805 /* InvoiceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoiceModels.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -194,6 +204,7 @@
 				FB2D9A2A32076F877BB2DDA3 /* Contracts */,
 				5E98885C38319A8FC2EEFEDC /* CRM */,
 				BD783690F62CDFC0767B3419 /* Dashboard */,
+				E9D0864F1B63EEB2990BA755 /* Invoicing */,
 				2BD286CA4BAC9A9F70CD851D /* Modules */,
 				B789DCD528D029F70187A498 /* Offers */,
 				F653AED800FB67AD5E9B7B24 /* Shared */,
@@ -245,6 +256,16 @@
 			path = Auth;
 			sourceTree = "<group>";
 		};
+		E9D0864F1B63EEB2990BA755 /* Invoicing */ = {
+			isa = PBXGroup;
+			children = (
+				D9D30815FFD767385F117684 /* InvoiceDetailScreen.swift */,
+				C910C27816F52CB018BD786D /* InvoiceSheets.swift */,
+				34634FE7A617B48535B916D6 /* InvoicingView.swift */,
+			);
+			path = Invoicing;
+			sourceTree = "<group>";
+		};
 		EC35AA150DC656ACD63CC4AA /* Core */ = {
 			isa = PBXGroup;
 			children = (
@@ -254,6 +275,8 @@
 				1F569435F5CF63531F58DBA9 /* ContractService.swift */,
 				96D15EBD961EA597E938A907 /* CRMModels.swift */,
 				BE7D4ECC8A29650C37690F46 /* Dialer.swift */,
+				FF1D20D918AA92956559B805 /* InvoiceModels.swift */,
+				C8DCC6F112B88D868F25F0E1 /* InvoiceService.swift */,
 				C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */,
 				86E841052BF0F6EE02165321 /* Models.swift */,
 				E5DA416A37DF745C8B2DAFEF /* OfferActions.swift */,
@@ -390,6 +413,11 @@
 				EC2B844B36E843B0531A1D2C /* DocumentRequest.swift in Sources */,
 				A837F389D8C58D0B494FB385 /* EditOffer.swift in Sources */,
 				D065B1E1A3BE61E88E2A79AE /* EquipmentList.swift in Sources */,
+				AB0C2936C8B0346A12C1516A /* InvoiceDetailScreen.swift in Sources */,
+				9A54DBCF27C63E1D0475D00E /* InvoiceModels.swift in Sources */,
+				026E8001714E396B8B527DCF /* InvoiceService.swift in Sources */,
+				861B6586D552EDADDBEADF09 /* InvoiceSheets.swift in Sources */,
+				84BFE4A7396EC2040C633417 /* InvoicingView.swift in Sources */,
 				750308946C6D605A6625F90D /* Keychain.swift in Sources */,
 				C3ABCA156C953EDF405BC2C6 /* LeazrApp.swift in Sources */,
 				C9AD6A6A1019107FFD741665 /* ListScreen.swift in Sources */,
