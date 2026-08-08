@@ -44,7 +44,10 @@ struct MainTabView: View {
     }
 }
 
-/// Index des modules, dans l'ordre de la barre latérale du web.
+/// Modules qui n'ont pas leur place dans la barre d'onglets.
+///
+/// Demandes et Contrats en sont absents : ils y figurent déjà, et les répéter
+/// ici ne ferait qu'allonger la liste.
 struct MoreView: View {
 
     private struct Entry: Identifiable {
@@ -65,22 +68,6 @@ struct MoreView: View {
                 icon: "chart.line.uptrend.xyaxis",
                 tint: Theme.primary,
                 destination: AnyView(CRMView(embedded: true))
-            ),
-            Entry(
-                id: "offers",
-                title: "Demandes",
-                subtitle: "Dossiers de financement en cours",
-                icon: "doc.text.fill",
-                tint: Theme.sky,
-                destination: AnyView(OffersView(embedded: true))
-            ),
-            Entry(
-                id: "contracts",
-                title: "Contrats",
-                subtitle: "Dossiers financés et actifs",
-                icon: "signature",
-                tint: Theme.violet,
-                destination: AnyView(ContractsView(embedded: true))
             ),
             Entry(
                 id: "invoices",
