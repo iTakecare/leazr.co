@@ -10,10 +10,14 @@ struct ContractEquipmentCard: View {
     let item: ContractEquipment
     let companyId: String?
     let contractId: String
+    /// Demande d'origine : le swap la trace aussi, pour que l'indication
+    /// remonte côté dossier.
+    let offerId: String?
     let onChanged: () async -> Void
 
     @State private var isEditingSerials = false
     @State private var isBuyingBack = false
+    @State private var isSwapping = false
 
     var body: some View {
         Card {
@@ -92,6 +96,9 @@ struct ContractEquipmentCard: View {
                         ActionButton(title: "Racheter", icon: "arrow.triangle.2.circlepath", tint: Theme.teal) {
                             isBuyingBack = true
                         }
+                        ActionButton(title: "Swap", icon: "arrow.left.arrow.right", tint: Theme.violet) {
+                            isSwapping = true
+                        }
                     }
                 }
             }
@@ -101,6 +108,11 @@ struct ContractEquipmentCard: View {
         }
         .sheet(isPresented: $isBuyingBack) {
             BuyBackSheet(item: item, contractId: contractId) { await onChanged() }
+        }
+        .sheet(isPresented: $isSwapping) {
+            SwapSheet(contractId: contractId, offerId: offerId, equipment: item) {
+                await onChanged()
+            }
         }
     }
 }

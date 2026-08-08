@@ -305,6 +305,7 @@ struct ContractDetailView: View {
                     item: item,
                     companyId: store.contract?.clientId,
                     contractId: contract.id,
+                    offerId: store.contract?.offerId,
                     onChanged: { await store.load(contractId: contract.id) }
                 )
             }

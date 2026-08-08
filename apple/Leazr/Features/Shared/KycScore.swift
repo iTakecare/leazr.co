@@ -123,3 +123,37 @@ struct KycScoreCard: View {
         }
     }
 }
+
+/// Pastille de filtre avec compteur, partagée par les listes filtrables
+/// (stock, contrats, factures).
+struct StockChip: View {
+    let label: String
+    let count: Int
+    let tint: Color
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.easeOut(duration: 0.18)) { action() }
+        } label: {
+            HStack(spacing: 6) {
+                Text(label).font(.system(size: 13, weight: .semibold))
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(isSelected ? .white : tint)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule().fill(isSelected ? Color.white.opacity(0.28) : tint.opacity(0.16))
+                    )
+            }
+            .foregroundStyle(isSelected ? .white : Theme.mutedForeground)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(isSelected ? tint : Theme.surface))
+        }
+        .buttonStyle(PressableStyle())
+    }
+}
