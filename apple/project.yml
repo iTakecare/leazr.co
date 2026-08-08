@@ -94,7 +94,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: co.leazr.ios
         PRODUCT_NAME: Leazr
         # 2.0 : rupture assumée avec la lignée 1.8.x du wrapper Capacitor.
-        MARKETING_VERSION: "2.0"
+        # 2.1 : six modules portés (demandes, contrats, factures, catalogue,
+        # stock, paramètres). Incrémenter aussi quand ITMS-90382 « Upload limit
+        # reached » tombe : le quota d'envois quotidiens d'Apple se compte PAR
+        # version, une nouvelle version rouvre le droit d'envoyer.
+        MARKETING_VERSION: "2.1"
         CURRENT_PROJECT_VERSION: "1"
         DEVELOPMENT_TEAM: H2TY9H4DPZ
         # Signature automatique : Xcode crée et renouvelle profils et
