@@ -123,15 +123,39 @@ struct Offer: Decodable, Identifiable, Sendable {
     let dossierNumber: String?
     let createdAt: Date?
 
+    /// Type de demande (`admin_offer`, `client_request`, `web_request`) et
+    /// source (`meta`, …) : ce sont les deux axes de filtrage du web.
+    let type: String?
+    let source: String?
+    /// Motif de refus, affiché dans l'onglet « Refusées ».
+    let rejectionCategory: String?
+    /// Modèle de workflow imposé au dossier, prioritaire sur celui déduit du type.
+    let workflowTemplateId: String?
+    let isPurchase: Bool
+    let internalScore: String?
+    let leaserScore: String?
+    let clientId: String?
+
+    /// Colonnes à demander pour construire une liste d'offres filtrable.
+    static let listColumns = """
+        id, client_name, amount, monthly_payment, status, workflow_status, \
+        dossier_number, created_at, type, source, rejection_category, \
+        workflow_template_id, is_purchase, internal_score, leaser_score, client_id
+        """
+
     enum CodingKeys: String, CodingKey {
-        case id
+        case id, amount, status, type, source
         case clientName = "client_name"
-        case amount
         case monthlyPayment = "monthly_payment"
-        case status
         case workflowStatus = "workflow_status"
         case dossierNumber = "dossier_number"
         case createdAt = "created_at"
+        case rejectionCategory = "rejection_category"
+        case workflowTemplateId = "workflow_template_id"
+        case isPurchase = "is_purchase"
+        case internalScore = "internal_score"
+        case leaserScore = "leaser_score"
+        case clientId = "client_id"
     }
 
     init(from decoder: Decoder) throws {
@@ -143,6 +167,14 @@ struct Offer: Decodable, Identifiable, Sendable {
         status = try c.decodeIfPresent(String.self, forKey: .status) ?? "draft"
         workflowStatus = try c.decodeIfPresent(String.self, forKey: .workflowStatus)
         dossierNumber = try c.decodeIfPresent(String.self, forKey: .dossierNumber)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        source = try c.decodeIfPresent(String.self, forKey: .source)
+        rejectionCategory = try c.decodeIfPresent(String.self, forKey: .rejectionCategory)
+        workflowTemplateId = try c.decodeIfPresent(String.self, forKey: .workflowTemplateId)
+        isPurchase = try c.decodeIfPresent(Bool.self, forKey: .isPurchase) ?? false
+        internalScore = try c.decodeIfPresent(String.self, forKey: .internalScore)
+        leaserScore = try c.decodeIfPresent(String.self, forKey: .leaserScore)
+        clientId = try c.decodeIfPresent(String.self, forKey: .clientId)
 
         if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
             createdAt = Format.parseDate(raw)
@@ -155,20 +187,25 @@ struct Offer: Decodable, Identifiable, Sendable {
 // MARK: - Présentation
 
 extension Offer {
-    /// Étape courante : le workflow prime, avec repli sur le statut.
-    var currentStep: String { workflowStatus ?? status }
+    /// Étape courante : le workflow prime, avec repli sur le statut. C'est
+    /// cette valeur que le web affiche et sur laquelle il filtre.
+    var currentStep: String {
+        let step = workflowStatus?.trimmingCharacters(in: .whitespaces) ?? ""
+        return step.isEmpty ? status : step
+    }
 
-    /// Libellé lisible du statut, aligné sur le vocabulaire du web.
-    var statusLabel: String {
-        switch status {
-        case "draft":     return "Brouillon"
-        case "sent":      return "Envoyée"
-        case "accepted":  return "Acceptée"
-        case "signed":    return "Signée"
-        case "rejected":  return "Refusée"
-        case "pending":   return "En attente"
-        case "financed":  return "Financée"
-        default:          return status.capitalized
+    /// Libellé lisible du statut, issu du catalogue partagé avec le web.
+    var statusLabel: String { OfferStatus.label(currentStep) }
+
+    var typeLabel: String {
+        switch type {
+        case "admin_offer":    return "Ma demande"
+        case "client_request": return "Demande client"
+        case "web_request":    return "Demande web"
+        case "ambassador_offer": return "Ambassadeur"
+        case "partner_offer":  return "Partenaire"
+        case let other?:       return other.replacingOccurrences(of: "_", with: " ").capitalized
+        case nil:              return "Demande"
         }
     }
 }
@@ -727,6 +764,18 @@ struct WorkflowStep: Decodable, Identifiable, Sendable {
     let stepDescription: String?
     let stepOrder: Int
     let isRequired: Bool
+    let isVisible: Bool
+
+    /// Une étape de scoring ouvre l'analyse (interne ou leaser) : c'est là que
+    /// le web propose les scores A/B/C/D plutôt qu'un simple changement d'étape.
+    let enablesScoring: Bool
+    let scoringType: String?
+
+    /// Destinations configurées par l'administrateur. Elles priment sur les
+    /// statuts par défaut (`internal_approved`…) quand elles sont renseignées.
+    let nextStepOnApproval: String?
+    let nextStepOnRejection: String?
+    let nextStepOnDocsRequested: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -735,16 +784,60 @@ struct WorkflowStep: Decodable, Identifiable, Sendable {
         case stepDescription = "step_description"
         case stepOrder = "step_order"
         case isRequired = "is_required"
+        case isVisible = "is_visible"
+        case enablesScoring = "enables_scoring"
+        case scoringType = "scoring_type"
+        case nextStepOnApproval = "next_step_on_approval"
+        case nextStepOnRejection = "next_step_on_rejection"
+        case nextStepOnDocsRequested = "next_step_on_docs_requested"
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(String.self, forKey: .id)
+        // La RPC `get_workflow_for_offer_type` ne renvoie pas d'`id` de ligne :
+        // la clé d'étape identifie déjà l'élément de façon stable.
+        id = (try? c.decode(String.self, forKey: .id))
+            ?? (try? c.decode(String.self, forKey: .stepKey))
+            ?? UUID().uuidString
         stepKey = try c.decodeIfPresent(String.self, forKey: .stepKey) ?? ""
         stepLabel = try c.decodeIfPresent(String.self, forKey: .stepLabel) ?? ""
         stepDescription = try c.decodeIfPresent(String.self, forKey: .stepDescription)
         stepOrder = try c.decodeIfPresent(Int.self, forKey: .stepOrder) ?? 0
         isRequired = try c.decodeIfPresent(Bool.self, forKey: .isRequired) ?? false
+        isVisible = try c.decodeIfPresent(Bool.self, forKey: .isVisible) ?? true
+        enablesScoring = try c.decodeIfPresent(Bool.self, forKey: .enablesScoring) ?? false
+        scoringType = try c.decodeIfPresent(String.self, forKey: .scoringType)
+        nextStepOnApproval = try c.decodeIfPresent(String.self, forKey: .nextStepOnApproval)
+        nextStepOnRejection = try c.decodeIfPresent(String.self, forKey: .nextStepOnRejection)
+        nextStepOnDocsRequested = try c.decodeIfPresent(String.self, forKey: .nextStepOnDocsRequested)
+    }
+}
+
+/// Modèle de secours quand la société n'a pas de workflow configuré, repris de
+/// `defaultSteps` dans `LeazrWorkflowStepper.tsx`.
+extension WorkflowStep {
+    static let defaults: [WorkflowStep] = [
+        make("draft", "Brouillon", 1),
+        make("internal_review", "Analyse interne", 2, scoring: "internal"),
+        make("sent", "Offre envoyée", 3),
+        make("leaser_review", "Analyse Leaser", 4, scoring: "leaser"),
+        make("validated", "Contrat prêt", 5),
+    ]
+
+    private static func make(
+        _ key: String,
+        _ label: String,
+        _ order: Int,
+        scoring: String? = nil
+    ) -> WorkflowStep {
+        let json = """
+        {"id":"\(key)","step_key":"\(key)","step_label":"\(label)","step_order":\(order),
+         "is_required":true,"is_visible":true,"enables_scoring":\(scoring != nil),
+         "scoring_type":\(scoring.map { "\"\($0)\"" } ?? "null")}
+        """
+        // Forcé : le littéral est fixe et valide, une erreur ici serait un bug
+        // de compilation déguisé.
+        return try! JSONDecoder().decode(WorkflowStep.self, from: Data(json.utf8))
     }
 }
 

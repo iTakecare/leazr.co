@@ -11,6 +11,21 @@ final class OffersStore {
     var errorMessage: String?
     var search = ""
 
+    /// Filtres, calqués un pour un sur `useOfferFilters.ts`.
+    var tab: OfferTab = .inProgress
+    var type: OfferTypeFilter = .all
+    var source: OfferSourceFilter = .all
+    var rejectType: String = "all"
+    var motif: String = "all"
+
+    /// Changer d'onglet réinitialise les filtres qui lui sont propres, comme
+    /// le fait `setActiveTab` côté web.
+    func select(tab newTab: OfferTab) {
+        tab = newTab
+        rejectType = "all"
+        motif = "all"
+    }
+
     /// Les offres visibles sont déjà filtrées par les politiques RLS côté
     /// serveur : inutile de passer un company_id depuis le client.
     func load() async {
@@ -20,9 +35,9 @@ final class OffersStore {
         do {
             offers = try await Backend.client
                 .from("offers")
-                .select("id, client_name, amount, monthly_payment, status, workflow_status, dossier_number, created_at")
+                .select(Offer.listColumns)
                 .order("created_at", ascending: false)
-                .limit(100)
+                .limit(300)
                 .execute()
                 .value
             errorMessage = nil
@@ -31,13 +46,65 @@ final class OffersStore {
         }
     }
 
+    /// Nombre de dossiers par onglet, avant application des autres filtres :
+    /// le compteur doit refléter la charge réelle de chaque file.
+    func count(for tab: OfferTab) -> Int {
+        offers.filter { tab.matches($0) }.count
+    }
+
     var filtered: [Offer] {
-        guard !search.isEmpty else { return offers }
-        let q = search.lowercased()
-        return offers.filter {
-            $0.clientName.lowercased().contains(q)
-                || ($0.dossierNumber?.lowercased().contains(q) ?? false)
+        var result = offers.filter { tab.matches($0) }
+
+        if tab == .rejected, rejectType != "all" {
+            result = result.filter {
+                ($0.workflowStatus ?? "").trimmingCharacters(in: .whitespaces).lowercased() == rejectType
+            }
         }
+
+        if tab == .rejected, motif != "all" {
+            result = result.filter { ($0.rejectionCategory ?? "unknown") == motif }
+        }
+
+        if type != .all {
+            result = result.filter { $0.type == type.rawValue }
+        }
+
+        switch source {
+        case .all:
+            break
+        case .meta:
+            result = result.filter { $0.source == "meta" }
+        case .customPack:
+            result = result.filter { $0.source == "custom_pack" }
+        case .webCatalog:
+            result = result.filter { $0.source != "meta" && $0.source != "custom_pack" }
+        }
+
+        if !search.isEmpty {
+            let q = search.lowercased()
+            result = result.filter {
+                $0.clientName.lowercased().contains(q)
+                    || ($0.dossierNumber?.lowercased().contains(q) ?? false)
+                    || String(format: "%.0f", $0.amount).contains(q)
+                    || String(format: "%.0f", $0.monthlyPayment).contains(q)
+                    || $0.id.lowercased().contains(q)
+            }
+        }
+
+        return result
+    }
+
+    /// Un filtre secondaire actif mérite d'être signalé : sinon une liste vide
+    /// passe pour une absence de dossiers.
+    var hasSecondaryFilter: Bool {
+        type != .all || source != .all || rejectType != "all" || motif != "all"
+    }
+
+    func resetSecondaryFilters() {
+        type = .all
+        source = .all
+        rejectType = "all"
+        motif = "all"
     }
 }
 
@@ -45,19 +112,25 @@ struct OffersView: View {
 
     @State private var store = OffersStore()
     @State private var isCreating = false
+    @State private var isFiltering = false
 
     var body: some View {
         NavigationStack {
-            Group {
-                if store.offers.isEmpty && store.isLoading {
-                    ProgressView().tint(Theme.mutedForeground)
-                } else if store.filtered.isEmpty {
-                    emptyState
-                } else {
-                    list
+            VStack(spacing: 0) {
+                tabBar
+
+                Group {
+                    if store.offers.isEmpty && store.isLoading {
+                        ProgressView().tint(Theme.mutedForeground)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if store.filtered.isEmpty {
+                        emptyState
+                    } else {
+                        list
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.background.ignoresSafeArea())
             .navigationTitle("Offres")
             .toolbar {
@@ -67,13 +140,67 @@ struct OffersView: View {
                         Image(systemName: "plus.circle.fill").font(.system(size: 20))
                     }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { isFiltering = true } label: {
+                        Image(systemName: store.hasSecondaryFilter
+                            ? "line.3.horizontal.decrease.circle.fill"
+                            : "line.3.horizontal.decrease.circle")
+                            .font(.system(size: 19))
+                    }
+                }
             }
             .sheet(isPresented: $isCreating) {
                 CreateOfferView { Task { await store.load() } }
             }
-            .searchable(text: Bindable(store).search, prompt: "Client ou n° de dossier")
+            .sheet(isPresented: $isFiltering) {
+                OfferFilterSheet(store: store)
+                    .presentationDetents([.medium, .large])
+            }
+            .searchable(text: Bindable(store).search, prompt: "Client, n° de dossier ou montant")
             .refreshable { await store.load() }
             .task { if store.offers.isEmpty { await store.load() } }
+        }
+    }
+
+    // MARK: - Onglets
+
+    /// Les onglets du web transposés en barre défilante : cinq files, chacune
+    /// avec son compteur, pour savoir d'un coup d'œil où est la charge.
+    private var tabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(OfferTab.allCases) { tab in
+                    let isActive = store.tab == tab
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        withAnimation(.easeOut(duration: 0.18)) { store.select(tab: tab) }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(tab.title)
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("\(store.count(for: tab))")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(isActive ? .white : tab.tint)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(isActive
+                                        ? Color.white.opacity(0.28)
+                                        : tab.tint.opacity(0.16))
+                                )
+                        }
+                        .foregroundStyle(isActive ? .white : Theme.mutedForeground)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule().fill(isActive ? tab.tint : Theme.surface)
+                        )
+                    }
+                    .buttonStyle(PressableStyle())
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
         }
     }
 
@@ -93,7 +220,8 @@ struct OffersView: View {
                     .buttonStyle(PressableStyle())
                 }
             }
-            .padding(20)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity)
         }
@@ -105,12 +233,109 @@ struct OffersView: View {
                 .font(.system(size: 42, weight: .light))
                 .foregroundStyle(Theme.mutedForeground)
 
-            Text(store.search.isEmpty ? "Aucune offre" : "Aucun résultat")
+            Text(store.search.isEmpty ? "Aucune demande" : "Aucun résultat")
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(Theme.foreground)
+
+            if store.hasSecondaryFilter {
+                Button("Réinitialiser les filtres") { store.resetSecondaryFilters() }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.primary)
+            }
         }
     }
 }
+
+// MARK: - Filtres secondaires
+
+/// Type, source, et — dans l'onglet « Refusées » — nature et motif du rejet.
+struct OfferFilterSheet: View {
+
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var store: OffersStore
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 18) {
+                    FormSection(title: "Type de demande") {
+                        VStack(spacing: 8) {
+                            ForEach(OfferTypeFilter.allCases) { option in
+                                MotifChoiceRow(
+                                    label: option.title,
+                                    isSelected: store.type == option
+                                ) { store.type = option }
+                            }
+                        }
+                    }
+
+                    FormSection(title: "Source") {
+                        VStack(spacing: 8) {
+                            ForEach(OfferSourceFilter.allCases) { option in
+                                MotifChoiceRow(
+                                    label: option.title,
+                                    isSelected: store.source == option
+                                ) { store.source = option }
+                            }
+                        }
+                    }
+
+                    if store.tab == .rejected {
+                        FormSection(title: "Type de rejet") {
+                            VStack(spacing: 8) {
+                                MotifChoiceRow(
+                                    label: "Tous les rejets",
+                                    isSelected: store.rejectType == "all"
+                                ) { store.rejectType = "all" }
+                                MotifChoiceRow(
+                                    label: "Rejet interne",
+                                    isSelected: store.rejectType == "internal_rejected"
+                                ) { store.rejectType = "internal_rejected" }
+                                MotifChoiceRow(
+                                    label: "Rejet leaser",
+                                    isSelected: store.rejectType == "leaser_rejected"
+                                ) { store.rejectType = "leaser_rejected" }
+                            }
+                        }
+
+                        FormSection(title: "Motif du refus") {
+                            VStack(spacing: 8) {
+                                MotifChoiceRow(
+                                    label: "Tous les motifs",
+                                    isSelected: store.motif == "all"
+                                ) { store.motif = "all" }
+
+                                ForEach(OfferMotif.rejection, id: \.code) { option in
+                                    MotifChoiceRow(
+                                        label: option.label,
+                                        isSelected: store.motif == option.code
+                                    ) { store.motif = option.code }
+                                }
+                            }
+                        }
+                    }
+
+                    TertiaryButton(title: "Tout réinitialiser", systemImage: "arrow.counterclockwise") {
+                        store.resetSecondaryFilters()
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
+            }
+            .background(Theme.background.ignoresSafeArea())
+            .navigationTitle("Filtrer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Terminé") { dismiss() }.fontWeight(.semibold)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Ligne de liste
 
 struct OfferRow: View {
     let offer: Offer
@@ -133,15 +358,10 @@ struct OfferRow: View {
 
                 Spacer(minLength: 8)
 
-                VStack(alignment: .trailing, spacing: 5) {
-                    StatusBadge(label: offer.statusLabel, status: offer.status)
-
-                    // L'étape du workflow est ce qui dit réellement où en est
-                    // le dossier : elle mérite d'être lisible dès la liste.
-                    if let step = offer.workflowStatus, !step.isEmpty, step != offer.status {
-                        WorkflowChip(key: step)
-                    }
-                }
+                // Un seul badge, mais le bon : le statut du workflow, celui
+                // qu'affiche le web. Deux badges concurrents brouillaient la
+                // lecture pour la même information.
+                StatusBadge(status: offer.currentStep)
             }
 
             Divider().overlay(Theme.border)
@@ -168,9 +388,28 @@ struct OfferRow: View {
                 }
             }
 
-            Text(Format.date(offer.createdAt))
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.mutedForeground)
+            HStack(spacing: 8) {
+                Text(Format.date(offer.createdAt))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.mutedForeground)
+
+                Text("·")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.mutedForeground)
+
+                Text(offer.typeLabel)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.mutedForeground)
+
+                Spacer(minLength: 0)
+
+                if let score = offer.internalScore, !score.isEmpty {
+                    ScoreChip(letter: score, family: "I")
+                }
+                if let score = offer.leaserScore, !score.isEmpty {
+                    ScoreChip(letter: score, family: "L")
+                }
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -181,62 +420,66 @@ struct OfferRow: View {
     }
 }
 
+/// Badge de statut : libellé français et couleur issus du catalogue partagé
+/// avec le web.
 struct StatusBadge: View {
-    let label: String
     let status: String
+    var showIcon = true
 
-    private var tint: Color {
-        switch status {
-        case "signed", "accepted", "financed": return .green
-        case "rejected":                       return Theme.destructive
-        case "sent", "pending":                return .orange
-        default:                               return Theme.mutedForeground
-        }
+    /// Variante utilisée par les documents, qui portent leur propre libellé.
+    init(label: String, status: String) {
+        self.status = status
+        self.explicitLabel = label
+        self.showIcon = false
     }
 
+    init(status: String, showIcon: Bool = true) {
+        self.status = status
+        self.explicitLabel = nil
+        self.showIcon = showIcon
+    }
+
+    private let explicitLabel: String?
+
+    private var label: String { explicitLabel ?? OfferStatus.label(status) }
+    private var tint: Color { OfferStatus.tint(status) }
+
     var body: some View {
-        Text(label)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(tint)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(tint.opacity(0.14)))
+        HStack(spacing: 5) {
+            if showIcon {
+                Image(systemName: OfferStatus.icon(status))
+                    .font(.system(size: 10, weight: .bold))
+            }
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(tint.opacity(0.14)))
     }
 }
 
+/// Score d'analyse (A/B/C/D), interne ou leaser.
+struct ScoreChip: View {
+    let letter: String
+    let family: String
 
-
-/// Étape de workflow, affichée dès la liste des demandes.
-struct WorkflowChip: View {
-    let key: String
-
-    private var label: String {
-        key.replacingOccurrences(of: "_", with: " ").capitalized
-    }
-
-    /// La couleur suit l'issue de l'étape : approuvé, refusé, en attente.
     private var tint: Color {
-        if key.contains("approved") || key.contains("signed") || key.contains("financed") {
-            return Theme.emerald
+        switch letter.uppercased() {
+        case "A": return Theme.emerald
+        case "B": return Theme.amber
+        case "C": return Theme.destructive
+        default:  return Theme.mutedForeground
         }
-        if key.contains("rejected") || key.contains("without_follow") {
-            return Theme.destructive
-        }
-        if key.contains("docs") || key.contains("pending") || key.contains("sent") {
-            return Theme.amber
-        }
-        return Theme.violet
     }
 
     var body: some View {
-        HStack(spacing: 4) {
-            Circle().fill(tint).frame(width: 6, height: 6)
-            Text(label)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(tint)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Capsule().fill(tint.opacity(0.13)))
+        Text("\(family) \(letter.uppercased())")
+            .font(.system(size: 10, weight: .black))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(tint.opacity(0.15)))
     }
 }

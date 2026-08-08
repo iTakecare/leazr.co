@@ -134,13 +134,25 @@ struct PrimaryButton: View {
 /// Action secondaire, sans fond.
 struct TertiaryButton: View {
     let title: String
+    var systemImage: String?
     let action: () -> Void
+
+    init(title: String, systemImage: String? = nil, action: @escaping () -> Void) {
+        self.title = title
+        self.systemImage = systemImage
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Theme.primary)
+            HStack(spacing: 7) {
+                if let systemImage {
+                    Image(systemName: systemImage).font(.system(size: 14, weight: .semibold))
+                }
+                Text(title)
+                    .font(.system(size: 16, weight: .medium))
+            }
+            .foregroundStyle(Theme.primary)
         }
         .buttonStyle(PressableStyle())
     }
