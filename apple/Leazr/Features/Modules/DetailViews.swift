@@ -107,8 +107,22 @@ final class ClientDetailStore {
 }
 
 struct ClientDetailView: View {
-    let client: Client
+
+    /// Fiche telle qu'elle a été ouverte. L'édition renvoie la version
+    /// enregistrée par le serveur, qui prend alors le dessus.
+    private let initialClient: Client
+    var onChange: ((Client) -> Void)?
+
+    init(client: Client, onChange: ((Client) -> Void)? = nil) {
+        self.initialClient = client
+        self.onChange = onChange
+    }
+
     @State private var store = ClientDetailStore()
+    @State private var edited: Client?
+    @State private var isEditing = false
+
+    private var client: Client { edited ?? initialClient }
 
     var body: some View {
         ScrollView {
@@ -245,6 +259,23 @@ struct ClientDetailView: View {
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle(client.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { isEditing = true } label: {
+                    Image(systemName: "square.and.pencil").font(.system(size: 17))
+                }
+            }
+        }
+        .sheet(isPresented: $isEditing) {
+            ClientFormSheet(existing: client) { saved in
+                guard let saved else { return }
+                edited = saved
+                onChange?(saved)
+                // Le nom est la clé de rapprochement des dossiers : s'il a
+                // changé, la liste des offres et contrats doit être refaite.
+                await store.load(clientName: saved.name)
+            }
+        }
         .task {
             await store.load(clientName: client.name)
             await store.loadKYC(clientId: client.id)
@@ -270,19 +301,23 @@ struct ClientDetailView: View {
 /// Titre de section avec compteur, réutilisé dans les fiches.
 struct SectionHeader: View {
     let title: String
-    let count: Int
+    /// Le compteur est facultatif : toutes les sections ne dénombrent pas
+    /// quelque chose.
+    var count: Int?
 
     var body: some View {
         HStack {
             Text(title)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.foreground)
-            Text("\(count)")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.mutedForeground)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(Capsule().fill(Theme.border.opacity(0.5)))
+            if let count {
+                Text("\(count)")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.mutedForeground)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Theme.border.opacity(0.5)))
+            }
             Spacer()
         }
         .padding(.top, 8)
@@ -309,18 +344,33 @@ final class OfferEquipmentStore {
 
 /// Appeler, écrire, ouvrir l'itinéraire — les trois gestes d'une fiche client
 /// en mobilité. Chaque bouton n'apparaît que si la donnée existe.
+/// Appeler, écrire, s'y rendre. Prend des coordonnées brutes plutôt qu'un type
+/// précis : elles viennent aussi bien d'une fiche client que d'une affaire.
 struct ContactActions: View {
-    let client: Client
+    let phone: String?
+    let email: String?
+    let address: String?
+
+    init(phone: String?, email: String?, address: String?) {
+        self.phone = phone
+        self.email = email
+        self.address = address
+    }
+
+    init(client: Client) {
+        self.init(phone: client.phone, email: client.email, address: client.fullAddress)
+    }
 
     var body: some View {
         HStack(spacing: 10) {
-            if let phone = client.phone, let url = URL(string: "tel://\(phone.filter { !$0.isWhitespace })") {
+            if let phone, !phone.isEmpty,
+               let url = URL(string: "tel://\(phone.filter { !$0.isWhitespace })") {
                 ContactAction(icon: "phone.fill", label: "Appeler", tint: Theme.emerald, url: url)
             }
-            if let email = client.email, let url = URL(string: "mailto:\(email)") {
+            if let email, !email.isEmpty, let url = URL(string: "mailto:\(email)") {
                 ContactAction(icon: "envelope.fill", label: "E-mail", tint: Theme.sky, url: url)
             }
-            if let address = client.fullAddress,
+            if let address, !address.isEmpty,
                let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
                let url = URL(string: "http://maps.apple.com/?q=\(encoded)") {
                 ContactAction(icon: "map.fill", label: "Itinéraire", tint: Theme.violet, url: url)

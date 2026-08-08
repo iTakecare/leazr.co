@@ -232,6 +232,17 @@ enum Format {
         return f.string(from: value)
     }
 
+    /// Date et heure — indispensable pour un horodatage de signature, où la
+    /// seule date ne suffit pas à établir la chronologie.
+    static func dateTime(_ value: Date?) -> String {
+        guard let value else { return "—" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_BE")
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f.string(from: value)
+    }
+
     /// Postgres renvoie de l'ISO 8601 avec une précision variable sur les
     /// fractions de seconde, et parfois une simple date. On essaie les trois
     /// formes plutôt que d'en imposer une et perdre la valeur.

@@ -34,6 +34,9 @@ struct LeazrField: View {
     var isSecure = false
     var textContentType: UITextContentType?
     var keyboardType: UIKeyboardType = .default
+    /// Un identifiant se saisit en minuscules, un nom de personne non : le
+    /// champ ne peut pas imposer la même règle partout.
+    var autocapitalization: TextInputAutocapitalization = .never
 
     @FocusState private var isFocused: Bool
     @State private var isRevealed = false
@@ -55,7 +58,7 @@ struct LeazrField: View {
             .focused($isFocused)
             .textContentType(textContentType)
             .keyboardType(keyboardType)
-            .textInputAutocapitalization(.never)
+            .textInputAutocapitalization(autocapitalization)
             .autocorrectionDisabled()
             .font(.system(size: 17))
             .foregroundStyle(Theme.foreground)

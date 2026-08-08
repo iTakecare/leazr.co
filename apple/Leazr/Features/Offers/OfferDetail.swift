@@ -9,6 +9,7 @@ final class OfferDetailStore {
     private(set) var equipment: [OfferEquipment] = []
     private(set) var documents: [OfferDocument] = []
     private(set) var calls: [CallLog] = []
+    private(set) var signature: OfferSignature?
     private(set) var isWorking = false
     var errorMessage: String?
 
@@ -16,7 +17,20 @@ final class OfferDetailStore {
         async let e: Void = loadEquipment(offerId)
         async let d: Void = loadDocuments(offerId)
         async let c: Void = loadCalls(offerId)
-        _ = await (e, d, c)
+        async let s: Void = loadSignature(offerId)
+        _ = await (e, d, c, s)
+    }
+
+    /// Les traces de signature ne sont pas dans la liste : elles sont lourdes
+    /// (l'image en base64) et n'ont d'intérêt qu'ouvert sur le dossier.
+    func loadSignature(_ offerId: String) async {
+        let rows: [OfferSignature] = (try? await Backend.client
+            .from("offers")
+            .select(OfferSignature.columns)
+            .eq("id", value: offerId)
+            .limit(1)
+            .execute().value) ?? []
+        signature = rows.first
     }
 
     private func loadEquipment(_ offerId: String) async {
@@ -79,12 +93,15 @@ struct OfferDetailView: View {
     @State private var section: Section = .summary
     @State private var isChangingStep = false
     @State private var isScoring = false
+    @State private var isSigning = false
+    @State private var isRequestingDocuments = false
     @State private var currentStatus: String = ""
     @State private var logs: [WorkflowLog] = []
 
     enum Section: String, CaseIterable {
         case summary = "Résumé"
         case documents = "Documents"
+        case signature = "Signature"
         case calls = "Appels"
     }
 
@@ -115,6 +132,7 @@ struct OfferDetailView: View {
                 switch section {
                 case .summary:   summarySection
                 case .documents: documentsSection
+                case .signature: signatureSection
                 case .calls:     callsSection
                 }
             }
@@ -162,6 +180,21 @@ struct OfferDetailView: View {
                     }
                     return ok
                 }
+            }
+        }
+        .sheet(isPresented: $isSigning) {
+            SignatureSheet(offer: offer) {
+                // La signature bascule le dossier en « approved » côté serveur :
+                // l'écran doit refléter ce nouvel état sans rechargement manuel.
+                currentStatus = "approved"
+                await store.loadSignature(offer.id)
+                logs = await workflow.loadLogs(offerId: offer.id)
+                section = .signature
+            }
+        }
+        .sheet(isPresented: $isRequestingDocuments) {
+            DocumentRequestSheet(offerId: offer.id) {
+                await store.load(offerId: offer.id)
             }
         }
         .task {
@@ -333,8 +366,12 @@ struct OfferDetailView: View {
 
     private var documentsSection: some View {
         VStack(spacing: 12) {
+            PrimaryButton(title: "Demander des documents", systemImage: "paperplane.fill") {
+                isRequestingDocuments = true
+            }
+
             if store.documents.isEmpty {
-                EmptyHint(icon: "doc.on.doc", label: "Aucun document")
+                EmptyHint(icon: "doc.on.doc", label: "Aucun document reçu")
             }
 
             ForEach(store.documents) { doc in
@@ -388,6 +425,94 @@ struct OfferDetailView: View {
                                 }
                             }
                             .disabled(store.isWorking)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Signature
+
+    /// Deux chemins vers la signature : à distance par le lien envoyé au
+    /// client, ou en présence avec l'iPad tendu au client. Le second est ce que
+    /// le web ne sait pas faire.
+    private var signatureSection: some View {
+        VStack(spacing: 14) {
+            if let signature = store.signature, signature.isSigned {
+                SignatureCard(signature: signature)
+            } else {
+                Card {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "signature")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Theme.violet)
+                            Text("Offre non signée")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Theme.foreground)
+                            Spacer()
+                        }
+                        Text("Faites signer le client sur l'appareil, ou envoyez-lui le lien de signature.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.mutedForeground)
+                    }
+                }
+
+                PrimaryButton(title: "Faire signer maintenant", systemImage: "signature") {
+                    isSigning = true
+                }
+            }
+
+            SectionHeader(title: "Lien de signature", count: nil)
+
+            if let link = SignatureStore.link(offerId: offer.id) {
+                Card {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(link.absoluteString)
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(Theme.mutedForeground)
+                            .lineLimit(2)
+                            .textSelection(.enabled)
+
+                        HStack(spacing: 10) {
+                            ActionButton(title: "Copier", icon: "doc.on.doc", tint: Theme.sky) {
+                                UIPasteboard.general.string = link.absoluteString
+                                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            }
+
+                            ShareLink(item: link) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 13, weight: .bold))
+                                    Text("Partager").font(.system(size: 14, weight: .semibold))
+                                }
+                                .foregroundStyle(Theme.violet)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 40)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(Theme.violet.opacity(0.13))
+                                )
+                            }
+                        }
+
+                        // Le client relit l'offre exactement comme il la verra :
+                        // c'est la page publique, pas une reconstitution.
+                        Link(destination: link) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "safari")
+                                    .font(.system(size: 13, weight: .bold))
+                                Text("Ouvrir la page client")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundStyle(Theme.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Theme.primary.opacity(0.13))
+                            )
                         }
                     }
                 }

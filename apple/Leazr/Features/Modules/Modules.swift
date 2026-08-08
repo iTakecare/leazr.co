@@ -112,16 +112,23 @@ struct ClientsView: View {
         }
     )
 
+    @State private var isCreating = false
+
     var body: some View {
         ListScreen(
             title: "Clients",
             searchPrompt: "Nom, société ou e-mail",
             emptyIcon: "person.2",
             emptyLabel: "Aucun client",
+            onCreate: { isCreating = true },
             store: store
         ) { client in
             NavigationLink {
-                ClientDetailView(client: client)
+                // Une modification doit se voir dans la liste sans avoir à
+                // tirer pour rafraîchir.
+                ClientDetailView(client: client) { _ in
+                    Task { await store.load() }
+                }
             } label: {
             Card {
                 HStack(spacing: 14) {
@@ -158,6 +165,9 @@ struct ClientsView: View {
             }
             }
             .buttonStyle(PressableStyle())
+        }
+        .sheet(isPresented: $isCreating) {
+            ClientFormSheet { _ in await store.load() }
         }
     }
 }

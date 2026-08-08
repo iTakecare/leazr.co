@@ -10,7 +10,7 @@ struct MainTabView: View {
     @State private var selection: Tab = .dashboard
 
     enum Tab: Hashable {
-        case dashboard, offers, contracts, clients, catalog, invoices, support, settings
+        case dashboard, offers, crm, contracts, clients, catalog, invoices, support, settings
     }
 
     var body: some View {
@@ -22,6 +22,12 @@ struct MainTabView: View {
             OffersView()
                 .tabItem { Label("Offres", systemImage: "doc.text.fill") }
                 .tag(Tab.offers)
+
+            // Le CRM précède les contrats : c'est là que se passe la journée
+            // d'un commercial, avant qu'un dossier n'existe.
+            CRMView()
+                .tabItem { Label("Affaires", systemImage: "chart.line.uptrend.xyaxis") }
+                .tag(Tab.crm)
 
             ContractsView()
                 .tabItem { Label("Contrats", systemImage: "signature") }

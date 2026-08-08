@@ -68,6 +68,8 @@ struct ListScreen<Item: Decodable & Identifiable & Sendable, Row: View>: View {
     let searchPrompt: String
     let emptyIcon: String
     let emptyLabel: String
+    /// Bouton « + » de la barre, quand l'écran sait créer un élément.
+    var onCreate: (() -> Void)?
     @Bindable var store: ListStore<Item>
     @ViewBuilder let row: (Item) -> Row
 
@@ -95,7 +97,16 @@ struct ListScreen<Item: Decodable & Identifiable & Sendable, Row: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.background.ignoresSafeArea())
             .navigationTitle(title)
-            .toolbar { ProfileMenu() }
+            .toolbar {
+                ProfileMenu()
+                if let onCreate {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: onCreate) {
+                            Image(systemName: "plus.circle.fill").font(.system(size: 20))
+                        }
+                    }
+                }
+            }
             .searchable(text: $store.search, prompt: searchPrompt)
             .refreshable { await store.load() }
             .task { if store.items.isEmpty { await store.load() } }
