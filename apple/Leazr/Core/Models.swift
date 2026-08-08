@@ -533,11 +533,25 @@ struct OfferEquipment: Decodable, Identifiable, Sendable {
     let quantity: Int
     let purchasePrice: Double
     let monthlyPayment: Double
+    /// Marge en pourcentage appliquée au prix d'achat.
+    let margin: Double
+    /// Prix de vente **unitaire** — la base stocke l'unitaire ici, alors que
+    /// `monthly_payment` est le total de la ligne. Confondre les deux fausse
+    /// tous les recalculs.
+    let sellingPrice: Double
+    let serialNumber: String?
+
+    static let columns = """
+        id, title, quantity, purchase_price, monthly_payment, margin, \
+        selling_price, serial_number
+        """
 
     enum CodingKeys: String, CodingKey {
-        case id, title, quantity
+        case id, title, quantity, margin
         case purchasePrice = "purchase_price"
         case monthlyPayment = "monthly_payment"
+        case sellingPrice = "selling_price"
+        case serialNumber = "serial_number"
     }
 
     init(from decoder: Decoder) throws {
@@ -547,6 +561,9 @@ struct OfferEquipment: Decodable, Identifiable, Sendable {
         quantity = try c.decodeIfPresent(Int.self, forKey: .quantity) ?? 1
         purchasePrice = try c.decodeIfPresent(Double.self, forKey: .purchasePrice) ?? 0
         monthlyPayment = try c.decodeIfPresent(Double.self, forKey: .monthlyPayment) ?? 0
+        margin = try c.decodeIfPresent(Double.self, forKey: .margin) ?? 0
+        sellingPrice = try c.decodeIfPresent(Double.self, forKey: .sellingPrice) ?? 0
+        serialNumber = try c.decodeIfPresent(String.self, forKey: .serialNumber)
     }
 }
 

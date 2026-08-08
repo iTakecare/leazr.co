@@ -188,6 +188,13 @@ enum OfferStatusService {
         return rows.compactMap(\.sourceStockItemId)
     }
 
+    /// Relibère le matériel d'une demande dont on connaît déjà la société.
+    /// Utilisé aussi avant une suppression, où le dossier va disparaître.
+    static func releaseReservedStock(offerId: String) async -> Int {
+        let context = await offerContext(offerId)
+        return await releaseStock(offerId: offerId, companyId: context?.companyId)
+    }
+
     /// Relibère le matériel réservé pour une demande morte, et trace chaque
     /// mouvement — c'est ce que fait `releaseStockReservationsForOffer`.
     private static func releaseStock(offerId: String, companyId: String?) async -> Int {

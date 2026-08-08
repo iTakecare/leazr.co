@@ -10,15 +10,44 @@ final class OfferDetailStore {
     private(set) var documents: [OfferDocument] = []
     private(set) var calls: [CallLog] = []
     private(set) var signature: OfferSignature?
+    private(set) var commission: Commission?
     private(set) var isWorking = false
     var errorMessage: String?
+
+    /// Commission du dossier, telle que l'affiche `OfferCommissionCard`.
+    struct Commission: Decodable, Sendable {
+        let amount: Double
+        let status: String?
+
+        enum CodingKeys: String, CodingKey {
+            case amount = "commission"
+            case status = "commission_status"
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            amount = try c.decodeIfPresent(Double.self, forKey: .amount) ?? 0
+            status = try c.decodeIfPresent(String.self, forKey: .status)
+        }
+    }
 
     func load(offerId: String) async {
         async let e: Void = loadEquipment(offerId)
         async let d: Void = loadDocuments(offerId)
         async let c: Void = loadCalls(offerId)
         async let s: Void = loadSignature(offerId)
-        _ = await (e, d, c, s)
+        async let m: Void = loadCommission(offerId)
+        _ = await (e, d, c, s, m)
+    }
+
+    private func loadCommission(_ offerId: String) async {
+        let rows: [Commission] = (try? await Backend.client
+            .from("offers")
+            .select("commission, commission_status")
+            .eq("id", value: offerId)
+            .limit(1)
+            .execute().value) ?? []
+        commission = rows.first
     }
 
     /// Les traces de signature ne sont pas dans la liste : elles sont lourdes
@@ -36,7 +65,7 @@ final class OfferDetailStore {
     private func loadEquipment(_ offerId: String) async {
         equipment = (try? await Backend.client
             .from("offer_equipment")
-            .select("id, title, quantity, purchase_price, monthly_payment")
+            .select(OfferEquipment.columns)
             .eq("offer_id", value: offerId)
             .execute().value) ?? []
     }
@@ -99,11 +128,32 @@ struct OfferDetailView: View {
     @State private var logs: [WorkflowLog] = []
     @State private var transitionNote: String?
 
-    enum Section: String, CaseIterable {
+    /// Huit sections valent mieux qu'un écran interminable : le segmenté
+    /// devient une barre défilante, chacune ne charge que ce qui la concerne.
+    enum Section: String, CaseIterable, Identifiable {
         case summary = "Résumé"
+        case actions = "Actions"
         case documents = "Documents"
         case signature = "Signature"
+        case notes = "Notes"
+        case analysis = "Analyse"
+        case leaser = "Bailleur"
         case calls = "Appels"
+
+        var id: String { rawValue }
+
+        var icon: String {
+            switch self {
+            case .summary:   return "doc.text"
+            case .actions:   return "bolt.fill"
+            case .documents: return "paperclip"
+            case .signature: return "signature"
+            case .notes:     return "note.text"
+            case .analysis:  return "chart.pie"
+            case .leaser:    return "building.columns"
+            case .calls:     return "phone"
+            }
+        }
     }
 
     var body: some View {
@@ -133,21 +183,20 @@ struct OfferDetailView: View {
                     tint: Theme.primary
                 )
 
-                Picker("Section", selection: $section) {
-                    ForEach(Section.allCases, id: \.self) { s in
-                        if s == .documents, store.pendingDocuments > 0 {
-                            Text("\(s.rawValue) (\(store.pendingDocuments))").tag(s)
-                        } else {
-                            Text(s.rawValue).tag(s)
-                        }
-                    }
-                }
-                .pickerStyle(.segmented)
+                sectionBar
 
                 switch section {
                 case .summary:   summarySection
+                case .actions:
+                    OfferActionsSection(offer: offer, signature: store.signature) {
+                        await store.load(offerId: offer.id)
+                        logs = await workflow.loadLogs(offerId: offer.id)
+                    }
                 case .documents: documentsSection
                 case .signature: signatureSection
+                case .notes:     OfferNotesSection(offerId: offer.id)
+                case .analysis:  analysisSection
+                case .leaser:    GrenkePanel(offer: offer, documents: store.documents)
                 case .calls:     callsSection
                 }
             }
@@ -460,6 +509,60 @@ struct OfferDetailView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// Barre de sections défilante, avec la pastille des documents en attente.
+    private var sectionBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 7) {
+                ForEach(Section.allCases) { item in
+                    let isActive = section == item
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        withAnimation(.easeOut(duration: 0.16)) { section = item }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: item.icon).font(.system(size: 11, weight: .semibold))
+                            Text(item.rawValue).font(.system(size: 13, weight: .semibold))
+                            if item == .documents, store.pendingDocuments > 0 {
+                                Text("\(store.pendingDocuments)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(isActive ? Theme.primary : .white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(
+                                        Capsule().fill(isActive ? Color.white : Theme.amber)
+                                    )
+                            }
+                        }
+                        .foregroundStyle(isActive ? .white : Theme.mutedForeground)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(isActive ? Theme.primary : Theme.surface))
+                    }
+                    .buttonStyle(PressableStyle())
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+    }
+
+    // MARK: - Analyse
+
+    private var analysisSection: some View {
+        VStack(spacing: 14) {
+            OfferAISummaryCard(offerId: offer.id)
+            FinancingAnalysisCard(offer: offer)
+
+            if let commission = store.commission, commission.amount > 0 {
+                OfferCommissionCard(commission: commission.amount, status: commission.status)
+            }
+
+            ExternalServicesSection(offerId: offer.id)
+
+            SectionHeader(title: "E-mails liés")
+            LinkedEmailsSection(offerId: offer.id)
         }
     }
 

@@ -9,6 +9,9 @@ verify_jwt = true
 [functions.send-chapp-order]
 verify_jwt = true
 
+[functions.generate-offer-pdf]
+verify_jwt = true
+
 [functions.render-offer-pdf]
 verify_jwt = true
 

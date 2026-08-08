@@ -116,6 +116,12 @@ struct OffersView: View {
     @State private var store = OffersStore()
     @State private var isCreating = false
     @State private var isFiltering = false
+    @State private var isKanban = false
+    @State private var exportURL: URL?
+    @State private var workflow = WorkflowStore()
+    /// Le Kanban n'utilise pas de `NavigationLink` : on retient l'identifiant
+    /// du dossier à ouvrir, `Offer` n'étant pas `Hashable`.
+    @State private var navigation: OfferRoute?
 
     var body: some View {
         if embedded { content } else { NavigationStack { content } }
@@ -131,6 +137,11 @@ struct OffersView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if store.filtered.isEmpty {
                         emptyState
+                    } else if isKanban {
+                        OffersKanbanView(
+                            offers: store.filtered,
+                            steps: workflow.steps
+                        ) { navigation = OfferRoute(offer: $0) }
                     } else {
                         list
                     }
@@ -155,13 +166,43 @@ struct OffersView: View {
                         Image(systemName: "plus.circle.fill").font(.system(size: 20))
                     }
                 }
-                Button { isFiltering = true } label: {
+
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    withAnimation(.easeOut(duration: 0.2)) { isKanban.toggle() }
+                } label: {
+                    Image(systemName: isKanban ? "list.bullet" : "rectangle.split.3x1")
+                        .font(.system(size: 17))
+                }
+
+                Menu {
+                    Button {
+                        exportURL = try? OffersExport.write(store.filtered)
+                    } label: {
+                        Label("Exporter la sélection (CSV)", systemImage: "square.and.arrow.up")
+                    }
+                    Button { isFiltering = true } label: {
+                        Label("Filtrer", systemImage: "line.3.horizontal.decrease.circle")
+                    }
+                } label: {
                     Image(systemName: store.hasSecondaryFilter
                         ? "line.3.horizontal.decrease.circle.fill"
-                        : "line.3.horizontal.decrease.circle")
+                        : "ellipsis.circle")
                         .font(.system(size: 19))
                 }
             }
+        }
+        .navigationDestination(item: $navigation) { route in
+            OfferDetailView(offer: route.offer)
+        }
+        .sheet(item: Binding(
+            get: { exportURL.map(ExportFile.init) },
+            set: { if $0 == nil { exportURL = nil } }
+        )) { file in
+            // Un export sans partage ne sert à rien : la feuille s'ouvre
+            // directement sur le fichier produit.
+            ShareSheet(url: file.url)
+                .presentationDetents([.medium])
         }
         .sheet(isPresented: $isCreating) {
             CreateOfferView { Task { await store.load() } }
@@ -172,7 +213,13 @@ struct OffersView: View {
         }
         .searchable(text: Bindable(store).search, prompt: "Client, n° de dossier ou montant")
         .refreshable { await store.load() }
-        .task { if store.offers.isEmpty { await store.load() } }
+        .task {
+            if store.offers.isEmpty { await store.load() }
+            // Les colonnes du Kanban sont les étapes du workflow de la société.
+            if workflow.steps.isEmpty, let first = store.offers.first {
+                await workflow.load(for: first)
+            }
+        }
     }
 
     // MARK: - Onglets
