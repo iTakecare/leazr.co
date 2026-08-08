@@ -104,7 +104,7 @@ struct ContractDetailView: View {
 struct ClientsView: View {
     @State private var store = ListStore<Client>(
         table: "clients",
-        columns: "id, name, email, company, status, created_at",
+        columns: "id, name, email, company, status, phone, contact_name, vat_number, address, city, postal_code, country, notes, created_at",
         matches: { c, q in
             c.name.lowercased().contains(q)
                 || (c.email?.lowercased().contains(q) ?? false)
@@ -144,6 +144,12 @@ struct ClientsView: View {
                                 .font(.system(size: 13))
                                 .foregroundStyle(Theme.mutedForeground)
                                 .lineLimit(1)
+                        }
+
+                        if let extra = [client.phone, client.city].compactMap({ $0 }).first {
+                            Text(extra)
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.mutedForeground)
                         }
                     }
 

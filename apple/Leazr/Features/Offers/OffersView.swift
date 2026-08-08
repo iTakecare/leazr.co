@@ -133,7 +133,15 @@ struct OfferRow: View {
 
                 Spacer(minLength: 8)
 
-                StatusBadge(label: offer.statusLabel, status: offer.status)
+                VStack(alignment: .trailing, spacing: 5) {
+                    StatusBadge(label: offer.statusLabel, status: offer.status)
+
+                    // L'étape du workflow est ce qui dit réellement où en est
+                    // le dossier : elle mérite d'être lisible dès la liste.
+                    if let step = offer.workflowStatus, !step.isEmpty, step != offer.status {
+                        WorkflowChip(key: step)
+                    }
+                }
             }
 
             Divider().overlay(Theme.border)
@@ -196,3 +204,39 @@ struct StatusBadge: View {
     }
 }
 
+
+
+/// Étape de workflow, affichée dès la liste des demandes.
+struct WorkflowChip: View {
+    let key: String
+
+    private var label: String {
+        key.replacingOccurrences(of: "_", with: " ").capitalized
+    }
+
+    /// La couleur suit l'issue de l'étape : approuvé, refusé, en attente.
+    private var tint: Color {
+        if key.contains("approved") || key.contains("signed") || key.contains("financed") {
+            return Theme.emerald
+        }
+        if key.contains("rejected") || key.contains("without_follow") {
+            return Theme.destructive
+        }
+        if key.contains("docs") || key.contains("pending") || key.contains("sent") {
+            return Theme.amber
+        }
+        return Theme.violet
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle().fill(tint).frame(width: 6, height: 6)
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(tint)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(tint.opacity(0.13)))
+    }
+}

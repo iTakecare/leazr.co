@@ -122,6 +122,10 @@ struct ClientDetailView: View {
                     )
                 }
 
+                // Actions directes : appeler, écrire, itinéraire. C'est ce
+                // qu'on veut d'une fiche client sur un téléphone.
+                ContactActions(client: client)
+
                 Card {
                     VStack(spacing: 0) {
                         DetailRow(label: "Nom", value: client.name)
@@ -129,12 +133,41 @@ struct ClientDetailView: View {
                             Divider().overlay(Theme.border)
                             DetailRow(label: "Société", value: company)
                         }
+                        if let contact = client.contactName {
+                            Divider().overlay(Theme.border)
+                            DetailRow(label: "Contact", value: contact)
+                        }
                         if let email = client.email {
                             Divider().overlay(Theme.border)
                             DetailRow(label: "E-mail", value: email)
                         }
+                        if let phone = client.phone {
+                            Divider().overlay(Theme.border)
+                            DetailRow(label: "Téléphone", value: phone)
+                        }
+                        if let vat = client.vatNumber {
+                            Divider().overlay(Theme.border)
+                            DetailRow(label: "N° d'entreprise", value: vat)
+                        }
+                        if let address = client.fullAddress {
+                            Divider().overlay(Theme.border)
+                            DetailRow(label: "Adresse", value: address)
+                        }
                         Divider().overlay(Theme.border)
                         DetailRow(label: "Client depuis", value: Format.date(client.createdAt))
+                    }
+                }
+
+                if let notes = client.notes, !notes.isEmpty {
+                    Card {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Notes")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Theme.foreground)
+                            Text(notes)
+                                .font(.system(size: 15))
+                                .foregroundStyle(Theme.mutedForeground)
+                        }
                     }
                 }
 
@@ -270,5 +303,57 @@ final class OfferEquipmentStore {
             .eq("offer_id", value: offerId)
             .execute()
             .value) ?? []
+    }
+}
+
+
+/// Appeler, écrire, ouvrir l'itinéraire — les trois gestes d'une fiche client
+/// en mobilité. Chaque bouton n'apparaît que si la donnée existe.
+struct ContactActions: View {
+    let client: Client
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if let phone = client.phone, let url = URL(string: "tel://\(phone.filter { !$0.isWhitespace })") {
+                ContactAction(icon: "phone.fill", label: "Appeler", tint: Theme.emerald, url: url)
+            }
+            if let email = client.email, let url = URL(string: "mailto:\(email)") {
+                ContactAction(icon: "envelope.fill", label: "E-mail", tint: Theme.sky, url: url)
+            }
+            if let address = client.fullAddress,
+               let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+               let url = URL(string: "http://maps.apple.com/?q=\(encoded)") {
+                ContactAction(icon: "map.fill", label: "Itinéraire", tint: Theme.violet, url: url)
+            }
+        }
+    }
+}
+
+struct ContactAction: View {
+    let icon: String
+    let label: String
+    let tint: Color
+    let url: URL
+
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            openURL(url)
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 17, weight: .semibold))
+                Text(label).font(.system(size: 12, weight: .medium))
+            }
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity)
+            .frame(height: 62)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+                    .fill(tint.opacity(0.12))
+            )
+        }
+        .buttonStyle(PressableStyle())
     }
 }

@@ -31,11 +31,11 @@ final class Session {
             let user = try await Backend.client.auth.session.user
             userId = user.id.uuidString
 
+            // RPC et non requête directe : les politiques RLS de `profiles`
+            // bloquent la lecture (récursion), c'est pourquoi le web passe lui
+            // aussi par get_current_user_profile.
             let profiles: [Profile] = try await Backend.client
-                .from("profiles")
-                .select("company_id")
-                .eq("id", value: user.id.uuidString)
-                .limit(1)
+                .rpc("get_current_user_profile")
                 .execute()
                 .value
 

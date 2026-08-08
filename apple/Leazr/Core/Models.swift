@@ -356,10 +356,21 @@ struct Client: Decodable, Identifiable, Sendable {
     let email: String?
     let company: String?
     let status: String?
+    let phone: String?
+    let contactName: String?
+    let vatNumber: String?
+    let address: String?
+    let city: String?
+    let postalCode: String?
+    let country: String?
+    let notes: String?
     let createdAt: Date?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, email, company, status
+        case id, name, email, company, status, phone, address, city, country, notes
+        case contactName = "contact_name"
+        case vatNumber = "vat_number"
+        case postalCode = "postal_code"
         case createdAt = "created_at"
     }
 
@@ -370,11 +381,25 @@ struct Client: Decodable, Identifiable, Sendable {
         email = try c.decodeIfPresent(String.self, forKey: .email)
         company = try c.decodeIfPresent(String.self, forKey: .company)
         status = try c.decodeIfPresent(String.self, forKey: .status)
+        phone = try c.decodeIfPresent(String.self, forKey: .phone)
+        contactName = try c.decodeIfPresent(String.self, forKey: .contactName)
+        vatNumber = try c.decodeIfPresent(String.self, forKey: .vatNumber)
+        address = try c.decodeIfPresent(String.self, forKey: .address)
+        city = try c.decodeIfPresent(String.self, forKey: .city)
+        postalCode = try c.decodeIfPresent(String.self, forKey: .postalCode)
+        country = try c.decodeIfPresent(String.self, forKey: .country)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
         if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
             createdAt = Format.parseDate(raw)
-        } else {
-            createdAt = nil
-        }
+        } else { createdAt = nil }
+    }
+
+    /// Adresse postale sur une ligne, pour affichage et ouverture dans Plans.
+    var fullAddress: String? {
+        let parts = [address, [postalCode, city].compactMap { $0 }.joined(separator: " "), country]
+            .compactMap { $0 }
+            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 
     /// Initiales pour l'avatar, sans dépendre d'une image distante.
