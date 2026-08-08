@@ -44,6 +44,7 @@ final class OffersStore {
 struct OffersView: View {
 
     @State private var store = OffersStore()
+    @State private var isCreating = false
 
     var body: some View {
         NavigationStack {
@@ -59,7 +60,17 @@ struct OffersView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.background.ignoresSafeArea())
             .navigationTitle("Offres")
-            .toolbar { ProfileMenu() }
+            .toolbar {
+                ProfileMenu()
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { isCreating = true } label: {
+                        Image(systemName: "plus.circle.fill").font(.system(size: 20))
+                    }
+                }
+            }
+            .sheet(isPresented: $isCreating) {
+                CreateOfferView { Task { await store.load() } }
+            }
             .searchable(text: Bindable(store).search, prompt: "Client ou n° de dossier")
             .refreshable { await store.load() }
             .task { if store.offers.isEmpty { await store.load() } }
@@ -188,6 +199,7 @@ struct StatusBadge: View {
 /// Détail d'une offre.
 struct OfferDetailView: View {
     let offer: Offer
+    @State private var equipment = OfferEquipmentStore()
 
     var body: some View {
         ScrollView {
@@ -212,6 +224,38 @@ struct OfferDetailView: View {
                         DetailRow(label: "Créée le", value: Format.date(offer.createdAt))
                     }
                 }
+
+                if !equipment.items.isEmpty {
+                    SectionHeader(title: "Équipements", count: equipment.items.count)
+
+                    ForEach(equipment.items) { item in
+                        Card {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .top) {
+                                    Text(item.title)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(Theme.foreground)
+                                    Spacer(minLength: 8)
+                                    if item.quantity > 1 {
+                                        Text("×\(item.quantity)")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundStyle(Theme.mutedForeground)
+                                    }
+                                }
+
+                                HStack {
+                                    Text("Mensualité")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Theme.mutedForeground)
+                                    Spacer()
+                                    Text(Format.currency(item.monthlyPayment))
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(Theme.primary)
+                                }
+                            }
+                        }
+                    }
+                }
             }
             .padding(20)
             .frame(maxWidth: 700)
@@ -220,5 +264,6 @@ struct OfferDetailView: View {
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle(offer.clientName)
         .navigationBarTitleDisplayMode(.inline)
+        .task { await equipment.load(offerId: offer.id) }
     }
 }

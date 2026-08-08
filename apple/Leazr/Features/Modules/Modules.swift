@@ -131,6 +131,9 @@ struct ClientsView: View {
             emptyLabel: "Aucun client",
             store: store
         ) { client in
+            NavigationLink {
+                ClientDetailView(client: client)
+            } label: {
             Card {
                 HStack(spacing: 14) {
                     // Avatar d'initiales : lisible immédiatement, et rien à
@@ -158,6 +161,8 @@ struct ClientsView: View {
                     Spacer(minLength: 0)
                 }
             }
+            }
+            .buttonStyle(PressableStyle())
         }
     }
 }
@@ -184,6 +189,9 @@ struct CatalogView: View {
             emptyLabel: "Aucun produit",
             store: store
         ) { product in
+            NavigationLink {
+                ProductDetailView(product: product)
+            } label: {
             Card {
                 HStack(spacing: 14) {
                     // AsyncImage : chargement paresseux natif, avec un repli
@@ -232,6 +240,8 @@ struct CatalogView: View {
                     }
                 }
             }
+            }
+            .buttonStyle(PressableStyle())
         }
     }
 }

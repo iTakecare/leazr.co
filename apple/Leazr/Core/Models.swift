@@ -436,3 +436,52 @@ struct Invoice: Decodable, Identifiable, Sendable {
 
     var isPaid: Bool { paidAt != nil }
 }
+
+// MARK: - Équipement d'une offre
+
+struct OfferEquipment: Decodable, Identifiable, Sendable {
+    let id: String
+    let title: String
+    let quantity: Int
+    let purchasePrice: Double
+    let monthlyPayment: Double
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, quantity
+        case purchasePrice = "purchase_price"
+        case monthlyPayment = "monthly_payment"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decodeIfPresent(String.self, forKey: .title) ?? "Équipement"
+        quantity = try c.decodeIfPresent(Int.self, forKey: .quantity) ?? 1
+        purchasePrice = try c.decodeIfPresent(Double.self, forKey: .purchasePrice) ?? 0
+        monthlyPayment = try c.decodeIfPresent(Double.self, forKey: .monthlyPayment) ?? 0
+    }
+}
+
+// MARK: - Création d'une offre
+
+/// Charge utile d'insertion. `company_id` est obligatoire : les politiques RLS
+/// filtrent la lecture, mais une écriture doit désigner sa société.
+struct NewOffer: Encodable, Sendable {
+    let companyId: String
+    let clientName: String
+    let clientEmail: String?
+    let equipmentDescription: String?
+    let amount: Double
+    let monthlyPayment: Double
+    let duration: Int
+
+    enum CodingKeys: String, CodingKey {
+        case companyId = "company_id"
+        case clientName = "client_name"
+        case clientEmail = "client_email"
+        case equipmentDescription = "equipment_description"
+        case amount
+        case monthlyPayment = "monthly_payment"
+        case duration
+    }
+}
