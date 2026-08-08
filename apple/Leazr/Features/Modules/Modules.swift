@@ -87,18 +87,7 @@ struct ContractDetailView: View {
                     }
                 }
 
-                if let equipment = contract.equipmentDescription, !equipment.isEmpty {
-                    Card {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Équipement")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(Theme.foreground)
-                            Text(equipment)
-                                .font(.system(size: 15))
-                                .foregroundStyle(Theme.mutedForeground)
-                        }
-                    }
-                }
+                EquipmentSection(raw: contract.equipmentDescription)
             }
             .padding(20)
             .frame(maxWidth: 700)

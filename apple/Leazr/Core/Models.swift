@@ -710,3 +710,107 @@ struct WorkflowTemplate: Decodable, Identifiable, Sendable {
         case offerType = "offer_type"
     }
 }
+
+// MARK: - Équipement sérialisé
+
+/// Le web stocke `equipment_description` sous forme de tableau JSON, pas de
+/// texte. L'afficher brut donnait un mur de JSON illisible : on le décode ici,
+/// avec repli sur du texte simple pour les anciens dossiers.
+struct EquipmentItem: Decodable, Identifiable, Sendable {
+    let id: String
+    let title: String
+    let quantity: Int
+    let purchasePrice: Double
+    let monthlyPayment: Double
+    let attributes: [String: String]
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, quantity, purchasePrice, monthlyPayment, attributes
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decode(String.self, forKey: .id)) ?? UUID().uuidString
+        title = (try? c.decode(String.self, forKey: .title)) ?? "Équipement"
+        quantity = (try? c.decode(Int.self, forKey: .quantity)) ?? 1
+        purchasePrice = (try? c.decode(Double.self, forKey: .purchasePrice)) ?? 0
+        monthlyPayment = (try? c.decode(Double.self, forKey: .monthlyPayment)) ?? 0
+
+        // Les attributs mélangent chaînes et nombres selon les fiches produit.
+        if let raw = try? c.decode([String: AnyCodableValue].self, forKey: .attributes) {
+            attributes = raw.mapValues(\.description)
+        } else {
+            attributes = [:]
+        }
+    }
+
+    /// Décode une description d'équipement, quelle que soit sa forme.
+    /// Renvoie `nil` si le contenu n'est pas du JSON exploitable — l'appelant
+    /// affiche alors le texte tel quel.
+    static func parse(_ raw: String?) -> [EquipmentItem]? {
+        guard let raw, let data = raw.data(using: .utf8) else { return nil }
+        guard let items = try? JSONDecoder().decode([EquipmentItem].self, from: data),
+              !items.isEmpty
+        else { return nil }
+        return items
+    }
+}
+
+/// Valeur JSON hétérogène réduite à sa représentation textuelle.
+private struct AnyCodableValue: Decodable, CustomStringConvertible {
+    let description: String
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let s = try? c.decode(String.self) { description = s }
+        else if let i = try? c.decode(Int.self) { description = String(i) }
+        else if let d = try? c.decode(Double.self) { description = String(d) }
+        else if let b = try? c.decode(Bool.self) { description = b ? "Oui" : "Non" }
+        else { description = "" }
+    }
+}
+
+// MARK: - Journal de workflow
+
+struct WorkflowLog: Decodable, Identifiable, Sendable {
+    let id: String
+    let previousStatus: String
+    let newStatus: String
+    let reason: String?
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, reason
+        case previousStatus = "previous_status"
+        case newStatus = "new_status"
+        case createdAt = "created_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        previousStatus = try c.decodeIfPresent(String.self, forKey: .previousStatus) ?? ""
+        newStatus = try c.decodeIfPresent(String.self, forKey: .newStatus) ?? ""
+        reason = try c.decodeIfPresent(String.self, forKey: .reason)
+        if let raw = try c.decodeIfPresent(String.self, forKey: .createdAt) {
+            createdAt = Format.parseDate(raw)
+        } else { createdAt = nil }
+    }
+}
+
+/// Score dérivé du statut, repris à l'identique du service web
+/// (`offerStatus.ts`) : c'est une règle métier, elle ne doit pas diverger.
+enum WorkflowScoring {
+    static func scoreUpdate(for status: String) -> (field: String, value: String)? {
+        switch status {
+        case "internal_approved":       return ("internal_score", "A")
+        case "leaser_approved":         return ("leaser_score", "A")
+        case "internal_docs_requested": return ("internal_score", "B")
+        case "leaser_docs_requested":   return ("leaser_score", "B")
+        case "internal_rejected":       return ("internal_score", "C")
+        case "leaser_rejected":         return ("leaser_score", "C")
+        case "without_follow_up":       return ("internal_score", "D")
+        default:                        return nil
+        }
+    }
+}

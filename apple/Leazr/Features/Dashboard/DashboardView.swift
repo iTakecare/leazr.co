@@ -159,6 +159,7 @@ struct DashboardView: View {
 
             if !store.months.isEmpty {
                 RevenueChart(months: store.months)
+                MonthlyBreakdown(months: store.months)
             }
         }
     }
@@ -418,5 +419,92 @@ struct ForecastCard: View {
             RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                 .fill(Theme.surface)
         )
+    }
+}
+
+/// Détail mois par mois : CA, achats, marge et taux.
+///
+/// Le graphique donne la tendance, ce tableau donne les chiffres. Les deux
+/// sont complémentaires — on regarde la courbe, puis on vérifie la ligne.
+struct MonthlyBreakdown: View {
+    let months: [MonthlyFinancialData]
+
+    /// On masque les mois sans aucune activité : ils allongent le tableau
+    /// sans rien apprendre.
+    private var active: [MonthlyFinancialData] {
+        months.filter { $0.totalRevenue > 0 || $0.purchases > 0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Détail mensuel")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.foreground)
+                .padding(.bottom, 14)
+
+            HStack {
+                Text("Mois").frame(width: 44, alignment: .leading)
+                Text("CA").frame(maxWidth: .infinity, alignment: .trailing)
+                Text("Achats").frame(maxWidth: .infinity, alignment: .trailing)
+                Text("Marge").frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Theme.mutedForeground)
+            .padding(.bottom, 8)
+
+            ForEach(active) { m in
+                let margin = m.totalRevenue - m.purchases
+                let rate = m.totalRevenue > 0 ? margin / m.totalRevenue * 100 : 0
+
+                VStack(spacing: 4) {
+                    HStack {
+                        Text(m.monthName.prefix(3).capitalized)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Theme.foreground)
+                            .frame(width: 44, alignment: .leading)
+
+                        Text(compact(m.totalRevenue))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .foregroundStyle(Theme.foreground)
+
+                        Text(compact(m.purchases))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .foregroundStyle(Theme.mutedForeground)
+
+                        Text(compact(margin))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .foregroundStyle(margin >= 0 ? Theme.emerald : Theme.destructive)
+                    }
+                    .font(.system(size: 13, weight: .medium))
+
+                    HStack(spacing: 10) {
+                        Text("\(m.contractsCount) contrat(s) · \(m.offersCount) offre(s)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.mutedForeground)
+                        Spacer()
+                        Text(String(format: "%.0f %% de marge", rate))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.mutedForeground)
+                    }
+                }
+                .padding(.vertical, 9)
+
+                if m.id != active.last?.id {
+                    Divider().overlay(Theme.border)
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.surface)
+        )
+    }
+
+    private func compact(_ v: Double) -> String {
+        if abs(v) >= 1_000_000 { return String(format: "%.1fM", v / 1_000_000) }
+        if abs(v) >= 1_000 { return String(format: "%.0fk", v / 1_000) }
+        return String(format: "%.0f", v)
     }
 }

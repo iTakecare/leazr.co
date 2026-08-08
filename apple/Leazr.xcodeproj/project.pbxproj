@@ -25,6 +25,7 @@
 		AE5C45B19416BA85E3535204 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D8B0AAEA1A81CEA2A37BAB /* Theme.swift */; };
 		C3ABCA156C953EDF405BC2C6 /* LeazrApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F4B5CF4B4FFA52FF1EA431 /* LeazrApp.swift */; };
 		C9AD6A6A1019107FFD741665 /* ListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98C64CD5582E4AA491D10EA /* ListScreen.swift */; };
+		D065B1E1A3BE61E88E2A79AE /* EquipmentList.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE13001A8EFD293047757156 /* EquipmentList.swift */; };
 		DE30D6B24009A4CF748AEBEF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C413154B612BEFD0ECD6DB93 /* Assets.xcassets */; };
 		E560E4760846EF1A3E7BADE9 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2805B510A8C2B367ECC2A2 /* Components.swift */; };
 		E66784F95B6114A23B281584 /* BiometricService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F0E4EC1AED84EE49AB3DC76 /* BiometricService.swift */; };
@@ -49,6 +50,7 @@
 		A5FC880A0231FA91C406E378 /* DetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViews.swift; sourceTree = "<group>"; };
 		A8B6C1BB3AF15E59220DF0DD /* OfferDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferDetail.swift; sourceTree = "<group>"; };
 		A98C64CD5582E4AA491D10EA /* ListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListScreen.swift; sourceTree = "<group>"; };
+		BE13001A8EFD293047757156 /* EquipmentList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EquipmentList.swift; sourceTree = "<group>"; };
 		C0DF05D95A9EBA8860D8DBB8 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		C413154B612BEFD0ECD6DB93 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
@@ -192,6 +194,7 @@
 		F653AED800FB67AD5E9B7B24 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				BE13001A8EFD293047757156 /* EquipmentList.swift */,
 				A98C64CD5582E4AA491D10EA /* ListScreen.swift */,
 			);
 			path = Shared;
@@ -279,6 +282,7 @@
 				2E42B2A6C447ECA575E5ECBB /* CreateOfferView.swift in Sources */,
 				21068A2F2B259426AE801A2E /* DashboardView.swift in Sources */,
 				3B0D25F6A60FB88C1CE036CC /* DetailViews.swift in Sources */,
+				D065B1E1A3BE61E88E2A79AE /* EquipmentList.swift in Sources */,
 				750308946C6D605A6625F90D /* Keychain.swift in Sources */,
 				C3ABCA156C953EDF405BC2C6 /* LeazrApp.swift in Sources */,
 				C9AD6A6A1019107FFD741665 /* ListScreen.swift in Sources */,
