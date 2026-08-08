@@ -666,3 +666,47 @@ struct SupportTicket: Decodable, Identifiable, Sendable {
         }
     }
 }
+
+// MARK: - Workflow
+
+/// Étape de workflow, paramétrable par société via `workflow_templates`
+/// et `workflow_steps`. L'app ne code donc aucun processus en dur : elle
+/// affiche celui que la société a configuré dans le web.
+struct WorkflowStep: Decodable, Identifiable, Sendable {
+    let id: String
+    let stepKey: String
+    let stepLabel: String
+    let stepDescription: String?
+    let stepOrder: Int
+    let isRequired: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case stepKey = "step_key"
+        case stepLabel = "step_label"
+        case stepDescription = "step_description"
+        case stepOrder = "step_order"
+        case isRequired = "is_required"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        stepKey = try c.decodeIfPresent(String.self, forKey: .stepKey) ?? ""
+        stepLabel = try c.decodeIfPresent(String.self, forKey: .stepLabel) ?? ""
+        stepDescription = try c.decodeIfPresent(String.self, forKey: .stepDescription)
+        stepOrder = try c.decodeIfPresent(Int.self, forKey: .stepOrder) ?? 0
+        isRequired = try c.decodeIfPresent(Bool.self, forKey: .isRequired) ?? false
+    }
+}
+
+struct WorkflowTemplate: Decodable, Identifiable, Sendable {
+    let id: String
+    let name: String
+    let offerType: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+        case offerType = "offer_type"
+    }
+}

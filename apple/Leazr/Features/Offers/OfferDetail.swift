@@ -75,6 +75,7 @@ struct OfferDetailView: View {
     let offer: Offer
 
     @State private var store = OfferDetailStore()
+    @State private var workflow = WorkflowStore()
     @State private var section: Section = .summary
 
     enum Section: String, CaseIterable {
@@ -120,7 +121,10 @@ struct OfferDetailView: View {
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle(offer.clientName)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await store.load(offerId: offer.id) }
+        .task {
+            await store.load(offerId: offer.id)
+            await workflow.load()
+        }
         .refreshable { await store.load(offerId: offer.id) }
     }
 
@@ -128,6 +132,10 @@ struct OfferDetailView: View {
 
     private var summarySection: some View {
         VStack(spacing: 14) {
+            if !workflow.steps.isEmpty {
+                WorkflowTimeline(steps: workflow.steps, currentKey: offer.status)
+            }
+
             Card {
                 VStack(spacing: 0) {
                     DetailRow(label: "Client", value: offer.clientName)
@@ -335,5 +343,117 @@ struct EmptyHint: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
+    }
+}
+
+// MARK: - Workflow
+
+@MainActor
+@Observable
+final class WorkflowStore {
+    private(set) var steps: [WorkflowStep] = []
+
+    /// Charge le modèle de workflow de la société pour ce type d'offre, puis
+    /// ses étapes visibles, dans l'ordre défini par l'administrateur.
+    func load(offerType: String = "client_request") async {
+        guard let companyId = await Session.shared.resolve() else { return }
+
+        let templates: [WorkflowTemplate] = (try? await Backend.client
+            .from("workflow_templates")
+            .select("id, name, offer_type")
+            .eq("company_id", value: companyId)
+            .eq("offer_type", value: offerType)
+            .eq("is_active", value: true)
+            .limit(1)
+            .execute().value) ?? []
+
+        guard let template = templates.first else { return }
+
+        steps = (try? await Backend.client
+            .from("workflow_steps")
+            .select("id, step_key, step_label, step_description, step_order, is_required")
+            .eq("workflow_template_id", value: template.id)
+            .eq("is_visible", value: true)
+            .order("step_order", ascending: true)
+            .execute().value) ?? []
+    }
+}
+
+/// Progression visuelle du dossier dans le workflow de la société.
+struct WorkflowTimeline: View {
+    let steps: [WorkflowStep]
+    let currentKey: String
+
+    private var currentIndex: Int? {
+        steps.firstIndex { $0.stepKey == currentKey }
+    }
+
+    private func state(_ index: Int) -> (color: Color, icon: String) {
+        guard let currentIndex else { return (Theme.border, "circle") }
+        if index < currentIndex { return (Theme.emerald, "checkmark") }
+        if index == currentIndex { return (Theme.primary, "circle.fill") }
+        return (Theme.border, "circle")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Processus de validation")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.foreground)
+                Spacer()
+                if let currentIndex {
+                    Text("\(currentIndex + 1)/\(steps.count)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.mutedForeground)
+                }
+            }
+            .padding(.bottom, 16)
+
+            ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
+                let s = state(index)
+
+                HStack(alignment: .top, spacing: 12) {
+                    // Pastille + trait de liaison : la colonne de gauche donne
+                    // la lecture verticale de la progression.
+                    VStack(spacing: 0) {
+                        ZStack {
+                            Circle().fill(s.color.opacity(0.18)).frame(width: 26, height: 26)
+                            Image(systemName: s.icon)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(s.color)
+                        }
+
+                        if index < steps.count - 1 {
+                            Rectangle()
+                                .fill(index < (currentIndex ?? 0) ? Theme.emerald : Theme.border)
+                                .frame(width: 2)
+                                .frame(minHeight: 26)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(step.stepLabel)
+                            .font(.system(size: 15, weight: index == currentIndex ? .semibold : .regular))
+                            .foregroundStyle(index <= (currentIndex ?? -1) ? Theme.foreground : Theme.mutedForeground)
+
+                        if let description = step.stepDescription, !description.isEmpty {
+                            Text(description)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.mutedForeground)
+                        }
+                    }
+                    .padding(.bottom, index < steps.count - 1 ? 14 : 0)
+
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.surface)
+        )
     }
 }
