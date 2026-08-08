@@ -17,6 +17,8 @@ struct ProductPicker: View {
         table: "products",
         columns: "id, name, price, monthly_price, brand_name, category_name, image_url",
         orderBy: "name",
+        pageSize: 400,
+        searchColumns: ["name", "brand_name", "category_name"],
         matches: { p, q in
             p.name.lowercased().contains(q)
                 || (p.brandName?.lowercased().contains(q) ?? false)

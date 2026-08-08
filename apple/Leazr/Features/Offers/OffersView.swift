@@ -110,13 +110,19 @@ final class OffersStore {
 
 struct OffersView: View {
 
+    /// Poussé depuis « Plus » : la pile de navigation existe déjà.
+    var embedded = false
+
     @State private var store = OffersStore()
     @State private var isCreating = false
     @State private var isFiltering = false
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
+        if embedded { content } else { NavigationStack { content } }
+    }
+
+    private var content: some View {
+        VStack(spacing: 0) {
                 tabBar
 
                 Group {
@@ -131,35 +137,42 @@ struct OffersView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Offres")
-            .toolbar {
-                ProfileMenu()
+        .background(Theme.background.ignoresSafeArea())
+        .navigationTitle("Demandes")
+        .navigationBarTitleDisplayMode(embedded ? .inline : .large)
+        .toolbar {
+            if !embedded { ProfileMenu() }
+            if !embedded {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { isCreating = true } label: {
                         Image(systemName: "plus.circle.fill").font(.system(size: 20))
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { isFiltering = true } label: {
-                        Image(systemName: store.hasSecondaryFilter
-                            ? "line.3.horizontal.decrease.circle.fill"
-                            : "line.3.horizontal.decrease.circle")
-                            .font(.system(size: 19))
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if embedded {
+                    Button { isCreating = true } label: {
+                        Image(systemName: "plus.circle.fill").font(.system(size: 20))
                     }
                 }
+                Button { isFiltering = true } label: {
+                    Image(systemName: store.hasSecondaryFilter
+                        ? "line.3.horizontal.decrease.circle.fill"
+                        : "line.3.horizontal.decrease.circle")
+                        .font(.system(size: 19))
+                }
             }
-            .sheet(isPresented: $isCreating) {
-                CreateOfferView { Task { await store.load() } }
-            }
-            .sheet(isPresented: $isFiltering) {
-                OfferFilterSheet(store: store)
-                    .presentationDetents([.medium, .large])
-            }
-            .searchable(text: Bindable(store).search, prompt: "Client, n° de dossier ou montant")
-            .refreshable { await store.load() }
-            .task { if store.offers.isEmpty { await store.load() } }
         }
+        .sheet(isPresented: $isCreating) {
+            CreateOfferView { Task { await store.load() } }
+        }
+        .sheet(isPresented: $isFiltering) {
+            OfferFilterSheet(store: store)
+                .presentationDetents([.medium, .large])
+        }
+        .searchable(text: Bindable(store).search, prompt: "Client, n° de dossier ou montant")
+        .refreshable { await store.load() }
+        .task { if store.offers.isEmpty { await store.load() } }
     }
 
     // MARK: - Onglets

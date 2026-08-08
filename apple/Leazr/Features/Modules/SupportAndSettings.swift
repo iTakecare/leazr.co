@@ -12,6 +12,7 @@ struct SupportView: View {
     @State private var store = ListStore<SupportTicket>(
         table: "support_tickets",
         columns: "id, subject, status, priority, category, created_at",
+        searchColumns: ["subject", "category"],
         matches: { t, q in
             t.subject.lowercased().contains(q)
                 || (t.category?.lowercased().contains(q) ?? false)
@@ -185,7 +186,7 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity)
             }
         .background(Theme.background.ignoresSafeArea())
-        .navigationTitle("Réglages")
+        .navigationTitle("Paramètres")
         .navigationBarTitleDisplayMode(embedded ? .inline : .large)
         .task { companyId = await Session.shared.resolve() }
     }

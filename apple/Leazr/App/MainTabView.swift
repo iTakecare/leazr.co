@@ -2,16 +2,16 @@ import SwiftUI
 
 /// Navigation principale.
 ///
-/// Exactement cinq onglets, jamais plus : au-delà, iOS crée un onglet « More »
+/// Exactement cinq onglets au maximum : au-delà, iOS crée un onglet « More »
 /// qui enveloppe chaque écran dans SA propre barre de navigation, par-dessus la
 /// nôtre — d'où les deux flèches de retour superposées. Les modules restants
-/// vivent donc dans un écran « Plus » que nous contrôlons.
+/// vivent donc dans l'écran « Plus », que nous contrôlons.
 struct MainTabView: View {
 
     @State private var selection: Tab = .dashboard
 
     enum Tab: Hashable {
-        case dashboard, offers, crm, clients, more
+        case dashboard, offers, clients, more
     }
 
     var body: some View {
@@ -21,12 +21,8 @@ struct MainTabView: View {
                 .tag(Tab.dashboard)
 
             OffersView()
-                .tabItem { Label("Offres", systemImage: "doc.text.fill") }
+                .tabItem { Label("Demandes", systemImage: "doc.text.fill") }
                 .tag(Tab.offers)
-
-            CRMView()
-                .tabItem { Label("Affaires", systemImage: "chart.line.uptrend.xyaxis") }
-                .tag(Tab.crm)
 
             ClientsView()
                 .tabItem { Label("Clients", systemImage: "person.2.fill") }
@@ -43,12 +39,11 @@ struct MainTabView: View {
     }
 }
 
-/// Les modules qui ne tiennent pas dans la barre d'onglets, dans notre propre
-/// pile de navigation.
+/// Index des modules, dans l'ordre de la barre latérale du web.
 struct MoreView: View {
 
     private struct Entry: Identifiable {
-        let id = UUID()
+        let id: String
         let title: String
         let subtitle: String
         let icon: String
@@ -59,35 +54,56 @@ struct MoreView: View {
     private var entries: [Entry] {
         [
             Entry(
+                id: "crm",
+                title: "CRM",
+                subtitle: "Pipeline commercial et affaires",
+                icon: "chart.line.uptrend.xyaxis",
+                tint: Theme.primary,
+                destination: AnyView(CRMView(embedded: true))
+            ),
+            Entry(
+                id: "offers",
+                title: "Demandes",
+                subtitle: "Dossiers de financement en cours",
+                icon: "doc.text.fill",
+                tint: Theme.sky,
+                destination: AnyView(OffersView(embedded: true))
+            ),
+            Entry(
+                id: "contracts",
                 title: "Contrats",
-                subtitle: "Dossiers financés et en cours",
+                subtitle: "Dossiers financés et actifs",
                 icon: "signature",
                 tint: Theme.violet,
                 destination: AnyView(ContractsView(embedded: true))
             ),
             Entry(
-                title: "Catalogue",
-                subtitle: "Produits et prix d'achat",
-                icon: "shippingbox.fill",
-                tint: Theme.sky,
-                destination: AnyView(CatalogView(embedded: true))
-            ),
-            Entry(
-                title: "Facturation",
+                id: "invoices",
+                title: "Factures",
                 subtitle: "Factures émises et paiements",
                 icon: "eurosign.circle.fill",
                 tint: Theme.emerald,
                 destination: AnyView(InvoicesView(embedded: true))
             ),
             Entry(
-                title: "Support",
-                subtitle: "Tickets et demandes d'aide",
-                icon: "lifepreserver.fill",
-                tint: Theme.amber,
-                destination: AnyView(SupportView(embedded: true))
+                id: "catalog",
+                title: "Catalogue",
+                subtitle: "Produits et prix d'achat",
+                icon: "shippingbox.fill",
+                tint: Theme.teal,
+                destination: AnyView(CatalogView(embedded: true))
             ),
             Entry(
-                title: "Réglages",
+                id: "stock",
+                title: "Stock",
+                subtitle: "Matériel disponible, réservé et attribué",
+                icon: "cube.box.fill",
+                tint: Theme.amber,
+                destination: AnyView(StockView(embedded: true))
+            ),
+            Entry(
+                id: "settings",
+                title: "Paramètres",
                 subtitle: "Compte, sécurité et appels",
                 icon: "gearshape.fill",
                 tint: Theme.mutedForeground,

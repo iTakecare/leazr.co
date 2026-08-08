@@ -136,12 +136,18 @@ enum OpportunityStatusFilter: String, CaseIterable, Identifiable {
 
 struct CRMView: View {
 
+    /// Poussé depuis « Plus » : la pile de navigation existe déjà.
+    var embedded = false
+
     @State private var store = CRMStore()
     @State private var isCreating = false
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
+        if embedded { content } else { NavigationStack { content } }
+    }
+
+    private var content: some View {
+        VStack(spacing: 0) {
                 statusBar
 
                 Group {
@@ -161,23 +167,23 @@ struct CRMView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Opportunités")
-            .toolbar {
-                ProfileMenu()
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { isCreating = true } label: {
-                        Image(systemName: "plus.circle.fill").font(.system(size: 20))
-                    }
+        .background(Theme.background.ignoresSafeArea())
+        .navigationTitle("CRM")
+        .navigationBarTitleDisplayMode(embedded ? .inline : .large)
+        .toolbar {
+            if !embedded { ProfileMenu() }
+            ToolbarItem(placement: embedded ? .topBarTrailing : .topBarLeading) {
+                Button { isCreating = true } label: {
+                    Image(systemName: "plus.circle.fill").font(.system(size: 20))
                 }
             }
-            .sheet(isPresented: $isCreating) {
-                OpportunityFormSheet(stages: store.stages) { Task { await store.load() } }
-            }
-            .searchable(text: Bindable(store).search, prompt: "Affaire ou client")
-            .refreshable { await store.load() }
-            .task { if store.opportunities.isEmpty { await store.load() } }
         }
+        .sheet(isPresented: $isCreating) {
+            OpportunityFormSheet(stages: store.stages) { Task { await store.load() } }
+        }
+        .searchable(text: Bindable(store).search, prompt: "Affaire ou client")
+        .refreshable { await store.load() }
+        .task { if store.opportunities.isEmpty { await store.load() } }
     }
 
     private var statusBar: some View {

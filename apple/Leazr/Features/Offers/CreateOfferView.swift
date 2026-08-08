@@ -402,15 +402,53 @@ struct ClientPicker: View {
     @State private var store = ListStore<Client>(
         table: "clients",
         columns: "id, name, email, company, status, phone, contact_name, vat_number, address, city, postal_code, country, notes, created_at",
+        pageSize: 500,
+        // Un client hors des premières lignes doit rester trouvable : la
+        // recherche interroge le serveur, pas seulement ce qui est chargé.
+        searchColumns: ["name", "company", "email", "contact_name", "vat_number"],
         matches: { c, q in
-            c.name.lowercased().contains(q) || (c.company?.lowercased().contains(q) ?? false)
+            c.name.lowercased().contains(q)
+                || (c.company?.lowercased().contains(q) ?? false)
+                || (c.email?.lowercased().contains(q) ?? false)
+                || (c.contactName?.lowercased().contains(q) ?? false)
         }
     )
+
+    @State private var isCreating = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 10) {
+                    if store.filtered.isEmpty && !store.isLoading {
+                        VStack(spacing: 12) {
+                            Text(store.search.isEmpty
+                                ? "Aucun client"
+                                : "Aucun client ne correspond à « \(store.search) »")
+                                .font(.system(size: 15))
+                                .foregroundStyle(Theme.mutedForeground)
+                                .multilineTextAlignment(.center)
+
+                            // Ne pas trouver le client ne doit pas arrêter la
+                            // demande : on le crée sans quitter l'écran.
+                            PrimaryButton(title: "Créer ce client", systemImage: "person.badge.plus") {
+                                isCreating = true
+                            }
+                        }
+                        .padding(.top, 40)
+                    }
+
+                    if store.isSearchingRemotely {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Recherche…")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.mutedForeground)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                    }
+
                     ForEach(store.filtered) { client in
                         Button {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -449,10 +487,24 @@ struct ClientPicker: View {
             .background(Theme.background.ignoresSafeArea())
             .navigationTitle("Clients")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: Bindable(store).search, prompt: "Nom ou société")
+            .searchable(text: Bindable(store).search, prompt: "Nom, société, e-mail ou n° d'entreprise")
             .task { if store.items.isEmpty { await store.load() } }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Annuler") { dismiss() } }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { isCreating = true } label: {
+                        Image(systemName: "person.badge.plus").font(.system(size: 17))
+                    }
+                }
+            }
+            .sheet(isPresented: $isCreating) {
+                ClientFormSheet { created in
+                    guard let created else { return }
+                    // Le client tout juste créé est celui qu'on voulait :
+                    // on l'attache directement à la demande.
+                    onSelect(created)
+                    dismiss()
+                }
             }
         }
     }

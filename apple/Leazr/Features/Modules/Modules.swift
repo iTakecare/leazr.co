@@ -9,6 +9,8 @@ struct ContractsView: View {
     @State private var store = ListStore<Contract>(
         table: "contracts",
         columns: "id, client_name, monthly_payment, status, leaser_name, contract_number, equipment_description, created_at",
+        pageSize: 300,
+        searchColumns: ["client_name", "contract_number", "leaser_name"],
         matches: { c, q in
             c.clientName.lowercased().contains(q)
                 || (c.contractNumber?.lowercased().contains(q) ?? false)
@@ -109,10 +111,13 @@ struct ClientsView: View {
     @State private var store = ListStore<Client>(
         table: "clients",
         columns: "id, name, email, company, status, phone, contact_name, vat_number, address, city, postal_code, country, notes, created_at",
+        pageSize: 500,
+        searchColumns: ["name", "company", "email", "contact_name", "vat_number"],
         matches: { c, q in
             c.name.lowercased().contains(q)
                 || (c.email?.lowercased().contains(q) ?? false)
                 || (c.company?.lowercased().contains(q) ?? false)
+                || (c.contactName?.lowercased().contains(q) ?? false)
         }
     )
 
@@ -186,6 +191,8 @@ struct CatalogView: View {
         table: "products",
         columns: "id, name, price, monthly_price, brand_name, category_name, image_url",
         orderBy: "name",
+        pageSize: 400,
+        searchColumns: ["name", "brand_name", "category_name"],
         matches: { p, q in
             p.name.lowercased().contains(q)
                 || (p.brandName?.lowercased().contains(q) ?? false)
@@ -269,6 +276,8 @@ struct InvoicesView: View {
         table: "invoices",
         columns: "id, amount, invoice_number, leaser_name, status, invoice_date, paid_at",
         orderBy: "invoice_date",
+        pageSize: 300,
+        searchColumns: ["invoice_number", "leaser_name"],
         matches: { i, q in
             (i.invoiceNumber?.lowercased().contains(q) ?? false)
                 || i.leaserName.lowercased().contains(q)

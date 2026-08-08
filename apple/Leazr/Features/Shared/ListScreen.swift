@@ -15,23 +15,42 @@ final class ListStore<Item: Decodable & Identifiable & Sendable> {
 
     private(set) var items: [Item] = []
     private(set) var isLoading = false
+    private(set) var isSearchingRemotely = false
     var errorMessage: String?
-    var search = ""
+
+    /// Résultats venus du serveur pour le terme courant. Sans eux, un client au
+    ///-delà des premières lignes chargées restait introuvable : la recherche
+    /// locale ne peut filtrer que ce qui a déjà été téléchargé.
+    private(set) var remoteResults: [Item] = []
+
+    var search = "" {
+        didSet { if search != oldValue { scheduleRemoteSearch() } }
+    }
 
     private let table: String
     private let columns: String
     private let orderBy: String
+    private let pageSize: Int
+    /// Colonnes interrogées en `ilike` côté serveur. Vide = recherche locale
+    /// seulement.
+    private let searchColumns: [String]
     private let matches: (Item, String) -> Bool
+
+    private var searchTask: Task<Void, Never>?
 
     init(
         table: String,
         columns: String,
         orderBy: String = "created_at",
+        pageSize: Int = 200,
+        searchColumns: [String] = [],
         matches: @escaping (Item, String) -> Bool
     ) {
         self.table = table
         self.columns = columns
         self.orderBy = orderBy
+        self.pageSize = pageSize
+        self.searchColumns = searchColumns
         self.matches = matches
     }
 
@@ -44,7 +63,7 @@ final class ListStore<Item: Decodable & Identifiable & Sendable> {
                 .from(table)
                 .select(columns)
                 .order(orderBy, ascending: false)
-                .limit(200)
+                .limit(pageSize)
                 .execute()
                 .value
             errorMessage = nil
@@ -53,10 +72,69 @@ final class ListStore<Item: Decodable & Identifiable & Sendable> {
         }
     }
 
+    /// Interroge le serveur après une courte pause, pour ne pas lancer une
+    /// requête à chaque frappe.
+    private func scheduleRemoteSearch() {
+        searchTask?.cancel()
+
+        let term = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !searchColumns.isEmpty, term.count >= 2 else {
+            remoteResults = []
+            isSearchingRemotely = false
+            return
+        }
+
+        searchTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            await self?.runRemoteSearch(term)
+        }
+    }
+
+    private func runRemoteSearch(_ term: String) async {
+        isSearchingRemotely = true
+        defer { isSearchingRemotely = false }
+
+        // La virgule et les parenthèses séparent les clauses dans la syntaxe
+        // `or` de PostgREST : les laisser passer casserait la requête.
+        let safe = term
+            .replacingOccurrences(of: ",", with: " ")
+            .replacingOccurrences(of: "(", with: " ")
+            .replacingOccurrences(of: ")", with: " ")
+            .trimmingCharacters(in: .whitespaces)
+        guard !safe.isEmpty else { return }
+
+        let clause = searchColumns.map { "\($0).ilike.%\(safe)%" }.joined(separator: ",")
+
+        let found: [Item] = (try? await Backend.client
+            .from(table)
+            .select(columns)
+            .or(clause)
+            .limit(50)
+            .execute().value) ?? []
+
+        guard !Task.isCancelled, search.trimmingCharacters(in: .whitespacesAndNewlines) == term else {
+            return
+        }
+        remoteResults = found
+    }
+
     var filtered: [Item] {
         guard !search.isEmpty else { return items }
         let q = search.lowercased()
-        return items.filter { matches($0, q) }
+        let local = items.filter { matches($0, q) }
+
+        guard !remoteResults.isEmpty else { return local }
+
+        // Les résultats déjà chargés viennent d'abord, puis ceux que seule la
+        // requête serveur a ramenés — sans doublon.
+        var seen = Set(local.map(\.id))
+        var result = local
+        for item in remoteResults where !seen.contains(item.id) {
+            seen.insert(item.id)
+            result.append(item)
+        }
+        return result
     }
 }
 
