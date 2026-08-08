@@ -3,6 +3,9 @@ import SwiftUI
 // MARK: - Contrats
 
 struct ContractsView: View {
+    /// Poussé depuis « Plus » : la pile de navigation existe déjà.
+    var embedded = false
+
     @State private var store = ListStore<Contract>(
         table: "contracts",
         columns: "id, client_name, monthly_payment, status, leaser_name, contract_number, equipment_description, created_at",
@@ -19,6 +22,7 @@ struct ContractsView: View {
             searchPrompt: "Client, n° de contrat ou bailleur",
             emptyIcon: "doc.badge.clock",
             emptyLabel: "Aucun contrat",
+            wrapsNavigation: !embedded,
             store: store
         ) { contract in
             NavigationLink {
@@ -175,6 +179,9 @@ struct ClientsView: View {
 // MARK: - Catalogue
 
 struct CatalogView: View {
+    /// Poussé depuis « Plus » : la pile de navigation existe déjà.
+    var embedded = false
+
     @State private var store = ListStore<Product>(
         table: "products",
         columns: "id, name, price, monthly_price, brand_name, category_name, image_url",
@@ -192,6 +199,7 @@ struct CatalogView: View {
             searchPrompt: "Produit, marque ou catégorie",
             emptyIcon: "shippingbox",
             emptyLabel: "Aucun produit",
+            wrapsNavigation: !embedded,
             store: store
         ) { product in
             NavigationLink {
@@ -254,6 +262,9 @@ struct CatalogView: View {
 // MARK: - Facturation
 
 struct InvoicesView: View {
+    /// Poussé depuis « Plus » : la pile de navigation existe déjà.
+    var embedded = false
+
     @State private var store = ListStore<Invoice>(
         table: "invoices",
         columns: "id, amount, invoice_number, leaser_name, status, invoice_date, paid_at",
@@ -270,6 +281,7 @@ struct InvoicesView: View {
             searchPrompt: "N° de facture ou bailleur",
             emptyIcon: "eurosign.circle",
             emptyLabel: "Aucune facture",
+            wrapsNavigation: !embedded,
             store: store
         ) { invoice in
             Card {

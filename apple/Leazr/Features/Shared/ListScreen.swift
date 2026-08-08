@@ -70,12 +70,22 @@ struct ListScreen<Item: Decodable & Identifiable & Sendable, Row: View>: View {
     let emptyLabel: String
     /// Bouton « + » de la barre, quand l'écran sait créer un élément.
     var onCreate: (() -> Void)?
+    /// Faux quand l'écran est poussé depuis une pile existante : imbriquer
+    /// deux `NavigationStack` empile deux barres, donc deux flèches de retour.
+    var wrapsNavigation = true
     @Bindable var store: ListStore<Item>
     @ViewBuilder let row: (Item) -> Row
 
     var body: some View {
-        NavigationStack {
-            Group {
+        if wrapsNavigation {
+            NavigationStack { content }
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
+        Group {
                 if store.items.isEmpty && store.isLoading {
                     ProgressView().tint(Theme.mutedForeground)
                 } else if store.filtered.isEmpty {
@@ -94,23 +104,25 @@ struct ListScreen<Item: Decodable & Identifiable & Sendable, Row: View>: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Theme.background.ignoresSafeArea())
-            .navigationTitle(title)
-            .toolbar {
-                ProfileMenu()
-                if let onCreate {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(action: onCreate) {
-                            Image(systemName: "plus.circle.fill").font(.system(size: 20))
-                        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.background.ignoresSafeArea())
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(wrapsNavigation ? .large : .inline)
+        .toolbar {
+            // Le menu de profil n'a de sens qu'à la racine d'un onglet : dans
+            // une pile poussée, la place revient au bouton de retour.
+            if wrapsNavigation { ProfileMenu() }
+            if let onCreate {
+                ToolbarItem(placement: wrapsNavigation ? .topBarLeading : .topBarTrailing) {
+                    Button(action: onCreate) {
+                        Image(systemName: "plus.circle.fill").font(.system(size: 20))
                     }
                 }
             }
-            .searchable(text: $store.search, prompt: searchPrompt)
-            .refreshable { await store.load() }
-            .task { if store.items.isEmpty { await store.load() } }
         }
+        .searchable(text: $store.search, prompt: searchPrompt)
+        .refreshable { await store.load() }
+        .task { if store.items.isEmpty { await store.load() } }
     }
 
     private var emptyState: some View {

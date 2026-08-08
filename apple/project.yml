@@ -70,6 +70,21 @@ targets:
         NSPhotoLibraryUsageDescription: >-
           Leazr accède à vos photos pour joindre des documents existants à un
           dossier.
+        # Sans cette liste, `canOpenURL` répond systématiquement non et aucun
+        # softphone n'est proposé pour appeler un client.
+        LSApplicationQueriesSchemes:
+          - tel
+          - facetime-audio
+          - sip
+          - interfone
+          - cloudsoftphone
+          - groundwire
+          - acrobits
+          - zoiper
+          - linphone
+          - bria
+          - tcxcall
+          - whatsapp
 
     settings:
       base:

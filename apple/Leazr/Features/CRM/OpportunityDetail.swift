@@ -325,7 +325,7 @@ struct OpportunityDetailView: View {
                             Divider().overlay(Theme.border)
                         }
                         if let phone = client.phone, !phone.isEmpty {
-                            DetailRow(label: "Téléphone", value: phone)
+                            PhoneRow(phone: phone)
                             Divider().overlay(Theme.border)
                         }
                         if let address = client.fullAddress {

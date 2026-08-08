@@ -157,7 +157,7 @@ struct ClientDetailView: View {
                         }
                         if let phone = client.phone {
                             Divider().overlay(Theme.border)
-                            DetailRow(label: "Téléphone", value: phone)
+                            PhoneRow(phone: phone)
                         }
                         if let vat = client.vatNumber {
                             Divider().overlay(Theme.border)
@@ -363,10 +363,9 @@ struct ContactActions: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            if let phone, !phone.isEmpty,
-               let url = URL(string: "tel://\(phone.filter { !$0.isWhitespace })") {
-                ContactAction(icon: "phone.fill", label: "Appeler", tint: Theme.emerald, url: url)
-            }
+            // L'appel passe par le composeur : il respecte le softphone choisi
+            // et sait nettoyer les numéros venus des imports.
+            CallButton(phone: phone)
             if let email, !email.isEmpty, let url = URL(string: "mailto:\(email)") {
                 ContactAction(icon: "envelope.fill", label: "E-mail", tint: Theme.sky, url: url)
             }

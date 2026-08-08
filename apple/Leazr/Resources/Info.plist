@@ -22,6 +22,21 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>facetime-audio</string>
+		<string>sip</string>
+		<string>interfone</string>
+		<string>cloudsoftphone</string>
+		<string>groundwire</string>
+		<string>acrobits</string>
+		<string>zoiper</string>
+		<string>linphone</string>
+		<string>bria</string>
+		<string>tcxcall</string>
+		<string>whatsapp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Leazr utilise l'appareil photo pour prendre en photo vos documents (pièces d'identité, factures, bons de livraison) et les joindre à un dossier.</string>
 	<key>NSFaceIDUsageDescription</key>

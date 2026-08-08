@@ -26,9 +26,12 @@
 		750308946C6D605A6625F90D /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */; };
 		7A7B0842DBD1D016E09EDE67 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C10B734FD7CD6C650387A80 /* Session.swift */; };
 		7ECE2F064401FF8B5989B99D /* SupportAndSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D56372CF221DDF33B31B7F1 /* SupportAndSettings.swift */; };
+		82DB37171C02213969DBBC89 /* Dialer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE7D4ECC8A29650C37690F46 /* Dialer.swift */; };
 		8C9020ABA0FFA0D5A8CDBAB2 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA847C5B5FF2DC3208A4477 /* RootView.swift */; };
 		A33AC86D646F947ACF40063E /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17BCE13BEE2375330A930CF8 /* AuthStore.swift */; };
+		A542118233725E68A781D587 /* Scoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8F515CE7EB29AB05A29821 /* Scoring.swift */; };
 		AE5C45B19416BA85E3535204 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D8B0AAEA1A81CEA2A37BAB /* Theme.swift */; };
+		BD9960D641332B47DF707869 /* OfferStatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 456FDA78B4D2BE7010551F3F /* OfferStatusService.swift */; };
 		C3ABCA156C953EDF405BC2C6 /* LeazrApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F4B5CF4B4FFA52FF1EA431 /* LeazrApp.swift */; };
 		C9AD6A6A1019107FFD741665 /* ListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98C64CD5582E4AA491D10EA /* ListScreen.swift */; };
 		D065B1E1A3BE61E88E2A79AE /* EquipmentList.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE13001A8EFD293047757156 /* EquipmentList.swift */; };
@@ -53,6 +56,7 @@
 		31F4B5CF4B4FFA52FF1EA431 /* LeazrApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeazrApp.swift; sourceTree = "<group>"; };
 		3C10B734FD7CD6C650387A80 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		401375ED2CC7D6B1B2A74076 /* OpportunityDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpportunityDetail.swift; sourceTree = "<group>"; };
+		456FDA78B4D2BE7010551F3F /* OfferStatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferStatusService.swift; sourceTree = "<group>"; };
 		46380AF088DAB40EFBECE741 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		4D56372CF221DDF33B31B7F1 /* SupportAndSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportAndSettings.swift; sourceTree = "<group>"; };
 		7F553EE778580553E436235E /* CreateOfferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateOfferView.swift; sourceTree = "<group>"; };
@@ -64,8 +68,10 @@
 		A5FC880A0231FA91C406E378 /* DetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViews.swift; sourceTree = "<group>"; };
 		A8B6C1BB3AF15E59220DF0DD /* OfferDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferDetail.swift; sourceTree = "<group>"; };
 		A98C64CD5582E4AA491D10EA /* ListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListScreen.swift; sourceTree = "<group>"; };
+		AD8F515CE7EB29AB05A29821 /* Scoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scoring.swift; sourceTree = "<group>"; };
 		B811C6D6A41E89C157EFA6B3 /* DocumentRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentRequest.swift; sourceTree = "<group>"; };
 		BE13001A8EFD293047757156 /* EquipmentList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EquipmentList.swift; sourceTree = "<group>"; };
+		BE7D4ECC8A29650C37690F46 /* Dialer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dialer.swift; sourceTree = "<group>"; };
 		C0DF05D95A9EBA8860D8DBB8 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		C413154B612BEFD0ECD6DB93 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
@@ -181,6 +187,7 @@
 				A8B6C1BB3AF15E59220DF0DD /* OfferDetail.swift */,
 				1723DCC3D2E4252542E22513 /* OffersView.swift */,
 				105156D405D7D398B8B39455 /* ProductPicker.swift */,
+				AD8F515CE7EB29AB05A29821 /* Scoring.swift */,
 				CEDB5BB98190D6391D5AB23A /* Signature.swift */,
 			);
 			path = Offers;
@@ -209,9 +216,11 @@
 				17BCE13BEE2375330A930CF8 /* AuthStore.swift */,
 				2F0E4EC1AED84EE49AB3DC76 /* BiometricService.swift */,
 				96D15EBD961EA597E938A907 /* CRMModels.swift */,
+				BE7D4ECC8A29650C37690F46 /* Dialer.swift */,
 				C75FCBA0CBC37D0284A69DA9 /* Keychain.swift */,
 				86E841052BF0F6EE02165321 /* Models.swift */,
 				D3CE2FB7818B397D8EDB0D33 /* OfferStatus.swift */,
+				456FDA78B4D2BE7010551F3F /* OfferStatusService.swift */,
 				3C10B734FD7CD6C650387A80 /* Session.swift */,
 				A4FDDD8B5CC41B5F71E94EA7 /* Supabase.swift */,
 			);
@@ -320,6 +329,7 @@
 				2E42B2A6C447ECA575E5ECBB /* CreateOfferView.swift in Sources */,
 				21068A2F2B259426AE801A2E /* DashboardView.swift in Sources */,
 				3B0D25F6A60FB88C1CE036CC /* DetailViews.swift in Sources */,
+				82DB37171C02213969DBBC89 /* Dialer.swift in Sources */,
 				EC2B844B36E843B0531A1D2C /* DocumentRequest.swift in Sources */,
 				D065B1E1A3BE61E88E2A79AE /* EquipmentList.swift in Sources */,
 				750308946C6D605A6625F90D /* Keychain.swift in Sources */,
@@ -332,11 +342,13 @@
 				F2307108469EAAD275D30E8F /* Modules.swift in Sources */,
 				38EA40CB51C96BA7037C8A36 /* OfferDetail.swift in Sources */,
 				34D82777B77C9FAA834B039D /* OfferStatus.swift in Sources */,
+				BD9960D641332B47DF707869 /* OfferStatusService.swift in Sources */,
 				452B92E5393CDB26EFA738C5 /* OffersView.swift in Sources */,
 				36FFE58ABA95142C4E8026A4 /* OpportunityDetail.swift in Sources */,
 				5262425100583249DB10A055 /* OpportunityForm.swift in Sources */,
 				5257A9665D0C341867E3F43F /* ProductPicker.swift in Sources */,
 				8C9020ABA0FFA0D5A8CDBAB2 /* RootView.swift in Sources */,
+				A542118233725E68A781D587 /* Scoring.swift in Sources */,
 				7A7B0842DBD1D016E09EDE67 /* Session.swift in Sources */,
 				32BBDAF7B0EDB599170F850A /* Signature.swift in Sources */,
 				686AA662811EE4338AEB95EE /* Supabase.swift in Sources */,

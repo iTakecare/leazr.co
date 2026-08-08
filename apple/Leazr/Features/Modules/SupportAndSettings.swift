@@ -6,6 +6,9 @@ import Supabase
 // MARK: - Centre de support
 
 struct SupportView: View {
+    /// Poussé depuis « Plus » : la pile de navigation existe déjà.
+    var embedded = false
+
     @State private var store = ListStore<SupportTicket>(
         table: "support_tickets",
         columns: "id, subject, status, priority, category, created_at",
@@ -21,6 +24,7 @@ struct SupportView: View {
             searchPrompt: "Objet ou catégorie",
             emptyIcon: "lifepreserver",
             emptyLabel: "Aucun ticket",
+            wrapsNavigation: !embedded,
             store: store
         ) { ticket in
             Card {
@@ -87,12 +91,20 @@ struct PriorityChip: View {
 // MARK: - Réglages
 
 struct SettingsView: View {
+    /// Poussé depuis « Plus » : la pile de navigation existe déjà.
+    var embedded = false
+
     @Environment(AuthStore.self) private var auth
     @State private var companyId: String?
+    /// Miroir local du choix, pour que la ligne se rafraîchisse à la sélection.
+    @State private var preferredDialer: String? = Dialer.preferred?.id
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        if embedded { content } else { NavigationStack { content } }
+    }
+
+    private var content: some View {
+        ScrollView {
                 VStack(spacing: 16) {
                     accountCard
 
@@ -108,6 +120,32 @@ struct SettingsView: View {
                                     Task { _ = await auth.enableBiometrics() }
                                 }
                             }
+                        }
+                    }
+
+                    // Les appels professionnels passent par le softphone de
+                    // l'entreprise, pas par l'app Téléphone : le choix doit
+                    // être réglable, et révocable.
+                    SettingsSection(title: "Appels") {
+                        Menu {
+                            ForEach(Dialer.available) { app in
+                                Button(app.name) { preferredDialer = app.id; Dialer.preferred = app }
+                            }
+                            if preferredDialer != nil {
+                                Divider()
+                                Button("Demander à chaque appel", role: .destructive) {
+                                    preferredDialer = nil
+                                    Dialer.preferred = nil
+                                }
+                            }
+                        } label: {
+                            SettingsRowContent(
+                                icon: "phone.arrow.up.right.fill",
+                                tint: Theme.emerald,
+                                title: "Application d'appel",
+                                value: Dialer.available.first { $0.id == preferredDialer }?.name
+                                    ?? "Demander"
+                            )
                         }
                     }
 
@@ -146,10 +184,10 @@ struct SettingsView: View {
                 .frame(maxWidth: 700)
                 .frame(maxWidth: .infinity)
             }
-            .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Réglages")
-            .task { companyId = await Session.shared.resolve() }
-        }
+        .background(Theme.background.ignoresSafeArea())
+        .navigationTitle("Réglages")
+        .navigationBarTitleDisplayMode(embedded ? .inline : .large)
+        .task { companyId = await Session.shared.resolve() }
     }
 
     private var accountCard: some View {
@@ -211,31 +249,48 @@ struct SettingsRow: View {
         Button {
             action?()
         } label: {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 30, height: 30)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous).fill(tint)
-                    )
-
-                Text(title)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Theme.foreground)
-
-                Spacer()
-
-                if let value {
-                    Text(value)
-                        .font(.system(size: 15))
-                        .foregroundStyle(Theme.mutedForeground)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 13)
+            SettingsRowContent(icon: icon, tint: tint, title: title, value: value)
         }
         .buttonStyle(PressableStyle())
         .disabled(action == nil)
+    }
+}
+
+/// Contenu seul, sans bouton : nécessaire pour servir d'étiquette à un `Menu`,
+/// qu'un bouton désactivé empêcherait d'ouvrir.
+struct SettingsRowContent: View {
+    let icon: String
+    let tint: Color
+    let title: String
+    var value: String?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous).fill(tint)
+                )
+
+            Text(title)
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.foreground)
+
+            Spacer()
+
+            if let value {
+                Text(value)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.mutedForeground)
+            }
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Theme.mutedForeground)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
     }
 }
