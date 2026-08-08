@@ -168,7 +168,7 @@ struct CRMView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         .background(Theme.background.ignoresSafeArea())
-        .navigationTitle("CRM")
+        .navigationTitle("Opportunités")
         .navigationBarTitleDisplayMode(embedded ? .inline : .large)
         .toolbar {
             if !embedded { ProfileMenu() }

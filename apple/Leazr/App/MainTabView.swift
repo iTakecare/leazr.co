@@ -11,7 +11,7 @@ struct MainTabView: View {
     @State private var selection: Tab = .dashboard
 
     enum Tab: Hashable {
-        case dashboard, offers, clients, more
+        case dashboard, clients, offers, contracts, more
     }
 
     var body: some View {
@@ -20,13 +20,18 @@ struct MainTabView: View {
                 .tabItem { Label("Accueil", systemImage: "square.grid.2x2.fill") }
                 .tag(Tab.dashboard)
 
+            // Le CRM du web, c'est la fiche client : les deux ne font qu'un.
+            ClientsView()
+                .tabItem { Label("Clients", systemImage: "person.2.fill") }
+                .tag(Tab.clients)
+
             OffersView()
                 .tabItem { Label("Demandes", systemImage: "doc.text.fill") }
                 .tag(Tab.offers)
 
-            ClientsView()
-                .tabItem { Label("Clients", systemImage: "person.2.fill") }
-                .tag(Tab.clients)
+            ContractsView()
+                .tabItem { Label("Contrats", systemImage: "signature") }
+                .tag(Tab.contracts)
 
             MoreView()
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
@@ -54,8 +59,8 @@ struct MoreView: View {
     private var entries: [Entry] {
         [
             Entry(
-                id: "crm",
-                title: "CRM",
+                id: "opportunities",
+                title: "Opportunités",
                 subtitle: "Pipeline commercial et affaires",
                 icon: "chart.line.uptrend.xyaxis",
                 tint: Theme.primary,
